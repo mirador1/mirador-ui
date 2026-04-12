@@ -1,42 +1,248 @@
 <section>
-  <h2>Customers</h2>
+  <div class="page-header">
+    <h2>Customers</h2>
+    <p class="subtitle">Manage customers — demonstrates POST, paginated GET, Kafka, LLM, Redis</p>
+  </div>
 
-  <p *ngIf="error" class="error">{{ error }}</p>
+  @if (!auth.isAuthenticated()) {
+    <div class="alert-warn">
+      Please <a routerLink="/login">sign in</a> to access this feature.
+    </div>
+  } @else {
 
-  <div class="grid">
-    <article class="card">
-      <h3>Create customer</h3>
+  <!-- Controls bar -->
+  <div class="controls-bar">
+    <div class="control-group">
+      <span class="label">API Version</span>
+      <div class="toggle-btns">
+        <button [class.active]="apiVersion() === '1.0'" (click)="setVersion('1.0')">v1.0</button>
+        <button [class.active]="apiVersion() === '2.0'" (click)="setVersion('2.0')">v2.0 <small>+createdAt</small></button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="label">View</span>
+      <div class="toggle-btns">
+        <button [class.active]="!summaryMode()" (click)="toggleSummaryMode()">Full</button>
+        <button [class.active]="summaryMode()" (click)="toggleSummaryMode()">Summary <small>id+name</small></button>
+      </div>
+    </div>
+    <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
+    <button class="action-btn" (click)="loadRecent()">📦 Recent (Redis)</button>
+    <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
+      ⚡ {{ aggregateLoading() ? 'Running…' : 'Aggregate (Virtual Threads)' }}
+    </button>
+  </div>
+
+  @if (listError()) {
+    <div class="alert-error">⚠ {{ listError() }}</div>
+  }
+
+  <!-- Create + List layout -->
+  <div class="main-layout">
+
+    <!-- Create form -->
+    <article class="card create-card">
+      <h3>Create Customer</h3>
 
       <label>
-        First name
-        <input [(ngModel)]="model.firstName" />
+        Name
+        <input [(ngModel)]="newName" placeholder="Alice Martin" />
       </label>
-
-      <label>
-        Last name
-        <input [(ngModel)]="model.lastName" />
-      </label>
-
       <label>
         Email
-        <input [(ngModel)]="model.email" />
+        <input [(ngModel)]="newEmail" type="email" placeholder="alice@example.com" />
       </label>
 
-      <button type="button" (click)="submit()">Create</button>
+      <div class="idem-row">
+        <label class="idem-label">
+          <input type="checkbox" [ngModel]="useIdempotencyKey()" (ngModelChange)="useIdempotencyKey.set($event)" />
+          Idempotency-Key
+        </label>
+        @if (useIdempotencyKey()) {
+          <code class="idem-key">{{ idempotencyKey() }}</code>
+          <button class="sm-btn" (click)="resetIdempotencyKey()">New key</button>
+        }
+      </div>
+
+      <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
+        {{ createLoading() ? 'Creating…' : '+ Create' }}
+      </button>
+
+      @if (createError()) {
+        <p class="error-text">{{ createError() }}</p>
+      }
+      @if (createSuccess()) {
+        <div class="success-box">
+          Created → ID {{ createSuccess()!.id }}: <strong>{{ createSuccess()!.name }}</strong>
+        </div>
+      }
     </article>
 
-    <article class="card">
-      <h3>Customer list</h3>
+    <!-- Customer list -->
+    <article class="card list-card">
+      <div class="list-header">
+        <h3>
+          @if (summaryMode()) { Summary } @else { Customer List }
+          @if (!summaryMode() && customers()) {
+            <small>({{ customers()!.totalElements }} total · page {{ currentPage() + 1 }}/{{ totalPages() }})</small>
+          }
+          @if (summaryMode() && summaries()) {
+            <small>({{ summaries()!.totalElements }} total)</small>
+          }
+        </h3>
+        <div class="page-btns">
+          <button class="sm-btn" (click)="prevPage()" [disabled]="currentPage() === 0">‹</button>
+          <button class="sm-btn" (click)="nextPage()" [disabled]="currentPage() >= totalPages() - 1">›</button>
+        </div>
+      </div>
 
-      <ul *ngIf="customers.length; else empty">
-        <li *ngFor="let customer of customers">
-          {{ customer.firstName }} {{ customer.lastName }} — {{ customer.email }}
-        </li>
-      </ul>
-
-      <ng-template #empty>
-        <p>No customers loaded.</p>
-      </ng-template>
+      @if (listLoading()) {
+        <p class="muted">Loading…</p>
+      } @else if (summaryMode()) {
+        <!-- Summary mode -->
+        @if (summaries()?.content?.length) {
+          <table>
+            <thead><tr><th>ID</th><th>Name</th></tr></thead>
+            <tbody>
+              @for (s of summaries()!.content; track s.id) {
+                <tr><td>{{ s.id }}</td><td>{{ s.name }}</td></tr>
+              }
+            </tbody>
+          </table>
+          <p class="version-note">GET /customers/summary — projection: SELECT id, name only</p>
+        } @else {
+          <p class="muted">No data.</p>
+        }
+      } @else {
+        <!-- Full mode -->
+        @if (customers()?.content?.length) {
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Name</th><th>Email</th>
+                @if (apiVersion() === '2.0') { <th>Created at</th> }
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of customers()!.content; track c.id) {
+                <tr [class.selected-row]="selectedCustomer()?.id === c.id">
+                  <td>{{ c.id }}</td>
+                  <td>{{ c.name }}</td>
+                  <td>{{ c.email }}</td>
+                  @if (apiVersion() === '2.0') {
+                    <td>{{ c.createdAt | date:'short' }}</td>
+                  }
+                  <td class="actions-cell">
+                    <button class="tag-btn bio" (click)="selectCustomer(c, 'bio')">Bio</button>
+                    <button class="tag-btn todos" (click)="selectCustomer(c, 'todos')">Todos</button>
+                    <button class="tag-btn enrich" (click)="selectCustomer(c, 'enrich')">Enrich</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (apiVersion() === '2.0') {
+            <p class="version-note">v2.0 — X-API-Version: 2.0 · <code>createdAt</code> field included</p>
+          } @else {
+            <p class="version-note">v1.0 — X-API-Version: 1.0 · no <code>createdAt</code> field</p>
+          }
+        } @else {
+          <p class="muted">No customers yet. Create one.</p>
+        }
+      }
     </article>
   </div>
+
+  <!-- Customer detail panel -->
+  @if (selectedCustomer()) {
+    <article class="card detail-card">
+      <div class="detail-header">
+        <h3>
+          Customer #{{ selectedCustomer()!.id }} —
+          <strong>{{ selectedCustomer()!.name }}</strong>
+          <small>{{ selectedCustomer()!.email }}</small>
+        </h3>
+        <button class="sm-btn" (click)="closeDetail()">✕ Close</button>
+      </div>
+
+      <div class="tabs">
+        <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
+          🤖 AI Bio <small>Ollama / llama3.2</small>
+        </button>
+        <button [class.tab-active]="activeTab() === 'todos'" (click)="switchTab('todos')">
+          ✅ Todos <small>JSONPlaceholder</small>
+        </button>
+        <button [class.tab-active]="activeTab() === 'enrich'" (click)="switchTab('enrich')">
+          📨 Enrich <small>Kafka request-reply</small>
+        </button>
+      </div>
+
+      @if (detailLoading()) {
+        <p class="muted">Calling backend…</p>
+      }
+      @if (detailError()) {
+        <p class="error-text">{{ detailError() }}</p>
+      }
+
+      @if (activeTab() === 'bio' && bio()) {
+        <div class="detail-body">
+          <p class="detail-label">GET /customers/{{ selectedCustomer()!.id }}/bio → Ollama (llama3.2 with circuit breaker)</p>
+          <blockquote>{{ bio() }}</blockquote>
+        </div>
+      }
+
+      @if (activeTab() === 'todos' && todos()) {
+        <div class="detail-body">
+          <p class="detail-label">GET /customers/{{ selectedCustomer()!.id }}/todos → jsonplaceholder.typicode.com (resilience4j fallback)</p>
+          <ul class="todos-list">
+            @for (t of todos()!.slice(0, 8); track t.id) {
+              <li [class.done]="t.completed">
+                <span class="todo-check">{{ t.completed ? '✓' : '○' }}</span>
+                {{ t.title }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (activeTab() === 'enrich' && enriched()) {
+        <div class="detail-body">
+          <p class="detail-label">GET /customers/{{ selectedCustomer()!.id }}/enrich → Kafka customer.request → customer.reply (5 s timeout)</p>
+          <pre>{{ enriched() | json }}</pre>
+        </div>
+      }
+    </article>
+  }
+
+  <!-- Recent customers (Redis) -->
+  @if (recent()) {
+    <article class="card">
+      <h3>Recent Customers <small>Redis ring buffer · GET /customers/recent</small></h3>
+      @if (recent()!.length) {
+        <ul class="recent-list">
+          @for (c of recent()!; track c.id) {
+            <li><strong>{{ c.name }}</strong> <span class="muted">— {{ c.email }}</span></li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">Buffer empty — create some customers first.</p>
+      }
+    </article>
+  }
+
+  <!-- Aggregate result (virtual threads) -->
+  @if (aggregate() || aggregateError()) {
+    <article class="card">
+      <h3>Aggregate Result <small>Virtual threads · GET /customers/aggregate</small></h3>
+      @if (aggregateError()) {
+        <p class="success-note">{{ aggregateError() }}</p>
+      }
+      @if (aggregate()) {
+        <pre>{{ aggregate() | json }}</pre>
+      }
+    </article>
+  }
+
+  } <!-- end @if auth -->
 </section>

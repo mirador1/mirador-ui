@@ -14,29 +14,62 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: #dde6ef;
-  border-bottom: 1px solid #c8d4e0;
+  padding: 0.875rem 1.5rem;
+  background: #1e3a5f;
+  border-bottom: 1px solid #15294a;
+  color: white;
 }
 
 .topbar h1 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  color: #e2eaf5;
+  white-space: nowrap;
 }
 
 .topbar nav {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .topbar a {
   text-decoration: none;
-  color: #334155;
+  color: #93b4d8;
   font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.topbar a:hover {
+  color: #dbeafe;
 }
 
 .topbar a.active {
-  color: #0f172a;
+  color: white;
+  border-bottom: 2px solid #60a5fa;
+  padding-bottom: 2px;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid #4a6a8a;
+  border-radius: 4px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #93b4d8;
+
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
+}
+
+.login-link {
+  text-decoration: none;
+  color: #60a5fa;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .content {

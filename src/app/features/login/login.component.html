@@ -1,0 +1,23 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <h2>Sign in</h2>
+    <p class="hint">Default credentials: <code>admin / admin</code></p>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <label>
+      Username
+      <input [(ngModel)]="username" type="text" autocomplete="username" />
+    </label>
+    <label>
+      Password
+      <input [(ngModel)]="password" type="password" autocomplete="current-password" />
+    </label>
+
+    <button (click)="submit()" [disabled]="loading()">
+      {{ loading() ? 'Signing in…' : 'Sign in' }}
+    </button>
+  </div>
+</div>

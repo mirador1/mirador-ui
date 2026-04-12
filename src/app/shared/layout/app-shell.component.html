@@ -1,11 +1,17 @@
 <div class="shell">
   <header class="topbar">
     <h1>Customer Observability UI</h1>
-    <nav>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
-      <a routerLink="/customers" routerLinkActive="active">Customers</a>
-      <a routerLink="/diagnostic" routerLinkActive="active">Diagnostic</a>
-    </nav>
+
+    @if (auth.isAuthenticated()) {
+      <nav>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+        <a routerLink="/customers" routerLinkActive="active">Customers</a>
+        <a routerLink="/diagnostic" routerLinkActive="active">Diagnostic</a>
+      </nav>
+      <button class="logout-btn" (click)="logout()">Sign out</button>
+    } @else {
+      <a routerLink="/login" class="login-link">Sign in</a>
+    }
   </header>
 
   <main class="content">

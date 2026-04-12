@@ -1,10 +1,152 @@
 <section>
-  <h2>Diagnostic</h2>
-  <p>Scénarios backend mis en avant par l'IHM.</p>
+  <div class="page-header">
+    <h2>Diagnostic</h2>
+    <p class="subtitle">Interactive backend scenarios — observability, resilience, messaging</p>
+  </div>
 
+  @if (!auth.isAuthenticated()) {
+    <div class="alert-warn">
+      Please <a routerLink="/login">sign in</a> to run diagnostics (most endpoints require auth).
+    </div>
+  }
+
+  <!-- ── 1. API Versioning ─────────────────────────────────────────────── -->
   <article class="card">
-    <ul>
-      <li *ngFor="let scenario of scenarios">{{ scenario }}</li>
-    </ul>
+    <div class="scenario-header">
+      <div class="scenario-badge version">Version</div>
+      <div>
+        <h3>API Versioning — v1.0 vs v2.0</h3>
+        <p>
+          The backend uses an <code>X-API-Version</code> header to switch between API versions.
+          v1.0 returns <code>&#123;id, name, email&#125;</code>; v2.0 adds <code>createdAt</code>.
+        </p>
+      </div>
+    </div>
+    <button class="run-btn" (click)="runVersionComparison()" [disabled]="versionRunning()">
+      {{ versionRunning() ? 'Running…' : '▶ Compare v1 vs v2' }}
+    </button>
+    @if (versionLog().length) {
+      <div class="log-panel">
+        @for (line of versionLog(); track $index) {
+          <div class="log-line log-{{ line.kind }}">{{ line.text }}</div>
+        }
+      </div>
+    }
+  </article>
+
+  <!-- ── 2. Idempotency ────────────────────────────────────────────────── -->
+  <article class="card">
+    <div class="scenario-header">
+      <div class="scenario-badge idem">Idem</div>
+      <div>
+        <h3>Idempotency — POST /customers with same key</h3>
+        <p>
+          Sends the same <code>POST /customers</code> twice with identical <code>Idempotency-Key</code>.
+          The backend uses a bounded LRU cache (10k entries) — the second call returns the cached
+          response without creating a duplicate.
+        </p>
+      </div>
+    </div>
+    <div class="key-row">
+      <code class="idem-key">{{ idemKey() }}</code>
+      <button class="sm-btn" (click)="resetIdemKey()">New key</button>
+    </div>
+    <button class="run-btn" (click)="runIdempotency()" [disabled]="idemRunning()">
+      {{ idemRunning() ? 'Running…' : '▶ Send twice with same key' }}
+    </button>
+    @if (idemLog().length) {
+      <div class="log-panel">
+        @for (line of idemLog(); track $index) {
+          <div class="log-line log-{{ line.kind }}">{{ line.text }}</div>
+        }
+      </div>
+    }
+  </article>
+
+  <!-- ── 3. Rate Limiting ──────────────────────────────────────────────── -->
+  <article class="card">
+    <div class="scenario-header">
+      <div class="scenario-badge rate">Rate</div>
+      <div>
+        <h3>Rate Limiting — Bucket4j 100 req/min</h3>
+        <p>
+          Fires several concurrent <code>GET /customers</code> requests simultaneously.
+          The backend enforces 100 req/min per source IP via <code>RateLimitingFilter</code>.
+          Excess requests return <code>429 Too Many Requests</code> with a <code>Retry-After</code> header.
+        </p>
+      </div>
+    </div>
+    <div class="count-row">
+      <label>
+        Number of requests
+        <input type="number" [(ngModel)]="rateLimitCount" min="2" max="20" />
+      </label>
+    </div>
+    <button class="run-btn" (click)="runRateLimit()" [disabled]="rateLimitRunning()">
+      {{ rateLimitRunning() ? 'Running…' : '▶ Fire requests' }}
+    </button>
+    @if (rateLimitLog().length) {
+      <div class="log-panel">
+        @for (line of rateLimitLog(); track $index) {
+          <div class="log-line log-{{ line.kind }}">{{ line.text }}</div>
+        }
+      </div>
+    }
+  </article>
+
+  <!-- ── 4. Kafka Enrich ───────────────────────────────────────────────── -->
+  <article class="card">
+    <div class="scenario-header">
+      <div class="scenario-badge kafka">Kafka</div>
+      <div>
+        <h3>Kafka Request-Reply — /customers/&#123;id&#125;/enrich</h3>
+        <p>
+          Triggers a synchronous Kafka round-trip: backend publishes to
+          <code>customer.request</code>, a consumer enriches the data and replies on
+          <code>customer.reply</code> (5 s timeout → 504 if Kafka is not running).
+        </p>
+      </div>
+    </div>
+    <div class="count-row">
+      <label>
+        Customer ID
+        <input type="number" [ngModel]="enrichCustomerId()" (ngModelChange)="enrichCustomerId.set($event)" min="1" />
+      </label>
+    </div>
+    <button class="run-btn" (click)="runEnrich()" [disabled]="enrichRunning()">
+      {{ enrichRunning() ? 'Waiting for Kafka reply…' : '▶ Enrich customer' }}
+    </button>
+    @if (enrichLog().length) {
+      <div class="log-panel">
+        @for (line of enrichLog(); track $index) {
+          <div class="log-line log-{{ line.kind }}">{{ line.text }}</div>
+        }
+      </div>
+    }
+  </article>
+
+  <!-- ── 5. Aggregate (Virtual Threads) ───────────────────────────────── -->
+  <article class="card">
+    <div class="scenario-header">
+      <div class="scenario-badge vt">VT</div>
+      <div>
+        <h3>Virtual Threads — /customers/aggregate</h3>
+        <p>
+          Calls <code>GET /customers/aggregate</code> which uses Java virtual threads to run
+          two tasks in parallel: fetch customer list + compute stats. Observe the response
+          time in the log.
+        </p>
+      </div>
+    </div>
+    <button class="run-btn" (click)="runAggregate()" [disabled]="aggregateRunning()">
+      {{ aggregateRunning() ? 'Running parallel tasks…' : '▶ Run aggregate' }}
+    </button>
+    @if (aggregateLog().length) {
+      <div class="log-panel">
+        @for (line of aggregateLog(); track $index) {
+          <div class="log-line log-{{ line.kind }}">{{ line.text }}</div>
+        }
+      </div>
+    }
   </article>
 </section>

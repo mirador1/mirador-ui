@@ -1,23 +1,64 @@
 <section>
-  <h2>Dashboard</h2>
-  <p>Vue simple de l'état du backend.</p>
+  <div class="page-header">
+    <div>
+      <h2>Dashboard</h2>
+      <p class="subtitle">Backend health overview — <strong>localhost:8080</strong></p>
+    </div>
+    <div class="header-actions">
+      @if (lastRefresh()) {
+        <span class="ts">Refreshed at {{ lastRefresh() | date:'HH:mm:ss' }}</span>
+      }
+      <button (click)="refresh()">↻ Refresh</button>
+    </div>
+  </div>
 
-  <p *ngIf="error" class="error">{{ error }}</p>
+  @if (error()) {
+    <div class="alert-error">
+      ⚠ {{ error() }} — start the backend or run <code>docker compose up</code>
+    </div>
+  }
 
-  <div class="grid">
+  <h3>Health Probes</h3>
+  <div class="probes-grid">
     <article class="card">
-      <h3>Health</h3>
-      <pre>{{ health | json }}</pre>
+      <div class="card-title">
+        <span class="badge" [class]="statusClass(health())">{{ statusLabel(health()) }}</span>
+        <strong>Health</strong>
+        <small>/actuator/health</small>
+      </div>
+      <pre>{{ health() | json }}</pre>
     </article>
 
     <article class="card">
-      <h3>Readiness</h3>
-      <pre>{{ readiness | json }}</pre>
+      <div class="card-title">
+        <span class="badge" [class]="statusClass(readiness())">{{ statusLabel(readiness()) }}</span>
+        <strong>Readiness</strong>
+        <small>/actuator/health/readiness</small>
+      </div>
+      <pre>{{ readiness() | json }}</pre>
     </article>
 
     <article class="card">
-      <h3>Liveness</h3>
-      <pre>{{ liveness | json }}</pre>
+      <div class="card-title">
+        <span class="badge" [class]="statusClass(liveness())">{{ statusLabel(liveness()) }}</span>
+        <strong>Liveness</strong>
+        <small>/actuator/health/liveness</small>
+      </div>
+      <pre>{{ liveness() | json }}</pre>
     </article>
+  </div>
+
+  <h3>Observability Stack</h3>
+  <div class="links-grid">
+    @for (link of links; track link.label) {
+      <a [href]="link.url" target="_blank" rel="noopener" class="obs-card">
+        <span class="obs-icon">{{ link.icon }}</span>
+        <div class="obs-text">
+          <strong>{{ link.label }}</strong>
+          <small>{{ link.sub }}</small>
+        </div>
+        <span class="ext-icon">↗</span>
+      </a>
+    }
   </div>
 </section>
