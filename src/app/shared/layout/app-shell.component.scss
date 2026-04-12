@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+.shell {
+  min-height: 100vh;
+  background: #f3f6fa;
+  color: #1f2937;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #dde6ef;
+  border-bottom: 1px solid #c8d4e0;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.topbar a {
+  text-decoration: none;
+  color: #334155;
+  font-weight: 600;
+}
+
+.topbar a.active {
+  color: #0f172a;
+}
+
+.content {
+  padding: 1.5rem;
+}

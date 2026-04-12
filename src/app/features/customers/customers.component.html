@@ -1,0 +1,42 @@
+<section>
+  <h2>Customers</h2>
+
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <div class="grid">
+    <article class="card">
+      <h3>Create customer</h3>
+
+      <label>
+        First name
+        <input [(ngModel)]="model.firstName" />
+      </label>
+
+      <label>
+        Last name
+        <input [(ngModel)]="model.lastName" />
+      </label>
+
+      <label>
+        Email
+        <input [(ngModel)]="model.email" />
+      </label>
+
+      <button type="button" (click)="submit()">Create</button>
+    </article>
+
+    <article class="card">
+      <h3>Customer list</h3>
+
+      <ul *ngIf="customers.length; else empty">
+        <li *ngFor="let customer of customers">
+          {{ customer.firstName }} {{ customer.lastName }} — {{ customer.email }}
+        </li>
+      </ul>
+
+      <ng-template #empty>
+        <p>No customers loaded.</p>
+      </ng-template>
+    </article>
+  </div>
+</section>

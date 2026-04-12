@@ -1,0 +1,23 @@
+<section>
+  <h2>Dashboard</h2>
+  <p>Vue simple de l'état du backend.</p>
+
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <div class="grid">
+    <article class="card">
+      <h3>Health</h3>
+      <pre>{{ health | json }}</pre>
+    </article>
+
+    <article class="card">
+      <h3>Readiness</h3>
+      <pre>{{ readiness | json }}</pre>
+    </article>
+
+    <article class="card">
+      <h3>Liveness</h3>
+      <pre>{{ liveness | json }}</pre>
+    </article>
+  </div>
+</section>

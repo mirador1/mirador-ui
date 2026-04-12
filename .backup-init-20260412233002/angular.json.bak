@@ -8,11 +8,7 @@
   "projects": {
     "customer-observability-ui": {
       "projectType": "application",
-      "schematics": {
-        "@schematics/angular:component": {
-          "style": "scss"
-        }
-      },
+      "schematics": {},
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -29,7 +25,7 @@
               }
             ],
             "styles": [
-              "src/stylesscss"
+              "src/styles.css"
             ]
           },
           "configurations": {
