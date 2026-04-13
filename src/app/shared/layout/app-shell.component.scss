@@ -9,6 +9,7 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
+// ── Topbar ──────────────────────────────────────────────────────────────────
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -20,6 +21,28 @@
   color: white;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hamburger {
+  display: none;
+  background: transparent;
+  border: 1px solid #4a6a8a;
+  border-radius: 4px;
+  color: #93b4d8;
+  font-size: 1.1rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover { background: #15294a; color: white; }
+
+  @media (max-width: 768px) { display: block; }
+}
+
 .topbar h1 {
   margin: 0;
   font-size: 1.1rem;
@@ -27,9 +50,11 @@
   white-space: nowrap;
 }
 
-.topbar nav {
+.desktop-nav {
   display: flex;
   gap: 1.25rem;
+
+  @media (max-width: 768px) { display: none; }
 }
 
 .topbar a {
@@ -40,9 +65,7 @@
   transition: color 0.15s;
 }
 
-.topbar a:hover {
-  color: #dbeafe;
-}
+.topbar a:hover { color: #dbeafe; }
 
 .topbar a.active {
   color: white;
@@ -54,12 +77,63 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+
+  @media (max-width: 768px) {
+    .env-selector, .logout-btn { display: none; }
+  }
+}
+
+// ── Mobile nav ──────────────────────────────────────────────────────────────
+.mobile-nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+}
+
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--bg-card);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
+  z-index: 201;
+
+  a {
+    display: block;
+    padding: 0.65rem 0.85rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 6px;
+
+    &:hover { background: var(--bg-card-hover); }
+  }
+}
+
+.mobile-logout {
+  margin-top: 1rem;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  color: var(--text-error);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: left;
+
+  &:hover { background: var(--bg-error); }
 }
 
 // ── Environment selector ────────────────────────────────────────────────────
-.env-selector {
-  position: relative;
-}
+.env-selector { position: relative; }
 
 .env-btn {
   display: flex;
@@ -77,53 +151,30 @@
 }
 
 .env-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4ade80;
+  width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
 }
 
 .env-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 220px;
-  z-index: 100;
-  overflow: hidden;
+  position: absolute; right: 0; top: calc(100% + 4px);
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 220px; z-index: 100; overflow: hidden;
 }
 
 .env-option {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  width: 100%;
-  padding: 0.55rem 0.85rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  color: var(--text-primary);
-  font-size: 0.85rem;
+  display: flex; flex-direction: column; gap: 0.1rem; width: 100%;
+  padding: 0.55rem 0.85rem; background: transparent; border: none;
+  cursor: pointer; text-align: left; color: var(--text-primary); font-size: 0.85rem;
 
-  small {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    font-family: monospace;
-  }
-
+  small { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; }
   &:hover { background: var(--bg-card-hover); }
-
   &.env-active {
     background: var(--color-accent-light);
     strong { color: var(--color-accent); }
   }
 }
 
-// ── Theme toggle ────────────────────────────────────────────────────────────
+// ── Theme & help buttons ────────────────────────────────────────────────────
 .theme-btn {
   background: transparent;
   border: 1px solid #4a6a8a;
@@ -132,8 +183,9 @@
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
+  color: #93b4d8;
 
-  &:hover { background: #15294a; }
+  &:hover { background: #15294a; color: white; }
 }
 
 .logout-btn {
@@ -145,10 +197,7 @@
   font-size: 0.85rem;
   color: #93b4d8;
 
-  &:hover {
-    background: #15294a;
-    color: white;
-  }
+  &:hover { background: #15294a; color: white; }
 }
 
 .login-link {
@@ -160,4 +209,124 @@
 
 .content {
   padding: 1.5rem;
+
+  @media (max-width: 768px) { padding: 1rem; }
+}
+
+// ── Modal overlay ───────────────────────────────────────────────────────────
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 15vh;
+  z-index: 1000;
+}
+
+// ── Global search modal ─────────────────────────────────────────────────────
+.search-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-bottom: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1rem;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: left;
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+.search-label { font-weight: 600; }
+.search-path { font-family: monospace; font-size: 0.78rem; color: var(--text-muted); }
+
+// ── Keyboard shortcuts modal ────────────────────────────────────────────────
+.shortcuts-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 420px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.shortcuts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  h3 { margin: 0; font-size: 1rem; }
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  padding: 0.2rem;
+
+  &:hover { color: var(--text-primary); }
+}
+
+.shortcuts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+
+  kbd {
+    display: inline-block;
+    min-width: 80px;
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-code);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.78rem;
+    text-align: center;
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
 }
