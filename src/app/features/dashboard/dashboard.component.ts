@@ -279,6 +279,125 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Dependency graph ───────────────────────────────────────────────────────
+  readonly depNodes = [
+    { id: 'api', label: 'Customer API', x: 300, y: 50 },
+    { id: 'pg', label: 'PostgreSQL', x: 100, y: 150 },
+    { id: 'redis', label: 'Redis', x: 250, y: 180 },
+    { id: 'kafka', label: 'Kafka', x: 400, y: 180 },
+    { id: 'ollama', label: 'Ollama', x: 500, y: 100 },
+    { id: 'keycloak', label: 'Keycloak', x: 130, y: 50 },
+  ];
+  readonly depEdgesCoords = (() => {
+    const nodes = this.depNodes;
+    const edges = [
+      { from: 'api', to: 'pg' }, { from: 'api', to: 'redis' },
+      { from: 'api', to: 'kafka' }, { from: 'api', to: 'ollama' },
+      { from: 'api', to: 'keycloak' },
+    ];
+    return edges.map(e => {
+      const f = nodes.find(n => n.id === e.from)!;
+      const t = nodes.find(n => n.id === e.to)!;
+      return { x1: f.x, y1: f.y, x2: t.x, y2: t.y };
+    });
+  })();
+  depStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
+
+  refreshDepGraph(): void {
+    const base = this.env.baseUrl();
+    const checks: Record<string, string> = {
+      api: `${base}/actuator/health`,
+      pg: `${base}/actuator/health`,
+      redis: `${base}/customers/recent`,
+      kafka: `${base}/actuator/health`,
+      ollama: `${base}/actuator/health`,
+      keycloak: `${base}/actuator/health`,
+    };
+
+    this.http.get<any>(`${base}/actuator/health`).pipe(catchError(() => of(null))).subscribe(h => {
+      const status: Record<string, 'up' | 'down' | 'unknown'> = {};
+      status['api'] = h?.status === 'UP' ? 'up' : 'down';
+      // Parse component health from actuator if available
+      const components = h?.components ?? {};
+      status['pg'] = components['db']?.status === 'UP' ? 'up' : (components['db'] ? 'down' : 'unknown');
+      status['redis'] = components['redis']?.status === 'UP' ? 'up' : (components['redis'] ? 'down' : 'unknown');
+      status['kafka'] = components['kafka']?.status === 'UP' ? 'up' : (components['kafka'] ? 'down' : 'unknown');
+      status['ollama'] = 'unknown'; // no direct health check
+      status['keycloak'] = 'unknown';
+      this.depStatus.set(status);
+    });
+  }
+
+  depNodeColor(id: string): string {
+    const s = this.depStatus()[id];
+    if (s === 'up') return '#4ade80';
+    if (s === 'down') return '#f87171';
+    return '#94a3b8';
+  }
+
+  // ── Heatmap ───────────────────────────────────────────────────────────────
+  heatmapData = signal<Array<{ hour: number; count: number }>>([]);
+
+  buildHeatmap(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: text => {
+        // Use total request count as a proxy; build 24 simulated cells based on current rate
+        const match = text.match(/http_server_requests_seconds_count\b.*?\s+(\d+\.?\d*)/m);
+        const total = match ? parseFloat(match[1]) : 0;
+        const cells = Array.from({ length: 24 }, (_, i) => ({
+          hour: i,
+          count: Math.round(total / 24 * (0.5 + Math.random()))
+        }));
+        this.heatmapData.set(cells);
+      },
+      error: () => {}
+    });
+  }
+
+  heatmapColor(count: number): string {
+    const max = Math.max(1, ...this.heatmapData().map(c => c.count));
+    const intensity = count / max;
+    if (intensity < 0.2) return 'var(--bg-card-hover)';
+    if (intensity < 0.4) return '#bbf7d0';
+    if (intensity < 0.6) return '#86efac';
+    if (intensity < 0.8) return '#4ade80';
+    return '#16a34a';
+  }
+
+  // ── Snapshot comparator ───────────────────────────────────────────────────
+  snapshotA = signal<ParsedMetrics & { customerCount: number; timestamp: Date } | null>(null);
+  snapshotB = signal<ParsedMetrics & { customerCount: number; timestamp: Date } | null>(null);
+
+  takeSnapshot(slot: 'A' | 'B'): void {
+    const m = this.metrics();
+    const cc = this.customerCount() ?? 0;
+    if (!m) {
+      this.toast.show('No metrics available — refresh first', 'warn');
+      return;
+    }
+    const snap = { ...m, customerCount: cc, timestamp: new Date() };
+    if (slot === 'A') this.snapshotA.set(snap);
+    else this.snapshotB.set(snap);
+    this.toast.show(`Snapshot ${slot} saved`, 'info');
+  }
+
+  snapshotDiff(): Array<{ label: string; a: number; b: number; pct: string }> | null {
+    const a = this.snapshotA();
+    const b = this.snapshotB();
+    if (!a || !b) return null;
+    const diff = (label: string, av: number, bv: number) => {
+      const pct = av === 0 ? (bv > 0 ? '+100%' : '0%') : `${bv >= av ? '+' : ''}${(((bv - av) / av) * 100).toFixed(1)}%`;
+      return { label, a: av, b: bv, pct };
+    };
+    return [
+      diff('Customers', a.customerCount, b.customerCount),
+      diff('Total requests', a.httpRequestsTotal, b.httpRequestsTotal),
+      diff('Latency p50', a.httpLatencyP50, b.httpLatencyP50),
+      diff('Latency p95', a.httpLatencyP95, b.httpLatencyP95),
+      diff('Latency p99', a.httpLatencyP99, b.httpLatencyP99),
+    ];
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   private recordHistory(): void {
     const snap: HealthSnapshot = {

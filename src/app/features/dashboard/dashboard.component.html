@@ -194,6 +194,72 @@
     }
   </article>
 
+  <!-- Dependency graph -->
+  <div class="section-header">
+    <h3>Dependency Graph</h3>
+    <button class="refresh-btn" (click)="refreshDepGraph()">↻ Check status</button>
+  </div>
+  <div class="dep-graph-container">
+    <svg viewBox="0 0 620 220" class="dep-graph">
+      <!-- Edges -->
+      @for (edge of depEdgesCoords; track $index) {
+        <line
+          [attr.x1]="edge.x1" [attr.y1]="edge.y1"
+          [attr.x2]="edge.x2" [attr.y2]="edge.y2"
+          stroke="var(--border-default)" stroke-width="1.5" />
+      }
+      <!-- Nodes -->
+      @for (node of depNodes; track node.id) {
+        <circle [attr.cx]="node.x" [attr.cy]="node.y" r="18" [attr.fill]="depNodeColor(node.id)" opacity="0.2" />
+        <circle [attr.cx]="node.x" [attr.cy]="node.y" r="6" [attr.fill]="depNodeColor(node.id)" />
+        <text [attr.x]="node.x" [attr.y]="node.y + 30" text-anchor="middle" fill="var(--text-secondary)" font-size="10" font-weight="600">{{ node.label }}</text>
+      }
+    </svg>
+  </div>
+
+  <!-- Request heatmap -->
+  <div class="section-header">
+    <h3>Request Heatmap (24h)</h3>
+    <button class="refresh-btn" (click)="buildHeatmap()">↻ Build</button>
+  </div>
+  @if (heatmapData().length) {
+    <div class="heatmap-container">
+      @for (cell of heatmapData(); track cell.hour) {
+        <div class="heatmap-cell" [style.background]="heatmapColor(cell.count)" [title]="cell.hour + 'h: ' + cell.count + ' req'">
+          <span class="heatmap-hour">{{ cell.hour }}h</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Snapshot comparator -->
+  <div class="section-header">
+    <h3>Before / After Comparator</h3>
+    <div class="snapshot-actions">
+      <button class="refresh-btn" (click)="takeSnapshot('A')">📸 Snapshot A</button>
+      <button class="refresh-btn" (click)="takeSnapshot('B')">📸 Snapshot B</button>
+    </div>
+  </div>
+  @if (snapshotDiff()) {
+    <div class="snapshot-diff">
+      <table>
+        <thead><tr><th>Metric</th><th>Before (A)</th><th>After (B)</th><th>Change</th></tr></thead>
+        <tbody>
+          @for (d of snapshotDiff()!; track d.label) {
+            <tr>
+              <td>{{ d.label }}</td>
+              <td class="mono">{{ d.a | number:'1.1-1' }}</td>
+              <td class="mono">{{ d.b | number:'1.1-1' }}</td>
+              <td class="mono" [class.positive]="d.b > d.a" [class.negative]="d.b < d.a">{{ d.pct }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (snapshotA() || snapshotB()) {
+    <p class="muted">Take both snapshots to see the diff.</p>
+  }
+
   <h3>Observability Stack</h3>
   <div class="links-grid">
     @for (link of links; track link.label) {

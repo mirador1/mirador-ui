@@ -353,6 +353,48 @@ pre {
   overflow-y: auto;
 }
 
+// ── Dependency graph ────────────────────────────────────────────────────────
+.dep-graph-container {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; box-shadow: var(--shadow-card);
+}
+
+.dep-graph { width: 100%; height: auto; max-height: 220px; }
+
+// ── Heatmap ─────────────────────────────────────────────────────────────────
+.heatmap-container {
+  display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px;
+  margin-bottom: 1rem;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1; border-radius: 3px; display: flex;
+  align-items: center; justify-content: center; cursor: default;
+  border: 1px solid var(--border-default);
+}
+
+.heatmap-hour { font-size: 0.55rem; color: var(--text-muted); font-family: monospace; }
+
+// ── Snapshot comparator ─────────────────────────────────────────────────────
+.snapshot-actions { display: flex; gap: 0.35rem; }
+
+.snapshot-diff {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; box-shadow: var(--shadow-card);
+  overflow-x: auto;
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.82rem;
+    th { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 2px solid var(--border-default);
+         color: var(--text-label); font-size: 0.75rem; text-transform: uppercase; }
+    td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border-default); color: var(--text-primary); }
+  }
+}
+
+.mono { font-family: monospace; }
+.positive { color: #16a34a; }
+.negative { color: #dc2626; }
+
 // ── Observability links ─────────────────────────────────────────────────────
 .links-grid {
   display: grid;
