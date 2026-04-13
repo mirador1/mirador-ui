@@ -7,9 +7,6 @@ export interface Environment {
 
 const ENVIRONMENTS: Environment[] = [
   { name: 'Local', baseUrl: 'http://localhost:8080' },
-  { name: 'Docker', baseUrl: 'http://localhost:9080' },
-  { name: 'Staging', baseUrl: 'https://staging-api.example.com' },
-  { name: 'Production', baseUrl: 'https://api.example.com' },
 ];
 
 @Injectable({ providedIn: 'root' })

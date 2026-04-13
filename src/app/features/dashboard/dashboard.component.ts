@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, catchError, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -15,14 +15,6 @@ interface HealthSnapshot {
   health: string;
   readiness: string;
   liveness: string;
-}
-
-interface LatencyResult {
-  envName: string;
-  avgMs: number;
-  p95Ms: number;
-  errors: number;
-  total: number;
 }
 
 @Component({
@@ -55,13 +47,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   healthHistory = signal<HealthSnapshot[]>([]);
 
   // ── Real-time chart (persisted in MetricsService) ──────────────────────────
-
-  // ── Latency comparator ────────────────────────────────────────────────────
-  latencyEnvA = signal(0); // index in env.environments
-  latencyEnvB = signal(1);
-  latencyCount = signal(10);
-  latencyResults = signal<LatencyResult[]>([]);
-  latencyRunning = signal(false);
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
   autoRefreshInterval = signal<number>(5);
@@ -132,6 +117,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.refresh();
     this.setAutoRefresh(this.autoRefreshInterval());
+    this.loadContainers();
     window.addEventListener('app:refresh', this._onRefresh);
   }
 
@@ -231,59 +217,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   chartMaxRps(): number {
     const samples = this.metricsService.samples();
     return Math.max(1, ...samples.map((s) => s.rps));
-  }
-
-  // ── Latency comparator ────────────────────────────────────────────────────
-  runLatencyComparison(): void {
-    this.latencyRunning.set(true);
-    this.latencyResults.set([]);
-
-    const envs = [
-      this.env.environments[this.latencyEnvA()],
-      this.env.environments[this.latencyEnvB()],
-    ];
-
-    const count = this.latencyCount();
-    let completed = 0;
-
-    for (const envDef of envs) {
-      const timings: number[] = [];
-      let errors = 0;
-      let done = 0;
-
-      for (let i = 0; i < count; i++) {
-        const t0 = performance.now();
-        this.http
-          .get(`${envDef.baseUrl}/actuator/health`)
-          .pipe(
-            catchError(() => {
-              errors++;
-              return of(null);
-            }),
-          )
-          .subscribe(() => {
-            timings.push(performance.now() - t0);
-            done++;
-            if (done === count) {
-              timings.sort((a, b) => a - b);
-              const avg = timings.length ? timings.reduce((a, b) => a + b, 0) / timings.length : 0;
-              const p95 = timings.length ? timings[Math.floor(timings.length * 0.95)] : 0;
-              this.latencyResults.update((r) => [
-                ...r,
-                {
-                  envName: envDef.name,
-                  avgMs: Math.round(avg * 10) / 10,
-                  p95Ms: Math.round(p95 * 10) / 10,
-                  errors,
-                  total: count,
-                },
-              ]);
-              completed++;
-              if (completed === 2) this.latencyRunning.set(false);
-            }
-          });
-      }
-    }
   }
 
   // ── Docker service control ─────────────────────────────────────────────────

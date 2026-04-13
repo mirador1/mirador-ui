@@ -180,83 +180,13 @@
     </article>
   </div>
 
-  <!-- Latency comparator -->
-  <h3>Latency Comparator</h3>
-  <article class="card">
-    <p class="card-desc">
-      Compare response times between two environments by pinging /actuator/health.
-    </p>
-    <div class="comparator-controls">
-      <div class="comparator-env">
-        <label>
-          Environment A
-          <select [ngModel]="latencyEnvA()" (ngModelChange)="latencyEnvA.set($event)">
-            @for (e of env.environments; track e.name; let i = $index) {
-              <option [ngValue]="i">{{ e.name }}</option>
-            }
-          </select>
-        </label>
-      </div>
-      <span class="vs-label">vs</span>
-      <div class="comparator-env">
-        <label>
-          Environment B
-          <select [ngModel]="latencyEnvB()" (ngModelChange)="latencyEnvB.set($event)">
-            @for (e of env.environments; track e.name; let i = $index) {
-              <option [ngValue]="i">{{ e.name }}</option>
-            }
-          </select>
-        </label>
-      </div>
-      <div class="comparator-env">
-        <label>
-          Requests
-          <input
-            type="number"
-            [ngModel]="latencyCount()"
-            (ngModelChange)="latencyCount.set($event)"
-            min="1"
-            max="50"
-          />
-        </label>
-      </div>
-      <button class="run-btn" (click)="runLatencyComparison()" [disabled]="latencyRunning()">
-        {{ latencyRunning() ? 'Running...' : '▶ Compare' }}
-      </button>
-    </div>
-
-    @if (latencyResults().length) {
-      <div class="comparator-results">
-        @for (r of latencyResults(); track r.envName) {
-          <div class="result-card">
-            <h4>{{ r.envName }}</h4>
-            <div class="result-stats">
-              <div>
-                <span class="result-value">{{ r.avgMs }} ms</span
-                ><span class="result-label">avg</span>
-              </div>
-              <div>
-                <span class="result-value">{{ r.p95Ms }} ms</span
-                ><span class="result-label">p95</span>
-              </div>
-              <div>
-                <span class="result-value">{{ r.errors }}/{{ r.total }}</span
-                ><span class="result-label">errors</span>
-              </div>
-            </div>
-          </div>
-        }
-      </div>
-    }
-  </article>
-
   <!-- Service Control -->
   <div class="section-header">
     <h3>Service Control
       <app-info-tip text="Stop and start Docker containers to test resilience. Watch health probes react in real-time. Requires the docker-api server: node scripts/docker-api.mjs" command="node scripts/docker-api.mjs" source="Docker API on :3333" [wide]="true" />
     </h3>
     <button class="refresh-btn" (click)="loadContainers()">
-      {{ dockerLoading() ? 'Loading...' : '↻ Load containers' }}
+      {{ dockerLoading() ? 'Loading...' : '↻ Refresh' }}
     </button>
   </div>
 
@@ -333,27 +263,6 @@
       }
     </svg>
   </div>
-
-  <!-- Request heatmap -->
-  <div class="section-header">
-    <h3>Request Heatmap (24h)
-      <app-info-tip text="Request volume distribution by hour. Color intensity is proportional to traffic. Built from the total counter divided across 24h with random variation (simulated)." />
-    </h3>
-    <button class="refresh-btn" (click)="buildHeatmap()">↻ Build</button>
-  </div>
-  @if (heatmapData().length) {
-    <div class="heatmap-container">
-      @for (cell of heatmapData(); track cell.hour) {
-        <div
-          class="heatmap-cell"
-          [style.background]="heatmapColor(cell.count)"
-          [title]="cell.hour + 'h: ' + cell.count + ' req'"
-        >
-          <span class="heatmap-hour">{{ cell.hour }}h</span>
-        </div>
-      }
-    </div>
-  }
 
   <!-- Snapshot comparator -->
   <div class="section-header">

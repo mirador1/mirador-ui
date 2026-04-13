@@ -23,28 +23,6 @@
       </nav>
 
       <div class="topbar-actions">
-        <!-- Environment selector -->
-        <div class="env-selector">
-          <button class="env-btn" (click)="toggleEnvDropdown()">
-            <span class="env-dot"></span>
-            {{ env.current().name }}
-          </button>
-          @if (envDropdownOpen) {
-            <div class="env-dropdown">
-              @for (e of env.environments; track e.name) {
-                <button
-                  class="env-option"
-                  [class.env-active]="e.name === env.current().name"
-                  (click)="selectEnv(e)"
-                >
-                  <strong>{{ e.name }}</strong>
-                  <small>{{ e.baseUrl }}</small>
-                </button>
-              }
-            </div>
-          }
-        </div>
-
         <!-- Theme toggle -->
         <button
           class="theme-btn"

@@ -23,7 +23,6 @@ export class AppShellComponent {
   readonly keyboard = inject(KeyboardService);
   private readonly router = inject(Router);
 
-  envDropdownOpen = false;
   mobileMenuOpen = signal(false);
 
   // Global search
@@ -75,15 +74,7 @@ export class AppShellComponent {
     this.router.navigateByUrl('/login');
   }
 
-  toggleEnvDropdown(): void {
-    this.envDropdownOpen = !this.envDropdownOpen;
-  }
 
-  selectEnv(env: { name: string; baseUrl: string }): void {
-    this.env.select(env);
-    this.envDropdownOpen = false;
-    this.toast.show(`Switched to ${env.name} (${env.baseUrl})`, 'info');
-  }
 
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update((v) => !v);
