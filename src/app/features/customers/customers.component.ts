@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, viewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -63,6 +63,8 @@ export class CustomersComponent implements OnInit, OnDestroy {
   selectAll = signal(false);
 
   // ── Create form ────────────────────────────────────────────────────────────
+  readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
+  readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
   newName = signal('');
   newEmail = signal('');
   useIdempotencyKey = signal(false);
@@ -244,6 +246,8 @@ export class CustomersComponent implements OnInit, OnDestroy {
           this.createSuccess.set(c);
           this.newName.set('');
           this.newEmail.set('');
+          if (this.nameInput()) this.nameInput()!.nativeElement.value = '';
+          if (this.emailInput()) this.emailInput()!.nativeElement.value = '';
           this.createLoading.set(false);
           this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
           this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);

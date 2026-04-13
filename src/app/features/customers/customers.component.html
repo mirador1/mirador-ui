@@ -59,11 +59,11 @@
 
         <label>
           Name
-          <input [ngModel]="newName()" (ngModelChange)="newName.set($event)" placeholder="Alice Martin" />
+          <input #nameInput placeholder="Alice Martin" (input)="newName.set(nameInput.value)" />
         </label>
         <label>
           Email
-          <input [ngModel]="newEmail()" (ngModelChange)="newEmail.set($event)" type="email" placeholder="alice@example.com" />
+          <input #emailInput type="email" placeholder="alice@example.com" (input)="newEmail.set(emailInput.value)" />
         </label>
 
         <div class="idem-row">
