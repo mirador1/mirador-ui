@@ -1,0 +1,257 @@
+<section>
+  <div class="page-header">
+    <h2>Visualizations</h2>
+    <p class="subtitle">Advanced observability dashboards and real-time monitoring</p>
+  </div>
+
+  @if (!auth.isAuthenticated()) {
+    <div class="alert-warn">Please <a routerLink="/login">sign in</a> first.</div>
+  } @else {
+
+  <div class="tabs">
+    <button [class.tab-active]="activeTab() === 'golden'" (click)="switchTab('golden')">Golden Signals</button>
+    <button [class.tab-active]="activeTab() === 'jvm'" (click)="switchTab('jvm')">JVM Gauges</button>
+    <button [class.tab-active]="activeTab() === 'topology'" (click)="switchTab('topology')">Topology</button>
+    <button [class.tab-active]="activeTab() === 'waterfall'" (click)="switchTab('waterfall')">Waterfall</button>
+    <button [class.tab-active]="activeTab() === 'sankey'" (click)="switchTab('sankey')">Sankey</button>
+    <button [class.tab-active]="activeTab() === 'errors'" (click)="switchTab('errors')">Error Timeline</button>
+    <button [class.tab-active]="activeTab() === 'kafka'" (click)="switchTab('kafka')">Kafka Lag</button>
+    <button [class.tab-active]="activeTab() === 'slowdb'" (click)="switchTab('slowdb')">Slow Queries</button>
+    <button [class.tab-active]="activeTab() === 'bundle3d'" (click)="switchTab('bundle3d')">Bundle</button>
+  </div>
+
+  <!-- ── Golden Signals ──────────────────────────────────────────────── -->
+  @if (activeTab() === 'golden') {
+    <div class="tab-content">
+      <button class="run-btn" (click)="fetchGoldenSignals()">↻ Fetch signals</button>
+      @if (goldenSignals().length) {
+        <div class="golden-grid">
+          @for (s of goldenSignals(); track s.name) {
+            <div class="golden-card golden-{{ s.status }}">
+              <span class="golden-name">{{ s.name }}</span>
+              <span class="golden-value">{{ s.value }}</span>
+              <span class="golden-detail">{{ s.detail }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── JVM Gauges ──────────────────────────────────────────────────── -->
+  @if (activeTab() === 'jvm') {
+    <div class="tab-content">
+      <button class="run-btn" (click)="fetchJvmGauges()">↻ Fetch JVM metrics</button>
+      @if (gauges().length) {
+        <div class="gauges-grid">
+          @for (g of gauges(); track g.label) {
+            <div class="gauge-card">
+              <svg viewBox="0 0 100 100" class="gauge-svg">
+                <!-- Background arc -->
+                <path d="M 21.7 78.3 A 40 40 0 1 1 78.3 78.3" fill="none" stroke="var(--border-default)" stroke-width="8" stroke-linecap="round"/>
+                <!-- Value arc -->
+                <path [attr.d]="gaugeArc(g.value, g.max)" fill="none" [attr.stroke]="g.color" stroke-width="8" stroke-linecap="round"/>
+                <!-- Center text -->
+                <text x="50" y="50" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="700">{{ g.value }}</text>
+                <text x="50" y="62" text-anchor="middle" fill="var(--text-muted)" font-size="8">{{ g.unit }}</text>
+              </svg>
+              <span class="gauge-label">{{ g.label }}</span>
+              <span class="gauge-range">0 — {{ g.max }} {{ g.unit }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Topology map ────────────────────────────────────────────────── -->
+  @if (activeTab() === 'topology') {
+    <div class="tab-content">
+      <div class="controls-row">
+        <button class="run-btn" (click)="refreshTopology()">↻ Check status</button>
+        <button class="run-btn" [class.active-btn]="topoAnimating()" (click)="toggleTopoAnimation()">
+          {{ topoAnimating() ? '⏹ Stop' : '▶ Animate' }} traffic
+        </button>
+      </div>
+      <div class="topo-container">
+        <svg viewBox="0 0 800 280" class="topo-svg">
+          <!-- Edges -->
+          @for (e of topoEdgeCoords(); track $index) {
+            <line [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" stroke="var(--border-default)" stroke-width="1.5" stroke-dasharray="4 2"/>
+          }
+          <!-- Particles -->
+          @for (p of particlePositions(); track $index) {
+            <circle [attr.cx]="p.cx" [attr.cy]="p.cy" r="4" [attr.fill]="p.color" opacity="0.9">
+              <animate attributeName="r" values="3;5;3" dur="0.6s" repeatCount="indefinite"/>
+            </circle>
+          }
+          <!-- Nodes -->
+          @for (node of topoNodes(); track node.id) {
+            <circle [attr.cx]="node.x" [attr.cy]="node.y" r="22" [attr.fill]="topoNodeColor(node.status)" opacity="0.15"/>
+            <circle [attr.cx]="node.x" [attr.cy]="node.y" r="8" [attr.fill]="topoNodeColor(node.status)"/>
+            <text [attr.x]="node.x" [attr.y]="node.y + 34" text-anchor="middle" fill="var(--text-secondary)" font-size="10" font-weight="600">{{ node.label }}</text>
+          }
+        </svg>
+      </div>
+    </div>
+  }
+
+  <!-- ── Waterfall ───────────────────────────────────────────────────── -->
+  @if (activeTab() === 'waterfall') {
+    <div class="tab-content">
+      <button class="run-btn" (click)="runWaterfall()" [disabled]="waterfallRunning()">
+        {{ waterfallRunning() ? 'Running...' : '▶ Run 6 parallel requests' }}
+      </button>
+      @if (waterfallEntries().length) {
+        <div class="waterfall-chart">
+          @for (e of waterfallEntries(); track $index) {
+            <div class="waterfall-row">
+              <span class="wf-method">{{ e.method }}</span>
+              <span class="wf-uri">{{ e.uri }}</span>
+              <div class="wf-bar-container">
+                <div class="wf-bar"
+                  [style.left.%]="(e.startMs / waterfallMaxMs()) * 100"
+                  [style.width.%]="Math.max(1, (e.durationMs / waterfallMaxMs()) * 100)"
+                  [class.wf-ok]="e.status < 400"
+                  [class.wf-err]="e.status >= 400">
+                  <span class="wf-time">{{ e.durationMs | number:'1.0-0' }}ms</span>
+                </div>
+              </div>
+              <span class="wf-status" [class.status-ok]="e.status < 400" [class.status-err]="e.status >= 400">{{ e.status }}</span>
+            </div>
+          }
+          <div class="wf-scale">
+            <span>0ms</span>
+            <span>{{ waterfallMaxMs() | number:'1.0-0' }}ms</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Sankey ──────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'sankey') {
+    <div class="tab-content">
+      <button class="run-btn" (click)="buildSankey()">▶ Build from Prometheus</button>
+      @if (sankeyFlows().length) {
+        <div class="sankey-chart">
+          @for (f of sankeyFlows(); track $index) {
+            <div class="sankey-row">
+              <span class="sankey-from">{{ f.from }}</span>
+              <div class="sankey-bar-container">
+                <div class="sankey-bar" [style.width.%]="(f.value / sankeyMaxValue()) * 100" [style.background]="f.color">
+                  {{ f.value | number:'1.0-0' }}
+                </div>
+              </div>
+              <span class="sankey-to" [style.color]="f.color">{{ f.to }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Error timeline ──────────────────────────────────────────────── -->
+  @if (activeTab() === 'errors') {
+    <div class="tab-content">
+      <button class="run-btn" [class.active-btn]="errorPolling()" (click)="toggleErrorPolling()">
+        {{ errorPolling() ? '⏹ Stop' : '▶ Start' }} error monitoring
+      </button>
+      @if (errorSamples().length) {
+        <div class="error-chart-container">
+          <svg viewBox="0 0 400 100" preserveAspectRatio="none" class="error-svg">
+            @for (bar of errorChartBars(); track $index) {
+              <rect [attr.x]="bar.x" [attr.y]="100 - bar.okH - bar.errH" [attr.width]="8" [attr.height]="bar.okH" rx="1" fill="#4ade80" opacity="0.8"/>
+              @if (bar.errH > 0) {
+                <rect [attr.x]="bar.x" [attr.y]="100 - bar.errH" [attr.width]="8" [attr.height]="bar.errH" rx="1" fill="#f87171" opacity="0.8"/>
+              }
+            }
+          </svg>
+          <div class="error-legend">
+            <span class="legend-ok">OK</span>
+            <span class="legend-err">5xx</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Kafka lag ───────────────────────────────────────────────────── -->
+  @if (activeTab() === 'kafka') {
+    <div class="tab-content">
+      <button class="run-btn" [class.active-btn]="kafkaPolling()" (click)="toggleKafkaPolling()">
+        {{ kafkaPolling() ? '⏹ Stop' : '▶ Start' }} lag monitoring
+      </button>
+      @if (kafkaLag().length > 1) {
+        <div class="kafka-chart">
+          <div class="kafka-y">
+            <span>{{ kafkaLagMax() | number:'1.0-0' }}</span>
+            <span>0</span>
+          </div>
+          <svg viewBox="0 0 400 80" class="kafka-svg" preserveAspectRatio="none">
+            <path [attr.d]="kafkaLagPath()" fill="none" stroke="#f59e0b" stroke-width="2"/>
+            @for (p of kafkaLag(); track $index; let i = $index) {
+              @if (kafkaLag().length > 1) {
+                <circle
+                  [attr.cx]="i * (400 / (kafkaLag().length - 1))"
+                  [attr.cy]="80 - (p.lag / kafkaLagMax()) * 70"
+                  r="3" fill="#f59e0b"/>
+              }
+            }
+          </svg>
+        </div>
+        <p class="chart-label">Consumer lag over time (messages behind)</p>
+      }
+    </div>
+  }
+
+  <!-- ── Slow DB queries ─────────────────────────────────────────────── -->
+  @if (activeTab() === 'slowdb') {
+    <div class="tab-content">
+      <button class="run-btn" (click)="fetchSlowQueries()">▶ Fetch from Prometheus</button>
+      @if (slowQueries().length) {
+        <div class="slow-table">
+          <table>
+            <thead><tr><th>Query / Method</th><th>Avg (ms)</th><th>Count</th></tr></thead>
+            <tbody>
+              @for (q of slowQueries(); track q.query) {
+                <tr>
+                  <td class="mono">{{ q.query }}</td>
+                  <td class="mono">{{ q.avgMs }}</td>
+                  <td class="mono">{{ q.count }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Bundle treemap ──────────────────────────────────────────────── -->
+  @if (activeTab() === 'bundle3d') {
+    <div class="tab-content">
+      <button class="run-btn" (click)="analyzeBundleFromBuild()">▶ Analyze bundle</button>
+      @if (bundleChunks().length) {
+        <div class="treemap">
+          @for (chunk of bundleChunks(); track chunk.name; let i = $index) {
+            <div class="treemap-cell" [style.flex-grow]="chunk.size" [style.background]="treemapColor(i)" [title]="chunk.name + ': ' + chunk.size + 'kB (' + chunk.pct + '%)'">
+              <span class="treemap-name">{{ chunk.name }}</span>
+              <span class="treemap-size">{{ chunk.size }}kB</span>
+              <span class="treemap-pct">{{ chunk.pct }}%</span>
+            </div>
+          }
+        </div>
+        <div class="treemap-3d">
+          @for (chunk of bundleChunks(); track chunk.name; let i = $index) {
+            <div class="block-3d" [style.--block-color]="treemapColor(i)" [style.height.px]="chunk.size * 3" [title]="chunk.name">
+              <span>{{ chunk.name.split(' ')[0] }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  } <!-- end auth -->
+</section>
