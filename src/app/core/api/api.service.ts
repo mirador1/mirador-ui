@@ -1,6 +1,7 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject, computed } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { EnvService } from '../env/env.service';
 
 export interface Customer {
   id?: number;
@@ -44,44 +45,55 @@ export interface AggregatedResponse {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  readonly baseUrl = 'http://localhost:8080';
+  private readonly env = inject(EnvService);
+  readonly baseUrl = computed(() => this.env.baseUrl());
+
+  private get url(): string { return this.baseUrl(); }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   login(username: string, password: string): Observable<{ token: string }> {
-    return this.http.post<{ token: string }>(`${this.baseUrl}/auth/login`, { username, password });
+    return this.http.post<{ token: string }>(`${this.url}/auth/login`, { username, password });
   }
 
   // ── Actuator ──────────────────────────────────────────────────────────────
   getHealth(): Observable<unknown> {
-    return this.http.get(`${this.baseUrl}/actuator/health`);
+    return this.http.get(`${this.url}/actuator/health`);
   }
   getReadiness(): Observable<unknown> {
-    return this.http.get(`${this.baseUrl}/actuator/health/readiness`);
+    return this.http.get(`${this.url}/actuator/health/readiness`);
   }
   getLiveness(): Observable<unknown> {
-    return this.http.get(`${this.baseUrl}/actuator/health/liveness`);
+    return this.http.get(`${this.url}/actuator/health/liveness`);
+  }
+  getPrometheusMetrics(): Observable<string> {
+    return this.http.get(`${this.url}/actuator/prometheus`, { responseType: 'text' });
   }
 
   // ── Customers ─────────────────────────────────────────────────────────────
-  getCustomers(page = 0, size = 10, version = '1.0'): Observable<Page<Customer>> {
-    return this.http.get<Page<Customer>>(`${this.baseUrl}/customers`, {
+  getCustomers(page = 0, size = 10, version = '1.0', search?: string, sort?: string): Observable<Page<Customer>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    if (search) params = params.set('search', search);
+    if (sort) params = params.set('sort', sort);
+    return this.http.get<Page<Customer>>(`${this.url}/customers`, {
       headers: new HttpHeaders({ 'X-API-Version': version }),
-      params: { page: page.toString(), size: size.toString() }
+      params
     });
   }
 
   getCustomerSummary(page = 0, size = 20): Observable<Page<CustomerSummary>> {
-    return this.http.get<Page<CustomerSummary>>(`${this.baseUrl}/customers/summary`, {
+    return this.http.get<Page<CustomerSummary>>(`${this.url}/customers/summary`, {
       params: { page: page.toString(), size: size.toString() }
     });
   }
 
   getRecentCustomers(): Observable<Customer[]> {
-    return this.http.get<Customer[]>(`${this.baseUrl}/customers/recent`);
+    return this.http.get<Customer[]>(`${this.url}/customers/recent`);
   }
 
   getAggregate(): Observable<AggregatedResponse> {
-    return this.http.get<AggregatedResponse>(`${this.baseUrl}/customers/aggregate`);
+    return this.http.get<AggregatedResponse>(`${this.url}/customers/aggregate`);
   }
 
   createCustomer(
@@ -92,18 +104,26 @@ export class ApiService {
     if (idempotencyKey) {
       headers = headers.set('Idempotency-Key', idempotencyKey);
     }
-    return this.http.post<Customer>(`${this.baseUrl}/customers`, payload, { headers });
+    return this.http.post<Customer>(`${this.url}/customers`, payload, { headers });
+  }
+
+  updateCustomer(id: number, payload: { name: string; email: string }): Observable<Customer> {
+    return this.http.put<Customer>(`${this.url}/customers/${id}`, payload);
+  }
+
+  deleteCustomer(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/customers/${id}`);
   }
 
   getCustomerBio(id: number): Observable<{ bio: string }> {
-    return this.http.get<{ bio: string }>(`${this.baseUrl}/customers/${id}/bio`);
+    return this.http.get<{ bio: string }>(`${this.url}/customers/${id}/bio`);
   }
 
   getCustomerTodos(id: number): Observable<TodoItem[]> {
-    return this.http.get<TodoItem[]>(`${this.baseUrl}/customers/${id}/todos`);
+    return this.http.get<TodoItem[]>(`${this.url}/customers/${id}/todos`);
   }
 
   enrichCustomer(id: number): Observable<EnrichedCustomer> {
-    return this.http.get<EnrichedCustomer>(`${this.baseUrl}/customers/${id}/enrich`);
+    return this.http.get<EnrichedCustomer>(`${this.url}/customers/${id}/enrich`);
   }
 }
