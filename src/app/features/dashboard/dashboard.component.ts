@@ -224,11 +224,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   dockerLoading = signal(false);
   dockerActionLoading = signal<string | null>(null);
 
+  dockerError = signal('');
+
   loadContainers(): void {
     this.dockerLoading.set(true);
-    this.http.get<any[]>('/docker-api/containers').pipe(catchError(() => of([]))).subscribe(containers => {
-      this.dockerContainers.set(containers);
+    this.dockerError.set('');
+    this.http.get<any[]>('/docker-api/containers').pipe(catchError(() => of(null))).subscribe(containers => {
       this.dockerLoading.set(false);
+      if (!containers) {
+        this.dockerError.set('Cannot reach Docker API. Start it with: node scripts/docker-api.mjs');
+        return;
+      }
+      this.dockerContainers.set(containers);
+      const running = containers.filter((c: any) => c.running).length;
+      this.toast.show(`${containers.length} containers found, ${running} running`, 'info');
     });
   }
 
@@ -244,6 +253,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.refresh();
       }, 2000);
     });
+  }
+
+  dockerRunningCount(): number {
+    return this.dockerContainers().filter(c => c.running).length;
   }
 
   isDockerActionLoading(name: string, action: string): boolean {
@@ -310,6 +323,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   })();
   depStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
 
+  // Map Docker container names to dependency graph node IDs
+  private readonly containerToNode: Record<string, string> = {
+    'postgres-demo': 'pg',
+    'redis-demo': 'redis',
+    'kafka-demo': 'kafka',
+    'ollama': 'ollama',
+    'keycloak': 'keycloak',
+  };
+
   refreshDepGraph(): void {
     const base = this.env.baseUrl();
     const status: Record<string, 'up' | 'down' | 'unknown'> = {};
@@ -320,24 +342,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
       status['api'] = h?.status === 'UP' ? 'up' : 'down';
       status['pg'] = components['db']?.status === 'UP' ? 'up' : components['db'] ? 'down' : 'unknown';
       status['redis'] = components['redis']?.status === 'UP' ? 'up' : components['redis'] ? 'down' : 'unknown';
-      this.depStatus.set({ ...status });
-    });
 
-    // Kafka — ping Kafka UI via proxy
-    this.http.get('/proxy/kafka-ui/api/clusters', { responseType: 'text' }).pipe(catchError(() => of(null))).subscribe(r => {
-      status['kafka'] = r ? 'up' : 'down';
-      this.depStatus.set({ ...status });
-    });
+      // Use Docker container status for services not in /actuator/health
+      const containers = this.dockerContainers();
+      if (containers.length > 0) {
+        for (const [containerName, nodeId] of Object.entries(this.containerToNode)) {
+          if (status[nodeId] && status[nodeId] !== 'unknown') continue; // already have a status
+          const container = containers.find(c => c.name === containerName);
+          if (container) {
+            status[nodeId] = container.running ? 'up' : 'down';
+          }
+        }
+      }
 
-    // Ollama — direct API ping via proxy
-    this.http.get('/proxy/ollama/api/tags').pipe(catchError(() => of(null))).subscribe(r => {
-      status['ollama'] = r ? 'up' : 'down';
-      this.depStatus.set({ ...status });
-    });
-
-    // Keycloak — health check via proxy
-    this.http.get('/proxy/keycloak/health/ready', { responseType: 'text' }).pipe(catchError(() => of(null))).subscribe(r => {
-      status['keycloak'] = r ? 'up' : 'down';
       this.depStatus.set({ ...status });
     });
   }

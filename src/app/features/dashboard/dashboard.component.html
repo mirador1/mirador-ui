@@ -185,10 +185,19 @@
     <h3>Service Control
       <app-info-tip text="Stop and start Docker containers to test resilience. Watch health probes react in real-time. Requires the docker-api server: node scripts/docker-api.mjs" command="node scripts/docker-api.mjs" source="Docker API on :3333" [wide]="true" />
     </h3>
-    <button class="refresh-btn" (click)="loadContainers()">
-      {{ dockerLoading() ? 'Loading...' : '↻ Refresh' }}
-    </button>
+    <div class="docker-meta">
+      @if (dockerContainers().length) {
+        <span class="docker-count">{{ dockerContainers().length }} containers, {{ dockerRunningCount() }} running</span>
+      }
+      <button class="refresh-btn" (click)="loadContainers()" [disabled]="dockerLoading()">
+        {{ dockerLoading() ? 'Loading...' : '↻ Refresh' }}
+      </button>
+    </div>
   </div>
+
+  @if (dockerError()) {
+    <div class="alert-error">{{ dockerError() }}</div>
+  }
 
   @if (dockerContainers().length) {
     <div class="docker-grid">
