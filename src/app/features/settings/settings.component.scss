@@ -158,3 +158,34 @@ pre {
   white-space: pre-wrap; word-break: break-word; font-size: 0.8rem;
   color: var(--text-secondary); margin: 0; max-height: 200px; overflow-y: auto;
 }
+
+// ── SQL Explorer ────────────────────────────────────────────────────────────
+.sql-presets {
+  display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem;
+}
+
+.sql-preset {
+  padding: 0.25rem 0.5rem; border: 1px solid var(--border-input);
+  border-radius: 4px; background: var(--bg-card); color: var(--text-secondary);
+  cursor: pointer; font-size: 0.72rem; font-family: monospace;
+  &:hover { background: var(--bg-card-hover); }
+}
+
+.sql-input {
+  width: 100%; padding: 0.5rem; border: 1px solid var(--border-input);
+  border-radius: 6px; background: var(--bg-terminal); color: #86efac;
+  font-family: monospace; font-size: 0.82rem; resize: vertical; box-sizing: border-box;
+}
+
+.sql-run { margin-top: 0.5rem; }
+
+.sql-error {
+  margin-top: 0.5rem; padding: 0.5rem 0.75rem;
+  background: var(--bg-warn); color: var(--text-warn);
+  border-radius: 4px; font-size: 0.82rem;
+}
+
+.sql-result {
+  margin-top: 0.75rem; overflow-x: auto;
+  border: 1px solid var(--border-default); border-radius: 6px;
+}

@@ -119,6 +119,47 @@
     }
   </article>
 
+  <!-- SQL Explorer -->
+  <article class="card">
+    <h3>SQL Explorer <small>POST /sql</small></h3>
+    <div class="sql-presets">
+      @for (p of sqlPresets; track p) {
+        <button class="sql-preset" (click)="sqlQuery = p">{{ p.slice(0, 50) }}</button>
+      }
+    </div>
+    <textarea class="sql-input" [(ngModel)]="sqlQuery" rows="3" placeholder="SELECT ..."></textarea>
+    <button class="action-btn sql-run" (click)="executeSql()" [disabled]="sqlLoading()">
+      {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
+    </button>
+
+    @if (sqlError()) {
+      <div class="sql-error">{{ sqlError() }}</div>
+    }
+
+    @if (sqlResult()) {
+      <div class="sql-result">
+        <table>
+          <thead>
+            <tr>
+              @for (col of sqlResult()!.columns; track col) {
+                <th>{{ col }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of sqlResult()!.rows; track $index) {
+              <tr>
+                @for (cell of row; track $index) {
+                  <td>{{ cell }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </article>
+
   <!-- Actuator info -->
   @if (actuatorInfo()) {
     <article class="card">

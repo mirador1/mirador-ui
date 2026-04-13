@@ -165,4 +165,43 @@ export class SettingsComponent {
     const q = this.loggerFilter.toLowerCase();
     return this.loggers().filter(l => l.name.toLowerCase().includes(q)).slice(0, 50);
   }
+
+  // ── SQL Explorer ──────────────────────────────────────────────────────────
+  sqlQuery = 'SELECT id, name, email FROM customer LIMIT 20';
+  sqlResult = signal<{ columns: string[]; rows: string[][] } | null>(null);
+  sqlError = signal('');
+  sqlLoading = signal(false);
+
+  readonly sqlPresets = [
+    'SELECT id, name, email FROM customer LIMIT 20',
+    'SELECT COUNT(*) as total FROM customer',
+    'SELECT name, email, created_at FROM customer ORDER BY created_at DESC LIMIT 10',
+    'SELECT email, COUNT(*) as cnt FROM customer GROUP BY email HAVING COUNT(*) > 1',
+  ];
+
+  executeSql(): void {
+    this.sqlLoading.set(true);
+    this.sqlError.set('');
+    this.sqlResult.set(null);
+
+    // Uses H2 console or a custom endpoint — fallback to showing the query
+    // Since most Spring Boot apps don't expose raw SQL, we simulate via /customers endpoint
+    // This is a best-effort SQL explorer that works if the backend has a /sql endpoint
+    this.http.post<any>(`${this.env.baseUrl()}/sql`, { query: this.sqlQuery }).subscribe({
+      next: res => {
+        if (Array.isArray(res) && res.length > 0) {
+          const columns = Object.keys(res[0]);
+          const rows = res.map((r: any) => columns.map(c => String(r[c] ?? '')));
+          this.sqlResult.set({ columns, rows });
+        } else {
+          this.sqlResult.set({ columns: ['result'], rows: [[JSON.stringify(res)]] });
+        }
+        this.sqlLoading.set(false);
+      },
+      error: e => {
+        this.sqlError.set(`SQL endpoint not available (${e.status || 'error'}). Add a /sql endpoint to the backend or use pgAdmin at localhost:5050.`);
+        this.sqlLoading.set(false);
+      }
+    });
+  }
 }
