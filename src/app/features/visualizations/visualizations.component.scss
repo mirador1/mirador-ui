@@ -50,6 +50,14 @@ h2 {
 .tab-content {
   margin-top: 0.5rem;
 }
+
+.tab-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+  max-width: 700px;
+}
 .controls-row {
   display: flex;
   gap: 0.5rem;

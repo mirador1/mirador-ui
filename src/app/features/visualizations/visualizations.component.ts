@@ -7,6 +7,7 @@ import { catchError, of } from 'rxjs';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
+import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 type VizTab =
   | 'topology'
@@ -84,7 +85,7 @@ interface KafkaLagPoint {
 @Component({
   selector: 'app-visualizations',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink],
+  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, InfoTipComponent],
   templateUrl: './visualizations.component.html',
   styleUrl: './visualizations.component.scss',
 })
