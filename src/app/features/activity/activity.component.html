@@ -20,7 +20,13 @@
 
   @if (filteredEvents.length === 0) {
     <div class="empty-state">
-      <p>No activity yet. Events will appear here as you use the app.</p>
+      <p>No activity yet.</p>
+      <p class="empty-hint">
+        Events are logged in-memory during this browser session. Try:
+        creating a customer, generating traffic from the Dashboard,
+        running a diagnostic scenario, or stopping a Docker container.
+        Each action will appear here with a timestamp.
+      </p>
     </div>
   } @else {
     <div class="timeline">

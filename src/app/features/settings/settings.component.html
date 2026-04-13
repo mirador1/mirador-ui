@@ -3,7 +3,7 @@
     <div>
       <h2>Settings</h2>
       <p class="subtitle">
-        Backend configuration & Actuator explorer — {{ env.current().name }} ({{ env.baseUrl() }})
+        Backend Actuator explorer — {{ env.current().name }} ({{ env.baseUrl() }})
       </p>
     </div>
     <button class="action-btn" (click)="loadInfo()">↻ Refresh</button>
@@ -24,53 +24,21 @@
           <span class="stat-label">Spring Beans</span>
         </div>
       }
-      <div class="stat-card">
-        <span class="stat-value">{{ configValues().length }}</span>
-        <span class="stat-label">Config Properties</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">{{ loggers().length || '—' }}</span>
-        <span class="stat-label">Loggers</span>
-      </div>
     </div>
-
-    <!-- Config properties -->
-    @if (configValues().length) {
-      <article class="card">
-        <h3>Configuration Properties <small>from /actuator/env</small></h3>
-        <div class="config-table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Key</th>
-                <th>Value</th>
-                <th>Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (c of configValues(); track c.key) {
-                <tr>
-                  <td class="key-cell">{{ c.key }}</td>
-                  <td class="value-cell">{{ c.value }}</td>
-                  <td class="source-cell">{{ c.source }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </article>
-    }
 
     <!-- Actuator endpoint explorer -->
     <article class="card">
       <h3>Actuator Endpoint Explorer</h3>
+      <p class="card-desc">
+        Spring Boot Actuator exposes management endpoints for health, metrics, environment and more.
+        Click an endpoint to see its raw JSON response.
+      </p>
       <div class="endpoint-btns">
         @for (ep of endpoints; track ep.path) {
           <button
             class="endpoint-btn"
             [class.active]="selectedEndpoint() === ep.path"
-            (click)="callEndpoint(ep.path)"
-          >
+            (click)="callEndpoint(ep.path)">
             {{ ep.label }}
           </button>
         }
@@ -86,91 +54,6 @@
       }
     </article>
 
-    <!-- Loggers -->
-    <article class="card">
-      <div class="loggers-header">
-        <h3>Loggers <small>POST /actuator/loggers/&#123;name&#125;</small></h3>
-        <button class="action-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
-          {{ loggerLoading() ? 'Loading...' : 'Load Loggers' }}
-        </button>
-      </div>
-
-      @if (loggers().length) {
-        <input
-          class="logger-search"
-          type="text"
-          placeholder="Filter loggers..."
-          [(ngModel)]="loggerFilter"
-        />
-
-        <div class="loggers-list">
-          @for (l of filteredLoggers; track l.name) {
-            <div class="logger-item">
-              <span class="logger-name">{{ l.name }}</span>
-              <div class="logger-levels">
-                @for (level of ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']; track level) {
-                  <button
-                    class="level-btn"
-                    [class.level-active]="l.level === level"
-                    [class]="'level-' + level.toLowerCase()"
-                    (click)="setLoggerLevel(l.name, level)"
-                  >
-                    {{ level }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      }
-    </article>
-
-    <!-- SQL Explorer -->
-    <article class="card">
-      <h3>SQL Explorer <small>POST /sql</small></h3>
-      <div class="sql-presets">
-        @for (p of sqlPresets; track p) {
-          <button class="sql-preset" (click)="sqlQuery = p">{{ p.slice(0, 50) }}</button>
-        }
-      </div>
-      <textarea
-        class="sql-input"
-        [(ngModel)]="sqlQuery"
-        rows="3"
-        placeholder="SELECT ..."
-      ></textarea>
-      <button class="action-btn sql-run" (click)="executeSql()" [disabled]="sqlLoading()">
-        {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
-      </button>
-
-      @if (sqlError()) {
-        <div class="sql-error">{{ sqlError() }}</div>
-      }
-
-      @if (sqlResult()) {
-        <div class="sql-result">
-          <table>
-            <thead>
-              <tr>
-                @for (col of sqlResult()!.columns; track col) {
-                  <th>{{ col }}</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of sqlResult()!.rows; track $index) {
-                <tr>
-                  @for (cell of row; track $index) {
-                    <td>{{ cell }}</td>
-                  }
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </article>
-
     <!-- Actuator info -->
     @if (actuatorInfo()) {
       <article class="card">
@@ -178,6 +61,29 @@
         <pre>{{ actuatorInfo() | json }}</pre>
       </article>
     }
-  }
-  <!-- end auth -->
+
+    <!-- External tools -->
+    <article class="card">
+      <h3>External Admin Tools</h3>
+      <p class="card-desc">These features require dedicated tools. Click to open in a new tab.</p>
+      <div class="ext-links">
+        <a href="http://localhost:5050" target="_blank" rel="noopener" class="ext-link">
+          <strong>pgAdmin</strong>
+          <small>SQL queries, table browser, database management</small>
+        </a>
+        <a [href]="env.baseUrl() + '/swagger-ui.html'" target="_blank" rel="noopener" class="ext-link">
+          <strong>Swagger UI</strong>
+          <small>Full API documentation with interactive testing</small>
+        </a>
+        <a href="http://localhost:9080" target="_blank" rel="noopener" class="ext-link">
+          <strong>Kafka UI</strong>
+          <small>Topics, consumer groups, messages</small>
+        </a>
+        <a href="http://localhost:5540" target="_blank" rel="noopener" class="ext-link">
+          <strong>RedisInsight</strong>
+          <small>Key browser, memory analysis</small>
+        </a>
+      </div>
+    </article>
+  } <!-- end auth -->
 </section>

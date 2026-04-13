@@ -78,6 +78,14 @@ h2 {
   font-size: 0.9rem;
 }
 
+.empty-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  max-width: 500px;
+  margin: 0.5rem auto 0;
+  line-height: 1.5;
+}
+
 // ── Timeline ────────────────────────────────────────────────────────────────
 .timeline {
   position: relative;
