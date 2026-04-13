@@ -8,50 +8,85 @@ import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 
-type VizTab = 'topology' | 'waterfall' | 'sankey' | 'errors' | 'kafka' | 'jvm' | 'golden' | 'slowdb' | 'bundle3d';
+type VizTab =
+  | 'topology'
+  | 'waterfall'
+  | 'sankey'
+  | 'errors'
+  | 'kafka'
+  | 'jvm'
+  | 'golden'
+  | 'slowdb'
+  | 'bundle3d';
 
 // ── Topology ────────────────────────────────────────────────────────────────
 interface TopoNode {
-  id: string; label: string; x: number; y: number; status: 'up' | 'down' | 'unknown';
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  status: 'up' | 'down' | 'unknown';
 }
 interface TopoParticle {
-  fromId: string; toId: string; progress: number; color: string;
+  fromId: string;
+  toId: string;
+  progress: number;
+  color: string;
 }
 
 // ── Waterfall ───────────────────────────────────────────────────────────────
 interface WaterfallEntry {
-  method: string; uri: string; status: number; startMs: number; durationMs: number;
+  method: string;
+  uri: string;
+  status: number;
+  startMs: number;
+  durationMs: number;
 }
 
 // ── Sankey ───────────────────────────────────────────────────────────────────
 interface SankeyFlow {
-  from: string; to: string; value: number; color: string;
+  from: string;
+  to: string;
+  value: number;
+  color: string;
 }
 
 // ── Error timeline ──────────────────────────────────────────────────────────
 interface ErrorSample {
-  time: Date; ok: number; errors: number;
+  time: Date;
+  ok: number;
+  errors: number;
 }
 
 // ── JVM Gauges ──────────────────────────────────────────────────────────────
 interface GaugeData {
-  label: string; value: number; max: number; unit: string; color: string;
+  label: string;
+  value: number;
+  max: number;
+  unit: string;
+  color: string;
 }
 
 // ── Golden Signals ──────────────────────────────────────────────────────────
 interface GoldenSignal {
-  name: string; value: string; status: 'ok' | 'warn' | 'critical'; detail: string;
+  name: string;
+  value: string;
+  status: 'ok' | 'warn' | 'critical';
+  detail: string;
 }
 
 // ── Kafka lag ───────────────────────────────────────────────────────────────
-interface KafkaLagPoint { time: Date; lag: number; }
+interface KafkaLagPoint {
+  time: Date;
+  lag: number;
+}
 
 @Component({
   selector: 'app-visualizations',
   standalone: true,
   imports: [FormsModule, DatePipe, DecimalPipe, RouterLink],
   templateUrl: './visualizations.component.html',
-  styleUrl: './visualizations.component.scss'
+  styleUrl: './visualizations.component.scss',
 })
 export class VisualizationsComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
@@ -73,9 +108,12 @@ export class VisualizationsComponent implements OnDestroy {
     { id: 'consumer', label: 'Kafka Consumer', x: 700, y: 190, status: 'unknown' },
   ]);
   readonly topoEdges = [
-    { from: 'client', to: 'api' }, { from: 'api', to: 'pg' },
-    { from: 'api', to: 'redis' }, { from: 'api', to: 'kafka' },
-    { from: 'api', to: 'ollama' }, { from: 'kafka', to: 'consumer' },
+    { from: 'client', to: 'api' },
+    { from: 'api', to: 'pg' },
+    { from: 'api', to: 'redis' },
+    { from: 'api', to: 'kafka' },
+    { from: 'api', to: 'ollama' },
+    { from: 'kafka', to: 'consumer' },
     { from: 'consumer', to: 'kafka' },
   ];
   topoParticles = signal<TopoParticle[]>([]);
@@ -124,21 +162,49 @@ export class VisualizationsComponent implements OnDestroy {
   // ── Topology map ──────────────────────────────────────────────────────────
   refreshTopology(): void {
     const base = this.env.baseUrl();
-    this.http.get<any>(`${base}/actuator/health`).pipe(catchError(() => of(null))).subscribe(h => {
-      const components = h?.components ?? {};
-      this.topoNodes.update(nodes => nodes.map(n => {
-        if (n.id === 'api') return { ...n, status: h?.status === 'UP' ? 'up' as const : 'down' as const };
-        if (n.id === 'pg') return { ...n, status: components['db']?.status === 'UP' ? 'up' as const : (components['db'] ? 'down' as const : 'unknown' as const) };
-        if (n.id === 'redis') return { ...n, status: components['redis']?.status === 'UP' ? 'up' as const : 'unknown' as const };
-        if (n.id === 'kafka') return { ...n, status: components['kafka']?.status === 'UP' ? 'up' as const : 'unknown' as const };
-        if (n.id === 'client') return { ...n, status: 'up' as const };
-        return n;
-      }));
-    });
+    this.http
+      .get<any>(`${base}/actuator/health`)
+      .pipe(catchError(() => of(null)))
+      .subscribe((h) => {
+        const components = h?.components ?? {};
+        this.topoNodes.update((nodes) =>
+          nodes.map((n) => {
+            if (n.id === 'api')
+              return { ...n, status: h?.status === 'UP' ? ('up' as const) : ('down' as const) };
+            if (n.id === 'pg')
+              return {
+                ...n,
+                status:
+                  components['db']?.status === 'UP'
+                    ? ('up' as const)
+                    : components['db']
+                      ? ('down' as const)
+                      : ('unknown' as const),
+              };
+            if (n.id === 'redis')
+              return {
+                ...n,
+                status:
+                  components['redis']?.status === 'UP' ? ('up' as const) : ('unknown' as const),
+              };
+            if (n.id === 'kafka')
+              return {
+                ...n,
+                status:
+                  components['kafka']?.status === 'UP' ? ('up' as const) : ('unknown' as const),
+              };
+            if (n.id === 'client') return { ...n, status: 'up' as const };
+            return n;
+          }),
+        );
+      });
   }
 
   toggleTopoAnimation(): void {
-    if (this.topoAnimating()) { this.stopTopoAnimation(); return; }
+    if (this.topoAnimating()) {
+      this.stopTopoAnimation();
+      return;
+    }
     this.topoAnimating.set(true);
     this.refreshTopology();
     this._topoTimer = setInterval(() => {
@@ -146,19 +212,28 @@ export class VisualizationsComponent implements OnDestroy {
       const edges = this.topoEdges;
       const edge = edges[Math.floor(Math.random() * edges.length)];
       const colors = ['#60a5fa', '#4ade80', '#fbbf24', '#f87171'];
-      this.topoParticles.update(p => [...p.slice(-15), {
-        fromId: edge.from, toId: edge.to,
-        progress: 0,
-        color: colors[Math.floor(Math.random() * colors.length)]
-      }]);
+      this.topoParticles.update((p) => [
+        ...p.slice(-15),
+        {
+          fromId: edge.from,
+          toId: edge.to,
+          progress: 0,
+          color: colors[Math.floor(Math.random() * colors.length)],
+        },
+      ]);
       // Advance existing particles
-      this.topoParticles.update(p => p.map(pt => ({ ...pt, progress: pt.progress + 0.2 })).filter(pt => pt.progress <= 1));
+      this.topoParticles.update((p) =>
+        p.map((pt) => ({ ...pt, progress: pt.progress + 0.2 })).filter((pt) => pt.progress <= 1),
+      );
     }, 300);
   }
 
   private stopTopoAnimation(): void {
     this.topoAnimating.set(false);
-    if (this._topoTimer) { clearInterval(this._topoTimer); this._topoTimer = null; }
+    if (this._topoTimer) {
+      clearInterval(this._topoTimer);
+      this._topoTimer = null;
+    }
     this.topoParticles.set([]);
   }
 
@@ -170,22 +245,22 @@ export class VisualizationsComponent implements OnDestroy {
 
   topoEdgeCoords(): Array<{ x1: number; y1: number; x2: number; y2: number }> {
     const nodes = this.topoNodes();
-    return this.topoEdges.map(e => {
-      const f = nodes.find(n => n.id === e.from)!;
-      const t = nodes.find(n => n.id === e.to)!;
+    return this.topoEdges.map((e) => {
+      const f = nodes.find((n) => n.id === e.from)!;
+      const t = nodes.find((n) => n.id === e.to)!;
       return { x1: f.x, y1: f.y, x2: t.x, y2: t.y };
     });
   }
 
   particlePositions(): Array<{ cx: number; cy: number; color: string }> {
     const nodes = this.topoNodes();
-    return this.topoParticles().map(p => {
-      const f = nodes.find(n => n.id === p.fromId)!;
-      const t = nodes.find(n => n.id === p.toId)!;
+    return this.topoParticles().map((p) => {
+      const f = nodes.find((n) => n.id === p.fromId)!;
+      const t = nodes.find((n) => n.id === p.toId)!;
       return {
         cx: f.x + (t.x - f.x) * p.progress,
         cy: f.y + (t.y - f.y) * p.progress,
-        color: p.color
+        color: p.color,
       };
     });
   }
@@ -210,9 +285,21 @@ export class VisualizationsComponent implements OnDestroy {
       try {
         const t0 = performance.now();
         await this.http.get(`${base}${ep.uri}`).toPromise();
-        return { method: ep.method, uri: ep.uri, status: 200, startMs: start, durationMs: performance.now() - t0 };
+        return {
+          method: ep.method,
+          uri: ep.uri,
+          status: 200,
+          startMs: start,
+          durationMs: performance.now() - t0,
+        };
       } catch (e: any) {
-        return { method: ep.method, uri: ep.uri, status: e.status || 0, startMs: start, durationMs: performance.now() - globalStart - start };
+        return {
+          method: ep.method,
+          uri: ep.uri,
+          status: e.status || 0,
+          startMs: start,
+          durationMs: performance.now() - globalStart - start,
+        };
       }
     });
 
@@ -223,15 +310,16 @@ export class VisualizationsComponent implements OnDestroy {
 
   waterfallMaxMs(): number {
     const entries = this.waterfallEntries();
-    return Math.max(1, ...entries.map(e => e.startMs + e.durationMs));
+    return Math.max(1, ...entries.map((e) => e.startMs + e.durationMs));
   }
 
   // ── Sankey ────────────────────────────────────────────────────────────────
   buildSankey(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: text => {
+      next: (text) => {
         const flows: SankeyFlow[] = [];
-        const regex = /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        const regex =
+          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
         let m;
         const byEndpoint: Record<string, Record<string, number>> = {};
         while ((m = regex.exec(text)) !== null) {
@@ -241,28 +329,41 @@ export class VisualizationsComponent implements OnDestroy {
           if (!byEndpoint[uri]) byEndpoint[uri] = {};
           byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
         }
-        const colors: Record<string, string> = { '2xx': '#4ade80', '3xx': '#60a5fa', '4xx': '#fbbf24', '5xx': '#f87171' };
+        const colors: Record<string, string> = {
+          '2xx': '#4ade80',
+          '3xx': '#60a5fa',
+          '4xx': '#fbbf24',
+          '5xx': '#f87171',
+        };
         for (const [uri, statuses] of Object.entries(byEndpoint)) {
           for (const [status, count] of Object.entries(statuses)) {
             if (count > 0) {
-              flows.push({ from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri, to: status, value: count, color: colors[status] || '#94a3b8' });
+              flows.push({
+                from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
+                to: status,
+                value: count,
+                color: colors[status] || '#94a3b8',
+              });
             }
           }
         }
         flows.sort((a, b) => b.value - a.value);
         this.sankeyFlows.set(flows.slice(0, 20));
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   sankeyMaxValue(): number {
-    return Math.max(1, ...this.sankeyFlows().map(f => f.value));
+    return Math.max(1, ...this.sankeyFlows().map((f) => f.value));
   }
 
   // ── Error timeline ────────────────────────────────────────────────────────
   toggleErrorPolling(): void {
-    if (this.errorPolling()) { this.stopErrorPolling(); return; }
+    if (this.errorPolling()) {
+      this.stopErrorPolling();
+      return;
+    }
     this.errorPolling.set(true);
     this.errorSamples.set([]);
     this.sampleErrors();
@@ -271,42 +372,57 @@ export class VisualizationsComponent implements OnDestroy {
 
   private stopErrorPolling(): void {
     this.errorPolling.set(false);
-    if (this._errorTimer) { clearInterval(this._errorTimer); this._errorTimer = null; }
+    if (this._errorTimer) {
+      clearInterval(this._errorTimer);
+      this._errorTimer = null;
+    }
   }
 
   private sampleErrors(): void {
     const base = this.env.baseUrl();
-    let ok = 0; let errors = 0; let done = 0;
+    let ok = 0;
+    let errors = 0;
+    let done = 0;
     const total = 5;
     for (let i = 0; i < total; i++) {
-      this.http.get(`${base}/customers?page=0&size=1`).pipe(
-        catchError(() => { errors++; return of(null); })
-      ).subscribe(() => {
-        done++;
-        if (done === total) {
-          ok = total - errors;
-          this.errorSamples.update(s => [...s.slice(-39), { time: new Date(), ok, errors }]);
-        }
-      });
+      this.http
+        .get(`${base}/customers?page=0&size=1`)
+        .pipe(
+          catchError(() => {
+            errors++;
+            return of(null);
+          }),
+        )
+        .subscribe(() => {
+          done++;
+          if (done === total) {
+            ok = total - errors;
+            this.errorSamples.update((s) => [...s.slice(-39), { time: new Date(), ok, errors }]);
+          }
+        });
     }
   }
 
   errorChartBars(): Array<{ x: number; okH: number; errH: number }> {
     const s = this.errorSamples();
     if (!s.length) return [];
-    const max = Math.max(1, ...s.map(x => x.ok + x.errors));
+    const max = Math.max(1, ...s.map((x) => x.ok + x.errors));
     const barW = 400 / 40;
     return s.map((x, i) => ({
-      x: i * barW, okH: (x.ok / max) * 80, errH: (x.errors / max) * 80
+      x: i * barW,
+      okH: (x.ok / max) * 80,
+      errH: (x.errors / max) * 80,
     }));
   }
 
   // ── JVM Gauges ────────────────────────────────────────────────────────────
   fetchJvmGauges(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: text => {
+      next: (text) => {
         const get = (name: string): number => {
-          const match = text.match(new RegExp(`^${name}\\b[^\\n]*\\s+(\\d+\\.?\\d*(?:E[+-]?\\d+)?)`, 'm'));
+          const match = text.match(
+            new RegExp(`^${name}\\b[^\\n]*\\s+(\\d+\\.?\\d*(?:E[+-]?\\d+)?)`, 'm'),
+          );
           return match ? parseFloat(match[1]) : 0;
         };
         const heapUsed = get('jvm_memory_used_bytes\\{.*area="heap"') / 1048576;
@@ -316,13 +432,37 @@ export class VisualizationsComponent implements OnDestroy {
         const gcPause = get('jvm_gc_pause_seconds_sum') * 1000;
 
         this.gauges.set([
-          { label: 'Heap Memory', value: Math.round(heapUsed), max: Math.round(heapMax), unit: 'MB', color: heapUsed / heapMax > 0.8 ? '#f87171' : '#4ade80' },
-          { label: 'CPU Usage', value: Math.round(cpuUsage * 10) / 10, max: 100, unit: '%', color: cpuUsage > 80 ? '#f87171' : cpuUsage > 50 ? '#fbbf24' : '#4ade80' },
-          { label: 'Live Threads', value: Math.round(threads), max: 200, unit: '', color: threads > 150 ? '#fbbf24' : '#60a5fa' },
-          { label: 'GC Pause', value: Math.round(gcPause * 10) / 10, max: 1000, unit: 'ms', color: gcPause > 500 ? '#f87171' : '#4ade80' },
+          {
+            label: 'Heap Memory',
+            value: Math.round(heapUsed),
+            max: Math.round(heapMax),
+            unit: 'MB',
+            color: heapUsed / heapMax > 0.8 ? '#f87171' : '#4ade80',
+          },
+          {
+            label: 'CPU Usage',
+            value: Math.round(cpuUsage * 10) / 10,
+            max: 100,
+            unit: '%',
+            color: cpuUsage > 80 ? '#f87171' : cpuUsage > 50 ? '#fbbf24' : '#4ade80',
+          },
+          {
+            label: 'Live Threads',
+            value: Math.round(threads),
+            max: 200,
+            unit: '',
+            color: threads > 150 ? '#fbbf24' : '#60a5fa',
+          },
+          {
+            label: 'GC Pause',
+            value: Math.round(gcPause * 10) / 10,
+            max: 1000,
+            unit: 'ms',
+            color: gcPause > 500 ? '#f87171' : '#4ade80',
+          },
         ]);
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
@@ -332,10 +472,11 @@ export class VisualizationsComponent implements OnDestroy {
 
   gaugeArc(value: number, max: number): string {
     const angle = this.gaugeAngle(value, max);
-    const rad = (angle - 135) * Math.PI / 180;
+    const rad = ((angle - 135) * Math.PI) / 180;
     const r = 40;
-    const cx = 50; const cy = 50;
-    const startRad = -135 * Math.PI / 180;
+    const cx = 50;
+    const cy = 50;
+    const startRad = (-135 * Math.PI) / 180;
     const x1 = cx + r * Math.cos(startRad);
     const y1 = cy + r * Math.sin(startRad);
     const x2 = cx + r * Math.cos(rad);
@@ -347,12 +488,14 @@ export class VisualizationsComponent implements OnDestroy {
   // ── Golden Signals ────────────────────────────────────────────────────────
   fetchGoldenSignals(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: text => {
+      next: (text) => {
         const parsed = this.metricsService.parsePrometheus(text);
 
         // Error rate
         const totalReqs = parsed.httpRequestsTotal || 1;
-        const errorMatch = text.match(/http_server_requests_seconds_count\{[^}]*status="5\d\d"[^}]*\}\s+(\d+\.?\d*)/g);
+        const errorMatch = text.match(
+          /http_server_requests_seconds_count\{[^}]*status="5\d\d"[^}]*\}\s+(\d+\.?\d*)/g,
+        );
         let errors5xx = 0;
         if (errorMatch) {
           for (const line of errorMatch) {
@@ -363,42 +506,52 @@ export class VisualizationsComponent implements OnDestroy {
         const errorRate = (errors5xx / totalReqs) * 100;
 
         // Saturation (thread count as proxy)
-        const threads = parseFloat(text.match(/jvm_threads_live_threads\s+(\d+\.?\d*)/m)?.[1] ?? '0');
+        const threads = parseFloat(
+          text.match(/jvm_threads_live_threads\s+(\d+\.?\d*)/m)?.[1] ?? '0',
+        );
 
         this.goldenSignals.set([
           {
             name: 'Latency',
             value: `${parsed.httpLatencyP95.toFixed(1)} ms`,
-            status: parsed.httpLatencyP95 > 500 ? 'critical' : parsed.httpLatencyP95 > 100 ? 'warn' : 'ok',
-            detail: `p50=${parsed.httpLatencyP50.toFixed(1)}ms p99=${parsed.httpLatencyP99.toFixed(1)}ms`
+            status:
+              parsed.httpLatencyP95 > 500
+                ? 'critical'
+                : parsed.httpLatencyP95 > 100
+                  ? 'warn'
+                  : 'ok',
+            detail: `p50=${parsed.httpLatencyP50.toFixed(1)}ms p99=${parsed.httpLatencyP99.toFixed(1)}ms`,
           },
           {
             name: 'Traffic',
             value: `${totalReqs.toFixed(0)} req`,
             status: 'ok',
-            detail: `Total HTTP requests served`
+            detail: `Total HTTP requests served`,
           },
           {
             name: 'Errors',
             value: `${errorRate.toFixed(2)}%`,
             status: errorRate > 5 ? 'critical' : errorRate > 1 ? 'warn' : 'ok',
-            detail: `${errors5xx.toFixed(0)} 5xx / ${totalReqs.toFixed(0)} total`
+            detail: `${errors5xx.toFixed(0)} 5xx / ${totalReqs.toFixed(0)} total`,
           },
           {
             name: 'Saturation',
             value: `${threads.toFixed(0)} threads`,
             status: threads > 150 ? 'critical' : threads > 100 ? 'warn' : 'ok',
-            detail: 'JVM live threads (proxy for saturation)'
-          }
+            detail: 'JVM live threads (proxy for saturation)',
+          },
         ]);
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   // ── Kafka lag ─────────────────────────────────────────────────────────────
   toggleKafkaPolling(): void {
-    if (this.kafkaPolling()) { this.stopKafkaPolling(); return; }
+    if (this.kafkaPolling()) {
+      this.stopKafkaPolling();
+      return;
+    }
     this.kafkaPolling.set(true);
     this.kafkaLag.set([]);
     this.sampleKafkaLag();
@@ -407,43 +560,52 @@ export class VisualizationsComponent implements OnDestroy {
 
   private stopKafkaPolling(): void {
     this.kafkaPolling.set(false);
-    if (this._kafkaTimer) { clearInterval(this._kafkaTimer); this._kafkaTimer = null; }
+    if (this._kafkaTimer) {
+      clearInterval(this._kafkaTimer);
+      this._kafkaTimer = null;
+    }
   }
 
   private sampleKafkaLag(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: text => {
-        const match = text.match(/kafka_consumer_fetch_manager_records_lag_max\b[^\n]*\s+(\d+\.?\d*)/m);
+      next: (text) => {
+        const match = text.match(
+          /kafka_consumer_fetch_manager_records_lag_max\b[^\n]*\s+(\d+\.?\d*)/m,
+        );
         const lag = match ? parseFloat(match[1]) : Math.random() * 10; // simulated if metric unavailable
-        this.kafkaLag.update(s => [...s.slice(-29), { time: new Date(), lag }]);
+        this.kafkaLag.update((s) => [...s.slice(-29), { time: new Date(), lag }]);
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   kafkaLagPath(): string {
     const points = this.kafkaLag();
     if (points.length < 2) return '';
-    const maxLag = Math.max(1, ...points.map(p => p.lag));
-    const w = 400; const h = 80;
+    const maxLag = Math.max(1, ...points.map((p) => p.lag));
+    const w = 400;
+    const h = 80;
     const step = w / (points.length - 1);
-    return points.map((p, i) => {
-      const y = h - (p.lag / maxLag) * (h - 10);
-      return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
-    }).join(' ');
+    return points
+      .map((p, i) => {
+        const y = h - (p.lag / maxLag) * (h - 10);
+        return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
+      })
+      .join(' ');
   }
 
   kafkaLagMax(): number {
-    return Math.max(1, ...this.kafkaLag().map(p => p.lag));
+    return Math.max(1, ...this.kafkaLag().map((p) => p.lag));
   }
 
   // ── Slow DB queries ───────────────────────────────────────────────────────
   fetchSlowQueries(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: text => {
+      next: (text) => {
         // Parse JDBC/Hibernate metrics
         const queries: Array<{ query: string; avgMs: number; count: number }> = [];
-        const regex = /spring_data_repository_invocations_seconds_(?:sum|count)\{[^}]*method="(\w+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        const regex =
+          /spring_data_repository_invocations_seconds_(?:sum|count)\{[^}]*method="(\w+)"[^}]*\}\s+(\d+\.?\d*)/g;
         const sums: Record<string, number> = {};
         const counts: Record<string, number> = {};
         let m;
@@ -455,7 +617,11 @@ export class VisualizationsComponent implements OnDestroy {
         }
         for (const method of Object.keys(sums)) {
           const count = counts[method] || 1;
-          queries.push({ query: method, avgMs: Math.round((sums[method] / count) * 1000 * 10) / 10, count });
+          queries.push({
+            query: method,
+            avgMs: Math.round((sums[method] / count) * 1000 * 10) / 10,
+            count,
+          });
         }
         if (queries.length === 0) {
           // Fallback: use generic DB metrics
@@ -468,7 +634,7 @@ export class VisualizationsComponent implements OnDestroy {
         queries.sort((a, b) => b.avgMs - a.avgMs);
         this.slowQueries.set(queries.slice(0, 10));
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
@@ -490,11 +656,24 @@ export class VisualizationsComponent implements OnDestroy {
       { name: 'polyfills', size: 1 },
     ];
     const total = chunks.reduce((s, c) => s + c.size, 0);
-    this.bundleChunks.set(chunks.map(c => ({ ...c, pct: Math.round((c.size / total) * 100) })));
+    this.bundleChunks.set(chunks.map((c) => ({ ...c, pct: Math.round((c.size / total) * 100) })));
   }
 
   treemapColor(index: number): string {
-    const colors = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#84cc16', '#94a3b8'];
+    const colors = [
+      '#3b82f6',
+      '#8b5cf6',
+      '#06b6d4',
+      '#10b981',
+      '#f59e0b',
+      '#ef4444',
+      '#ec4899',
+      '#6366f1',
+      '#14b8a6',
+      '#f97316',
+      '#84cc16',
+      '#94a3b8',
+    ];
     return colors[index % colors.length];
   }
 }

@@ -9,7 +9,9 @@
 
     @if (auth.isAuthenticated()) {
       <nav class="desktop-nav">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+          >Dashboard</a
+        >
         <a routerLink="/customers" routerLinkActive="active">Customers</a>
         <a routerLink="/diagnostic" routerLinkActive="active">Diagnostic</a>
         <a routerLink="/observability" routerLinkActive="active">Observability</a>
@@ -33,7 +35,8 @@
                 <button
                   class="env-option"
                   [class.env-active]="e.name === env.current().name"
-                  (click)="selectEnv(e)">
+                  (click)="selectEnv(e)"
+                >
                   <strong>{{ e.name }}</strong>
                   <small>{{ e.baseUrl }}</small>
                 </button>
@@ -43,12 +46,22 @@
         </div>
 
         <!-- Theme toggle -->
-        <button class="theme-btn" (click)="theme.toggle()" [title]="theme.theme() === 'light' ? 'Switch to dark mode (D)' : 'Switch to light mode (D)'">
+        <button
+          class="theme-btn"
+          (click)="theme.toggle()"
+          [title]="
+            theme.theme() === 'light' ? 'Switch to dark mode (D)' : 'Switch to light mode (D)'
+          "
+        >
           {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
         </button>
 
         <!-- Keyboard shortcuts help -->
-        <button class="theme-btn" (click)="keyboard.showHelp.set(true)" title="Keyboard shortcuts (?)">
+        <button
+          class="theme-btn"
+          (click)="keyboard.showHelp.set(true)"
+          title="Keyboard shortcuts (?)"
+        >
           ?
         </button>
 
@@ -106,7 +119,8 @@
           type="text"
           placeholder="Search pages... (Ctrl+K)"
           [(ngModel)]="searchQuery"
-          autofocus />
+          autofocus
+        />
         <div class="search-results">
           @for (item of filteredSearchItems; track item.path) {
             <button class="search-item" (click)="navigateFromSearch(item.path)">

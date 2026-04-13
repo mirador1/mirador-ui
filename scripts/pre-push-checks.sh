@@ -80,13 +80,10 @@ fi
 
 # Prettier formatting
 echo -n "  Formatting... "
-PRETTIER_OUT=$(npx prettier --check "src/**/*.{ts,html,scss}" 2>&1 || true)
-if echo "$PRETTIER_OUT" | grep -q "All matched files use Prettier"; then
+if npx prettier --check "src/**/*.{ts,html,scss}" 2>&1; then
   echo -e "${GREEN}✓${NC} Prettier formatting OK"
-elif echo "$PRETTIER_OUT" | grep -q "Checking"; then
-  warn "Formatting issues (run: npm run format)"
 else
-  pass "Prettier OK"
+  warn "Formatting issues (run: npm run format)"
 fi
 
 # TODO/FIXME/HACK check
@@ -117,13 +114,9 @@ fi
 section "Tests"
 
 echo -n "  Running unit tests... "
-TEST_OUT=$(npm test 2>&1)
-if echo "$TEST_OUT" | grep -q "passed"; then
-  RESULTS=$(echo "$TEST_OUT" | grep "Tests" | head -1)
-  echo -e "${GREEN}✓${NC} $RESULTS"
+if npx ng test --watch=false 2>&1; then
+  pass "Unit tests passed"
 else
-  echo ""
-  echo "$TEST_OUT" | tail -10
   fail "Unit tests failed"
 fi
 
@@ -132,21 +125,18 @@ if [ "$MODE" != "--quick" ]; then
   section "Build"
 
   echo -n "  Production build... "
-  if npx ng build --configuration production 2>/dev/null | tail -1 | grep -q "complete"; then
+  BUILD_OUT=$(npx ng build --configuration production 2>&1)
+  BUILD_EXIT=$?
+  if [ "$BUILD_EXIT" -eq 0 ]; then
     echo -e "${GREEN}✓${NC} Production build OK"
   else
-    # Try again capturing output
-    BUILD_OUT=$(npx ng build --configuration production 2>&1)
-    if echo "$BUILD_OUT" | grep -q "complete"; then
-      echo -e "${GREEN}✓${NC} Production build OK"
-    else
-      fail "Production build failed"
-    fi
+    echo ""
+    echo "$BUILD_OUT" | tail -10
+    fail "Production build failed"
   fi
 
-  # Circular dependency check
-  BUILD_WARNINGS=$(npx ng build --configuration production 2>&1 | grep -ci "circular" || true)
-  if [ "$BUILD_WARNINGS" -gt 0 ]; then
+  # Circular dependency check (reuse output from above)
+  if echo "$BUILD_OUT" | grep -qi "circular"; then
     warn "Circular dependencies detected in build"
   else
     pass "No circular dependencies"
