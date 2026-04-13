@@ -290,22 +290,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
   quickTraffic(): void {
     this.trafficRunning.set(true);
     const base = this.env.baseUrl();
+    // Mix of fast endpoints (volume) and slow endpoints (latency impact)
     const endpoints = [
       `${base}/customers?page=0&size=5`,
       `${base}/customers?page=0&size=5`,
-      `${base}/actuator/health`,
       `${base}/customers/recent`,
       `${base}/customers/summary?page=0&size=5`,
+      `${base}/actuator/health`,
+      `${base}/customers/aggregate`,          // virtual threads — ~100-300ms
+      `${base}/customers/1/bio`,              // Ollama LLM — ~500ms+
+      `${base}/customers/1/todos`,            // external API — ~200ms
+      `${base}/customers/1/enrich`,           // Kafka round-trip — ~1-5s
+      `${base}/customers?page=0&size=100`,    // large page — slower
     ];
     let done = 0;
-    const total = 20;
-    for (let i = 0; i < total; i++) {
-      const url = endpoints[i % endpoints.length];
+    const total = endpoints.length;
+    this.toast.show(`Sending ${total} requests (including slow ones: bio, enrich, aggregate)...`, 'info');
+    for (const url of endpoints) {
       this.http.get(url).pipe(catchError(() => of(null))).subscribe(() => {
         done++;
         if (done === total) {
           this.trafficRunning.set(false);
-          this.toast.show('20 requests sent — refresh to see updated metrics', 'success');
+          this.toast.show(`${total} requests done — latency metrics updated`, 'success');
           this.refresh();
         }
       });

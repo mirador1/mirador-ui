@@ -27,7 +27,7 @@
         </div>
       </div>
       @if (lastRefresh()) {
-        <span class="ts">{{ lastRefresh() | date: 'HH:mm:ss' }}</span>
+        <span class="ts">Last refresh: {{ lastRefresh() | date: 'HH:mm:ss' }}</span>
       }
       <button class="refresh-btn" (click)="refresh()">↻ Refresh</button>
     </div>
@@ -116,8 +116,8 @@
     <button class="traffic-btn" (click)="quickTraffic()" [disabled]="trafficRunning()">
       {{ trafficRunning() ? 'Sending...' : '⚡ Generate traffic' }}
     </button>
-    <span class="traffic-hint">Send 20 mixed requests to see metrics move</span>
-    <app-info-tip text="Sends 20 mixed requests (GET /customers, /health, /recent) to make counters and charts move in real-time." />
+    <span class="traffic-hint">Includes slow endpoints (bio, enrich, aggregate) to impact latency</span>
+    <app-info-tip text="Sends 10 requests mixing fast endpoints (/customers, /health) and slow ones (/bio via Ollama, /enrich via Kafka, /aggregate via virtual threads) to visibly impact latency percentiles." [wide]="true" />
   </div>
 
   <h3>Health Probes
