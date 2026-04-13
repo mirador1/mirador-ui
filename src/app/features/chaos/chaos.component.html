@@ -14,34 +14,43 @@
   @if (!auth.isAuthenticated()) {
     <div class="alert-warn">Please <a routerLink="/login">sign in</a> first.</div>
   } @else {
-    <!-- Impact monitor chart -->
-    @if (impactSamples().length > 1) {
-      <div class="impact-chart">
-        <h4>Impact Monitor <small>(5 health pings every 2s)</small></h4>
-        <svg viewBox="0 0 300 100" preserveAspectRatio="none" class="chart-svg">
-          @for (bar of impactChartBars(); track $index) {
-            <rect
-              [attr.x]="bar.x"
-              [attr.y]="100 - bar.okH - bar.errH"
-              [attr.width]="8"
-              [attr.height]="bar.okH"
-              rx="1"
-              fill="#4ade80"
-              opacity="0.8"
-            />
-            @if (bar.errH > 0) {
-              <rect
-                [attr.x]="bar.x"
-                [attr.y]="100 - bar.errH"
-                [attr.width]="8"
-                [attr.height]="bar.errH"
-                rx="1"
-                fill="#f87171"
-                opacity="0.8"
-              />
-            }
+    <!-- Impact monitor -->
+    @if (monitoring()) {
+      <div class="monitor-grid">
+        <!-- Health pings chart -->
+        <div class="impact-chart">
+          <h4>Health Pings <small>5 probes every 2s</small></h4>
+          @if (impactSamples().length > 1) {
+            <svg viewBox="0 0 300 100" preserveAspectRatio="none" class="chart-svg">
+              @for (bar of impactChartBars(); track $index) {
+                <rect [attr.x]="bar.x" [attr.y]="100 - bar.okH - bar.errH" [attr.width]="8" [attr.height]="bar.okH" rx="1" fill="#4ade80" opacity="0.8"/>
+                @if (bar.errH > 0) {
+                  <rect [attr.x]="bar.x" [attr.y]="100 - bar.errH" [attr.width]="8" [attr.height]="bar.errH" rx="1" fill="#f87171" opacity="0.8"/>
+                }
+              }
+            </svg>
+          } @else {
+            <p class="muted">Collecting...</p>
           }
-        </svg>
+        </div>
+
+        <!-- Traffic breakdown -->
+        <div class="impact-chart">
+          <h4>Live Traffic <small>{{ totalRps() }} req/s from Prometheus</small></h4>
+          @if (trafficBreakdown().length) {
+            <div class="traffic-list">
+              @for (t of trafficBreakdown(); track t.uri) {
+                <div class="traffic-row">
+                  <span class="traffic-uri">{{ t.uri }}</span>
+                  <span class="traffic-status" [class.t-ok]="t.status.startsWith('2')" [class.t-err]="t.status.startsWith('4') || t.status.startsWith('5')">{{ t.status }}</span>
+                  <span class="traffic-count">{{ t.count }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="muted">Waiting for data...</p>
+          }
+        </div>
       </div>
     }
 

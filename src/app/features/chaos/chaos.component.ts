@@ -41,6 +41,11 @@ export class ChaosComponent implements OnDestroy {
   impactSamples = signal<ImpactSample[]>([]);
   monitoring = signal(false);
   private _monitorTimer: ReturnType<typeof setInterval> | null = null;
+  private _lastTotalRequests = 0;
+
+  // ── Traffic breakdown ─────────────────────────────────────────────────────
+  trafficBreakdown = signal<Array<{ uri: string; count: number; status: string }>>([]);
+  totalRps = signal(0);
 
   // ── Chaos log ─────────────────────────────────────────────────────────────
   chaosLog = signal<Array<{ time: Date; message: string; type: 'action' | 'impact' | 'info' }>>([]);
@@ -130,42 +135,53 @@ export class ChaosComponent implements OnDestroy {
 
   private sampleImpact(): void {
     const base = this.env.baseUrl();
-    const t0 = performance.now();
     let ok = 0;
     let errors = 0;
     const timings: number[] = [];
     const count = 5;
     let done = 0;
 
+    // Health pings
     for (let i = 0; i < count; i++) {
       const start = performance.now();
-      this.http
-        .get(`${base}/actuator/health`)
-        .pipe(
-          catchError(() => {
-            errors++;
-            return of(null);
-          }),
-        )
-        .subscribe(() => {
-          if (errors === 0 || done < count - errors) ok++;
-          timings.push(performance.now() - start);
-          done++;
-          if (done === count) {
-            ok = count - errors;
-            const avg = timings.length ? timings.reduce((a, b) => a + b, 0) / timings.length : 0;
-            this.impactSamples.update((s) => [
-              ...s.slice(-29),
-              {
-                time: new Date(),
-                ok,
-                errors,
-                avgMs: Math.round(avg * 10) / 10,
-              },
-            ]);
-          }
-        });
+      this.http.get(`${base}/actuator/health`).pipe(
+        catchError(() => { errors++; return of(null); }),
+      ).subscribe(() => {
+        if (errors === 0 || done < count - errors) ok++;
+        timings.push(performance.now() - start);
+        done++;
+        if (done === count) {
+          ok = count - errors;
+          const avg = timings.length ? timings.reduce((a, b) => a + b, 0) / timings.length : 0;
+          this.impactSamples.update(s => [...s.slice(-29), {
+            time: new Date(), ok, errors, avgMs: Math.round(avg * 10) / 10,
+          }]);
+        }
+      });
     }
+
+    // Traffic breakdown from Prometheus
+    this.http.get(`${base}/actuator/prometheus`, { responseType: 'text' }).pipe(
+      catchError(() => of('')),
+    ).subscribe((text: string) => {
+      if (!text) return;
+      const entries: Array<{ uri: string; count: number; status: string }> = [];
+      const regex = /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+      let m;
+      let total = 0;
+      while ((m = regex.exec(text)) !== null) {
+        const count = parseFloat(m[4]);
+        total += count;
+        entries.push({ uri: `${m[1]} ${m[3]}`, count, status: m[2] });
+      }
+      entries.sort((a, b) => b.count - a.count);
+      this.trafficBreakdown.set(entries.slice(0, 10));
+
+      // RPS = delta since last sample / 2s
+      const rps = this._lastTotalRequests > 0 ? Math.max(0, (total - this._lastTotalRequests) / 2) : 0;
+      this._lastTotalRequests = total;
+      this.totalRps.set(Math.round(rps * 10) / 10);
+    });
   }
 
   impactChartBars(): Array<{ x: number; okH: number; errH: number }> {
