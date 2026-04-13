@@ -26,15 +26,34 @@
         <button [class.active]="summaryMode()" (click)="toggleSummaryMode()">Summary <small>id+name</small></button>
       </div>
     </div>
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Search name or email..."
+        [value]="searchQuery()"
+        (input)="onSearchInput($any($event.target).value)" />
+    </div>
     <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
     <button class="action-btn" (click)="loadRecent()">📦 Recent (Redis)</button>
     <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
-      ⚡ {{ aggregateLoading() ? 'Running…' : 'Aggregate (Virtual Threads)' }}
+      ⚡ {{ aggregateLoading() ? 'Running...' : 'Aggregate (Virtual Threads)' }}
     </button>
+    <div class="export-group">
+      <button class="action-btn" (click)="exportJson()">↓ JSON</button>
+      <button class="action-btn" (click)="exportCsv()">↓ CSV</button>
+    </div>
   </div>
 
   @if (listError()) {
     <div class="alert-error">⚠ {{ listError() }}</div>
+  }
+
+  <!-- Batch delete bar -->
+  @if (hasSelection()) {
+    <div class="batch-bar">
+      <span>{{ selectedIds().size }} selected</span>
+      <button class="danger-btn" (click)="openBatchDelete()">Delete selected</button>
+    </div>
   }
 
   <!-- Create + List layout -->
@@ -65,7 +84,7 @@
       </div>
 
       <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
-        {{ createLoading() ? 'Creating…' : '+ Create' }}
+        {{ createLoading() ? 'Creating...' : '+ Create' }}
       </button>
 
       @if (createError()) {
@@ -97,7 +116,7 @@
       </div>
 
       @if (listLoading()) {
-        <p class="muted">Loading…</p>
+        <p class="muted">Loading...</p>
       } @else if (summaryMode()) {
         <!-- Summary mode -->
         @if (summaries()?.content?.length) {
@@ -119,14 +138,24 @@
           <table>
             <thead>
               <tr>
-                <th>ID</th><th>Name</th><th>Email</th>
-                @if (apiVersion() === '2.0') { <th>Created at</th> }
+                <th class="check-col">
+                  <input type="checkbox" [checked]="selectAll()" (change)="toggleSelectAll()" />
+                </th>
+                <th class="sortable" (click)="toggleSort('id')">ID <span class="sort-icon">{{ sortIcon('id') }}</span></th>
+                <th class="sortable" (click)="toggleSort('name')">Name <span class="sort-icon">{{ sortIcon('name') }}</span></th>
+                <th class="sortable" (click)="toggleSort('email')">Email <span class="sort-icon">{{ sortIcon('email') }}</span></th>
+                @if (apiVersion() === '2.0') {
+                  <th class="sortable" (click)="toggleSort('createdAt')">Created at <span class="sort-icon">{{ sortIcon('createdAt') }}</span></th>
+                }
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               @for (c of customers()!.content; track c.id) {
                 <tr [class.selected-row]="selectedCustomer()?.id === c.id">
+                  <td class="check-col">
+                    <input type="checkbox" [checked]="selectedIds().has(c.id!)" (change)="toggleSelectOne(c.id!)" />
+                  </td>
                   <td>{{ c.id }}</td>
                   <td>{{ c.name }}</td>
                   <td>{{ c.email }}</td>
@@ -137,6 +166,8 @@
                     <button class="tag-btn bio" (click)="selectCustomer(c, 'bio')">Bio</button>
                     <button class="tag-btn todos" (click)="selectCustomer(c, 'todos')">Todos</button>
                     <button class="tag-btn enrich" (click)="selectCustomer(c, 'enrich')">Enrich</button>
+                    <button class="tag-btn edit" (click)="openEdit(c)">Edit</button>
+                    <button class="tag-btn delete" (click)="openDelete(c)">Del</button>
                   </td>
                 </tr>
               }
@@ -153,6 +184,66 @@
       }
     </article>
   </div>
+
+  <!-- Edit modal -->
+  @if (editingCustomer()) {
+    <div class="modal-overlay" (click)="cancelEdit()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Edit Customer #{{ editingCustomer()!.id }}</h3>
+        <label>
+          Name
+          <input [(ngModel)]="editName" />
+        </label>
+        <label>
+          Email
+          <input [(ngModel)]="editEmail" type="email" />
+        </label>
+        @if (editError()) {
+          <p class="error-text">{{ editError() }}</p>
+        }
+        <div class="modal-actions">
+          <button class="sm-btn" (click)="cancelEdit()">Cancel</button>
+          <button class="primary-btn" (click)="saveEdit()" [disabled]="editLoading()">
+            {{ editLoading() ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Delete confirmation modal -->
+  @if (deletingCustomer()) {
+    <div class="modal-overlay" (click)="cancelDelete()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Delete Customer</h3>
+        <p class="modal-text">
+          Are you sure you want to delete <strong>{{ deletingCustomer()!.name }}</strong> (ID {{ deletingCustomer()!.id }})?
+        </p>
+        <div class="modal-actions">
+          <button class="sm-btn" (click)="cancelDelete()">Cancel</button>
+          <button class="danger-btn" (click)="confirmDelete()" [disabled]="deleteLoading()">
+            {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Batch delete confirmation modal -->
+  @if (confirmBatchDelete()) {
+    <div class="modal-overlay" (click)="cancelBatchDelete()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Batch Delete</h3>
+        <p class="modal-text">Delete {{ selectedIds().size }} selected customers? This cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="sm-btn" (click)="cancelBatchDelete()">Cancel</button>
+          <button class="danger-btn" (click)="executeBatchDelete()" [disabled]="batchDeleteLoading()">
+            {{ batchDeleteLoading() ? 'Deleting...' : 'Delete All' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- Customer detail panel -->
   @if (selectedCustomer()) {
@@ -179,7 +270,7 @@
       </div>
 
       @if (detailLoading()) {
-        <p class="muted">Calling backend…</p>
+        <p class="muted">Calling backend...</p>
       }
       @if (detailError()) {
         <p class="error-text">{{ detailError() }}</p>

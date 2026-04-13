@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -12,12 +12,15 @@ import {
   AggregatedResponse
 } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/toast/toast.service';
 
 function uuid(): string {
   return crypto.randomUUID();
 }
 
 type DetailTab = 'bio' | 'todos' | 'enrich';
+type SortField = 'id' | 'name' | 'email' | 'createdAt';
+type SortDir = 'asc' | 'desc';
 
 @Component({
   selector: 'app-customers',
@@ -26,9 +29,10 @@ type DetailTab = 'bio' | 'todos' | 'enrich';
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss'
 })
-export class CustomersComponent {
+export class CustomersComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   // ── List state ─────────────────────────────────────────────────────────────
   customers = signal<Page<Customer> | null>(null);
@@ -43,6 +47,18 @@ export class CustomersComponent {
   listLoading = signal(false);
   listError = signal('');
 
+  // ── Search ────────────────────────────────────────────────────────────────
+  searchQuery = signal('');
+  private _searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── Sort ──────────────────────────────────────────────────────────────────
+  sortField = signal<SortField | null>(null);
+  sortDir = signal<SortDir>('asc');
+
+  // ── Batch selection ───────────────────────────────────────────────────────
+  selectedIds = signal<Set<number>>(new Set());
+  selectAll = signal(false);
+
   // ── Create form ────────────────────────────────────────────────────────────
   newName = '';
   newEmail = '';
@@ -51,6 +67,19 @@ export class CustomersComponent {
   createLoading = signal(false);
   createError = signal('');
   createSuccess = signal<Customer | null>(null);
+
+  // ── Edit modal ────────────────────────────────────────────────────────────
+  editingCustomer = signal<Customer | null>(null);
+  editName = '';
+  editEmail = '';
+  editLoading = signal(false);
+  editError = signal('');
+
+  // ── Delete confirm ────────────────────────────────────────────────────────
+  deletingCustomer = signal<Customer | null>(null);
+  deleteLoading = signal(false);
+  batchDeleteLoading = signal(false);
+  confirmBatchDelete = signal(false);
 
   // ── Per-customer detail ────────────────────────────────────────────────────
   selectedCustomer = signal<Customer | null>(null);
@@ -70,23 +99,61 @@ export class CustomersComponent {
     return this.customers()?.totalPages ?? 1;
   });
 
+  readonly hasSelection = computed(() => this.selectedIds().size > 0);
+
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
       this.loadCustomers();
     }
   }
 
+  ngOnDestroy(): void {
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+  }
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => {
+      this.currentPage.set(0);
+      this.loadCustomers();
+    }, 300);
+  }
+
+  // ── Sort ──────────────────────────────────────────────────────────────────
+  toggleSort(field: SortField): void {
+    if (this.sortField() === field) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDir.set('asc');
+    }
+    this.loadCustomers();
+  }
+
+  sortIcon(field: SortField): string {
+    if (this.sortField() !== field) return '↕';
+    return this.sortDir() === 'asc' ? '↑' : '↓';
+  }
+
   // ── List ───────────────────────────────────────────────────────────────────
   loadCustomers(): void {
     this.listLoading.set(true);
     this.listError.set('');
+    this.selectedIds.set(new Set());
+    this.selectAll.set(false);
+
+    const sort = this.sortField() ? `${this.sortField()},${this.sortDir()}` : undefined;
+    const search = this.searchQuery() || undefined;
+
     if (this.summaryMode()) {
       this.api.getCustomerSummary(this.currentPage()).subscribe({
         next: p => { this.summaries.set(p); this.listLoading.set(false); },
         error: err => { this.listError.set(httpError(err)); this.listLoading.set(false); }
       });
     } else {
-      this.api.getCustomers(this.currentPage(), 10, this.apiVersion()).subscribe({
+      this.api.getCustomers(this.currentPage(), 10, this.apiVersion(), search, sort).subscribe({
         next: p => { this.customers.set(p); this.listLoading.set(false); },
         error: err => { this.listError.set(httpError(err)); this.listLoading.set(false); }
       });
@@ -161,6 +228,7 @@ export class CustomersComponent {
         this.newName = '';
         this.newEmail = '';
         this.createLoading.set(false);
+        this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
         this.loadCustomers();
       },
       error: err => {
@@ -172,6 +240,172 @@ export class CustomersComponent {
 
   resetIdempotencyKey(): void {
     this.idempotencyKey.set(uuid());
+  }
+
+  // ── Edit ───────────────────────────────────────────────────────────────────
+  openEdit(c: Customer): void {
+    this.editingCustomer.set(c);
+    this.editName = c.name;
+    this.editEmail = c.email;
+    this.editError.set('');
+  }
+
+  cancelEdit(): void {
+    this.editingCustomer.set(null);
+  }
+
+  saveEdit(): void {
+    const c = this.editingCustomer();
+    if (!c?.id || !this.editName.trim() || !this.editEmail.trim()) return;
+    this.editLoading.set(true);
+    this.editError.set('');
+
+    this.api.updateCustomer(c.id, { name: this.editName.trim(), email: this.editEmail.trim() }).subscribe({
+      next: updated => {
+        this.editingCustomer.set(null);
+        this.editLoading.set(false);
+        this.toast.show(`Customer "${updated.name}" updated`, 'success');
+        this.loadCustomers();
+      },
+      error: err => {
+        this.editError.set(httpError(err));
+        this.editLoading.set(false);
+      }
+    });
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  openDelete(c: Customer): void {
+    this.deletingCustomer.set(c);
+  }
+
+  cancelDelete(): void {
+    this.deletingCustomer.set(null);
+  }
+
+  confirmDelete(): void {
+    const c = this.deletingCustomer();
+    if (!c?.id) return;
+    this.deleteLoading.set(true);
+
+    this.api.deleteCustomer(c.id).subscribe({
+      next: () => {
+        this.deletingCustomer.set(null);
+        this.deleteLoading.set(false);
+        this.toast.show(`Customer "${c.name}" deleted`, 'success');
+        this.loadCustomers();
+      },
+      error: err => {
+        this.deleteLoading.set(false);
+        this.toast.show(httpError(err), 'error');
+        this.deletingCustomer.set(null);
+      }
+    });
+  }
+
+  // ── Batch selection ───────────────────────────────────────────────────────
+  toggleSelectAll(): void {
+    const content = this.customers()?.content ?? [];
+    if (this.selectAll()) {
+      this.selectedIds.set(new Set());
+      this.selectAll.set(false);
+    } else {
+      this.selectedIds.set(new Set(content.map(c => c.id!)));
+      this.selectAll.set(true);
+    }
+  }
+
+  toggleSelectOne(id: number): void {
+    this.selectedIds.update(set => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  openBatchDelete(): void {
+    this.confirmBatchDelete.set(true);
+  }
+
+  cancelBatchDelete(): void {
+    this.confirmBatchDelete.set(false);
+  }
+
+  executeBatchDelete(): void {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    this.batchDeleteLoading.set(true);
+
+    let completed = 0;
+    let errors = 0;
+    for (const id of ids) {
+      this.api.deleteCustomer(id).subscribe({
+        next: () => {
+          completed++;
+          if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
+        },
+        error: () => {
+          errors++;
+          if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
+        }
+      });
+    }
+  }
+
+  private finishBatchDelete(ok: number, err: number): void {
+    this.batchDeleteLoading.set(false);
+    this.confirmBatchDelete.set(false);
+    this.selectedIds.set(new Set());
+    this.selectAll.set(false);
+    if (err > 0) {
+      this.toast.show(`Deleted ${ok} customers, ${err} failed`, 'warn');
+    } else {
+      this.toast.show(`Deleted ${ok} customers`, 'success');
+    }
+    this.loadCustomers();
+  }
+
+  // ── Export ────────────────────────────────────────────────────────────────
+  exportJson(): void {
+    const data = this.summaryMode()
+      ? this.summaries()?.content
+      : this.customers()?.content;
+    if (!data?.length) return;
+    this.downloadFile(
+      JSON.stringify(data, null, 2),
+      'customers.json',
+      'application/json'
+    );
+  }
+
+  exportCsv(): void {
+    const data = this.customers()?.content;
+    if (!data?.length) return;
+    const headers = ['id', 'name', 'email'];
+    if (this.apiVersion() === '2.0') headers.push('createdAt');
+
+    const rows = data.map(c =>
+      headers.map(h => {
+        const val = (c as unknown as Record<string, unknown>)[h] ?? '';
+        return `"${String(val).replace(/"/g, '""')}"`;
+      }).join(',')
+    );
+    this.downloadFile(
+      [headers.join(','), ...rows].join('\n'),
+      'customers.csv',
+      'text/csv'
+    );
+  }
+
+  private downloadFile(content: string, filename: string, mime: string): void {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Per-customer actions ───────────────────────────────────────────────────
