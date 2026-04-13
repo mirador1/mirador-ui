@@ -76,12 +76,24 @@ wait_for() {
   return 1
 }
 
+start_docker_api() {
+  info "Starting Docker control API on :3333..."
+  node "$FRONTEND_DIR/scripts/docker-api.mjs" &
+  sleep 1
+  if curl -sf http://localhost:3333/containers > /dev/null 2>&1; then
+    ok "Docker API ready (Service Control, Zipkin/Loki proxy)"
+  else
+    warn "Docker API failed to start"
+  fi
+}
+
 start_frontend() {
   cd "$FRONTEND_DIR"
   if [ ! -d "node_modules" ]; then
     info "Installing npm dependencies..."
     npm ci
   fi
+  start_docker_api
   info "Dev server starting on http://localhost:${FRONTEND_PORT:-4200}"
   npm start
 }
@@ -173,6 +185,7 @@ case "$MODE" in
   stop|down)
     info "Stopping frontend..."
     pkill -f "ng serve" 2>/dev/null && ok "Frontend stopped" || true
+    pkill -f "docker-api.mjs" 2>/dev/null && ok "Docker API stopped" || true
     run_backend "stop"
     ok "All stopped"
     ;;
