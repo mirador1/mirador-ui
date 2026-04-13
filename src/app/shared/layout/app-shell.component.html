@@ -8,13 +8,56 @@
         <a routerLink="/customers" routerLinkActive="active">Customers</a>
         <a routerLink="/diagnostic" routerLinkActive="active">Diagnostic</a>
       </nav>
-      <button class="logout-btn" (click)="logout()">Sign out</button>
+
+      <div class="topbar-actions">
+        <!-- Environment selector -->
+        <div class="env-selector">
+          <button class="env-btn" (click)="toggleEnvDropdown()">
+            <span class="env-dot"></span>
+            {{ env.current().name }}
+          </button>
+          @if (envDropdownOpen) {
+            <div class="env-dropdown">
+              @for (e of env.environments; track e.name) {
+                <button
+                  class="env-option"
+                  [class.env-active]="e.name === env.current().name"
+                  (click)="selectEnv(e)">
+                  <strong>{{ e.name }}</strong>
+                  <small>{{ e.baseUrl }}</small>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Theme toggle -->
+        <button class="theme-btn" (click)="theme.toggle()" [title]="theme.theme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
+          {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
+        </button>
+
+        <button class="logout-btn" (click)="logout()">Sign out</button>
+      </div>
     } @else {
-      <a routerLink="/login" class="login-link">Sign in</a>
+      <div class="topbar-actions">
+        <button class="theme-btn" (click)="theme.toggle()">
+          {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
+        </button>
+        <a routerLink="/login" class="login-link">Sign in</a>
+      </div>
     }
   </header>
 
   <main class="content">
     <router-outlet />
   </main>
+
+  <!-- Toast notifications -->
+  @if (toast.toasts().length) {
+    <div class="toast-container">
+      @for (t of toast.toasts(); track t.id) {
+        <div class="toast toast-{{ t.type }}" (click)="toast.dismiss(t.id)">{{ t.message }}</div>
+      }
+    </div>
+  }
 </div>
