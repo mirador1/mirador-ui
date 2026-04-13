@@ -6,7 +6,14 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "check": "bash scripts/pre-push-checks.sh --standard",
+    "check:quick": "bash scripts/pre-push-checks.sh --quick",
+    "check:full": "bash scripts/pre-push-checks.sh --full",
+    "format": "prettier --write \"src/**/*.{ts,html,scss,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss,json}\"",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "prepare": "cp scripts/pre-push-checks.sh .git/hooks/pre-push 2>/dev/null; chmod +x .git/hooks/pre-push 2>/dev/null || true"
   },
   "private": true,
   "packageManager": "npm@11.11.0",

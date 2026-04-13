@@ -1,0 +1,141 @@
+stages:
+  - validate
+  - test
+  - build
+  - quality
+
+variables:
+  NODE_VERSION: "22"
+
+default:
+  image: node:${NODE_VERSION}-alpine
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull-push
+
+# ── Install ──────────────────────────────────────────────────────────────────
+.install:
+  before_script:
+    - npm ci --prefer-offline
+
+# ── Stage: validate ─────────────────────────────────────────────────────────
+typecheck:
+  stage: validate
+  extends: .install
+  script:
+    - npx tsc --noEmit -p tsconfig.app.json
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+lint:format:
+  stage: validate
+  extends: .install
+  script:
+    - npx prettier --check "src/**/*.{ts,html,scss,json}"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+lint:circular-deps:
+  stage: validate
+  extends: .install
+  script:
+    - |
+      echo "Checking for circular imports..."
+      # Simple circular dependency check via build warnings
+      npx ng build --configuration production 2>&1 | tee /tmp/build.log
+      if grep -qi "circular" /tmp/build.log; then
+        echo "FAIL: Circular dependencies detected"
+        exit 1
+      fi
+      echo "OK: No circular dependencies"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: test ──────────────────────────────────────────────────────────────
+unit-tests:
+  stage: test
+  extends: .install
+  script:
+    - npm test -- --reporter=verbose
+  coverage: '/All files\s*\|\s*[\d.]+/'
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: build ─────────────────────────────────────────────────────────────
+build:production:
+  stage: build
+  extends: .install
+  script:
+    - npx ng build --configuration production
+    - |
+      echo "── Bundle analysis ──"
+      du -sh dist/customer-observability-ui/browser/*.js | sort -rh | head -10
+      echo ""
+      TOTAL=$(du -sh dist/customer-observability-ui/browser/ | cut -f1)
+      echo "Total bundle size: $TOTAL"
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: quality ───────────────────────────────────────────────────────────
+bundle-size-check:
+  stage: quality
+  needs: ["build:production"]
+  script:
+    - |
+      MAX_SIZE_KB=500
+      INITIAL=$(du -sk dist/customer-observability-ui/browser/main-*.js | cut -f1)
+      echo "Initial bundle: ${INITIAL}kB (max: ${MAX_SIZE_KB}kB)"
+      if [ "$INITIAL" -gt "$MAX_SIZE_KB" ]; then
+        echo "WARN: Initial bundle exceeds ${MAX_SIZE_KB}kB"
+      else
+        echo "OK: Bundle within budget"
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+security:audit:
+  stage: quality
+  extends: .install
+  script:
+    - npm audit --audit-level=high || true
+    - |
+      echo "── Checking for sensitive files ──"
+      SENSITIVE=$(find src -name ".env*" -o -name "*.pem" -o -name "*.key" -o -name "credentials*" 2>/dev/null)
+      if [ -n "$SENSITIVE" ]; then
+        echo "FAIL: Sensitive files found in src/:"
+        echo "$SENSITIVE"
+        exit 1
+      fi
+      echo "OK: No sensitive files in src/"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Node 20 compat ──────────────────────────────────────────────────────────
+unit-tests:node20:
+  stage: test
+  extends: .install
+  image: node:20-alpine
+  script:
+    - npm test -- --reporter=verbose
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
