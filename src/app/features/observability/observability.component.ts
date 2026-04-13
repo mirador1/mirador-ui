@@ -97,9 +97,8 @@ export class ObservabilityComponent implements OnDestroy {
     this.tracesLoading.set(true);
     this.tracesError.set('');
 
-    // Zipkin API (Tempo exposes it at /api/v2/traces)
-    const zipkinUrl = 'http://localhost:9411';
-    this.http.get<any[][]>(`${zipkinUrl}/api/v2/traces`, {
+    // Proxied via Angular dev server (proxy.conf.json: /zipkin -> localhost:9411)
+    this.http.get<any[][]>('/zipkin/api/v2/traces', {
       params: {
         serviceName: this.traceService,
         limit: this.traceLimit.toString(),
@@ -129,7 +128,7 @@ export class ObservabilityComponent implements OnDestroy {
         this.tracesLoading.set(false);
       },
       error: e => {
-        this.tracesError.set(`Could not fetch traces from ${zipkinUrl} — ${e.status || 'unreachable'}`);
+        this.tracesError.set(`Could not fetch traces from Zipkin (localhost:9411) — ${e.status || 'unreachable'}. Is Zipkin running?`);
         this.tracesLoading.set(false);
       }
     });
@@ -144,11 +143,11 @@ export class ObservabilityComponent implements OnDestroy {
     this.logsLoading.set(true);
     this.logsError.set('');
 
-    const lokiUrl = 'http://localhost:3100';
+    // Proxied via Angular dev server (proxy.conf.json: /loki -> localhost:3100)
     const end = Date.now() * 1e6; // nanoseconds
     const start = (Date.now() - 3600000) * 1e6; // 1 hour ago
 
-    this.http.get<any>(`${lokiUrl}/loki/api/v1/query_range`, {
+    this.http.get<any>('/loki/loki/api/v1/query_range', {
       params: {
         query: this.lokiQuery,
         limit: this.lokiLimit.toString(),
@@ -173,7 +172,7 @@ export class ObservabilityComponent implements OnDestroy {
         this.logsLoading.set(false);
       },
       error: e => {
-        this.logsError.set(`Could not fetch logs from Loki — ${e.status || 'unreachable'}`);
+        this.logsError.set(`Could not fetch logs from Loki (localhost:3100) — ${e.status || 'unreachable'}. Is Loki running?`);
         this.logsLoading.set(false);
       }
     });

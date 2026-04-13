@@ -1,0 +1,14 @@
+{
+  "/zipkin": {
+    "target": "http://localhost:9411",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/zipkin": "" }
+  },
+  "/loki": {
+    "target": "http://localhost:3100",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/loki": "" }
+  }
+}
