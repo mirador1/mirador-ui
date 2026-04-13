@@ -36,7 +36,10 @@
   padding: 0.2rem 0.5rem;
   cursor: pointer;
   line-height: 1;
-  &:hover { background: #15294a; color: white; }
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
 }
 
 .search-btn {
@@ -47,7 +50,10 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: #93b4d8;
-  &:hover { background: #15294a; color: white; }
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
 }
 
 .topbar h1 {
@@ -109,10 +115,17 @@
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: 4px;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 
-  &:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-  &.active { color: var(--color-accent); }
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+  &.active {
+    color: var(--color-accent);
+  }
 }
 
 .nav-icon {
@@ -135,7 +148,9 @@
   cursor: pointer;
   font-size: 0.7rem;
   padding: 0.3rem 0.5rem;
-  &:hover { color: var(--text-primary); }
+  &:hover {
+    color: var(--text-primary);
+  }
 }
 
 .nav-children {
@@ -149,7 +164,10 @@
   color: var(--text-muted);
   text-decoration: none;
   border-radius: 3px;
-  &:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
 }
 
 // ── Environment selector ────────────────────────────────────────────────────

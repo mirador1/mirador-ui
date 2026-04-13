@@ -18,16 +18,16 @@
   </div>
 
   @if (!auth.isAuthenticated()) {
-    <div class="alert-warn">
-      Please <a routerLink="/login">sign in</a> to run diagnostics.
-    </div>
+    <div class="alert-warn">Please <a routerLink="/login">sign in</a> to run diagnostics.</div>
   }
 
   <!-- Run history panel -->
   @if (showHistory() && runHistory().length) {
     <article class="card history-card">
       <div class="history-header">
-        <h3>Run History <small>{{ runHistory().length }} runs</small></h3>
+        <h3>
+          Run History <small>{{ runHistory().length }} runs</small>
+        </h3>
         <button class="sm-btn" (click)="clearHistory()">Clear</button>
       </div>
       <div class="history-list">
@@ -51,7 +51,10 @@
         <span class="scenario-badge version">🔀 Version</span>
         <div class="scenario-desc">
           <strong>API Versioning — v1 vs v2</strong>
-          <span>Compare responses with <code>X-API-Version</code> header. v2 adds <code>createdAt</code>.</span>
+          <span
+            >Compare responses with <code>X-API-Version</code> header. v2 adds
+            <code>createdAt</code>.</span
+          >
         </div>
       </div>
       <div class="scenario-action">
@@ -74,7 +77,10 @@
         <span class="scenario-badge idem">🔁 Idem</span>
         <div class="scenario-desc">
           <strong>Idempotency — same key twice</strong>
-          <span>POST /customers twice with <code>Idempotency-Key</code>. Second call returns cached response.</span>
+          <span
+            >POST /customers twice with <code>Idempotency-Key</code>. Second call returns cached
+            response.</span
+          >
         </div>
       </div>
       <div class="scenario-action">
@@ -103,7 +109,9 @@
         </div>
       </div>
       <div class="scenario-action">
-        <label class="inline-param">×<input type="number" [(ngModel)]="rateLimitCount" min="2" max="20" /></label>
+        <label class="inline-param"
+          >×<input type="number" [(ngModel)]="rateLimitCount" min="2" max="20"
+        /></label>
         <button class="run-btn" (click)="runRateLimit()" [disabled]="rateLimitRunning()">
           {{ rateLimitRunning() ? '...' : '▶ Run' }}
         </button>
@@ -123,11 +131,20 @@
         <span class="scenario-badge kafka">📨 Kafka</span>
         <div class="scenario-desc">
           <strong>Kafka Request-Reply — enrich</strong>
-          <span>Synchronous Kafka round-trip: <code>customer.request</code> → <code>customer.reply</code>. 5s timeout → 504.</span>
+          <span
+            >Synchronous Kafka round-trip: <code>customer.request</code> →
+            <code>customer.reply</code>. 5s timeout → 504.</span
+          >
         </div>
       </div>
       <div class="scenario-action">
-        <label class="inline-param">ID<input type="number" [ngModel]="enrichCustomerId()" (ngModelChange)="enrichCustomerId.set($event)" min="1" /></label>
+        <label class="inline-param"
+          >ID<input
+            type="number"
+            [ngModel]="enrichCustomerId()"
+            (ngModelChange)="enrichCustomerId.set($event)"
+            min="1"
+        /></label>
         <button class="run-btn" (click)="runEnrich()" [disabled]="enrichRunning()">
           {{ enrichRunning() ? '...' : '▶ Run' }}
         </button>
@@ -147,7 +164,10 @@
         <span class="scenario-badge vt">🧵 VT</span>
         <div class="scenario-desc">
           <strong>Virtual Threads — aggregate</strong>
-          <span>Two parallel virtual threads: customer list + stats. Duration = max(task1, task2).</span>
+          <span
+            >Two parallel virtual threads: customer list + stats. Duration = max(task1,
+            task2).</span
+          >
         </div>
       </div>
       <div class="scenario-action">
@@ -170,7 +190,10 @@
         <span class="scenario-badge version">📝 Diff</span>
         <div class="scenario-desc">
           <strong>API Response Diff — v1 vs v2</strong>
-          <span>Colored JSON diff: <span style="color:#4ade80">green</span> = v2 only, <span style="color:#f87171">red</span> = v1 only.</span>
+          <span
+            >Colored JSON diff: <span style="color: #4ade80">green</span> = v2 only,
+            <span style="color: #f87171">red</span> = v1 only.</span
+          >
         </div>
       </div>
       <div class="scenario-action">
@@ -181,7 +204,10 @@
       @if (versionDiff().length) {
         <div class="scenario-output diff-output">
           @for (line of versionDiff(); track $index) {
-            <span class="diff-line diff-{{ line.type }}">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }} {{ line.text }}</span>
+            <span class="diff-line diff-{{ line.type }}"
+              >{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}
+              {{ line.text }}</span
+            >
           }
         </div>
       }
@@ -197,8 +223,12 @@
         </div>
       </div>
       <div class="scenario-action">
-        <label class="inline-param"><input type="number" [(ngModel)]="stressDuration" min="1" max="60" />s</label>
-        <label class="inline-param">×<input type="number" [(ngModel)]="stressConcurrency" min="1" max="20" /></label>
+        <label class="inline-param"
+          ><input type="number" [(ngModel)]="stressDuration" min="1" max="60" />s</label
+        >
+        <label class="inline-param"
+          >×<input type="number" [(ngModel)]="stressConcurrency" min="1" max="20"
+        /></label>
         <button class="run-btn" (click)="runStressTest()" [disabled]="stressRunning()">
           {{ stressRunning() ? '...' : '▶ Run' }}
         </button>
@@ -210,9 +240,25 @@
         <div class="scenario-output">
           <svg viewBox="0 0 300 60" preserveAspectRatio="none" class="stress-chart-inline">
             @for (bar of stressChartBars(); track $index) {
-              <rect [attr.x]="bar.x" [attr.y]="60 - bar.okH * 0.6 - bar.errH * 0.6" [attr.width]="6" [attr.height]="bar.okH * 0.6" rx="1" fill="#4ade80" opacity="0.8"/>
+              <rect
+                [attr.x]="bar.x"
+                [attr.y]="60 - bar.okH * 0.6 - bar.errH * 0.6"
+                [attr.width]="6"
+                [attr.height]="bar.okH * 0.6"
+                rx="1"
+                fill="#4ade80"
+                opacity="0.8"
+              />
               @if (bar.errH > 0) {
-                <rect [attr.x]="bar.x" [attr.y]="60 - bar.errH * 0.6" [attr.width]="6" [attr.height]="bar.errH * 0.6" rx="1" fill="#f87171" opacity="0.8"/>
+                <rect
+                  [attr.x]="bar.x"
+                  [attr.y]="60 - bar.errH * 0.6"
+                  [attr.width]="6"
+                  [attr.height]="bar.errH * 0.6"
+                  rx="1"
+                  fill="#f87171"
+                  opacity="0.8"
+                />
               }
             }
           </svg>
