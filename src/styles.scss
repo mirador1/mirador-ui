@@ -1,9 +1,138 @@
+// ── Theme variables ──────────────────────────────────────────────────────────
+:root,
+[data-theme='light'] {
+  --bg-body: #f3f6fa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-topbar: #1e3a5f;
+  --bg-topbar-hover: #15294a;
+  --bg-input: #ffffff;
+  --bg-badge-up: #dcfce7;
+  --bg-badge-down: #fee2e2;
+  --bg-badge-unknown: #f1f5f9;
+  --bg-code: #f1f5f9;
+  --bg-terminal: #0f172a;
+  --bg-success: #f0fdf4;
+  --bg-error: #fef2f2;
+  --bg-warn: #fffbeb;
+
+  --border-default: #dbe4ee;
+  --border-input: #cbd5e1;
+  --border-success: #bbf7d0;
+  --border-error: #fecaca;
+  --border-warn: #fde68a;
+
+  --text-primary: #1f2937;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-label: #64748b;
+  --text-link: #1d4ed8;
+  --text-success: #166534;
+  --text-error: #b91c1c;
+  --text-warn: #92400e;
+
+  --color-accent: #1e3a5f;
+  --color-accent-hover: #1e40af;
+  --color-accent-light: #eff6ff;
+
+  --shadow-card: none;
+}
+
+[data-theme='dark'] {
+  --bg-body: #0f172a;
+  --bg-card: #1e293b;
+  --bg-card-hover: #334155;
+  --bg-topbar: #0f172a;
+  --bg-topbar-hover: #1e293b;
+  --bg-input: #334155;
+  --bg-badge-up: #064e3b;
+  --bg-badge-down: #7f1d1d;
+  --bg-badge-unknown: #334155;
+  --bg-code: #334155;
+  --bg-terminal: #020617;
+  --bg-success: #052e16;
+  --bg-error: #450a0a;
+  --bg-warn: #451a03;
+
+  --border-default: #334155;
+  --border-input: #475569;
+  --border-success: #166534;
+  --border-error: #991b1b;
+  --border-warn: #92400e;
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-label: #94a3b8;
+  --text-link: #60a5fa;
+  --text-success: #86efac;
+  --text-error: #fca5a5;
+  --text-warn: #fde68a;
+
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-light: #1e293b;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 html, body {
   margin: 0;
   padding: 0;
-  background: #f3f6fa;
+  background: var(--bg-body);
+  color: var(--text-primary);
+  transition: background 0.2s, color 0.2s;
 }
 
 body {
   min-height: 100vh;
+}
+
+// ── Toast container ─────────────────────────────────────────────────────────
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: Arial, Helvetica, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: toast-in 0.3s ease-out;
+  max-width: 360px;
+
+  &.toast-success {
+    background: var(--bg-success);
+    color: var(--text-success);
+    border: 1px solid var(--border-success);
+  }
+  &.toast-error {
+    background: var(--bg-error);
+    color: var(--text-error);
+    border: 1px solid var(--border-error);
+  }
+  &.toast-warn {
+    background: var(--bg-warn);
+    color: var(--text-warn);
+    border: 1px solid var(--border-warn);
+  }
+  &.toast-info {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
