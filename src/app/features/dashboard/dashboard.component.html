@@ -56,6 +56,39 @@
     }
   </div>
 
+  <!-- Real-time requests chart -->
+  <div class="section-header">
+    <h3>Real-time HTTP Throughput</h3>
+    <button class="refresh-btn" (click)="toggleChart()">
+      {{ chartRunning() ? '⏹ Stop' : '▶ Start' }} live chart
+    </button>
+  </div>
+
+  @if (metricsSamples().length > 1) {
+    <div class="chart-container">
+      <div class="chart-y-axis">
+        <span>{{ chartMaxRps() | number:'1.1-1' }} rps</span>
+        <span>0</span>
+      </div>
+      <svg viewBox="0 0 300 100" class="bar-chart" preserveAspectRatio="none">
+        @for (bar of chartBars(); track $index) {
+          <rect
+            [attr.x]="bar.x"
+            [attr.y]="100 - bar.height"
+            [attr.width]="6"
+            [attr.height]="bar.height"
+            rx="1"
+            fill="var(--color-accent)"
+            opacity="0.8">
+            <title>{{ bar.rps | number:'1.1-1' }} req/s</title>
+          </rect>
+        }
+      </svg>
+    </div>
+  } @else if (chartRunning()) {
+    <p class="muted">Collecting samples...</p>
+  }
+
   <h3>Health Probes</h3>
 
   <!-- Health history sparkline -->
@@ -107,6 +140,59 @@
       <pre>{{ liveness() | json }}</pre>
     </article>
   </div>
+
+  <!-- Latency comparator -->
+  <h3>Latency Comparator</h3>
+  <article class="card">
+    <p class="card-desc">Compare response times between two environments by pinging /actuator/health.</p>
+    <div class="comparator-controls">
+      <div class="comparator-env">
+        <label>
+          Environment A
+          <select [ngModel]="latencyEnvA()" (ngModelChange)="latencyEnvA.set($event)">
+            @for (e of env.environments; track e.name; let i = $index) {
+              <option [ngValue]="i">{{ e.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      <span class="vs-label">vs</span>
+      <div class="comparator-env">
+        <label>
+          Environment B
+          <select [ngModel]="latencyEnvB()" (ngModelChange)="latencyEnvB.set($event)">
+            @for (e of env.environments; track e.name; let i = $index) {
+              <option [ngValue]="i">{{ e.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      <div class="comparator-env">
+        <label>
+          Requests
+          <input type="number" [ngModel]="latencyCount()" (ngModelChange)="latencyCount.set($event)" min="1" max="50" />
+        </label>
+      </div>
+      <button class="run-btn" (click)="runLatencyComparison()" [disabled]="latencyRunning()">
+        {{ latencyRunning() ? 'Running...' : '▶ Compare' }}
+      </button>
+    </div>
+
+    @if (latencyResults().length) {
+      <div class="comparator-results">
+        @for (r of latencyResults(); track r.envName) {
+          <div class="result-card">
+            <h4>{{ r.envName }}</h4>
+            <div class="result-stats">
+              <div><span class="result-value">{{ r.avgMs }} ms</span><span class="result-label">avg</span></div>
+              <div><span class="result-value">{{ r.p95Ms }} ms</span><span class="result-label">p95</span></div>
+              <div><span class="result-value">{{ r.errors }}/{{ r.total }}</span><span class="result-label">errors</span></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </article>
 
   <h3>Observability Stack</h3>
   <div class="links-grid">

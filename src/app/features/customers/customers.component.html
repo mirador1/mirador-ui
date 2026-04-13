@@ -42,7 +42,28 @@
       <button class="action-btn" (click)="exportJson()">↓ JSON</button>
       <button class="action-btn" (click)="exportCsv()">↓ CSV</button>
     </div>
+    <div class="import-group">
+      <label class="import-btn">
+        ↑ Import
+        <input type="file" accept=".json,.csv" (change)="onFileSelected($event)" hidden />
+      </label>
+    </div>
   </div>
+
+  <!-- Import progress -->
+  @if (importLoading()) {
+    <div class="import-progress">
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width.%]="(importProgress() / importTotal()) * 100"></div>
+      </div>
+      <span class="progress-text">{{ importProgress() }} / {{ importTotal() }}</span>
+    </div>
+  }
+  @if (importResults()) {
+    <div class="import-result">
+      Imported: {{ importResults()!.ok }} created, {{ importResults()!.errors }} errors
+    </div>
+  }
 
   @if (listError()) {
     <div class="alert-error">⚠ {{ listError() }}</div>

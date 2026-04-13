@@ -1,12 +1,20 @@
 <div class="shell">
   <header class="topbar">
-    <h1>Customer Observability UI</h1>
+    <div class="topbar-left">
+      <button class="hamburger" (click)="toggleMobileMenu()">
+        {{ mobileMenuOpen() ? '✕' : '☰' }}
+      </button>
+      <h1>Customer Observability UI</h1>
+    </div>
 
     @if (auth.isAuthenticated()) {
-      <nav>
+      <nav class="desktop-nav">
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
         <a routerLink="/customers" routerLinkActive="active">Customers</a>
         <a routerLink="/diagnostic" routerLinkActive="active">Diagnostic</a>
+        <a routerLink="/observability" routerLinkActive="active">Observability</a>
+        <a routerLink="/settings" routerLinkActive="active">Settings</a>
+        <a routerLink="/activity" routerLinkActive="active">Activity</a>
       </nav>
 
       <div class="topbar-actions">
@@ -32,8 +40,13 @@
         </div>
 
         <!-- Theme toggle -->
-        <button class="theme-btn" (click)="theme.toggle()" [title]="theme.theme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
+        <button class="theme-btn" (click)="theme.toggle()" [title]="theme.theme() === 'light' ? 'Switch to dark mode (D)' : 'Switch to light mode (D)'">
           {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
+        </button>
+
+        <!-- Keyboard shortcuts help -->
+        <button class="theme-btn" (click)="keyboard.showHelp.set(true)" title="Keyboard shortcuts (?)">
+          ?
         </button>
 
         <button class="logout-btn" (click)="logout()">Sign out</button>
@@ -48,6 +61,23 @@
     }
   </header>
 
+  <!-- Mobile navigation overlay -->
+  @if (mobileMenuOpen()) {
+    <div class="mobile-nav-overlay" (click)="closeMobileMenu()">
+      <nav class="mobile-nav" (click)="$event.stopPropagation()">
+        <a routerLink="/" (click)="closeMobileMenu()">Dashboard</a>
+        <a routerLink="/customers" (click)="closeMobileMenu()">Customers</a>
+        <a routerLink="/diagnostic" (click)="closeMobileMenu()">Diagnostic</a>
+        <a routerLink="/observability" (click)="closeMobileMenu()">Observability</a>
+        <a routerLink="/settings" (click)="closeMobileMenu()">Settings</a>
+        <a routerLink="/activity" (click)="closeMobileMenu()">Activity</a>
+        @if (auth.isAuthenticated()) {
+          <button class="mobile-logout" (click)="logout(); closeMobileMenu()">Sign out</button>
+        }
+      </nav>
+    </div>
+  }
+
   <main class="content">
     <router-outlet />
   </main>
@@ -58,6 +88,48 @@
       @for (t of toast.toasts(); track t.id) {
         <div class="toast toast-{{ t.type }}" (click)="toast.dismiss(t.id)">{{ t.message }}</div>
       }
+    </div>
+  }
+
+  <!-- Global search modal (Ctrl+K) -->
+  @if (keyboard.showSearch()) {
+    <div class="modal-overlay" (click)="keyboard.showSearch.set(false)">
+      <div class="search-modal" (click)="$event.stopPropagation()">
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Search pages... (Ctrl+K)"
+          [(ngModel)]="searchQuery"
+          autofocus />
+        <div class="search-results">
+          @for (item of filteredSearchItems; track item.path) {
+            <button class="search-item" (click)="navigateFromSearch(item.path)">
+              <span class="search-label">{{ item.label }}</span>
+              <span class="search-path">{{ item.path }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Keyboard shortcuts modal (?) -->
+  @if (keyboard.showHelp()) {
+    <div class="modal-overlay" (click)="keyboard.showHelp.set(false)">
+      <div class="shortcuts-modal" (click)="$event.stopPropagation()">
+        <div class="shortcuts-header">
+          <h3>Keyboard Shortcuts</h3>
+          <button class="close-btn" (click)="keyboard.showHelp.set(false)">✕</button>
+        </div>
+        <div class="shortcuts-grid">
+          @for (s of keyboard.shortcuts; track s.key) {
+            <div class="shortcut-row">
+              <kbd>{{ s.key }}</kbd>
+              <span>{{ s.description }}</span>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   }
 </div>
