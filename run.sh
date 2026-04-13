@@ -2,25 +2,39 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # run.sh — Start the full stack or individual components
 #
+# Delegates infrastructure and backend commands to the backend's own run.sh
+# instead of duplicating Docker Compose logic.
+#
 # Usage:
-#   ./run.sh              # start everything (infra + obs + backend + frontend)
+#   ./run.sh              # start everything (backend all + frontend)
 #   ./run.sh frontend     # frontend only (assumes backend is running)
-#   ./run.sh backend      # infra + backend (no frontend)
-#   ./run.sh infra        # docker infra only (postgres, kafka, redis, etc.)
-#   ./run.sh obs          # observability stack only (grafana, prometheus, etc.)
-#   ./run.sh stop         # stop all docker containers and processes
+#   ./run.sh backend      # delegate to backend: infra + obs + spring app
+#   ./run.sh infra        # delegate to backend: db + kafka + redis + tools
+#   ./run.sh obs          # delegate to backend: observability stack
+#   ./run.sh app          # delegate to backend: spring boot only
+#   ./run.sh simulate     # delegate to backend: traffic simulation
+#   ./run.sh stop         # stop everything (frontend + backend stop)
+#   ./run.sh restart      # delegate to backend: restart + start frontend
+#   ./run.sh nuke         # delegate to backend: full cleanup
 #   ./run.sh status       # check what's running
+#   ./run.sh check        # run pre-push checks (typecheck + tests + build)
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -uo pipefail
 
 # Load .env if present
-ENV_FILE="$(cd "$(dirname "$0")" && pwd)/.env"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/.env"
 if [ -f "$ENV_FILE" ]; then
   set -a
   source "$ENV_FILE"
   set +a
 fi
+
+BACKEND_DIR="$(cd "$SCRIPT_DIR/../workspace-modern/customer-service" 2>/dev/null && pwd)"
+BACKEND_RUN="$BACKEND_DIR/run.sh"
+FRONTEND_DIR="$SCRIPT_DIR"
+MODE="${1:-all}"
 
 BOLD='\033[1m'
 GREEN='\033[0;32m'
@@ -29,27 +43,28 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-BACKEND_DIR="$(cd "$(dirname "$0")/../workspace-modern/customer-service" 2>/dev/null && pwd)"
-FRONTEND_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODE="${1:-all}"
-
 info()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 ok()    { echo -e "${GREEN}[OK]${NC}   $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 fail()  { echo -e "${RED}[FAIL]${NC} $1"; }
 
-check_backend_dir() {
-  if [ ! -d "$BACKEND_DIR" ]; then
-    fail "Backend not found at $BACKEND_DIR"
-    echo "  Expected: ../workspace-modern/customer-service"
-    echo "  Clone it or set BACKEND_DIR env var"
+check_backend() {
+  if [ ! -f "$BACKEND_RUN" ]; then
+    fail "Backend run.sh not found at $BACKEND_RUN"
+    echo "  Expected: ../workspace-modern/customer-service/run.sh"
     exit 1
   fi
 }
 
+run_backend() {
+  check_backend
+  info "Delegating to backend: ./run.sh $1"
+  (cd "$BACKEND_DIR" && bash run.sh "$1")
+}
+
 wait_for() {
   local url=$1 name=$2 timeout=${3:-30}
-  info "Waiting for $name ($url)..."
+  info "Waiting for $name..."
   for i in $(seq 1 $timeout); do
     if curl -sf "$url" > /dev/null 2>&1; then
       ok "$name is ready"
@@ -61,59 +76,14 @@ wait_for() {
   return 1
 }
 
-# ── Commands ─────────────────────────────────────────────────────────────────
-
-start_infra() {
-  check_backend_dir
-  info "Starting infrastructure (PostgreSQL, Kafka, Redis, Ollama, Keycloak)..."
-  (cd "$BACKEND_DIR" && docker compose up -d)
-  wait_for "http://localhost:${PGADMIN_PORT:-5050}" "pgAdmin" 15 || true
-  ok "Infrastructure started"
-}
-
-start_obs() {
-  check_backend_dir
-  info "Starting observability stack (Grafana, Prometheus, Zipkin, Loki, Pyroscope)..."
-  (cd "$BACKEND_DIR" && docker compose -f docker-compose.observability.yml up -d)
-  wait_for "http://localhost:${PROMETHEUS_PORT:-9090}/-/ready" "Prometheus" 20 || true
-  ok "Observability stack started"
-}
-
-start_backend() {
-  check_backend_dir
-  info "Starting Spring Boot backend..."
-  (cd "$BACKEND_DIR" && ./mvnw spring-boot:run -q &)
-  wait_for "${BACKEND_URL:-http://localhost:8080}/actuator/health" "Backend API" 60
-}
-
 start_frontend() {
-  info "Starting Angular frontend..."
   cd "$FRONTEND_DIR"
   if [ ! -d "node_modules" ]; then
     info "Installing npm dependencies..."
     npm ci
   fi
-  info "Dev server starting on http://localhost:4200"
+  info "Dev server starting on http://localhost:${FRONTEND_PORT:-4200}"
   npm start
-}
-
-stop_all() {
-  info "Stopping all services..."
-
-  # Stop frontend (ng serve)
-  pkill -f "ng serve" 2>/dev/null && ok "Frontend stopped" || true
-
-  # Stop backend (spring-boot)
-  pkill -f "spring-boot:run" 2>/dev/null && ok "Backend stopped" || true
-  pkill -f "customer-service" 2>/dev/null || true
-
-  # Stop docker
-  if [ -d "$BACKEND_DIR" ]; then
-    (cd "$BACKEND_DIR" && docker compose down 2>/dev/null) && ok "Infra containers stopped" || true
-    (cd "$BACKEND_DIR" && docker compose -f docker-compose.observability.yml down 2>/dev/null) && ok "Obs containers stopped" || true
-  fi
-
-  ok "All stopped"
 }
 
 show_status() {
@@ -130,16 +100,20 @@ show_status() {
 
   check_service "Frontend"      "http://localhost:${FRONTEND_PORT:-4200}"
   check_service "Backend API"   "${BACKEND_URL:-http://localhost:8080}/actuator/health"
+  check_service "Swagger UI"    "${BACKEND_URL:-http://localhost:8080}/swagger-ui.html"
+  echo ""
   check_service "pgAdmin"       "http://localhost:${PGADMIN_PORT:-5050}"
   check_service "Kafka UI"      "http://localhost:${KAFKA_UI_PORT:-9080}"
   check_service "RedisInsight"  "http://localhost:${REDIS_INSIGHT_PORT:-5540}"
+  echo ""
   check_service "Prometheus"    "http://localhost:${PROMETHEUS_PORT:-9090}/-/ready"
   check_service "Grafana"       "http://localhost:${GRAFANA_PORT:-3000}"
+  check_service "Grafana LGTM"  "http://localhost:${GRAFANA_LGTM_PORT:-3001}"
   check_service "Zipkin"        "http://localhost:${ZIPKIN_PORT:-9411}"
   check_service "Loki"          "http://localhost:${LOKI_PORT:-3100}/ready"
   check_service "Pyroscope"     "http://localhost:${PYROSCOPE_PORT:-4040}"
+  echo ""
   check_service "Keycloak"      "http://localhost:${KEYCLOAK_PORT:-9090}/admin"
-  check_service "Swagger UI"    "${BACKEND_URL:-http://localhost:8080}/swagger-ui.html"
   echo ""
 }
 
@@ -148,45 +122,109 @@ show_status() {
 case "$MODE" in
   all)
     echo -e "\n${BOLD}Starting full stack...${NC}\n"
-    start_infra
-    start_obs
-    start_backend
+    run_backend "all" &
+    BACKEND_PID=$!
+    wait_for "${BACKEND_URL:-http://localhost:8080}/actuator/health" "Backend API" 90
     echo ""
     show_status
     echo -e "${BOLD}Starting frontend (foreground)...${NC}\n"
     start_frontend
     ;;
+
   frontend|front|ui)
     start_frontend
     ;;
-  backend|back|api)
-    start_infra
-    start_obs
-    start_backend
-    show_status
+
+  backend|back)
+    run_backend "all"
     ;;
+
   infra|docker)
-    start_infra
+    check_backend
+    info "Starting infra via backend run.sh..."
+    (cd "$BACKEND_DIR" && bash run.sh db)
+    (cd "$BACKEND_DIR" && bash run.sh kafka)
+    ok "Infrastructure started"
     ;;
+
   obs|observability)
-    start_obs
+    run_backend "obs"
     ;;
+
+  app)
+    run_backend "app"
+    ;;
+
+  app-profiled)
+    run_backend "app-profiled"
+    ;;
+
+  simulate)
+    run_backend "simulate"
+    ;;
+
+  restart)
+    run_backend "restart" &
+    wait_for "${BACKEND_URL:-http://localhost:8080}/actuator/health" "Backend API" 90
+    show_status
+    start_frontend
+    ;;
+
   stop|down)
-    stop_all
+    info "Stopping frontend..."
+    pkill -f "ng serve" 2>/dev/null && ok "Frontend stopped" || true
+    run_backend "stop"
+    ok "All stopped"
     ;;
-  status|check)
+
+  nuke)
+    info "Stopping frontend..."
+    pkill -f "ng serve" 2>/dev/null || true
+    run_backend "nuke"
+    info "Cleaning frontend..."
+    rm -rf "$FRONTEND_DIR/dist" "$FRONTEND_DIR/node_modules/.cache"
+    ok "Full cleanup done"
+    ;;
+
+  status|check-status)
     show_status
     ;;
+
+  check)
+    bash "$FRONTEND_DIR/scripts/pre-push-checks.sh" "--standard"
+    ;;
+
+  check:quick)
+    bash "$FRONTEND_DIR/scripts/pre-push-checks.sh" "--quick"
+    ;;
+
+  check:full)
+    bash "$FRONTEND_DIR/scripts/pre-push-checks.sh" "--full"
+    ;;
+
   *)
-    echo "Usage: ./run.sh [all|frontend|backend|infra|obs|stop|status]"
     echo ""
-    echo "  all       Start everything (infra + obs + backend + frontend)"
-    echo "  frontend  Frontend only (npm start)"
-    echo "  backend   Infra + observability + Spring Boot"
-    echo "  infra     Docker infrastructure only"
-    echo "  obs       Observability stack only"
-    echo "  stop      Stop all services and containers"
-    echo "  status    Check what's running"
+    echo "Usage: ./run.sh <command>"
+    echo ""
+    echo "Stack:"
+    echo "  all           start everything (backend all + frontend)"
+    echo "  frontend      frontend only (npm start)"
+    echo "  backend       backend all (infra + obs + spring app)"
+    echo "  infra         docker infrastructure (db + kafka)"
+    echo "  obs           observability stack (prometheus, grafana, etc.)"
+    echo "  app           spring boot app only"
+    echo "  app-profiled  spring boot with Pyroscope profiling"
+    echo "  simulate      run backend traffic simulation"
+    echo "  restart       stop + restart everything"
+    echo "  stop          stop all services"
+    echo "  nuke          full cleanup (containers, volumes, caches)"
+    echo "  status        check what's running"
+    echo ""
+    echo "Quality:"
+    echo "  check         pre-push checks (typecheck + tests + build)"
+    echo "  check:quick   fast checks (no build)"
+    echo "  check:full    full checks (+ audit + bundle analysis)"
+    echo ""
     exit 1
     ;;
 esac
