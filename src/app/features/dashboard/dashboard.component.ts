@@ -67,9 +67,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   autoRefreshInterval = signal<number>(0);
   readonly intervalOptions = [
     { label: 'Off', value: 0 },
+    { label: '1s', value: 1 },
+    { label: '5s', value: 5 },
     { label: '10s', value: 10 },
     { label: '30s', value: 30 },
-    { label: '1min', value: 60 },
   ];
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _previousHealthStatus: string | null = null;
