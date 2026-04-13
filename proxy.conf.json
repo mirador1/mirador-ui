@@ -10,5 +10,23 @@
     "secure": false,
     "changeOrigin": true,
     "pathRewrite": { "^/loki": "" }
+  },
+  "/proxy/kafka-ui": {
+    "target": "http://localhost:9080",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/proxy/kafka-ui": "" }
+  },
+  "/proxy/ollama": {
+    "target": "http://localhost:11434",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/proxy/ollama": "" }
+  },
+  "/proxy/keycloak": {
+    "target": "http://localhost:9090",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/proxy/keycloak": "" }
   }
 }

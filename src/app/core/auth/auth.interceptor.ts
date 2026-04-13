@@ -6,7 +6,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const token = auth.token();
   const skipAuth =
-    req.url.includes('/auth/login') || req.url.startsWith('/zipkin') || req.url.startsWith('/loki');
+    req.url.includes('/auth/login') || req.url.startsWith('/zipkin') || req.url.startsWith('/loki') || req.url.startsWith('/proxy/');
   if (token && !skipAuth) {
     req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
   }

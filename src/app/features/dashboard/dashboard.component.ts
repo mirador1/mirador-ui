@@ -311,33 +311,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   refreshDepGraph(): void {
     const base = this.env.baseUrl();
-    const checks: Record<string, string> = {
-      api: `${base}/actuator/health`,
-      pg: `${base}/actuator/health`,
-      redis: `${base}/customers/recent`,
-      kafka: `${base}/actuator/health`,
-      ollama: `${base}/actuator/health`,
-      keycloak: `${base}/actuator/health`,
-    };
+    const status: Record<string, 'up' | 'down' | 'unknown'> = {};
 
-    this.http
-      .get<any>(`${base}/actuator/health`)
-      .pipe(catchError(() => of(null)))
-      .subscribe((h) => {
-        const status: Record<string, 'up' | 'down' | 'unknown'> = {};
-        status['api'] = h?.status === 'UP' ? 'up' : 'down';
-        // Parse component health from actuator if available
-        const components = h?.components ?? {};
-        status['pg'] =
-          components['db']?.status === 'UP' ? 'up' : components['db'] ? 'down' : 'unknown';
-        status['redis'] =
-          components['redis']?.status === 'UP' ? 'up' : components['redis'] ? 'down' : 'unknown';
-        status['kafka'] =
-          components['kafka']?.status === 'UP' ? 'up' : components['kafka'] ? 'down' : 'unknown';
-        status['ollama'] = 'unknown'; // no direct health check
-        status['keycloak'] = 'unknown';
-        this.depStatus.set(status);
-      });
+    // API + db + redis from actuator/health components
+    this.http.get<any>(`${base}/actuator/health`).pipe(catchError(() => of(null))).subscribe(h => {
+      const components = h?.components ?? {};
+      status['api'] = h?.status === 'UP' ? 'up' : 'down';
+      status['pg'] = components['db']?.status === 'UP' ? 'up' : components['db'] ? 'down' : 'unknown';
+      status['redis'] = components['redis']?.status === 'UP' ? 'up' : components['redis'] ? 'down' : 'unknown';
+      this.depStatus.set({ ...status });
+    });
+
+    // Kafka — ping Kafka UI via proxy
+    this.http.get('/proxy/kafka-ui/api/clusters', { responseType: 'text' }).pipe(catchError(() => of(null))).subscribe(r => {
+      status['kafka'] = r ? 'up' : 'down';
+      this.depStatus.set({ ...status });
+    });
+
+    // Ollama — direct API ping via proxy
+    this.http.get('/proxy/ollama/api/tags').pipe(catchError(() => of(null))).subscribe(r => {
+      status['ollama'] = r ? 'up' : 'down';
+      this.depStatus.set({ ...status });
+    });
+
+    // Keycloak — health check via proxy
+    this.http.get('/proxy/keycloak/health/ready', { responseType: 'text' }).pipe(catchError(() => of(null))).subscribe(r => {
+      status['keycloak'] = r ? 'up' : 'down';
+      this.depStatus.set({ ...status });
+    });
   }
 
   depNodeColor(id: string): string {

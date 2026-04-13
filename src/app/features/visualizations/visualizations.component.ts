@@ -162,42 +162,35 @@ export class VisualizationsComponent implements OnDestroy {
   // ── Topology map ──────────────────────────────────────────────────────────
   refreshTopology(): void {
     const base = this.env.baseUrl();
-    this.http
-      .get<any>(`${base}/actuator/health`)
-      .pipe(catchError(() => of(null)))
-      .subscribe((h) => {
-        const components = h?.components ?? {};
-        this.topoNodes.update((nodes) =>
-          nodes.map((n) => {
-            if (n.id === 'api')
-              return { ...n, status: h?.status === 'UP' ? ('up' as const) : ('down' as const) };
-            if (n.id === 'pg')
-              return {
-                ...n,
-                status:
-                  components['db']?.status === 'UP'
-                    ? ('up' as const)
-                    : components['db']
-                      ? ('down' as const)
-                      : ('unknown' as const),
-              };
-            if (n.id === 'redis')
-              return {
-                ...n,
-                status:
-                  components['redis']?.status === 'UP' ? ('up' as const) : ('unknown' as const),
-              };
-            if (n.id === 'kafka')
-              return {
-                ...n,
-                status:
-                  components['kafka']?.status === 'UP' ? ('up' as const) : ('unknown' as const),
-              };
-            if (n.id === 'client') return { ...n, status: 'up' as const };
-            return n;
-          }),
-        );
-      });
+    const nodeStatus: Record<string, 'up' | 'down' | 'unknown'> = { client: 'up' };
+
+    const updateNode = (id: string, status: 'up' | 'down' | 'unknown') => {
+      nodeStatus[id] = status;
+      this.topoNodes.update(nodes => nodes.map(n => n.id in nodeStatus ? { ...n, status: nodeStatus[n.id] } : n));
+    };
+
+    // API + db + redis from actuator/health
+    this.http.get<any>(`${base}/actuator/health`).pipe(catchError(() => of(null))).subscribe(h => {
+      const c = h?.components ?? {};
+      updateNode('api', h?.status === 'UP' ? 'up' : 'down');
+      updateNode('pg', c['db']?.status === 'UP' ? 'up' : c['db'] ? 'down' : 'unknown');
+      updateNode('redis', c['redis']?.status === 'UP' ? 'up' : c['redis'] ? 'down' : 'unknown');
+    });
+
+    // Kafka via proxy
+    this.http.get('/proxy/kafka-ui/api/clusters', { responseType: 'text' }).pipe(catchError(() => of(null))).subscribe(r => {
+      updateNode('kafka', r ? 'up' : 'down');
+    });
+
+    // Ollama via proxy
+    this.http.get('/proxy/ollama/api/tags').pipe(catchError(() => of(null))).subscribe(r => {
+      updateNode('ollama', r ? 'up' : 'down');
+    });
+
+    // Kafka consumer — assume same as kafka
+    this.http.get('/proxy/kafka-ui/api/clusters', { responseType: 'text' }).pipe(catchError(() => of(null))).subscribe(r => {
+      updateNode('consumer', r ? 'up' : 'unknown');
+    });
   }
 
   toggleTopoAnimation(): void {
