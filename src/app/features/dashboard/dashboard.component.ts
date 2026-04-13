@@ -64,7 +64,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   latencyRunning = signal(false);
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
-  autoRefreshInterval = signal<number>(0);
+  autoRefreshInterval = signal<number>(5);
   readonly intervalOptions = [
     { label: 'Off', value: 0 },
     { label: '1s', value: 1 },
@@ -131,6 +131,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.refresh();
+    this.setAutoRefresh(this.autoRefreshInterval());
     window.addEventListener('app:refresh', this._onRefresh);
   }
 
