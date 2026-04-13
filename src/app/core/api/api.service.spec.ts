@@ -22,12 +22,13 @@ describe('ApiService', () => {
 
   it('should call login endpoint', () => {
     service.login('admin', 'admin').subscribe((res) => {
-      expect(res.token).toBe('jwt-123');
+      expect(res.accessToken).toBe('jwt-123');
+      expect(res.refreshToken).toBe('refresh-456');
     });
     const req = httpMock.expectOne(`${service.baseUrl()}/auth/login`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ username: 'admin', password: 'admin' });
-    req.flush({ token: 'jwt-123' });
+    req.flush({ accessToken: 'jwt-123', refreshToken: 'refresh-456' });
   });
 
   it('should fetch customers with version header', () => {

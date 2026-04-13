@@ -1,3 +1,10 @@
+/**
+ * LoginComponent — JWT authentication form.
+ *
+ * Submits username/password to /auth/login, stores the returned JWT token
+ * in AuthService (signal + localStorage), and redirects to the dashboard.
+ * Default credentials: admin / admin.
+ */
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,8 +32,8 @@ export class LoginComponent {
     this.loading.set(true);
     this.error.set('');
     this.api.login(this.username, this.password).subscribe({
-      next: ({ token }) => {
-        this.auth.setToken(token);
+      next: ({ accessToken, refreshToken }) => {
+        this.auth.setTokens(accessToken, refreshToken);
         this.router.navigateByUrl('/');
       },
       error: () => {
