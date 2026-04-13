@@ -14,6 +14,7 @@ import {
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
+import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -26,7 +27,7 @@ type SortDir = 'asc' | 'desc';
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [FormsModule, JsonPipe, DatePipe, RouterLink],
+  imports: [FormsModule, JsonPipe, DatePipe, RouterLink, InfoTipComponent],
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss',
 })
@@ -62,8 +63,8 @@ export class CustomersComponent implements OnInit, OnDestroy {
   selectAll = signal(false);
 
   // ── Create form ────────────────────────────────────────────────────────────
-  newName = '';
-  newEmail = '';
+  newName = signal('');
+  newEmail = signal('');
   useIdempotencyKey = signal(false);
   idempotencyKey = signal(uuid());
   createLoading = signal(false);
@@ -227,7 +228,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
   // ── Create ─────────────────────────────────────────────────────────────────
   createCustomer(): void {
-    if (!this.newName.trim() || !this.newEmail.trim()) {
+    if (!this.newName().trim() || !this.newEmail().trim()) {
       this.createError.set('Name and email are required.');
       return;
     }
@@ -237,12 +238,12 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
     const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
     this.api
-      .createCustomer({ name: this.newName.trim(), email: this.newEmail.trim() }, key)
+      .createCustomer({ name: this.newName().trim(), email: this.newEmail().trim() }, key)
       .subscribe({
         next: (c) => {
           this.createSuccess.set(c);
-          this.newName = '';
-          this.newEmail = '';
+          this.newName.set('');
+          this.newEmail.set('');
           this.createLoading.set(false);
           this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
           this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);

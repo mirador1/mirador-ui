@@ -10,20 +10,13 @@
     <!-- Controls bar -->
     <div class="controls-bar">
       <div class="control-group">
-        <span class="label">API Version</span>
+        <span class="label">API Version
+          <app-info-tip text="Switches between v1.0 and v2.0 via the X-API-Version header. v2.0 adds the createdAt field to each customer." command="X-API-Version: 2.0" source="Header-based versioning" />
+        </span>
         <div class="toggle-btns">
           <button [class.active]="apiVersion() === '1.0'" (click)="setVersion('1.0')">v1.0</button>
           <button [class.active]="apiVersion() === '2.0'" (click)="setVersion('2.0')">
             v2.0 <small>+createdAt</small>
-          </button>
-        </div>
-      </div>
-      <div class="control-group">
-        <span class="label">View</span>
-        <div class="toggle-btns">
-          <button [class.active]="!summaryMode()" (click)="toggleSummaryMode()">Full</button>
-          <button [class.active]="summaryMode()" (click)="toggleSummaryMode()">
-            Summary <small>id+name</small>
           </button>
         </div>
       </div>
@@ -36,39 +29,15 @@
         />
       </div>
       <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
-      <button class="action-btn" (click)="loadRecent()">📦 Recent (Redis)</button>
-      <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
-        ⚡ {{ aggregateLoading() ? 'Running...' : 'Aggregate (Virtual Threads)' }}
+      <button class="action-btn" (click)="loadRecent()">
+        📦 Recent
+        <app-info-tip text="Fetches the last 10 created customers from the Redis ring buffer (LPUSH + LTRIM)." command="GET /customers/recent" source="Redis LIST" />
       </button>
-      <div class="export-group">
-        <button class="action-btn" (click)="exportJson()">↓ JSON</button>
-        <button class="action-btn" (click)="exportCsv()">↓ CSV</button>
-      </div>
-      <div class="import-group">
-        <label class="import-btn">
-          ↑ Import
-          <input type="file" accept=".json,.csv" (change)="onFileSelected($event)" hidden />
-        </label>
-      </div>
+      <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
+        ⚡ {{ aggregateLoading() ? 'Running...' : 'Aggregate' }}
+        <app-info-tip text="Runs two tasks in parallel using Java virtual threads: fetch customer list + compute stats. Observe the response time." command="GET /customers/aggregate" source="Virtual Threads (Project Loom)" />
+      </button>
     </div>
-
-    <!-- Import progress -->
-    @if (importLoading()) {
-      <div class="import-progress">
-        <div class="progress-bar">
-          <div
-            class="progress-fill"
-            [style.width.%]="(importProgress() / importTotal()) * 100"
-          ></div>
-        </div>
-        <span class="progress-text">{{ importProgress() }} / {{ importTotal() }}</span>
-      </div>
-    }
-    @if (importResults()) {
-      <div class="import-result">
-        Imported: {{ importResults()!.ok }} created, {{ importResults()!.errors }} errors
-      </div>
-    }
 
     @if (listError()) {
       <div class="alert-error">⚠ {{ listError() }}</div>
@@ -90,11 +59,11 @@
 
         <label>
           Name
-          <input [(ngModel)]="newName" placeholder="Alice Martin" />
+          <input [ngModel]="newName()" (ngModelChange)="newName.set($event)" placeholder="Alice Martin" />
         </label>
         <label>
           Email
-          <input [(ngModel)]="newEmail" type="email" placeholder="alice@example.com" />
+          <input [ngModel]="newEmail()" (ngModelChange)="newEmail.set($event)" type="email" placeholder="alice@example.com" />
         </label>
 
         <div class="idem-row">
@@ -105,6 +74,7 @@
               (ngModelChange)="useIdempotencyKey.set($event)"
             />
             Idempotency-Key
+            <app-info-tip text="When enabled, sends an Idempotency-Key header (UUID). The backend caches the response in an LRU cache (10k entries). Sending the same key twice returns the cached result without creating a duplicate." command="Idempotency-Key: &lt;uuid&gt;" source="LRU cache" />
           </label>
           @if (useIdempotencyKey()) {
             <code class="idem-key">{{ idempotencyKey() }}</code>
@@ -337,13 +307,16 @@
 
         <div class="tabs">
           <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
-            🤖 AI Bio <small>Ollama / llama3.2</small>
+            🤖 AI Bio <small>Ollama</small>
+            <app-info-tip text="Generates a fictional biography using Ollama (llama3.2 model). Protected by a Resilience4j circuit breaker — returns fallback text if Ollama is down." command="GET /customers/{id}/bio" source="Ollama + CircuitBreaker" />
           </button>
           <button [class.tab-active]="activeTab() === 'todos'" (click)="switchTab('todos')">
             ✅ Todos <small>JSONPlaceholder</small>
+            <app-info-tip text="Fetches todos from jsonplaceholder.typicode.com via Spring's @HttpExchange declarative client. Has a Resilience4j retry policy on failure." command="GET /customers/{id}/todos" source="External API + Retry" />
           </button>
           <button [class.tab-active]="activeTab() === 'enrich'" (click)="switchTab('enrich')">
-            📨 Enrich <small>Kafka request-reply</small>
+            📨 Enrich <small>Kafka</small>
+            <app-info-tip text="Publishes to Kafka topic customer.request and waits for a reply on customer.reply (synchronous request-reply pattern). 5s timeout returns 504 if Kafka or consumer is down." command="GET /customers/{id}/enrich" source="Kafka ReplyingTemplate" />
           </button>
         </div>
 
