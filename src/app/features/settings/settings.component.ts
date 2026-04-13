@@ -9,13 +9,22 @@
  * SQL Explorer has moved to DatabaseComponent (/database).
  */
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { RouterLink } from '@angular/router';
+
+/** Shape of /scheduled/jobs response items */
+interface ScheduledJob {
+  name: string;
+  lockUntil: string | null;
+  lockedAt: string | null;
+  lockedBy: string | null;
+}
 
 /** Shape of /actuator/env response */
 interface ActuatorEnv {
@@ -28,7 +37,7 @@ interface ActuatorEnv {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [FormsModule, JsonPipe, RouterLink],
+  imports: [FormsModule, JsonPipe, RouterLink, DatePipe],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })
@@ -181,5 +190,35 @@ export class SettingsComponent {
     return this.loggers()
       .filter((l) => l.name.toLowerCase().includes(q))
       .slice(0, 50);
+  }
+
+  // ── Scheduled Jobs ────────────────────────────────────────────────────────
+  scheduledJobs = signal<ScheduledJob[]>([]);
+  scheduledJobsLoading = signal(false);
+  scheduledJobsError = signal('');
+
+  loadScheduledJobs(): void {
+    this.scheduledJobsLoading.set(true);
+    this.scheduledJobsError.set('');
+    const base = this.env.baseUrl();
+    const token = this.auth.token();
+    const headers = new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
+
+    this.http.get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers }).subscribe({
+      next: (jobs) => {
+        this.scheduledJobs.set(jobs);
+        this.scheduledJobsLoading.set(false);
+      },
+      error: (e) => {
+        this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
+        this.scheduledJobsLoading.set(false);
+      },
+    });
+  }
+
+  /** A job is "active" (locked) when lockUntil is in the future */
+  isJobActive(job: ScheduledJob): boolean {
+    if (!job.lockUntil) return false;
+    return new Date(job.lockUntil) > new Date();
   }
 }

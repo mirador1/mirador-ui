@@ -450,4 +450,29 @@
       }
     }
   </div>
+
+  <!-- Live Activity (SSE) -->
+  <div class="section-header" style="margin-top:2rem">
+    <h2>⚡ Live Activity</h2>
+    <span class="section-sub">Customer creation events via SSE /customers/stream</span>
+  </div>
+  <div class="live-activity-row">
+    <article class="stat-card">
+      <div class="stat-label">Created this session</div>
+      <div class="stat-value">{{ liveSessionCount() }}</div>
+      <div class="stat-sub">customers via SSE</div>
+    </article>
+    <article class="card live-names-card">
+      <div class="card-title">Last 5 customers received live</div>
+      @if (liveRecentNames().length === 0) {
+        <p class="muted">Waiting for events… create a customer to see live updates.</p>
+      } @else {
+        <ul class="live-names-list">
+          @for (name of liveRecentNames(); track name) {
+            <li class="live-name-item">{{ name }}</li>
+          }
+        </ul>
+      }
+    </article>
+  </div>
 </section>

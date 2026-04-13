@@ -34,6 +34,7 @@ import {
   Page,
   AggregatedResponse,
 } from '../../core/api/api.service';
+import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
@@ -58,6 +59,7 @@ type SortDir = 'asc' | 'desc';
 })
 export class CustomersComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
@@ -78,6 +80,10 @@ export class CustomersComponent implements OnInit, OnDestroy {
   // ── Search ────────────────────────────────────────────────────────────────
   searchQuery = signal('');
   private _searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── Live new-customer notification (SSE) ──────────────────────────────────
+  newCustomerCount = signal(0);
+  private _sseSource: EventSource | null = null;
 
   // ── Sort ──────────────────────────────────────────────────────────────────
   sortField = signal<SortField | null>(null);
@@ -135,10 +141,34 @@ export class CustomersComponent implements OnInit, OnDestroy {
     if (this.auth.isAuthenticated()) {
       this.loadCustomers();
     }
+    this.connectSse();
   }
 
   ngOnDestroy(): void {
     if (this._searchTimer) clearTimeout(this._searchTimer);
+    this.disconnectSse();
+  }
+
+  private connectSse(): void {
+    try {
+      const base = this.env.baseUrl();
+      this._sseSource = new EventSource(`${base}/customers/stream`);
+      this._sseSource.addEventListener('customer', () => {
+        this.newCustomerCount.update((n) => n + 1);
+      });
+    } catch { /* SSE not available */ }
+  }
+
+  private disconnectSse(): void {
+    if (this._sseSource) {
+      this._sseSource.close();
+      this._sseSource = null;
+    }
+  }
+
+  dismissNewBanner(): void {
+    this.newCustomerCount.set(0);
+    this.loadCustomers();
   }
 
   // ── Search ────────────────────────────────────────────────────────────────

@@ -7,6 +7,14 @@
   @if (!auth.isAuthenticated()) {
     <div class="alert-warn">Please <a routerLink="/login">sign in</a> to access this feature.</div>
   } @else {
+    <!-- Live new-customer notification banner -->
+    @if (newCustomerCount() > 0) {
+      <div class="new-customer-banner">
+        ⚡ {{ newCustomerCount() }} new customer{{ newCustomerCount() === 1 ? '' : 's' }} added live —
+        <button class="banner-btn" (click)="dismissNewBanner()">Refresh to see</button>
+        <button class="banner-close" (click)="newCustomerCount.set(0)">✕</button>
+      </div>
+    }
     <!-- Controls bar -->
     <div class="controls-bar">
       <div class="control-group">
