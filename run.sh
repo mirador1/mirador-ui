@@ -14,6 +14,14 @@
 
 set -uo pipefail
 
+# Load .env if present
+ENV_FILE="$(cd "$(dirname "$0")" && pwd)/.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -59,7 +67,7 @@ start_infra() {
   check_backend_dir
   info "Starting infrastructure (PostgreSQL, Kafka, Redis, Ollama, Keycloak)..."
   (cd "$BACKEND_DIR" && docker compose up -d)
-  wait_for "http://localhost:5432" "PostgreSQL" 15 || true
+  wait_for "http://localhost:${PGADMIN_PORT:-5050}" "pgAdmin" 15 || true
   ok "Infrastructure started"
 }
 
@@ -67,7 +75,7 @@ start_obs() {
   check_backend_dir
   info "Starting observability stack (Grafana, Prometheus, Zipkin, Loki, Pyroscope)..."
   (cd "$BACKEND_DIR" && docker compose -f docker-compose.observability.yml up -d)
-  wait_for "http://localhost:9090/-/ready" "Prometheus" 20 || true
+  wait_for "http://localhost:${PROMETHEUS_PORT:-9090}/-/ready" "Prometheus" 20 || true
   ok "Observability stack started"
 }
 
@@ -75,7 +83,7 @@ start_backend() {
   check_backend_dir
   info "Starting Spring Boot backend..."
   (cd "$BACKEND_DIR" && ./mvnw spring-boot:run -q &)
-  wait_for "http://localhost:8080/actuator/health" "Backend API" 60
+  wait_for "${BACKEND_URL:-http://localhost:8080}/actuator/health" "Backend API" 60
 }
 
 start_frontend() {
@@ -120,18 +128,18 @@ show_status() {
     fi
   }
 
-  check_service "Frontend"      "http://localhost:4200"
-  check_service "Backend API"   "http://localhost:8080/actuator/health"
-  check_service "PostgreSQL"    "http://localhost:5050"
-  check_service "Kafka UI"      "http://localhost:9080"
-  check_service "RedisInsight"  "http://localhost:5540"
-  check_service "Prometheus"    "http://localhost:9090/-/ready"
-  check_service "Grafana"       "http://localhost:3000"
-  check_service "Zipkin"        "http://localhost:9411"
-  check_service "Loki"          "http://localhost:3100/ready"
-  check_service "Pyroscope"     "http://localhost:4040"
-  check_service "Keycloak"      "http://localhost:9090/admin"
-  check_service "Swagger UI"    "http://localhost:8080/swagger-ui.html"
+  check_service "Frontend"      "http://localhost:${FRONTEND_PORT:-4200}"
+  check_service "Backend API"   "${BACKEND_URL:-http://localhost:8080}/actuator/health"
+  check_service "pgAdmin"       "http://localhost:${PGADMIN_PORT:-5050}"
+  check_service "Kafka UI"      "http://localhost:${KAFKA_UI_PORT:-9080}"
+  check_service "RedisInsight"  "http://localhost:${REDIS_INSIGHT_PORT:-5540}"
+  check_service "Prometheus"    "http://localhost:${PROMETHEUS_PORT:-9090}/-/ready"
+  check_service "Grafana"       "http://localhost:${GRAFANA_PORT:-3000}"
+  check_service "Zipkin"        "http://localhost:${ZIPKIN_PORT:-9411}"
+  check_service "Loki"          "http://localhost:${LOKI_PORT:-3100}/ready"
+  check_service "Pyroscope"     "http://localhost:${PYROSCOPE_PORT:-4040}"
+  check_service "Keycloak"      "http://localhost:${KEYCLOAK_PORT:-9090}/admin"
+  check_service "Swagger UI"    "${BACKEND_URL:-http://localhost:8080}/swagger-ui.html"
   echo ""
 }
 
