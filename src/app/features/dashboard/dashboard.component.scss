@@ -489,7 +489,9 @@ pre {
   display: flex;
   flex-direction: row;
   box-shadow: var(--shadow-card);
-  transition: border-color 0.2s, opacity 0.2s;
+  transition:
+    border-color 0.2s,
+    opacity 0.2s;
   position: relative;
 
   &.docker-up {
@@ -597,33 +599,45 @@ pre {
   &.docker-stop {
     background: #fee2e2;
     color: #b91c1c;
-    &:hover:not(:disabled) { background: #fecaca; }
+    &:hover:not(:disabled) {
+      background: #fecaca;
+    }
   }
   &.docker-start {
     background: #dcfce7;
     color: #166534;
-    &:hover:not(:disabled) { background: #bbf7d0; }
+    &:hover:not(:disabled) {
+      background: #bbf7d0;
+    }
   }
   &.docker-restart {
     background: #e0f2fe;
     color: #0369a1;
-    &:hover:not(:disabled) { background: #bae6fd; }
+    &:hover:not(:disabled) {
+      background: #bae6fd;
+    }
   }
   &.docker-link {
     background: #e0f2fe;
     color: #0369a1;
     text-decoration: none;
-    &:hover { background: #bae6fd; }
+    &:hover {
+      background: #bae6fd;
+    }
   }
   &.docker-down {
     background: #fee2e2;
     color: #b91c1c;
-    &:hover:not(:disabled) { background: #fecaca; }
+    &:hover:not(:disabled) {
+      background: #fecaca;
+    }
   }
   &.docker-up {
     background: #dcfce7;
     color: #166534;
-    &:hover:not(:disabled) { background: #bbf7d0; }
+    &:hover:not(:disabled) {
+      background: #bbf7d0;
+    }
   }
 }
 
@@ -675,7 +689,9 @@ pre {
   display: flex;
   flex-direction: row;
   box-shadow: var(--shadow-card);
-  transition: border-color 0.2s, opacity 0.2s;
+  transition:
+    border-color 0.2s,
+    opacity 0.2s;
   min-width: 0;
 
   &.archi-down {
@@ -706,7 +722,10 @@ pre {
   min-width: 0;
 }
 
-.archi-icon { font-size: 0.85rem; flex-shrink: 0; }
+.archi-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
 
 .archi-name {
   font-size: 0.72rem;

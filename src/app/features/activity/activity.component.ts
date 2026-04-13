@@ -70,28 +70,38 @@ export class ActivityComponent {
       this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
 
       // 2. Update it
-      await this.http.put(`${base}/customers/${c.id}`, { name: c.name + ' (updated)', email }).toPromise();
+      await this.http
+        .put(`${base}/customers/${c.id}`, { name: c.name + ' (updated)', email })
+        .toPromise();
       this.activity.log('customer-update', `Updated "${c.name}" (ID ${c.id})`);
 
       // 3. Delete it
       await this.http.delete(`${base}/customers/${c.id}`).toPromise();
       this.activity.log('customer-delete', `Deleted "${c.name}" (ID ${c.id})`);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // 4. Health check
-    this.http.get(`${base}/actuator/health`).pipe(catchError(() => of({ status: 'UNREACHABLE' }))).subscribe((v: any) => {
-      this.activity.log('health-change', `Health → ${v.status ?? '?'}`);
-    });
+    this.http
+      .get(`${base}/actuator/health`)
+      .pipe(catchError(() => of({ status: 'UNREACHABLE' })))
+      .subscribe((v: any) => {
+        this.activity.log('health-change', `Health → ${v.status ?? '?'}`);
+      });
 
     // 5. Diagnostic-like request
     const t0 = Date.now();
-    this.http.get(`${base}/customers/aggregate`).pipe(catchError(() => of(null))).subscribe(() => {
-      this.activity.log('diagnostic-run', `Aggregate completed in ${Date.now() - t0} ms`);
-    });
+    this.http
+      .get(`${base}/customers/aggregate`)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => {
+        this.activity.log('diagnostic-run', `Aggregate completed in ${Date.now() - t0} ms`);
+      });
 
     // 6. Environment switch (cycle through envs and back)
     const original = this.env.current();
-    const otherEnv = this.env.environments.find(e => e.name !== original.name) ?? original;
+    const otherEnv = this.env.environments.find((e) => e.name !== original.name) ?? original;
     this.env.select(otherEnv);
     this.activity.log('env-switch', `Switched to ${otherEnv.name} (${otherEnv.baseUrl})`);
     // Switch back immediately
@@ -104,13 +114,18 @@ export class ActivityComponent {
     let importDone = 0;
     for (let i = 0; i < importCount; i++) {
       const n = `Import-${Date.now() % 10000}-${i}`;
-      this.http.post(`${base}/customers`, { name: n, email: `${n.toLowerCase()}@import.com` })
+      this.http
+        .post(`${base}/customers`, { name: n, email: `${n.toLowerCase()}@import.com` })
         .pipe(catchError(() => of(null)))
         .subscribe((r) => {
           if (r) importOk++;
           importDone++;
           if (importDone === importCount) {
-            this.activity.log('bulk-import', `Imported ${importOk} customers (${importCount - importOk} errors)`, `Total: ${importCount} records`);
+            this.activity.log(
+              'bulk-import',
+              `Imported ${importOk} customers (${importCount - importOk} errors)`,
+              `Total: ${importCount} records`,
+            );
             this.generating.set(false);
             this.toast.show('Generated all 7 activity types', 'success');
           }
@@ -120,16 +135,45 @@ export class ActivityComponent {
 
   filterType = signal<ActivityType | 'all'>('all');
 
-  readonly typeLabels: Record<ActivityType | 'all', { label: string; icon: string; tip: string }> = {
-    'all':             { label: 'All',         icon: '📋', tip: 'Show all event types' },
-    'customer-create': { label: 'Create',      icon: '➕', tip: 'Customer creation events (POST /customers)' },
-    'customer-update': { label: 'Update',      icon: '✏️', tip: 'Customer update events (PUT /customers/{id})' },
-    'customer-delete': { label: 'Delete',      icon: '🗑️', tip: 'Customer deletion events (DELETE /customers/{id})' },
-    'health-change':   { label: 'Health',      icon: '💚', tip: 'Backend health status changes (UP → DOWN or vice versa)' },
-    'diagnostic-run':  { label: 'Diagnostic',  icon: '🧪', tip: 'Diagnostic scenario runs (API versioning, idempotency, stress test, etc.)' },
-    'env-switch':      { label: 'Environment', icon: '🌍', tip: 'Environment switches (Local → Docker → Staging → Production)' },
-    'bulk-import':     { label: 'Import',      icon: '📥', tip: 'Bulk import operations (JSON/CSV file upload)' },
-  };
+  readonly typeLabels: Record<ActivityType | 'all', { label: string; icon: string; tip: string }> =
+    {
+      all: { label: 'All', icon: '📋', tip: 'Show all event types' },
+      'customer-create': {
+        label: 'Create',
+        icon: '➕',
+        tip: 'Customer creation events (POST /customers)',
+      },
+      'customer-update': {
+        label: 'Update',
+        icon: '✏️',
+        tip: 'Customer update events (PUT /customers/{id})',
+      },
+      'customer-delete': {
+        label: 'Delete',
+        icon: '🗑️',
+        tip: 'Customer deletion events (DELETE /customers/{id})',
+      },
+      'health-change': {
+        label: 'Health',
+        icon: '💚',
+        tip: 'Backend health status changes (UP → DOWN or vice versa)',
+      },
+      'diagnostic-run': {
+        label: 'Diagnostic',
+        icon: '🧪',
+        tip: 'Diagnostic scenario runs (API versioning, idempotency, stress test, etc.)',
+      },
+      'env-switch': {
+        label: 'Environment',
+        icon: '🌍',
+        tip: 'Environment switches (Local → Docker → Staging → Production)',
+      },
+      'bulk-import': {
+        label: 'Import',
+        icon: '📥',
+        tip: 'Bulk import operations (JSON/CSV file upload)',
+      },
+    };
 
   readonly typeFilters: (ActivityType | 'all')[] = [
     'all',

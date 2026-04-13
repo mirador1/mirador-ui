@@ -12,7 +12,12 @@
 
   <div class="filter-bar">
     @for (f of typeFilters; track f) {
-      <button class="filter-btn" [class.active]="filterType() === f" (click)="filterType.set(f)" [title]="typeLabels[f].tip">
+      <button
+        class="filter-btn"
+        [class.active]="filterType() === f"
+        (click)="filterType.set(f)"
+        [title]="typeLabels[f].tip"
+      >
         {{ typeLabels[f].icon }} {{ typeLabels[f].label }}
       </button>
     }
@@ -31,8 +36,8 @@
     <div class="empty-state">
       <p>No activity yet.</p>
       <p class="empty-hint">
-        Click one of the buttons above to generate events, or use other pages
-        (Dashboard, Customers, Diagnostic, Chaos) — all actions appear here.
+        Click one of the buttons above to generate events, or use other pages (Dashboard, Customers,
+        Diagnostic, Chaos) — all actions appear here.
       </p>
     </div>
   } @else {

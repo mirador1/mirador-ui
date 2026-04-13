@@ -30,30 +30,81 @@
     <div class="tab-bar">
       @switch (activeTab()) {
         @case ('traces') {
-          <span class="tab-desc-text">Distributed traces from Zipkin — click a trace to expand its span waterfall</span>
+          <span class="tab-desc-text"
+            >Distributed traces from Zipkin — click a trace to expand its span waterfall</span
+          >
           <div class="tab-links">
-            <a href="http://localhost:9411" target="_blank" rel="noopener" title="Zipkin native UI — search traces by service, duration, or annotation. Shows the full span tree for each request across microservices.">🔗 Zipkin UI</a>
-            <a href="http://localhost:3001" target="_blank" rel="noopener" title="Grafana with Tempo datasource — correlate traces with logs and metrics in a single view. Click a traceID in Loki to jump to its trace.">🔍 Grafana Tempo</a>
+            <a
+              href="http://localhost:9411"
+              target="_blank"
+              rel="noopener"
+              title="Zipkin native UI — search traces by service, duration, or annotation. Shows the full span tree for each request across microservices."
+              >🔗 Zipkin UI</a
+            >
+            <a
+              href="http://localhost:3001"
+              target="_blank"
+              rel="noopener"
+              title="Grafana with Tempo datasource — correlate traces with logs and metrics in a single view. Click a traceID in Loki to jump to its trace."
+              >🔍 Grafana Tempo</a
+            >
           </div>
         }
         @case ('logs') {
-          <span class="tab-desc-text">Application logs from Loki via LogQL — color-coded by level</span>
+          <span class="tab-desc-text"
+            >Application logs from Loki via LogQL — color-coded by level</span
+          >
           <div class="tab-links">
-            <a href="http://localhost:3001/explore" target="_blank" rel="noopener" title="Grafana Explore with Loki datasource — run LogQL queries with autocomplete, filter by label, and correlate logs with traces via traceID.">🔍 Grafana Loki</a>
+            <a
+              href="http://localhost:3001/explore"
+              target="_blank"
+              rel="noopener"
+              title="Grafana Explore with Loki datasource — run LogQL queries with autocomplete, filter by label, and correlate logs with traces via traceID."
+              >🔍 Grafana Loki</a
+            >
           </div>
         }
         @case ('latency') {
-          <span class="tab-desc-text">Each bar = number of requests that responded within that time bucket. Tall bars left = fast. Bars right = slow outliers.</span>
+          <span class="tab-desc-text"
+            >Each bar = number of requests that responded within that time bucket. Tall bars left =
+            fast. Bars right = slow outliers.</span
+          >
           <div class="tab-links">
-            <a href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.95,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0" target="_blank" rel="noopener" title="Prometheus graph view — explore the p95 latency over time with PromQL. Change the quantile (0.5, 0.95, 0.99) to see different percentiles.">🔥 Prometheus</a>
-            <a href="http://localhost:3000" target="_blank" rel="noopener" title="Grafana dashboards — pre-built panels showing latency percentiles, throughput, and error rates over time with interactive zoom.">📊 Grafana</a>
+            <a
+              href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.95,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
+              target="_blank"
+              rel="noopener"
+              title="Prometheus graph view — explore the p95 latency over time with PromQL. Change the quantile (0.5, 0.95, 0.99) to see different percentiles."
+              >🔥 Prometheus</a
+            >
+            <a
+              href="http://localhost:3000"
+              target="_blank"
+              rel="noopener"
+              title="Grafana dashboards — pre-built panels showing latency percentiles, throughput, and error rates over time with interactive zoom."
+              >📊 Grafana</a
+            >
           </div>
         }
         @case ('live') {
-          <span class="tab-desc-text">Scrolling feed of HTTP endpoints parsed from /actuator/prometheus every 2s</span>
+          <span class="tab-desc-text"
+            >Scrolling feed of HTTP endpoints parsed from /actuator/prometheus every 2s</span
+          >
           <div class="tab-links">
-            <a href="http://localhost:9091" target="_blank" rel="noopener" title="Prometheus — run PromQL queries to explore raw HTTP metrics (request counts, durations, status codes) with graph or table output.">🔥 Prometheus</a>
-            <a href="http://localhost:3000" target="_blank" rel="noopener" title="Grafana dashboards — see the same metrics as the live feed but with historical graphs, alerting thresholds, and panel drill-down.">📊 Grafana</a>
+            <a
+              href="http://localhost:9091"
+              target="_blank"
+              rel="noopener"
+              title="Prometheus — run PromQL queries to explore raw HTTP metrics (request counts, durations, status codes) with graph or table output."
+              >🔥 Prometheus</a
+            >
+            <a
+              href="http://localhost:3000"
+              target="_blank"
+              rel="noopener"
+              title="Grafana dashboards — see the same metrics as the live feed but with historical graphs, alerting thresholds, and panel drill-down."
+              >📊 Grafana</a
+            >
           </div>
         }
       }
@@ -144,7 +195,11 @@
           <button class="run-btn" [class.active-poll]="logsPolling()" (click)="toggleLogsPolling()">
             {{ logsPolling() ? '⏹ Stop' : '↻ Live' }}
           </button>
-          <button class="run-btn" (click)="generateTrafficForLogs()" [disabled]="logsTrafficRunning()">
+          <button
+            class="run-btn"
+            (click)="generateTrafficForLogs()"
+            [disabled]="logsTrafficRunning()"
+          >
             {{ logsTrafficRunning() ? 'Generating...' : '⚡ Generate traffic' }}
           </button>
         </div>
@@ -165,8 +220,9 @@
         } @else if (!logsLoading() && !logsError() && logsQueried()) {
           <div class="alert-warn">
             <strong>No logs found</strong> for query <code>{{ lokiQuery }}</code> in the last hour.
-            <br/>Make sure the Spring Boot app exports logs via OpenTelemetry (OTLP on port 4318).
-            <br/>Try a broader query: <button class="link-btn" (click)="tryBroadQuery()">try all streams</button>
+            <br />Make sure the Spring Boot app exports logs via OpenTelemetry (OTLP on port 4318).
+            <br />Try a broader query:
+            <button class="link-btn" (click)="tryBroadQuery()">try all streams</button>
           </div>
         } @else if (!logsLoading() && !logsError()) {
           <p class="empty-text">Click "Query" to fetch logs from Loki.</p>
@@ -193,7 +249,10 @@
             </div>
             <div class="histogram-chart">
               @for (bar of histogramBars(); track bar.label; let i = $index) {
-                <div class="histogram-col" [title]="bar.count + ' requests responded in ≤ ' + bar.label">
+                <div
+                  class="histogram-col"
+                  [title]="bar.count + ' requests responded in ≤ ' + bar.label"
+                >
                   <span class="histogram-count">{{ bar.count }}</span>
                   <div class="histogram-bar" [style.height.%]="bar.height"></div>
                   <span class="histogram-label">≤{{ bar.label }}</span>

@@ -1,12 +1,14 @@
 <section>
   <div class="page-header">
     <div>
-      <h2>Dashboard
+      <h2>
+        Dashboard
         <app-info-tip
           title="Dashboard"
           text="Real-time backend overview. Metrics come from /actuator/prometheus (Micrometer) and /actuator/health (Spring Boot Actuator)."
           command="curl http://localhost:8080/actuator/health"
-          source="/actuator/health, /actuator/prometheus" />
+          source="/actuator/health, /actuator/prometheus"
+        />
       </h2>
       <p class="subtitle">
         Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})
@@ -43,8 +45,13 @@
   <div class="stats-grid">
     <article class="stat-card">
       <span class="stat-value">{{ customerCount() ?? '—' }}</span>
-      <span class="stat-label">Total Customers
-        <app-info-tip text="Total customers in database. Fetched via GET /customers?page=0&size=1, reading the totalElements field from the paginated response." command="GET /customers?page=0&size=1" source="Page.totalElements" />
+      <span class="stat-label"
+        >Total Customers
+        <app-info-tip
+          text="Total customers in database. Fetched via GET /customers?page=0&size=1, reading the totalElements field from the paginated response."
+          command="GET /customers?page=0&size=1"
+          source="Page.totalElements"
+        />
       </span>
       <div class="stat-links">
         <a routerLink="/customers">📋 Customers</a>
@@ -54,42 +61,82 @@
     @if (metrics()) {
       <article class="stat-card">
         <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
-        <span class="stat-label">HTTP Requests (total)
-          <app-info-tip text="Cumulative counter of all HTTP requests handled by the backend since startup. Micrometer metric exposed via Prometheus." command="http_server_requests_seconds_count" source="/actuator/prometheus" />
+        <span class="stat-label"
+          >HTTP Requests (total)
+          <app-info-tip
+            text="Cumulative counter of all HTTP requests handled by the backend since startup. Micrometer metric exposed via Prometheus."
+            command="http_server_requests_seconds_count"
+            source="/actuator/prometheus"
+          />
         </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a href="http://localhost:9091/graph?g0.expr=rate(http_server_requests_seconds_count[5m])&g0.tab=0" target="_blank" rel="noopener">🔥 Prometheus</a>
+          <a
+            href="http://localhost:9091/graph?g0.expr=rate(http_server_requests_seconds_count[5m])&g0.tab=0"
+            target="_blank"
+            rel="noopener"
+            >🔥 Prometheus</a
+          >
         </div>
       </article>
       <article class="stat-card">
         <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
-        <span class="stat-label">Latency p50
-          <app-info-tip text="Median response time: 50% of requests are faster than this. Micrometer quantile computed over a sliding window. Changes slowly — generate traffic to see it move." command="http_server_requests_seconds{quantile=&quot;0.5&quot;}" source="/actuator/prometheus" />
+        <span class="stat-label"
+          >Latency p50
+          <app-info-tip
+            text="Median response time: 50% of requests are faster than this. Micrometer quantile computed over a sliding window. Changes slowly — generate traffic to see it move."
+            command='http_server_requests_seconds{quantile="0.5"}'
+            source="/actuator/prometheus"
+          />
         </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.5,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0" target="_blank" rel="noopener">🔥 Prometheus</a>
+          <a
+            href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.5,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
+            target="_blank"
+            rel="noopener"
+            >🔥 Prometheus</a
+          >
         </div>
       </article>
       <article class="stat-card">
         <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
-        <span class="stat-label">Latency p95
-          <app-info-tip text="95th percentile: only 5% of requests are slower than this value. Key indicator for SLOs." command="http_server_requests_seconds{quantile=&quot;0.95&quot;}" source="/actuator/prometheus" />
+        <span class="stat-label"
+          >Latency p95
+          <app-info-tip
+            text="95th percentile: only 5% of requests are slower than this value. Key indicator for SLOs."
+            command='http_server_requests_seconds{quantile="0.95"}'
+            source="/actuator/prometheus"
+          />
         </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.95,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0" target="_blank" rel="noopener">🔥 Prometheus</a>
+          <a
+            href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.95,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
+            target="_blank"
+            rel="noopener"
+            >🔥 Prometheus</a
+          >
         </div>
       </article>
       <article class="stat-card">
         <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
-        <span class="stat-label">Latency p99
-          <app-info-tip text="99th percentile: the worst 1% of requests. Useful for detecting outliers (Kafka timeouts, Ollama cold starts, etc.)." command="http_server_requests_seconds{quantile=&quot;0.99&quot;}" source="/actuator/prometheus" />
+        <span class="stat-label"
+          >Latency p99
+          <app-info-tip
+            text="99th percentile: the worst 1% of requests. Useful for detecting outliers (Kafka timeouts, Ollama cold starts, etc.)."
+            command='http_server_requests_seconds{quantile="0.99"}'
+            source="/actuator/prometheus"
+          />
         </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.99,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0" target="_blank" rel="noopener">🔥 Prometheus</a>
+          <a
+            href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.99,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
+            target="_blank"
+            rel="noopener"
+            >🔥 Prometheus</a
+          >
         </div>
       </article>
     }
@@ -97,8 +144,11 @@
 
   <!-- Snapshot comparator -->
   <div class="section-header">
-    <h3>Before / After Comparator
-      <app-info-tip text="1. Take Snapshot A. 2. Generate traffic below. 3. Take Snapshot B. The table shows the delta with percentage change." />
+    <h3>
+      Before / After Comparator
+      <app-info-tip
+        text="1. Take Snapshot A. 2. Generate traffic below. 3. Take Snapshot B. The table shows the delta with percentage change."
+      />
     </h3>
     <div class="snapshot-actions">
       <button class="refresh-btn" (click)="takeSnapshot('A')">📸 Snapshot A</button>
@@ -139,14 +189,24 @@
     <button class="traffic-btn" (click)="quickTraffic()" [disabled]="trafficRunning()">
       {{ trafficRunning() ? 'Sending...' : '⚡ Generate traffic' }}
     </button>
-    <span class="traffic-hint">Includes slow endpoints (bio, enrich, aggregate) to impact latency</span>
-    <app-info-tip text="Sends 10 requests mixing fast endpoints (/customers, /health) and slow ones (/bio via Ollama, /enrich via Kafka, /aggregate via virtual threads) to visibly impact latency percentiles." [wide]="true" />
+    <span class="traffic-hint"
+      >Includes slow endpoints (bio, enrich, aggregate) to impact latency</span
+    >
+    <app-info-tip
+      text="Sends 10 requests mixing fast endpoints (/customers, /health) and slow ones (/bio via Ollama, /enrich via Kafka, /aggregate via virtual threads) to visibly impact latency percentiles."
+      [wide]="true"
+    />
   </div>
 
   <!-- Real-time requests chart -->
   <div class="section-header">
-    <h3>Real-time HTTP Throughput
-      <app-info-tip text="Bar chart showing requests/second. Computed by comparing http_server_requests_seconds_count between two polls (every 3s). Chart data persists across page navigation." command="delta(http_server_requests_seconds_count) / 3" source="MetricsService (singleton)" />
+    <h3>
+      Real-time HTTP Throughput
+      <app-info-tip
+        text="Bar chart showing requests/second. Computed by comparing http_server_requests_seconds_count between two polls (every 3s). Chart data persists across page navigation."
+        command="delta(http_server_requests_seconds_count) / 3"
+        source="MetricsService (singleton)"
+      />
     </h3>
     <button class="refresh-btn" (click)="toggleChart()">
       {{ metricsService.running() ? '⏹ Stop' : '▶ Start' }} live chart
@@ -179,8 +239,13 @@
     <p class="muted">Collecting samples...</p>
   }
 
-  <h3>Health Probes
-    <app-info-tip text="Spring Boot Actuator exposes 3 probes: health (overall status), readiness (ready for traffic), liveness (process alive). Used by Kubernetes for health checks." command="GET /actuator/health/readiness" source="/actuator/health/*" />
+  <h3>
+    Health Probes
+    <app-info-tip
+      text="Spring Boot Actuator exposes 3 probes: health (overall status), readiness (ready for traffic), liveness (process alive). Used by Kubernetes for health checks."
+      command="GET /actuator/health/readiness"
+      source="/actuator/health/*"
+    />
   </h3>
 
   <!-- Health history sparkline -->
@@ -221,7 +286,9 @@
           title="Health (composite)"
           text="Overall backend health. Aggregates all components: database (PostgreSQL), Redis, disk space, ping. Returns UP only if ALL components are UP. HTTP 200 when UP, 503 when DOWN. Stop a service in Service Control to see it change."
           command="curl http://localhost:8080/actuator/health"
-          source="/actuator/health" [wide]="true" />
+          source="/actuator/health"
+          [wide]="true"
+        />
       </div>
       <pre>{{ health() | json }}</pre>
     </article>
@@ -236,7 +303,9 @@
           title="Readiness probe"
           text="Indicates whether the app is ready to accept traffic. Used by Kubernetes to decide if a pod should receive requests. Includes database connectivity and other critical dependencies. When NOT ready, the load balancer stops sending traffic."
           command="curl http://localhost:8080/actuator/health/readiness"
-          source="/actuator/health/readiness" [wide]="true" />
+          source="/actuator/health/readiness"
+          [wide]="true"
+        />
       </div>
       <pre>{{ readiness() | json }}</pre>
     </article>
@@ -251,7 +320,9 @@
           title="Liveness probe"
           text="Indicates whether the app process is alive and not deadlocked. Used by Kubernetes to decide if a pod should be restarted. Unlike readiness, liveness does NOT check external dependencies — a DB outage should not cause a restart. If this is DOWN, the JVM itself is broken."
           command="curl http://localhost:8080/actuator/health/liveness"
-          source="/actuator/health/liveness" [wide]="true" />
+          source="/actuator/health/liveness"
+          [wide]="true"
+        />
       </div>
       <pre>{{ liveness() | json }}</pre>
     </article>
@@ -259,13 +330,29 @@
 
   <!-- Architecture & Service Control (merged) -->
   <div class="section-header">
-    <h3>Architecture & Services
-      <span class="dep-aggregate" [class.dep-all-up]="dockerRunningCount() === dockerContainers().length && dockerContainers().length > 0" [class.dep-some-down]="dockerRunningCount() < dockerContainers().length && dockerContainers().length > 0">
+    <h3>
+      Architecture & Services
+      <span
+        class="dep-aggregate"
+        [class.dep-all-up]="
+          dockerRunningCount() === dockerContainers().length && dockerContainers().length > 0
+        "
+        [class.dep-some-down]="
+          dockerRunningCount() < dockerContainers().length && dockerContainers().length > 0
+        "
+      >
         @if (dockerContainers().length) {
-          {{ dockerRunningCount() === dockerContainers().length ? '✓ All running' : dockerRunningCount() + '/' + dockerContainers().length + ' running' }}
+          {{
+            dockerRunningCount() === dockerContainers().length
+              ? '✓ All running'
+              : dockerRunningCount() + '/' + dockerContainers().length + ' running'
+          }}
         }
       </span>
-      <app-info-tip text="Service dependency map with live controls. Green = running, Red = down. Click Open to access the UI, Stop/Start to control Docker containers." [wide]="true" />
+      <app-info-tip
+        text="Service dependency map with live controls. Green = running, Red = down. Click Open to access the UI, Stop/Start to control Docker containers."
+        [wide]="true"
+      />
     </h3>
     <div class="docker-meta">
       <button class="refresh-btn" (click)="loadContainers()" [disabled]="dockerLoading()">
@@ -283,7 +370,11 @@
       <div class="archi-col">
         <div class="archi-col-header">{{ colLabel }}</div>
         @for (node of topoNodesInCol(colIdx); track node.id) {
-          <div class="archi-card" [class.archi-up]="topoStatus()[node.id] === 'up'" [class.archi-down]="topoStatus()[node.id] === 'down'">
+          <div
+            class="archi-card"
+            [class.archi-up]="topoStatus()[node.id] === 'up'"
+            [class.archi-down]="topoStatus()[node.id] === 'down'"
+          >
             <span class="archi-indicator" [style.background]="topoNodeColor(node.id)"></span>
             <div class="archi-body">
               <div class="archi-header">
@@ -292,9 +383,17 @@
                 @if (node.port) {
                   <span class="archi-port">:{{ node.port }}</span>
                 }
-                <app-info-tip [title]="node.label" [text]="node.detail" [image]="node.image || ''" [source]="node.url || ''" [wide]="true" />
+                <app-info-tip
+                  [title]="node.label"
+                  [text]="node.detail"
+                  [image]="node.image || ''"
+                  [source]="node.url || ''"
+                  [wide]="true"
+                />
               </div>
-              <span class="archi-desc">{{ node.tip.split('—')[1]?.trim() || node.tip.split('.')[0] }}</span>
+              <span class="archi-desc">{{
+                node.tip.split('—')[1]?.trim() || node.tip.split('.')[0]
+              }}</span>
               @if (topoConnections(node.id).from.length) {
                 <span class="archi-conn">← {{ topoConnections(node.id).from.join(', ') }}</span>
               }
@@ -303,19 +402,39 @@
               }
               <div class="archi-footer">
                 <span class="archi-status" [style.color]="topoNodeColor(node.id)">
-                  {{ topoStatus()[node.id] === 'up' ? 'UP' : topoStatus()[node.id] === 'down' ? 'DOWN' : '—' }}
+                  {{
+                    topoStatus()[node.id] === 'up'
+                      ? 'UP'
+                      : topoStatus()[node.id] === 'down'
+                        ? 'DOWN'
+                        : '—'
+                  }}
                 </span>
                 <div class="archi-actions">
                   @if (node.url) {
-                    <a class="docker-btn docker-link" [href]="node.url" target="_blank" rel="noopener">Open ↗</a>
+                    <a
+                      class="docker-btn docker-link"
+                      [href]="node.url"
+                      target="_blank"
+                      rel="noopener"
+                      >Open ↗</a
+                    >
                   }
                   @if (topoContainer(node); as c) {
                     @if (c.running) {
-                      <button class="docker-btn docker-down" (click)="dockerAction(c.name, 'stop')" [disabled]="isDockerActionLoading(c.name, 'stop')">
+                      <button
+                        class="docker-btn docker-down"
+                        (click)="dockerAction(c.name, 'stop')"
+                        [disabled]="isDockerActionLoading(c.name, 'stop')"
+                      >
                         {{ isDockerActionLoading(c.name, 'stop') ? '...' : '↓ Down' }}
                       </button>
                     } @else {
-                      <button class="docker-btn docker-up" (click)="dockerAction(c.name, 'start')" [disabled]="isDockerActionLoading(c.name, 'start')">
+                      <button
+                        class="docker-btn docker-up"
+                        (click)="dockerAction(c.name, 'start')"
+                        [disabled]="isDockerActionLoading(c.name, 'start')"
+                      >
                         {{ isDockerActionLoading(c.name, 'start') ? '...' : '↑ Up' }}
                       </button>
                     }
@@ -331,5 +450,4 @@
       }
     }
   </div>
-
 </section>

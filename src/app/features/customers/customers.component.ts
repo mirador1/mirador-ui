@@ -12,7 +12,16 @@
  * - Import from JSON/CSV files with progress tracking
  * - Export current page as JSON or CSV
  */
-import { Component, inject, signal, computed, OnInit, OnDestroy, viewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  OnDestroy,
+  viewChild,
+  ElementRef,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -261,25 +270,23 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.createSuccess.set(null);
 
     const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
-    this.api
-      .createCustomer({ name, email }, key)
-      .subscribe({
-        next: (c) => {
-          this.createSuccess.set(c);
-          this.newName.set('');
-          this.newEmail.set('');
-          if (nameEl) nameEl.value = '';
-          if (emailEl) emailEl.value = '';
-          this.createLoading.set(false);
-          this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
-          this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
-          this.loadCustomers();
-        },
-        error: (err) => {
-          this.createError.set(httpError(err));
-          this.createLoading.set(false);
-        },
-      });
+    this.api.createCustomer({ name, email }, key).subscribe({
+      next: (c) => {
+        this.createSuccess.set(c);
+        this.newName.set('');
+        this.newEmail.set('');
+        if (nameEl) nameEl.value = '';
+        if (emailEl) emailEl.value = '';
+        this.createLoading.set(false);
+        this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
+        this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
+        this.loadCustomers();
+      },
+      error: (err) => {
+        this.createError.set(httpError(err));
+        this.createLoading.set(false);
+      },
+    });
   }
 
   resetIdempotencyKey(): void {

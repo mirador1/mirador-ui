@@ -13,9 +13,7 @@ export interface Environment {
 }
 
 /** Available backend environments — add entries here for Docker/Staging/Prod */
-const ENVIRONMENTS: Environment[] = [
-  { name: 'Local', baseUrl: 'http://localhost:8080' },
-];
+const ENVIRONMENTS: Environment[] = [{ name: 'Local', baseUrl: 'http://localhost:8080' }];
 
 @Injectable({ providedIn: 'root' })
 export class EnvService {

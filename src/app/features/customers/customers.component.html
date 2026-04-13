@@ -10,8 +10,13 @@
     <!-- Controls bar -->
     <div class="controls-bar">
       <div class="control-group">
-        <span class="label">API Version
-          <app-info-tip text="Switches between v1.0 and v2.0 via the X-API-Version header. v2.0 adds the createdAt field to each customer." command="X-API-Version: 2.0" source="Header-based versioning" />
+        <span class="label"
+          >API Version
+          <app-info-tip
+            text="Switches between v1.0 and v2.0 via the X-API-Version header. v2.0 adds the createdAt field to each customer."
+            command="X-API-Version: 2.0"
+            source="Header-based versioning"
+          />
         </span>
         <div class="toggle-btns">
           <button [class.active]="apiVersion() === '1.0'" (click)="setVersion('1.0')">v1.0</button>
@@ -55,7 +60,12 @@
         </label>
         <label>
           Email
-          <input #emailInput type="email" placeholder="ex: alice@example.com" (input)="newEmail.set(emailInput.value)" />
+          <input
+            #emailInput
+            type="email"
+            placeholder="ex: alice@example.com"
+            (input)="newEmail.set(emailInput.value)"
+          />
         </label>
 
         <div class="idem-row">
@@ -66,7 +76,11 @@
               (ngModelChange)="useIdempotencyKey.set($event)"
             />
             Idempotency-Key
-            <app-info-tip text="When enabled, sends an Idempotency-Key header (UUID). The backend caches the response in an LRU cache (10k entries). Sending the same key twice returns the cached result without creating a duplicate." command="Idempotency-Key: &lt;uuid&gt;" source="LRU cache" />
+            <app-info-tip
+              text="When enabled, sends an Idempotency-Key header (UUID). The backend caches the response in an LRU cache (10k entries). Sending the same key twice returns the cached result without creating a duplicate."
+              command="Idempotency-Key: &lt;uuid&gt;"
+              source="LRU cache"
+            />
           </label>
           @if (useIdempotencyKey()) {
             <code class="idem-key">{{ idempotencyKey() }}</code>
@@ -300,15 +314,27 @@
         <div class="tabs">
           <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
             🤖 AI Bio <small>Ollama</small>
-            <app-info-tip text="Generates a fictional biography using Ollama (llama3.2 model). Protected by a Resilience4j circuit breaker — returns fallback text if Ollama is down." command="GET /customers/{id}/bio" source="Ollama + CircuitBreaker" />
+            <app-info-tip
+              text="Generates a fictional biography using Ollama (llama3.2 model). Protected by a Resilience4j circuit breaker — returns fallback text if Ollama is down."
+              command="GET /customers/{id}/bio"
+              source="Ollama + CircuitBreaker"
+            />
           </button>
           <button [class.tab-active]="activeTab() === 'todos'" (click)="switchTab('todos')">
             ✅ Todos <small>JSONPlaceholder</small>
-            <app-info-tip text="Fetches todos from jsonplaceholder.typicode.com via Spring's @HttpExchange declarative client. Has a Resilience4j retry policy on failure." command="GET /customers/{id}/todos" source="External API + Retry" />
+            <app-info-tip
+              text="Fetches todos from jsonplaceholder.typicode.com via Spring's @HttpExchange declarative client. Has a Resilience4j retry policy on failure."
+              command="GET /customers/{id}/todos"
+              source="External API + Retry"
+            />
           </button>
           <button [class.tab-active]="activeTab() === 'enrich'" (click)="switchTab('enrich')">
             📨 Enrich <small>Kafka</small>
-            <app-info-tip text="Publishes to Kafka topic customer.request and waits for a reply on customer.reply (synchronous request-reply pattern). 5s timeout returns 504 if Kafka or consumer is down." command="GET /customers/{id}/enrich" source="Kafka ReplyingTemplate" />
+            <app-info-tip
+              text="Publishes to Kafka topic customer.request and waits for a reply on customer.reply (synchronous request-reply pattern). 5s timeout returns 504 if Kafka or consumer is down."
+              command="GET /customers/{id}/enrich"
+              source="Kafka ReplyingTemplate"
+            />
           </button>
         </div>
 
@@ -357,7 +383,6 @@
         }
       </article>
     }
-
   }
   <!-- end @if auth -->
 </section>
