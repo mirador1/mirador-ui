@@ -250,6 +250,46 @@
     }
   </article>
 
+  <!-- Service Control -->
+  <div class="section-header">
+    <h3>Service Control
+      <app-info-tip text="Stop and start Docker containers to test resilience. Watch health probes react in real-time. Requires the docker-api server: node scripts/docker-api.mjs" command="node scripts/docker-api.mjs" source="Docker API on :3333" [wide]="true" />
+    </h3>
+    <button class="refresh-btn" (click)="loadContainers()">
+      {{ dockerLoading() ? 'Loading...' : '↻ Load containers' }}
+    </button>
+  </div>
+
+  @if (dockerContainers().length) {
+    <div class="docker-grid">
+      @for (c of dockerContainers(); track c.name) {
+        <div class="docker-card" [class.docker-down]="!c.running">
+          <div class="docker-header">
+            <span class="docker-status" [class.status-up]="c.running" [class.status-down]="!c.running">
+              {{ c.running ? 'UP' : 'DOWN' }}
+            </span>
+            <strong class="docker-name">{{ c.name }}</strong>
+          </div>
+          <span class="docker-image">{{ c.image.split(':')[0].split('/').pop() }}</span>
+          <div class="docker-actions">
+            @if (c.running) {
+              <button class="docker-btn docker-stop" (click)="dockerAction(c.name, 'stop')" [disabled]="isDockerActionLoading(c.name, 'stop')">
+                {{ isDockerActionLoading(c.name, 'stop') ? '...' : 'Stop' }}
+              </button>
+              <button class="docker-btn docker-restart" (click)="dockerAction(c.name, 'restart')" [disabled]="isDockerActionLoading(c.name, 'restart')">
+                {{ isDockerActionLoading(c.name, 'restart') ? '...' : 'Restart' }}
+              </button>
+            } @else {
+              <button class="docker-btn docker-start" (click)="dockerAction(c.name, 'start')" [disabled]="isDockerActionLoading(c.name, 'start')">
+                {{ isDockerActionLoading(c.name, 'start') ? '...' : 'Start' }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Dependency graph -->
   <div class="section-header">
     <h3>Dependency Graph

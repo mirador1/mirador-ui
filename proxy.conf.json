@@ -28,5 +28,11 @@
     "secure": false,
     "changeOrigin": true,
     "pathRewrite": { "^/proxy/keycloak": "" }
+  },
+  "/docker-api": {
+    "target": "http://localhost:3333",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/docker-api": "" }
   }
 }

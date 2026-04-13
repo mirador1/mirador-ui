@@ -286,6 +286,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Docker service control ─────────────────────────────────────────────────
+  dockerContainers = signal<Array<{ name: string; status: string; image: string; running: boolean }>>([]);
+  dockerLoading = signal(false);
+  dockerActionLoading = signal<string | null>(null);
+
+  loadContainers(): void {
+    this.dockerLoading.set(true);
+    this.http.get<any[]>('/docker-api/containers').pipe(catchError(() => of([]))).subscribe(containers => {
+      this.dockerContainers.set(containers);
+      this.dockerLoading.set(false);
+    });
+  }
+
+  dockerAction(name: string, action: 'stop' | 'start' | 'restart'): void {
+    this.dockerActionLoading.set(`${name}:${action}`);
+    this.http.post<any>(`/docker-api/containers/${name}/${action}`, {}).pipe(catchError(() => of(null))).subscribe(() => {
+      this.dockerActionLoading.set(null);
+      this.toast.show(`${action} ${name}`, 'info');
+      this.activity.log('health-change', `Docker ${action}: ${name}`);
+      // Refresh containers list and health after a short delay
+      setTimeout(() => {
+        this.loadContainers();
+        this.refresh();
+      }, 2000);
+    });
+  }
+
+  isDockerActionLoading(name: string, action: string): boolean {
+    return this.dockerActionLoading() === `${name}:${action}`;
+  }
+
   // ── Quick traffic generator ────────────────────────────────────────────────
   trafficRunning = signal(false);
 

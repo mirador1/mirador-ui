@@ -440,6 +440,104 @@ pre {
   color: var(--text-muted);
 }
 
+// ── Docker service control ──────────────────────────────────────────────────
+.docker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.docker-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s;
+
+  &.docker-down {
+    border-color: var(--border-error);
+    opacity: 0.7;
+  }
+}
+
+.docker-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.docker-status {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+
+  &.status-up {
+    background: var(--bg-badge-up);
+    color: var(--text-success);
+  }
+  &.status-down {
+    background: var(--bg-badge-down);
+    color: var(--text-error);
+  }
+}
+
+.docker-name {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docker-image {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.docker-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+.docker-btn {
+  padding: 0.2rem 0.5rem;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 600;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.docker-stop {
+    background: #fee2e2;
+    color: #b91c1c;
+    &:hover:not(:disabled) { background: #fecaca; }
+  }
+  &.docker-start {
+    background: #dcfce7;
+    color: #166534;
+    &:hover:not(:disabled) { background: #bbf7d0; }
+  }
+  &.docker-restart {
+    background: #e0f2fe;
+    color: #0369a1;
+    &:hover:not(:disabled) { background: #bae6fd; }
+  }
+}
+
 // ── Dependency graph ────────────────────────────────────────────────────────
 .dep-graph-container {
   background: var(--bg-card);

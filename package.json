@@ -4,6 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "docker-api": "node scripts/docker-api.mjs",
+    "dev": "node scripts/docker-api.mjs & ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
