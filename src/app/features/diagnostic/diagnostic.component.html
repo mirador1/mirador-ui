@@ -27,7 +27,9 @@
   @if (showHistory() && runHistory().length) {
     <article class="card history-card">
       <div class="history-header">
-        <h3>Run History <small>{{ runHistory().length }} runs</small></h3>
+        <h3>
+          Run History <small>{{ runHistory().length }} runs</small>
+        </h3>
         <button class="sm-btn" (click)="clearHistory()">Clear</button>
       </div>
       <div class="history-list">
@@ -35,7 +37,7 @@
           <div class="history-item">
             <div class="history-meta">
               <span class="scenario-tag">{{ run.scenario }}</span>
-              <span class="history-time">{{ run.timestamp | date:'HH:mm:ss' }}</span>
+              <span class="history-time">{{ run.timestamp | date: 'HH:mm:ss' }}</span>
               <span class="history-duration">{{ run.durationMs }} ms</span>
             </div>
             <div class="history-summary">
@@ -56,8 +58,8 @@
       <div>
         <h3>API Versioning — v1.0 vs v2.0</h3>
         <p>
-          The backend uses an <code>X-API-Version</code> header to switch between API versions.
-          v1.0 returns <code>&#123;id, name, email&#125;</code>; v2.0 adds <code>createdAt</code>.
+          The backend uses an <code>X-API-Version</code> header to switch between API versions. v1.0
+          returns <code>&#123;id, name, email&#125;</code>; v2.0 adds <code>createdAt</code>.
         </p>
       </div>
     </div>
@@ -80,9 +82,9 @@
       <div>
         <h3>Idempotency — POST /customers with same key</h3>
         <p>
-          Sends the same <code>POST /customers</code> twice with identical <code>Idempotency-Key</code>.
-          The backend uses a bounded LRU cache (10k entries) — the second call returns the cached
-          response without creating a duplicate.
+          Sends the same <code>POST /customers</code> twice with identical
+          <code>Idempotency-Key</code>. The backend uses a bounded LRU cache (10k entries) — the
+          second call returns the cached response without creating a duplicate.
         </p>
       </div>
     </div>
@@ -109,9 +111,9 @@
       <div>
         <h3>Rate Limiting — Bucket4j 100 req/min</h3>
         <p>
-          Fires several concurrent <code>GET /customers</code> requests simultaneously.
-          The backend enforces 100 req/min per source IP via <code>RateLimitingFilter</code>.
-          Excess requests return <code>429 Too Many Requests</code> with a <code>Retry-After</code> header.
+          Fires several concurrent <code>GET /customers</code> requests simultaneously. The backend
+          enforces 100 req/min per source IP via <code>RateLimitingFilter</code>. Excess requests
+          return <code>429 Too Many Requests</code> with a <code>Retry-After</code> header.
         </p>
       </div>
     </div>
@@ -149,7 +151,12 @@
     <div class="count-row">
       <label>
         Customer ID
-        <input type="number" [ngModel]="enrichCustomerId()" (ngModelChange)="enrichCustomerId.set($event)" min="1" />
+        <input
+          type="number"
+          [ngModel]="enrichCustomerId()"
+          (ngModelChange)="enrichCustomerId.set($event)"
+          min="1"
+        />
       </label>
     </div>
     <button class="run-btn" (click)="runEnrich()" [disabled]="enrichRunning()">
@@ -171,9 +178,9 @@
       <div>
         <h3>Virtual Threads — /customers/aggregate</h3>
         <p>
-          Calls <code>GET /customers/aggregate</code> which uses Java virtual threads to run
-          two tasks in parallel: fetch customer list + compute stats. Observe the response
-          time in the log.
+          Calls <code>GET /customers/aggregate</code> which uses Java virtual threads to run two
+          tasks in parallel: fetch customer list + compute stats. Observe the response time in the
+          log.
         </p>
       </div>
     </div>
@@ -196,9 +203,9 @@
       <div>
         <h3>API Response Diff — v1.0 vs v2.0</h3>
         <p>
-          Fetches the same customer with both API versions and renders a colored diff.
-          Lines in <span class="diff-legend-add">green</span> are v2-only fields,
-          lines in <span class="diff-legend-remove">red</span> are v1-only.
+          Fetches the same customer with both API versions and renders a colored diff. Lines in
+          <span class="diff-legend-add">green</span> are v2-only fields, lines in
+          <span class="diff-legend-remove">red</span> are v1-only.
         </p>
       </div>
     </div>
@@ -209,7 +216,9 @@
       <div class="diff-panel">
         @for (line of versionDiff(); track $index) {
           <div class="diff-line diff-{{ line.type }}">
-            <span class="diff-marker">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>
+            <span class="diff-marker">{{
+              line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '
+            }}</span>
             {{ line.text }}
           </div>
         }
@@ -224,9 +233,8 @@
       <div>
         <h3>Stress Test — Sustained Load</h3>
         <p>
-          Sends a continuous stream of requests for a configurable duration.
-          Observe throughput and error rate in real-time. Uses the selected
-          environment's base URL.
+          Sends a continuous stream of requests for a configurable duration. Observe throughput and
+          error rate in real-time. Uses the selected environment's base URL.
         </p>
       </div>
     </div>
@@ -258,14 +266,24 @@
         <svg viewBox="0 0 300 100" preserveAspectRatio="none">
           @for (bar of stressChartBars(); track $index) {
             <rect
-              [attr.x]="bar.x" [attr.y]="100 - bar.okH - bar.errH"
-              [attr.width]="6" [attr.height]="bar.okH"
-              rx="1" fill="#4ade80" opacity="0.8" />
+              [attr.x]="bar.x"
+              [attr.y]="100 - bar.okH - bar.errH"
+              [attr.width]="6"
+              [attr.height]="bar.okH"
+              rx="1"
+              fill="#4ade80"
+              opacity="0.8"
+            />
             @if (bar.errH > 0) {
               <rect
-                [attr.x]="bar.x" [attr.y]="100 - bar.errH"
-                [attr.width]="6" [attr.height]="bar.errH"
-                rx="1" fill="#f87171" opacity="0.8" />
+                [attr.x]="bar.x"
+                [attr.y]="100 - bar.errH"
+                [attr.width]="6"
+                [attr.height]="bar.errH"
+                rx="1"
+                fill="#f87171"
+                opacity="0.8"
+              />
             }
           }
         </svg>

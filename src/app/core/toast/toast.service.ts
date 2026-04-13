@@ -13,11 +13,11 @@ export class ToastService {
 
   show(message: string, type: Toast['type'] = 'info', durationMs = 4000): void {
     const id = ++this._counter;
-    this.toasts.update(t => [...t, { id, message, type }]);
+    this.toasts.update((t) => [...t, { id, message, type }]);
     setTimeout(() => this.dismiss(id), durationMs);
   }
 
   dismiss(id: number): void {
-    this.toasts.update(t => t.filter(x => x.id !== id));
+    this.toasts.update((t) => t.filter((x) => x.id !== id));
   }
 }

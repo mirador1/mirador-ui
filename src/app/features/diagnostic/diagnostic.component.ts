@@ -42,7 +42,7 @@ function ts(): string {
   standalone: true,
   imports: [FormsModule, RouterLink, DatePipe, DecimalPipe],
   templateUrl: './diagnostic.component.html',
-  styleUrl: './diagnostic.component.scss'
+  styleUrl: './diagnostic.component.scss',
 })
 export class DiagnosticComponent {
   private readonly api = inject(ApiService);
@@ -67,8 +67,8 @@ export class DiagnosticComponent {
     this.versionLog.set([{ kind: 'info', text: 'Fetching v1 and v2 side by side...' }]);
 
     forkJoin({
-      v1: this.api.getCustomers(0, 3, '1.0').pipe(catchError(e => of({ error: e.status }))),
-      v2: this.api.getCustomers(0, 3, '2.0').pipe(catchError(e => of({ error: e.status })))
+      v1: this.api.getCustomers(0, 3, '1.0').pipe(catchError((e) => of({ error: e.status }))),
+      v2: this.api.getCustomers(0, 3, '2.0').pipe(catchError((e) => of({ error: e.status }))),
     }).subscribe(({ v1, v2 }) => {
       const logs: LogLine[] = [
         ...this.versionLog(),
@@ -76,7 +76,7 @@ export class DiagnosticComponent {
         { kind: 'res', text: `v1 content[0]: ${JSON.stringify((v1 as any).content?.[0])}` },
         { kind: 'req', text: `[${ts()}] GET /customers  X-API-Version: 2.0` },
         { kind: 'res', text: `v2 content[0]: ${JSON.stringify((v2 as any).content?.[0])}` },
-        { kind: 'info', text: 'v2 adds "createdAt" field — controlled by X-API-Version header.' }
+        { kind: 'info', text: 'v2 adds "createdAt" field — controlled by X-API-Version header.' },
       ];
       this.versionLog.set(logs);
       this.versionRunning.set(false);
@@ -104,18 +104,18 @@ export class DiagnosticComponent {
     const payload = { name: this.idemName, email: this.idemEmail };
     this.idemLog.set([
       { kind: 'info', text: `Idempotency-Key: ${key}` },
-      { kind: 'req', text: `[${ts()}] POST /customers  (request 1)` }
+      { kind: 'req', text: `[${ts()}] POST /customers  (request 1)` },
     ]);
 
     this.api.createCustomer(payload, key).subscribe({
-      next: r1 => {
-        this.idemLog.update(l => [
+      next: (r1) => {
+        this.idemLog.update((l) => [
           ...l,
           { kind: 'res', text: `201 → id=${r1.id}  name=${r1.name}` },
-          { kind: 'req', text: `[${ts()}] POST /customers  (request 2 — same key)` }
+          { kind: 'req', text: `[${ts()}] POST /customers  (request 2 — same key)` },
         ]);
         this.api.createCustomer(payload, key).subscribe({
-          next: r2 => {
+          next: (r2) => {
             const match = r1.id === r2.id;
             const logs: LogLine[] = [
               ...this.idemLog(),
@@ -124,30 +124,30 @@ export class DiagnosticComponent {
                 kind: match ? 'info' : 'err',
                 text: match
                   ? '✓ Same ID returned — idempotency cache hit, no duplicate created.'
-                  : '⚠ Different ID — idempotency did not fire (key may have expired).'
-              }
+                  : '⚠ Different ID — idempotency did not fire (key may have expired).',
+              },
             ];
             this.idemLog.set(logs);
             this.idemRunning.set(false);
             this.recordRun('Idempotency', logs, Date.now() - t0);
           },
-          error: e => {
+          error: (e) => {
             const logs = [...this.idemLog(), { kind: 'err' as const, text: `Error ${e.status}` }];
             this.idemLog.set(logs);
             this.idemRunning.set(false);
             this.recordRun('Idempotency', logs, Date.now() - t0);
-          }
+          },
         });
       },
-      error: e => {
+      error: (e) => {
         const logs = [
           ...this.idemLog(),
-          { kind: 'err' as const, text: `Error ${e.status}: ${e.error?.detail ?? e.message}` }
+          { kind: 'err' as const, text: `Error ${e.status}: ${e.error?.detail ?? e.message}` },
         ];
         this.idemLog.set(logs);
         this.idemRunning.set(false);
         this.recordRun('Idempotency', logs, Date.now() - t0);
-      }
+      },
     });
   }
 
@@ -159,29 +159,35 @@ export class DiagnosticComponent {
   runRateLimit(): void {
     this.rateLimitRunning.set(true);
     const t0 = Date.now();
-    this.rateLimitLog.set([{ kind: 'info', text: `Firing ${this.rateLimitCount} concurrent GET /customers requests...` }]);
+    this.rateLimitLog.set([
+      { kind: 'info', text: `Firing ${this.rateLimitCount} concurrent GET /customers requests...` },
+    ]);
 
     const requests = Array.from({ length: this.rateLimitCount }, (_, i) =>
-      this.api.getCustomers(0, 1).pipe(
-        catchError(e => of({ __error: e.status as number, index: i }))
-      )
+      this.api
+        .getCustomers(0, 1)
+        .pipe(catchError((e) => of({ __error: e.status as number, index: i }))),
     );
 
-    forkJoin(requests).subscribe(results => {
+    forkJoin(requests).subscribe((results) => {
       const lines: LogLine[] = results.map((r, i) => {
         const err = (r as any).__error;
         if (err === 429) {
-          return { kind: 'err' as const, text: `Request ${i + 1}: 429 Too Many Requests — rate limit hit` };
+          return {
+            kind: 'err' as const,
+            text: `Request ${i + 1}: 429 Too Many Requests — rate limit hit`,
+          };
         }
         return { kind: 'res' as const, text: `Request ${i + 1}: 200 OK` };
       });
 
-      const hits = lines.filter(l => l.kind === 'err').length;
+      const hits = lines.filter((l) => l.kind === 'err').length;
       lines.push({
         kind: 'info',
-        text: hits > 0
-          ? `✓ ${hits}/${this.rateLimitCount} requests rate-limited. Limit: 100 req/min per IP.`
-          : `All ${this.rateLimitCount} requests succeeded — rate limit (100/min) not reached in this burst.`
+        text:
+          hits > 0
+            ? `✓ ${hits}/${this.rateLimitCount} requests rate-limited. Limit: 100 req/min per IP.`
+            : `All ${this.rateLimitCount} requests succeeded — rate limit (100/min) not reached in this burst.`,
       });
 
       const logs = [...this.rateLimitLog(), ...lines];
@@ -202,36 +208,40 @@ export class DiagnosticComponent {
     const t0 = Date.now();
     this.enrichLog.set([
       { kind: 'req', text: `[${ts()}] GET /customers/${id}/enrich` },
-      { kind: 'info', text: 'Backend publishes to customer.request, awaits reply on customer.reply (5 s timeout)...' }
+      {
+        kind: 'info',
+        text: 'Backend publishes to customer.request, awaits reply on customer.reply (5 s timeout)...',
+      },
     ]);
 
     this.api.enrichCustomer(id).subscribe({
-      next: r => {
+      next: (r) => {
         const elapsed = Date.now() - t0;
         const logs: LogLine[] = [
           ...this.enrichLog(),
           { kind: 'res', text: `200 in ${elapsed} ms → displayName: "${r.displayName}"` },
-          { kind: 'res', text: JSON.stringify(r, null, 2) }
+          { kind: 'res', text: JSON.stringify(r, null, 2) },
         ];
         this.enrichLog.set(logs);
         this.enrichRunning.set(false);
         this.recordRun('Kafka Enrich', logs, elapsed);
       },
-      error: e => {
+      error: (e) => {
         const elapsed = Date.now() - t0;
         const logs: LogLine[] = [
           ...this.enrichLog(),
           {
             kind: 'err',
-            text: e.status === 504
-              ? `504 after ${elapsed} ms — Kafka reply timed out (consumer not running?)`
-              : `${e.status} after ${elapsed} ms`
-          }
+            text:
+              e.status === 504
+                ? `504 after ${elapsed} ms — Kafka reply timed out (consumer not running?)`
+                : `${e.status} after ${elapsed} ms`,
+          },
         ];
         this.enrichLog.set(logs);
         this.enrichRunning.set(false);
         this.recordRun('Kafka Enrich', logs, elapsed);
-      }
+      },
     });
   }
 
@@ -244,30 +254,33 @@ export class DiagnosticComponent {
     const t0 = Date.now();
     this.aggregateLog.set([
       { kind: 'req', text: `[${ts()}] GET /customers/aggregate` },
-      { kind: 'info', text: 'Backend spawns two virtual threads in parallel: customer list + stats...' }
+      {
+        kind: 'info',
+        text: 'Backend spawns two virtual threads in parallel: customer list + stats...',
+      },
     ]);
 
     this.api.getAggregate().subscribe({
-      next: r => {
+      next: (r) => {
         const elapsed = Date.now() - t0;
         const logs: LogLine[] = [
           ...this.aggregateLog(),
           { kind: 'res', text: `200 in ${elapsed} ms` },
-          { kind: 'res', text: JSON.stringify(r, null, 2) }
+          { kind: 'res', text: JSON.stringify(r, null, 2) },
         ];
         this.aggregateLog.set(logs);
         this.aggregateRunning.set(false);
         this.recordRun('Virtual Threads', logs, elapsed);
       },
-      error: e => {
+      error: (e) => {
         const logs: LogLine[] = [
           ...this.aggregateLog(),
-          { kind: 'err', text: `${e.status}: ${e.message}` }
+          { kind: 'err', text: `${e.status}: ${e.message}` },
         ];
         this.aggregateLog.set(logs);
         this.aggregateRunning.set(false);
         this.recordRun('Virtual Threads', logs, Date.now() - t0);
-      }
+      },
     });
   }
 
@@ -297,8 +310,8 @@ export class DiagnosticComponent {
     this.versionRunning.set(true);
     this.versionDiff.set([]);
     forkJoin({
-      v1: this.api.getCustomers(0, 1, '1.0').pipe(catchError(e => of({ error: e.status }))),
-      v2: this.api.getCustomers(0, 1, '2.0').pipe(catchError(e => of({ error: e.status })))
+      v1: this.api.getCustomers(0, 1, '1.0').pipe(catchError((e) => of({ error: e.status }))),
+      v2: this.api.getCustomers(0, 1, '2.0').pipe(catchError((e) => of({ error: e.status }))),
     }).subscribe(({ v1, v2 }) => {
       const c1 = (v1 as any).content?.[0] ?? v1;
       const c2 = (v2 as any).content?.[0] ?? v2;
@@ -321,7 +334,10 @@ export class DiagnosticComponent {
     this._stressAbort = false;
     this.stressSamples.set([]);
     this.stressLog.set([
-      { kind: 'info', text: `Stress test: ${this.stressConcurrency} concurrent, ${this.stressDuration}s, endpoint: ${this.stressEndpoint}` }
+      {
+        kind: 'info',
+        text: `Stress test: ${this.stressConcurrency} concurrent, ${this.stressDuration}s, endpoint: ${this.stressEndpoint}`,
+      },
     ]);
 
     const baseUrl = this.env.baseUrl();
@@ -335,9 +351,18 @@ export class DiagnosticComponent {
       let secErr = 0;
 
       const batch = Array.from({ length: this.stressConcurrency }, () =>
-        this.http.get(`${baseUrl}${endpoint}`).pipe(
-          catchError(() => { secErr++; return of(null); })
-        ).toPromise().then(() => { if (secErr === 0) secOk++; })
+        this.http
+          .get(`${baseUrl}${endpoint}`)
+          .pipe(
+            catchError(() => {
+              secErr++;
+              return of(null);
+            }),
+          )
+          .toPromise()
+          .then(() => {
+            if (secErr === 0) secOk++;
+          }),
       );
 
       await Promise.all(batch);
@@ -346,24 +371,33 @@ export class DiagnosticComponent {
       totalOk += secOk;
       totalErr += secErr;
 
-      this.stressSamples.update(s => [...s, { second: sec + 1, ok: secOk, err: secErr }]);
-      this.stressLog.update(l => [...l, {
-        kind: secErr > 0 ? 'err' as const : 'res' as const,
-        text: `[${sec + 1}s] ${secOk} OK / ${secErr} errors`
-      }]);
+      this.stressSamples.update((s) => [...s, { second: sec + 1, ok: secOk, err: secErr }]);
+      this.stressLog.update((l) => [
+        ...l,
+        {
+          kind: secErr > 0 ? ('err' as const) : ('res' as const),
+          text: `[${sec + 1}s] ${secOk} OK / ${secErr} errors`,
+        },
+      ]);
 
       // Wait remainder of the second
       const elapsed = Date.now() - t0;
-      if (elapsed < 1000) await new Promise(r => setTimeout(r, 1000 - elapsed));
+      if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
     }
 
-    this.stressLog.update(l => [...l, {
-      kind: 'info',
-      text: `Done: ${totalOk + totalErr} requests (${totalOk} OK, ${totalErr} errors) over ${this.stressDuration}s`
-    }]);
+    this.stressLog.update((l) => [
+      ...l,
+      {
+        kind: 'info',
+        text: `Done: ${totalOk + totalErr} requests (${totalOk} OK, ${totalErr} errors) over ${this.stressDuration}s`,
+      },
+    ]);
     this.stressRunning.set(false);
     this.recordRun('Stress Test', this.stressLog(), this.stressDuration * 1000);
-    this.activity.log('diagnostic-run', `Stress test: ${totalOk + totalErr} requests in ${this.stressDuration}s`);
+    this.activity.log(
+      'diagnostic-run',
+      `Stress test: ${totalOk + totalErr} requests in ${this.stressDuration}s`,
+    );
   }
 
   stopStressTest(): void {
@@ -373,12 +407,12 @@ export class DiagnosticComponent {
   stressChartBars(): Array<{ x: number; okH: number; errH: number }> {
     const samples = this.stressSamples();
     if (!samples.length) return [];
-    const max = Math.max(1, ...samples.map(s => s.ok + s.err));
+    const max = Math.max(1, ...samples.map((s) => s.ok + s.err));
     const barW = 300 / Math.max(samples.length, 1);
     return samples.map((s, i) => ({
       x: i * barW,
       okH: (s.ok / max) * 80,
-      errH: (s.err / max) * 80
+      errH: (s.err / max) * 80,
     }));
   }
 
@@ -398,8 +432,11 @@ export class DiagnosticComponent {
     this.toast.show('All 5 scenarios completed!', 'success');
   }
 
-  private runScenarioAsync(fn: () => void, running: ReturnType<typeof signal<boolean>>): Promise<void> {
-    return new Promise(resolve => {
+  private runScenarioAsync(
+    fn: () => void,
+    running: ReturnType<typeof signal<boolean>>,
+  ): Promise<void> {
+    return new Promise((resolve) => {
       fn();
       const check = setInterval(() => {
         if (!running()) {
@@ -412,15 +449,15 @@ export class DiagnosticComponent {
 
   // ── History ───────────────────────────────────────────────────────────────
   private recordRun(scenario: string, logs: LogLine[], durationMs: number): void {
-    this.runHistory.update(h => [
+    this.runHistory.update((h) => [
       { scenario, timestamp: new Date(), logs, durationMs },
-      ...h.slice(0, 49)
+      ...h.slice(0, 49),
     ]);
     this.activity.log('diagnostic-run', `${scenario} completed in ${durationMs} ms`);
   }
 
   toggleHistory(): void {
-    this.showHistory.update(v => !v);
+    this.showHistory.update((v) => !v);
   }
 
   clearHistory(): void {
@@ -428,11 +465,11 @@ export class DiagnosticComponent {
   }
 
   exportHistory(): void {
-    const data = this.runHistory().map(r => ({
+    const data = this.runHistory().map((r) => ({
       scenario: r.scenario,
       timestamp: r.timestamp.toISOString(),
       durationMs: r.durationMs,
-      logs: r.logs
+      logs: r.logs,
     }));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

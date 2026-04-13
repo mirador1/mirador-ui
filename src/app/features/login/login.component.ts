@@ -9,7 +9,7 @@ import { AuthService } from '../../core/auth/auth.service';
   standalone: true,
   imports: [FormsModule],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.scss'
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
   private readonly api = inject(ApiService);
@@ -30,9 +30,11 @@ export class LoginComponent {
         this.router.navigateByUrl('/');
       },
       error: () => {
-        this.error.set('Login failed — check credentials or backend availability (localhost:8080).');
+        this.error.set(
+          'Login failed — check credentials or backend availability (localhost:8080).',
+        );
         this.loading.set(false);
-      }
+      },
     });
   }
 }

@@ -13,7 +13,7 @@ import { KeyboardService } from '../../core/keyboard/keyboard.service';
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
   templateUrl: './app-shell.component.html',
-  styleUrl: './app-shell.component.scss'
+  styleUrl: './app-shell.component.scss',
 })
 export class AppShellComponent {
   readonly auth = inject(AuthService);
@@ -32,10 +32,26 @@ export class AppShellComponent {
     { label: 'Dashboard', path: '/', keywords: 'dashboard home health metrics' },
     { label: 'Customers', path: '/customers', keywords: 'customers list create manage' },
     { label: 'Diagnostic', path: '/diagnostic', keywords: 'diagnostic test scenarios' },
-    { label: 'Observability', path: '/observability', keywords: 'observability traces logs latency zipkin loki tempo flame' },
-    { label: 'Visualizations', path: '/visualizations', keywords: 'visualizations golden signals gauges topology waterfall sankey kafka lag' },
-    { label: 'API Builder', path: '/request-builder', keywords: 'api request builder postman http' },
-    { label: 'Chaos & Traffic', path: '/chaos', keywords: 'chaos traffic faker generate stress load' },
+    {
+      label: 'Observability',
+      path: '/observability',
+      keywords: 'observability traces logs latency zipkin loki tempo flame',
+    },
+    {
+      label: 'Visualizations',
+      path: '/visualizations',
+      keywords: 'visualizations golden signals gauges topology waterfall sankey kafka lag',
+    },
+    {
+      label: 'API Builder',
+      path: '/request-builder',
+      keywords: 'api request builder postman http',
+    },
+    {
+      label: 'Chaos & Traffic',
+      path: '/chaos',
+      keywords: 'chaos traffic faker generate stress load',
+    },
     { label: 'Settings', path: '/settings', keywords: 'settings config actuator loggers sql' },
     { label: 'Activity', path: '/activity', keywords: 'activity timeline events log' },
   ];
@@ -43,8 +59,8 @@ export class AppShellComponent {
   get filteredSearchItems() {
     if (!this.searchQuery) return this.searchItems;
     const q = this.searchQuery.toLowerCase();
-    return this.searchItems.filter(i =>
-      i.label.toLowerCase().includes(q) || i.keywords.includes(q)
+    return this.searchItems.filter(
+      (i) => i.label.toLowerCase().includes(q) || i.keywords.includes(q),
     );
   }
 
@@ -70,7 +86,7 @@ export class AppShellComponent {
   }
 
   toggleMobileMenu(): void {
-    this.mobileMenuOpen.update(v => !v);
+    this.mobileMenuOpen.update((v) => !v);
   }
 
   closeMobileMenu(): void {

@@ -7,87 +7,113 @@
   @if (!auth.isAuthenticated()) {
     <div class="alert-warn">Please <a routerLink="/login">sign in</a> first.</div>
   } @else {
+    <div class="builder-layout">
+      <!-- Presets sidebar -->
+      <aside class="presets-panel">
+        <h3>Presets</h3>
+        @for (p of presets; track p.name) {
+          <button class="preset-btn" (click)="loadPreset(p)">
+            <span class="preset-method method-{{ p.method.toLowerCase() }}">{{ p.method }}</span>
+            <span class="preset-name">{{ p.name }}</span>
+          </button>
+        }
+      </aside>
 
-  <div class="builder-layout">
-    <!-- Presets sidebar -->
-    <aside class="presets-panel">
-      <h3>Presets</h3>
-      @for (p of presets; track p.name) {
-        <button class="preset-btn" (click)="loadPreset(p)">
-          <span class="preset-method method-{{ p.method.toLowerCase() }}">{{ p.method }}</span>
-          <span class="preset-name">{{ p.name }}</span>
-        </button>
-      }
-    </aside>
+      <!-- Main builder -->
+      <div class="builder-main">
+        <!-- Request form -->
+        <div class="request-bar">
+          <select [(ngModel)]="method" class="method-select">
+            @for (m of methods; track m) {
+              <option [value]="m">{{ m }}</option>
+            }
+          </select>
+          <input
+            class="url-input"
+            type="text"
+            [(ngModel)]="url"
+            placeholder="/customers?page=0&size=10"
+          />
+          <button class="send-btn" (click)="send()" [disabled]="loading()">
+            {{ loading() ? 'Sending...' : 'Send' }}
+          </button>
+        </div>
 
-    <!-- Main builder -->
-    <div class="builder-main">
-      <!-- Request form -->
-      <div class="request-bar">
-        <select [(ngModel)]="method" class="method-select">
-          @for (m of methods; track m) {
-            <option [value]="m">{{ m }}</option>
-          }
-        </select>
-        <input class="url-input" type="text" [(ngModel)]="url" placeholder="/customers?page=0&size=10" />
-        <button class="send-btn" (click)="send()" [disabled]="loading()">
-          {{ loading() ? 'Sending...' : 'Send' }}
-        </button>
-      </div>
-
-      <!-- Headers -->
-      <div class="section">
-        <label class="section-label">Headers <small>(one per line: Key: Value)</small></label>
-        <textarea class="headers-area" [(ngModel)]="headersText" rows="3" placeholder="Content-Type: application/json"></textarea>
-      </div>
-
-      <!-- Body -->
-      @if (method !== 'GET' && method !== 'DELETE') {
+        <!-- Headers -->
         <div class="section">
-          <label class="section-label">Body</label>
-          <textarea class="body-area" [(ngModel)]="bodyText" rows="6" placeholder='{ "name": "...", "email": "..." }'></textarea>
+          <label class="section-label">Headers <small>(one per line: Key: Value)</small></label>
+          <textarea
+            class="headers-area"
+            [(ngModel)]="headersText"
+            rows="3"
+            placeholder="Content-Type: application/json"
+          ></textarea>
         </div>
-      }
 
-      <!-- Response -->
-      @if (responseStatus() !== null) {
-        <div class="response-panel">
-          <div class="response-meta">
-            <span class="response-status" [class]="statusColorClass()">{{ responseStatus() }}</span>
-            <span class="response-time">{{ responseTime() }} ms</span>
+        <!-- Body -->
+        @if (method !== 'GET' && method !== 'DELETE') {
+          <div class="section">
+            <label class="section-label">Body</label>
+            <textarea
+              class="body-area"
+              [(ngModel)]="bodyText"
+              rows="6"
+              placeholder='{ "name": "...", "email": "..." }'
+            ></textarea>
           </div>
+        }
 
-          @if (responseHeaders()) {
-            <details class="response-section">
-              <summary>Response Headers</summary>
-              <pre class="response-headers-pre">{{ responseHeaders() }}</pre>
-            </details>
-          }
+        <!-- Response -->
+        @if (responseStatus() !== null) {
+          <div class="response-panel">
+            <div class="response-meta">
+              <span class="response-status" [class]="statusColorClass()">{{
+                responseStatus()
+              }}</span>
+              <span class="response-time">{{ responseTime() }} ms</span>
+            </div>
 
-          <div class="response-body-panel">
-            <pre>{{ responseBody() }}</pre>
-          </div>
-        </div>
-      }
-    </div>
-  </div>
+            @if (responseHeaders()) {
+              <details class="response-section">
+                <summary>Response Headers</summary>
+                <pre class="response-headers-pre">{{ responseHeaders() }}</pre>
+              </details>
+            }
 
-  <!-- History -->
-  @if (history().length) {
-    <article class="card">
-      <h3>Request History</h3>
-      <div class="history-table">
-        @for (h of history(); track $index) {
-          <div class="history-row" (click)="url = h.url; method = h.method">
-            <span class="preset-method method-{{ h.method.toLowerCase() }}">{{ h.method }}</span>
-            <span class="history-url">{{ h.url }}</span>
-            <span class="response-status" [class]="h.status < 300 ? 'status-ok' : h.status < 500 ? 'status-client-err' : 'status-server-err'">{{ h.status }}</span>
-            <span class="history-time">{{ h.timeMs }} ms</span>
+            <div class="response-body-panel">
+              <pre>{{ responseBody() }}</pre>
+            </div>
           </div>
         }
       </div>
-    </article>
-  }
+    </div>
 
-  } <!-- end auth -->
+    <!-- History -->
+    @if (history().length) {
+      <article class="card">
+        <h3>Request History</h3>
+        <div class="history-table">
+          @for (h of history(); track $index) {
+            <div class="history-row" (click)="url = h.url; method = h.method">
+              <span class="preset-method method-{{ h.method.toLowerCase() }}">{{ h.method }}</span>
+              <span class="history-url">{{ h.url }}</span>
+              <span
+                class="response-status"
+                [class]="
+                  h.status < 300
+                    ? 'status-ok'
+                    : h.status < 500
+                      ? 'status-client-err'
+                      : 'status-server-err'
+                "
+                >{{ h.status }}</span
+              >
+              <span class="history-time">{{ h.timeMs }} ms</span>
+            </div>
+          }
+        </div>
+      </article>
+    }
+  }
+  <!-- end auth -->
 </section>
