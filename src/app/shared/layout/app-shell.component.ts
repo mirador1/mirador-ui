@@ -1,4 +1,4 @@
-import { Component, inject, signal, HostListener } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,8 +6,6 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
-import { KeyboardService } from '../../core/keyboard/keyboard.service';
-
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -20,10 +18,10 @@ export class AppShellComponent {
   readonly theme = inject(ThemeService);
   readonly env = inject(EnvService);
   readonly toast = inject(ToastService);
-  readonly keyboard = inject(KeyboardService);
   private readonly router = inject(Router);
 
   mobileMenuOpen = signal(false);
+  showSearch = signal(false);
 
   // Global search
   searchQuery = '';
@@ -65,7 +63,7 @@ export class AppShellComponent {
 
   navigateFromSearch(path: string): void {
     this.router.navigateByUrl(path);
-    this.keyboard.showSearch.set(false);
+    this.showSearch.set(false);
     this.searchQuery = '';
   }
 

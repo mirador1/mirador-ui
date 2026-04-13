@@ -34,15 +34,6 @@
           {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
         </button>
 
-        <!-- Keyboard shortcuts help -->
-        <button
-          class="theme-btn"
-          (click)="keyboard.showHelp.set(true)"
-          title="Keyboard shortcuts (?)"
-        >
-          ?
-        </button>
-
         <button class="logout-btn" (click)="logout()">Sign out</button>
       </div>
     } @else {
@@ -89,8 +80,8 @@
   }
 
   <!-- Global search modal (Ctrl+K) -->
-  @if (keyboard.showSearch()) {
-    <div class="modal-overlay" (click)="keyboard.showSearch.set(false)">
+  @if (showSearch()) {
+    <div class="modal-overlay" (click)="showSearch.set(false)">
       <div class="search-modal" (click)="$event.stopPropagation()">
         <input
           class="search-input"
@@ -111,23 +102,4 @@
     </div>
   }
 
-  <!-- Keyboard shortcuts modal (?) -->
-  @if (keyboard.showHelp()) {
-    <div class="modal-overlay" (click)="keyboard.showHelp.set(false)">
-      <div class="shortcuts-modal" (click)="$event.stopPropagation()">
-        <div class="shortcuts-header">
-          <h3>Keyboard Shortcuts</h3>
-          <button class="close-btn" (click)="keyboard.showHelp.set(false)">✕</button>
-        </div>
-        <div class="shortcuts-grid">
-          @for (s of keyboard.shortcuts; track s.key) {
-            <div class="shortcut-row">
-              <kbd>{{ s.key }}</kbd>
-              <span>{{ s.description }}</span>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  }
 </div>
