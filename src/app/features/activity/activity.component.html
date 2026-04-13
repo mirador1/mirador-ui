@@ -1,0 +1,50 @@
+<section>
+  <div class="page-header">
+    <div>
+      <h2>Activity</h2>
+      <p class="subtitle">Chronological event timeline — all actions in this session</p>
+    </div>
+    <div class="header-actions">
+      <span class="count">{{ filteredEvents.length }} events</span>
+      <button class="action-btn" (click)="activity.clear()">Clear</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    @for (f of typeFilters; track f) {
+      <button
+        class="filter-btn"
+        [class.active]="filterType() === f"
+        (click)="filterType.set(f)">
+        {{ typeLabels[f] }}
+      </button>
+    }
+  </div>
+
+  @if (filteredEvents.length === 0) {
+    <div class="empty-state">
+      <p>No activity yet. Events will appear here as you use the app.</p>
+    </div>
+  } @else {
+    <div class="timeline">
+      @for (event of filteredEvents; track event.id) {
+        <div class="timeline-item">
+          <div class="timeline-marker">
+            <span class="type-badge" [class]="typeBadgeClass(event.type)">
+              {{ typeIcon(event.type) }}
+            </span>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <span class="timeline-message">{{ event.message }}</span>
+              <span class="timeline-time">{{ event.timestamp | date:'HH:mm:ss' }}</span>
+            </div>
+            @if (event.details) {
+              <div class="timeline-details">{{ event.details }}</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>
