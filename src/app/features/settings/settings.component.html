@@ -102,73 +102,12 @@
       }
     </article>
 
-    <!-- SQL Explorer & PostgreSQL Diagnostics -->
     <article class="card">
-      <h3>🐘 SQL Explorer & PostgreSQL Diagnostics</h3>
+      <h3>🐘 SQL Explorer</h3>
       <p class="card-desc">
-        Execute read-only SQL queries via
-        <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a> (read-only). For
-        write operations (VACUUM, ANALYZE, REINDEX), use
-        <a href="http://localhost:5050" target="_blank" rel="noopener">🛢️ pgAdmin</a>.
+        SQL Explorer with 27 PostgreSQL diagnostic presets has moved to the
+        <a routerLink="/database">Database</a> page.
       </p>
-
-      <div class="sql-presets">
-        @for (cat of sqlPresetCategories; track cat.label) {
-          <div class="sql-cat">
-            <strong class="sql-cat-label">{{ cat.label }}</strong>
-            <div class="sql-cat-btns">
-              @for (p of cat.presets; track p.name) {
-                <button
-                  class="sql-preset-btn"
-                  (click)="sqlQuery = p.query; executeSql()"
-                  [title]="p.tip"
-                >
-                  {{ p.icon }} {{ p.name }}
-                </button>
-              }
-            </div>
-          </div>
-        }
-      </div>
-
-      <div class="sql-editor">
-        <textarea
-          [(ngModel)]="sqlQuery"
-          rows="3"
-          class="sql-textarea"
-          placeholder="SELECT ..."
-        ></textarea>
-        <button class="run-btn" (click)="executeSql()" [disabled]="sqlLoading()">
-          {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
-        </button>
-      </div>
-
-      @if (sqlError()) {
-        <div class="alert-error">{{ sqlError() }}</div>
-      }
-
-      @if (sqlResult()) {
-        <div class="sql-result">
-          <table>
-            <thead>
-              <tr>
-                @for (col of sqlResult()!.columns; track col) {
-                  <th>{{ col }}</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of sqlResult()!.rows; track $index) {
-                <tr>
-                  @for (cell of row; track $index) {
-                    <td>{{ cell }}</td>
-                  }
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
     </article>
   }
   <!-- end auth -->

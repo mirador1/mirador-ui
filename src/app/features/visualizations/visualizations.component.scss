@@ -21,6 +21,47 @@ h2 {
   }
 }
 
+.viz-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-error, #fee2e2);
+  color: var(--text-error, #b91c1c);
+  border: 1px solid var(--border-error, #fca5a5);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.viz-error-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: 1rem;
+  padding: 0 0.25rem;
+  opacity: 0.7;
+  &:hover { opacity: 1; }
+}
+
+.raw-data-toggle {
+  margin-bottom: 0.5rem;
+}
+
+.raw-prometheus {
+  background: var(--bg-code, #0f172a);
+  color: var(--text-code, #94a3b8);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.75rem;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre;
+  margin-bottom: 1rem;
+}
+
 .tabs {
   display: flex;
   gap: 0;

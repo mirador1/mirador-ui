@@ -24,6 +24,11 @@ export const routes: Routes = [
       import('./features/diagnostic/diagnostic.component').then((m) => m.DiagnosticComponent),
   },
   {
+    path: 'database',
+    loadComponent: () =>
+      import('./features/database/database.component').then((m) => m.DatabaseComponent),
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('./features/settings/settings.component').then((m) => m.SettingsComponent),

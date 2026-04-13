@@ -104,6 +104,118 @@ h4 {
   }
 }
 
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: monospace;
+  }
+}
+
+// ── Port Map ────────────────────────────────────────────────────────────────
+.port-group {
+  margin-bottom: 0.75rem;
+}
+
+.port-cat-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.port-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.port-row {
+  display: grid;
+  grid-template-columns: 60px 160px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.port-num {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  background: var(--bg-code);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  text-align: right;
+}
+
+.port-name {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.port-note {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.port-auth {
+  margin-top: 0.5rem;
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: monospace;
+  }
+}
+
+// ── run.sh Commands ─────────────────────────────────────────────────────────
+.run-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.run-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.run-cmd {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #86efac;
+  background: var(--bg-terminal);
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.run-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
 .quickstart-code {
   background: var(--bg-terminal);
   color: #86efac;

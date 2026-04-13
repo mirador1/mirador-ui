@@ -131,7 +131,7 @@ export class AppShellComponent {
       id: 'database',
       icon: '🐘',
       label: 'Database',
-      path: '/settings',
+      path: '/database',
       tip: '27 SQL presets via pgweb — diagnostics, performance, investigation',
       children: [
         { label: 'SQL Explorer', tip: 'Custom SQL queries via pgweb REST API (read-only)' },
@@ -315,9 +315,14 @@ export class AppShellComponent {
       keywords: 'chaos traffic faker generate stress load rate limit circuit breaker',
     },
     {
+      label: '🐘 Database',
+      path: '/database',
+      keywords: 'database sql postgresql pgweb diagnostics queries schema flyway',
+    },
+    {
       label: '⚙️ Settings',
       path: '/settings',
-      keywords: 'settings config actuator loggers sql postgresql diagnostics',
+      keywords: 'settings config actuator loggers info beans',
     },
     { label: '📋 Activity', path: '/activity', keywords: 'activity timeline events log history' },
   ];

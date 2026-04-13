@@ -7,6 +7,53 @@ import { Component } from '@angular/core';
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
+  readonly portMap = [
+    // Application
+    { port: 8080, name: 'Customer API', category: 'App', note: 'REST API + WebSocket + Swagger UI' },
+    { port: 4200, name: 'Angular UI', category: 'App', note: 'This frontend (ng serve)' },
+    // Databases
+    { port: 5432, name: 'PostgreSQL', category: 'Data', note: 'Primary database (via DB_PORT env)' },
+    { port: 6379, name: 'Redis', category: 'Data', note: 'Cache, idempotency, ring buffer' },
+    { port: 9092, name: 'Kafka', category: 'Data', note: 'KRaft mode, PLAINTEXT_HOST listener' },
+    { port: 11434, name: 'Ollama', category: 'Data', note: 'Local LLM (llama3.2) for /bio' },
+    { port: 9090, name: 'Keycloak', category: 'Data', note: 'OAuth2/OIDC — admin / admin' },
+    // Admin Tools
+    { port: 5050, name: 'pgAdmin', category: 'Admin', note: 'PostgreSQL UI (desktop mode, no login)' },
+    { port: 8081, name: 'pgweb', category: 'Admin', note: 'Lightweight SQL client + REST API' },
+    { port: 9080, name: 'Kafka UI', category: 'Admin', note: 'Topics, messages, consumer groups' },
+    { port: 5540, name: 'RedisInsight', category: 'Admin', note: 'Redis key browser, memory analysis' },
+    { port: 8082, name: 'Redis Commander', category: 'Admin', note: 'Live command monitor, auto-connects' },
+    { port: 8083, name: 'AKHQ', category: 'Admin', note: 'Advanced Kafka UI — live tail, ACLs' },
+    // Observability
+    { port: 3000, name: 'Grafana', category: 'Obs', note: 'Pre-provisioned dashboards (no login)' },
+    { port: 3001, name: 'Grafana (LGTM)', category: 'Obs', note: 'OTel traces, Loki logs, Tempo' },
+    { port: 9091, name: 'Prometheus', category: 'Obs', note: 'Metrics store (9090 used by Keycloak)' },
+    { port: 9411, name: 'Zipkin', category: 'Obs', note: 'Distributed tracing (lightweight UI)' },
+    { port: 16686, name: 'Jaeger', category: 'Obs', note: 'Advanced tracing — comparison, flamegraph' },
+    { port: 4040, name: 'Pyroscope', category: 'Obs', note: 'Continuous profiling — CPU, memory' },
+    { port: 3100, name: 'Loki (CORS proxy)', category: 'Obs', note: 'Log queries via Nginx CORS proxy' },
+    { port: 4318, name: 'OTLP HTTP', category: 'Obs', note: 'Spring Boot sends traces/logs here' },
+    { port: 2375, name: 'Docker API proxy', category: 'Infra', note: 'Filtered, read-only Docker Engine API' },
+  ];
+
+  readonly portCategories = ['App', 'Data', 'Admin', 'Obs', 'Infra'];
+
+  readonly runCommands = [
+    { cmd: './run.sh all', desc: 'Start everything (infra + observability + app)' },
+    { cmd: './run.sh restart', desc: 'Stop + restart everything (keeps data)' },
+    { cmd: './run.sh stop', desc: 'Stop app + all containers' },
+    { cmd: './run.sh nuke', desc: 'Full cleanup — containers, volumes, build artifacts' },
+    { cmd: './run.sh status', desc: 'Check status of all services' },
+    { cmd: './run.sh simulate', desc: 'Generate traffic (60 iterations, 2s pause)' },
+    { cmd: './run.sh obs', desc: 'Start only the observability stack (Grafana, Prometheus…)' },
+    { cmd: './run.sh app', desc: 'Start only the Spring Boot app' },
+    { cmd: './run.sh app-profiled', desc: 'Start app with Pyroscope profiling agent' },
+    { cmd: './run.sh test', desc: 'Unit tests (no Docker)' },
+    { cmd: './run.sh integration', desc: 'Integration tests (Testcontainers)' },
+    { cmd: './run.sh verify', desc: 'lint + unit + integration — mirrors full CI pipeline' },
+    { cmd: './run.sh security-check', desc: 'OWASP Dependency-Check (CVE scan)' },
+  ];
+
   readonly stack = [
     {
       category: 'Frontend',
@@ -190,10 +237,16 @@ export class AboutComponent {
         '8 chaos actions (rate limit, Kafka timeout, circuit breaker, payload flood, concurrent writes, traffic gen, faker), impact monitor with live charts',
     },
     {
+      icon: '🐘',
+      name: 'Database',
+      detail:
+        '27 SQL presets in 5 categories: Customer Data, PG Diagnostics, Schema & Flyway, Production Investigation, Performance Optimization — via pgweb REST API',
+    },
+    {
       icon: '⚙️',
       name: 'Settings',
       detail:
-        'Actuator endpoint explorer, loggers (change levels live), SQL Explorer with 20+ PostgreSQL diagnostic queries via pgweb',
+        'Actuator endpoint explorer (Health, Info, Env, Beans, Metrics, Loggers, Prometheus), live logger level changes',
     },
     {
       icon: '📋',
@@ -215,4 +268,36 @@ export class AboutComponent {
     { keys: 'D', action: 'Toggle dark/light mode' },
     { keys: 'Escape', action: 'Close modal / search' },
   ];
+
+  readonly quickStart = `# Start everything (backend + frontend)
+./run.sh all
+
+# Or start individually:
+cd ../workspace-modern/customer-service
+docker compose up -d                                    # Infrastructure
+docker compose -f docker-compose.observability.yml up -d  # Observability
+./run.sh app-profiled                                   # Backend with Pyroscope
+
+cd ../customer-observability-ui
+npm install && npm start                                # Frontend on :4200
+
+# Sign in: admin / admin
+
+# Get a JWT token via curl
+TOKEN=$(curl -s -X POST http://localhost:8080/auth/login \\
+  -H 'Content-Type: application/json' \\
+  -d '{"username":"admin","password":"admin"}' | jq -r .token)
+
+# Create a customer
+curl -s -X POST http://localhost:8080/customers \\
+  -H "Authorization: Bearer \${TOKEN}" \\
+  -H 'Content-Type: application/json' \\
+  -d '{"name":"Alice","email":"alice@example.com"}'
+
+# Generate traffic for dashboards
+./run.sh simulate`;
+
+  portsByCategory(cat: string) {
+    return this.portMap.filter((p) => p.category === cat);
+  }
 }

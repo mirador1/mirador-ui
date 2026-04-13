@@ -19,6 +19,25 @@
       }
     </div>
 
+    @if (vizError()) {
+      <div class="viz-error-banner">
+        <span>⚠ {{ vizError() }}</span>
+        <button class="viz-error-dismiss" (click)="vizError.set('')">✕</button>
+      </div>
+    }
+
+    @if (rawPrometheus()) {
+      <div class="raw-data-toggle">
+        <button class="run-btn" (click)="showRawData.set(!showRawData())">
+          {{ showRawData() ? '✕ Hide raw data' : '{ } Show raw Prometheus' }}
+        </button>
+      </div>
+    }
+
+    @if (showRawData() && rawPrometheus()) {
+      <pre class="raw-prometheus">{{ rawPrometheus() }}</pre>
+    }
+
     <!-- ── Golden Signals ──────────────────────────────────────────────── -->
     @if (activeTab() === 'golden') {
       <div class="tab-content">

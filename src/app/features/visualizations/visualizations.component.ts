@@ -2478,6 +2478,11 @@ export class VisualizationsComponent implements OnDestroy {
   // ── Slow DB queries ───────────────────────────────────────────────────────
   slowQueries = signal<Array<{ query: string; avgMs: number; count: number }>>([]);
 
+  // ── Error / raw data ──────────────────────────────────────────────────────
+  vizError = signal<string>('');
+  rawPrometheus = signal<string>('');
+  showRawData = signal(false);
+
   // ── Bundle treemap ────────────────────────────────────────────────────────
   bundleChunks = signal<Array<{ name: string; size: number; pct: number }>>([]);
 
@@ -2489,6 +2494,8 @@ export class VisualizationsComponent implements OnDestroy {
 
   switchTab(tab: VizTab): void {
     this.activeTab.set(tab);
+    this.vizError.set('');
+    this.showRawData.set(false);
   }
 
   // ── Topology map ──────────────────────────────────────────────────────────
@@ -2712,8 +2719,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── Sankey ────────────────────────────────────────────────────────────────
   buildSankey(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         const flows: SankeyFlow[] = [];
         const regex =
           /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
@@ -2747,7 +2756,9 @@ export class VisualizationsComponent implements OnDestroy {
         flows.sort((a, b) => b.value - a.value);
         this.sankeyFlows.set(flows.slice(0, 20));
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+      },
     });
   }
 
@@ -2846,8 +2857,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── JVM Gauges ────────────────────────────────────────────────────────────
   fetchJvmGauges(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         const selected = this.selectedGaugeIds();
         const result: GaugeData[] = [];
         for (const def of this.allGauges) {
@@ -2857,7 +2870,9 @@ export class VisualizationsComponent implements OnDestroy {
         }
         this.gauges.set(result);
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+      },
     });
   }
 
@@ -2882,8 +2897,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── Golden Signals ────────────────────────────────────────────────────────
   fetchGoldenSignals(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         const parsed = this.metricsService.parsePrometheus(text);
         const selected = this.selectedMetricIds();
         const signals: GoldenSignal[] = [];
@@ -2896,7 +2913,9 @@ export class VisualizationsComponent implements OnDestroy {
 
         this.goldenSignals.set(signals);
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+      },
     });
   }
 
@@ -2961,8 +2980,11 @@ export class VisualizationsComponent implements OnDestroy {
         );
         const lag = match ? parseFloat(match[1]) : Math.random() * 10; // simulated if metric unavailable
         this.kafkaLag.update((s) => [...s.slice(-29), { time: new Date(), lag }]);
+        this.vizError.set('');
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+      },
     });
   }
 
@@ -2987,8 +3009,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── Slow DB queries ───────────────────────────────────────────────────────
   fetchSlowQueries(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         // Parse JDBC/Hibernate metrics
         const queries: Array<{ query: string; avgMs: number; count: number }> = [];
         const regex =
@@ -2999,7 +3023,7 @@ export class VisualizationsComponent implements OnDestroy {
         while ((m = regex.exec(text)) !== null) {
           const method = m[1];
           const val = parseFloat(m[2]);
-          if (text.includes('_sum')) sums[method] = (sums[method] || 0) + val;
+          if (m[0].includes('_sum')) sums[method] = (sums[method] || 0) + val;
           else counts[method] = (counts[method] || 0) + val;
         }
         for (const method of Object.keys(sums)) {
@@ -3021,7 +3045,9 @@ export class VisualizationsComponent implements OnDestroy {
         queries.sort((a, b) => b.avgMs - a.avgMs);
         this.slowQueries.set(queries.slice(0, 10));
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+      },
     });
   }
 
