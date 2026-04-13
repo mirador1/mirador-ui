@@ -1,7 +1,11 @@
 <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="sidebar-toggle" (click)="sidebarCollapsed.update(v => !v)" title="Toggle sidebar">
+      <button
+        class="sidebar-toggle"
+        (click)="sidebarCollapsed.update((v) => !v)"
+        title="Toggle sidebar"
+      >
         {{ sidebarCollapsed() ? '☰' : '✕' }}
       </button>
       <h1>Customer Observability UI</h1>
@@ -9,10 +13,16 @@
 
     <div class="topbar-actions">
       @if (auth.isAuthenticated()) {
-        <button class="theme-btn" (click)="theme.toggle()" [title]="theme.theme() === 'light' ? 'Dark mode (D)' : 'Light mode (D)'">
+        <button
+          class="theme-btn"
+          (click)="theme.toggle()"
+          [title]="theme.theme() === 'light' ? 'Dark mode (D)' : 'Light mode (D)'"
+        >
           {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
         </button>
-        <button class="search-btn" (click)="showSearch.set(true)" title="Search (Ctrl+K)">🔍</button>
+        <button class="search-btn" (click)="showSearch.set(true)" title="Search (Ctrl+K)">
+          🔍
+        </button>
         <button class="logout-btn" (click)="logout()">Sign out</button>
       } @else {
         <button class="theme-btn" (click)="theme.toggle()">
@@ -30,20 +40,33 @@
         <nav class="sidebar-nav">
           @for (section of navTree; track section.id) {
             <div class="nav-section" [class.nav-active]="isActive(section.path)">
-              <div class="nav-header" (click)="section.children.length ? toggleSection(section.id) : null">
-                <a [routerLink]="section.path" class="nav-link" [class.active]="isActive(section.path)" [title]="sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip">
+              <div
+                class="nav-header"
+                (click)="section.children.length ? toggleSection(section.id) : null"
+              >
+                <a
+                  [routerLink]="section.path"
+                  class="nav-link"
+                  [class.active]="isActive(section.path)"
+                  [title]="sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip"
+                >
                   <span class="nav-icon">{{ section.icon }}</span>
                   @if (!sidebarCollapsed()) {
                     <span class="nav-label">{{ section.label }}</span>
                   }
                 </a>
                 @if (section.children.length && !sidebarCollapsed()) {
-                  <button class="nav-expand" (click)="toggleSection(section.id); $event.stopPropagation()">
+                  <button
+                    class="nav-expand"
+                    (click)="toggleSection(section.id); $event.stopPropagation()"
+                  >
                     {{ isSectionExpanded(section.id) ? '▾' : '▸' }}
                   </button>
                 }
               </div>
-              @if (section.children.length && isSectionExpanded(section.id) && !sidebarCollapsed()) {
+              @if (
+                section.children.length && isSectionExpanded(section.id) && !sidebarCollapsed()
+              ) {
                 <div class="nav-children">
                   @for (child of section.children; track child.label) {
                     <span class="nav-child" [title]="child.tip">{{ child.label }}</span>

@@ -14,7 +14,9 @@ h2 {
   color: var(--color-accent);
   font-weight: 600;
   text-decoration: none;
-  &:hover { text-decoration: underline; }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .alert-warn {

@@ -2,16 +2,18 @@
   <div class="page-header">
     <div>
       <h2>About</h2>
-      <p class="subtitle">Customer Observability UI — full-stack observability, resilience, and management platform</p>
+      <p class="subtitle">
+        Customer Observability UI — full-stack observability, resilience, and management platform
+      </p>
     </div>
   </div>
 
   <article class="card intro-card">
     <h3>What is this?</h3>
     <p>
-      A full-stack <strong>observability and management platform</strong> built with Angular 21 and Spring Boot 4.
-      It demonstrates production-grade patterns for distributed tracing, structured logging,
-      metrics collection, continuous profiling, chaos testing, and resilience — all visible
+      A full-stack <strong>observability and management platform</strong> built with Angular 21 and
+      Spring Boot 4. It demonstrates production-grade patterns for distributed tracing, structured
+      logging, metrics collection, continuous profiling, chaos testing, and resilience — all visible
       and controllable from the browser.
     </p>
   </article>
@@ -19,90 +21,94 @@
   <article class="card">
     <h3>Architecture Overview</h3>
     <p>
-      The system is composed of <strong>22 services</strong> organized in 6 layers, all orchestrated via
-      two Docker Compose files. Data flows strictly left-to-right: Client → Application → Data Stores → Tools → Collectors → Dashboards.
+      The system is composed of <strong>22 services</strong> organized in 6 layers, all orchestrated
+      via two Docker Compose files. Data flows strictly left-to-right: Client → Application → Data
+      Stores → Tools → Collectors → Dashboards.
     </p>
 
     <h4>1. Application Layer</h4>
     <p>
-      The <strong>Customer API</strong> is a Spring Boot 4 application running on Java 25 with virtual threads.
-      It exposes a REST API for customer management (CRUD, search, sort, pagination) with two API versions
-      controlled by an <code>X-API-Version</code> header. Authentication uses JWT tokens issued by
-      <code>/auth/login</code> or by Keycloak (OAuth2/OIDC). Every endpoint is instrumented with
-      Micrometer observations, producing 180+ Prometheus metrics automatically.
+      The <strong>Customer API</strong> is a Spring Boot 4 application running on Java 25 with
+      virtual threads. It exposes a REST API for customer management (CRUD, search, sort,
+      pagination) with two API versions controlled by an <code>X-API-Version</code> header.
+      Authentication uses JWT tokens issued by <code>/auth/login</code> or by Keycloak
+      (OAuth2/OIDC). Every endpoint is instrumented with Micrometer observations, producing 180+
+      Prometheus metrics automatically.
     </p>
 
     <h4>2. Data Stores</h4>
     <p>
-      <strong>PostgreSQL 17</strong> is the primary database, managed by Spring Data JPA with Flyway migrations.
-      The HikariCP connection pool (10 connections) is fully instrumented.
-      <strong>Redis 7</strong> serves three purposes: idempotency key storage (with TTL), the RecentCustomerBuffer
-      (a ring buffer of the last 10 created customers via LPUSH/LTRIM), and rate limit counters (Bucket4j).
-      <strong>Apache Kafka</strong> (KRaft mode, no ZooKeeper) handles two messaging patterns:
-      async events on <code>customer.created</code> topic, and synchronous request-reply enrichment
-      via <code>customer.request</code> / <code>customer.reply</code> topics (5-second timeout → 504).
-      <strong>Ollama</strong> runs the llama3.2 LLM locally for AI-generated customer bios via Spring AI,
-      protected by a Resilience4j circuit breaker.
+      <strong>PostgreSQL 17</strong> is the primary database, managed by Spring Data JPA with Flyway
+      migrations. The HikariCP connection pool (10 connections) is fully instrumented.
+      <strong>Redis 7</strong> serves three purposes: idempotency key storage (with TTL), the
+      RecentCustomerBuffer (a ring buffer of the last 10 created customers via LPUSH/LTRIM), and
+      rate limit counters (Bucket4j). <strong>Apache Kafka</strong> (KRaft mode, no ZooKeeper)
+      handles two messaging patterns: async events on <code>customer.created</code> topic, and
+      synchronous request-reply enrichment via <code>customer.request</code> /
+      <code>customer.reply</code> topics (5-second timeout → 504). <strong>Ollama</strong> runs the
+      llama3.2 LLM locally for AI-generated customer bios via Spring AI, protected by a Resilience4j
+      circuit breaker.
     </p>
 
     <h4>3. Resilience Patterns</h4>
     <p>
       The backend implements four resilience patterns visible in the Diagnostic page:
       <strong>Rate limiting</strong> (Bucket4j, 100 req/min per IP with 429 response),
-      <strong>Circuit breaker</strong> (Resilience4j on Ollama /bio — trips after 10 failures in 60s),
-      <strong>Retry</strong> (on external API calls to JSONPlaceholder),
-      and <strong>Idempotency</strong> (LRU cache of 10k entries keyed by Idempotency-Key header).
+      <strong>Circuit breaker</strong> (Resilience4j on Ollama /bio — trips after 10 failures in
+      60s), <strong>Retry</strong> (on external API calls to JSONPlaceholder), and
+      <strong>Idempotency</strong> (LRU cache of 10k entries keyed by Idempotency-Key header).
     </p>
 
     <h4>4. Distributed Tracing</h4>
     <p>
       Every request generates a distributed trace propagated through HTTP, Kafka, Redis, and JPA.
       Spring Boot exports traces via OpenTelemetry to the LGTM collector, which forwards them to
-      both <strong>Tempo</strong> (long-term storage, queried by Grafana) and <strong>Jaeger</strong>
-      (advanced analysis via OTLP). <strong>Zipkin</strong> receives traces via its native protocol
-      for its lightweight UI. Kafka observation is enabled
-      (<code>spring.kafka.listener/template.observation-enabled: true</code>), so the traceID
-      propagates through message headers across producer → broker → consumer → reply.
+      both <strong>Tempo</strong> (long-term storage, queried by Grafana) and
+      <strong>Jaeger</strong> (advanced analysis via OTLP). <strong>Zipkin</strong> receives traces
+      via its native protocol for its lightweight UI. Kafka observation is enabled (<code
+        >spring.kafka.listener/template.observation-enabled: true</code
+      >), so the traceID propagates through message headers across producer → broker → consumer →
+      reply.
     </p>
 
     <h4>5. Metrics & Profiling</h4>
     <p>
-      <strong>Prometheus</strong> scrapes <code>/actuator/prometheus</code> every 15 seconds, collecting
-      180+ metrics: HTTP request histograms, JVM memory/threads/GC, HikariCP pool stats,
-      Lettuce Redis operations, Kafka producer/consumer timing, Spring Security filter chain,
-      Spring Data repository invocations, and custom application counters. The Angular UI parses
-      this raw Prometheus text format to display 78 configurable metric cards and 55 circular gauges
-      — all built with raw SVG, no charting library.
-      <strong>Pyroscope</strong> captures continuous CPU, memory allocation, and lock contention
-      flamegraphs via the Java agent (itimer + alloc + lock events).
+      <strong>Prometheus</strong> scrapes <code>/actuator/prometheus</code> every 15 seconds,
+      collecting 180+ metrics: HTTP request histograms, JVM memory/threads/GC, HikariCP pool stats,
+      Lettuce Redis operations, Kafka producer/consumer timing, Spring Security filter chain, Spring
+      Data repository invocations, and custom application counters. The Angular UI parses this raw
+      Prometheus text format to display 78 configurable metric cards and 55 circular gauges — all
+      built with raw SVG, no charting library. <strong>Pyroscope</strong> captures continuous CPU,
+      memory allocation, and lock contention flamegraphs via the Java agent (itimer + alloc + lock
+      events).
     </p>
 
     <h4>6. Log Aggregation</h4>
     <p>
       Application logs are bridged from Logback to OpenTelemetry via the
-      <code>opentelemetry-logback-appender</code>, then exported through the OTLP collector
-      to <strong>Loki</strong> inside the LGTM container. The Angular Telemetry tab queries
-      Loki's API directly (via a Nginx CORS proxy on port 3100) with LogQL.
-      Each log line carries the traceID, enabling trace-to-log correlation in Grafana.
+      <code>opentelemetry-logback-appender</code>, then exported through the OTLP collector to
+      <strong>Loki</strong> inside the LGTM container. The Angular Telemetry tab queries Loki's API
+      directly (via a Nginx CORS proxy on port 3100) with LogQL. Each log line carries the traceID,
+      enabling trace-to-log correlation in Grafana.
     </p>
 
     <h4>7. Admin Tools</h4>
     <p>
-      Each data store has dedicated admin UIs: <strong>pgAdmin</strong> and <strong>pgweb</strong> for
-      PostgreSQL (pgweb provides the REST API used by the SQL Explorer in Settings),
-      <strong>RedisInsight</strong> and <strong>Redis Commander</strong> for Redis (Commander adds
-      live command monitoring), <strong>Kafka UI</strong> and <strong>AKHQ</strong> for Kafka
-      (AKHQ adds live tail and consumer lag visualization). All tools are pre-configured to
-      auto-connect without login.
+      Each data store has dedicated admin UIs: <strong>pgAdmin</strong> and
+      <strong>pgweb</strong> for PostgreSQL (pgweb provides the REST API used by the SQL Explorer in
+      Settings), <strong>RedisInsight</strong> and <strong>Redis Commander</strong> for Redis
+      (Commander adds live command monitoring), <strong>Kafka UI</strong> and
+      <strong>AKHQ</strong> for Kafka (AKHQ adds live tail and consumer lag visualization). All
+      tools are pre-configured to auto-connect without login.
     </p>
 
     <h4>8. Docker Infrastructure</h4>
     <p>
       The frontend controls Docker containers via a <strong>docker-socket-proxy</strong>
-      (tecnativa) that exposes a filtered, read-only Docker Engine API over TCP. A Nginx CORS
-      proxy adds cross-origin headers so the Angular app can call it from localhost:4200.
-      The Dashboard's Architecture view shows all 22 services with live UP/DOWN status,
-      Open links, and start/stop controls — all without any custom code in the Spring Boot backend.
+      (tecnativa) that exposes a filtered, read-only Docker Engine API over TCP. A Nginx CORS proxy
+      adds cross-origin headers so the Angular app can call it from localhost:4200. The Dashboard's
+      Architecture view shows all 22 services with live UP/DOWN status, Open links, and start/stop
+      controls — all without any custom code in the Spring Boot backend.
     </p>
   </article>
 
@@ -160,6 +166,7 @@ docker compose -f docker-compose.observability.yml up -d  # Observability
 cd ../customer-observability-ui
 npm install && npm start                                # Frontend on :4200
 
-# Sign in: admin / admin</pre>
+# Sign in: admin / admin</pre
+    >
   </article>
 </section>

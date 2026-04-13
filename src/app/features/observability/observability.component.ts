@@ -242,14 +242,20 @@ export class ObservabilityComponent implements OnDestroy {
     ];
     let done = 0;
     for (const url of endpoints) {
-      this.http.get(url).pipe(catchError(() => of(null))).subscribe(() => {
-        done++;
-        if (done === endpoints.length) {
-          this.logsTrafficRunning.set(false);
-          this.toast.show(`${endpoints.length} requests sent — waiting 3s for logs to reach Loki...`, 'info');
-          setTimeout(() => this.fetchLogs(), 3000);
-        }
-      });
+      this.http
+        .get(url)
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === endpoints.length) {
+            this.logsTrafficRunning.set(false);
+            this.toast.show(
+              `${endpoints.length} requests sent — waiting 3s for logs to reach Loki...`,
+              'info',
+            );
+            setTimeout(() => this.fetchLogs(), 3000);
+          }
+        });
     }
   }
 
@@ -283,7 +289,9 @@ export class ObservabilityComponent implements OnDestroy {
 
   // ── Latency histograms ────────────────────────────────────────────────────
   /** Human-readable bucket boundaries (in seconds) to group Micrometer's fine-grained buckets */
-  private readonly displayBuckets = [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+  private readonly displayBuckets = [
+    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
+  ];
 
   fetchLatencyHistogram(): void {
     this.latencyLoading.set(true);

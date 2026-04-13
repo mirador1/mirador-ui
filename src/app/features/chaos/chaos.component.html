@@ -22,9 +22,25 @@
           @if (impactSamples().length > 1) {
             <svg viewBox="0 0 300 100" preserveAspectRatio="none" class="chart-svg">
               @for (bar of impactChartBars(); track $index) {
-                <rect [attr.x]="bar.x" [attr.y]="100 - bar.okH - bar.errH" [attr.width]="8" [attr.height]="bar.okH" rx="1" fill="#4ade80" opacity="0.8"/>
+                <rect
+                  [attr.x]="bar.x"
+                  [attr.y]="100 - bar.okH - bar.errH"
+                  [attr.width]="8"
+                  [attr.height]="bar.okH"
+                  rx="1"
+                  fill="#4ade80"
+                  opacity="0.8"
+                />
                 @if (bar.errH > 0) {
-                  <rect [attr.x]="bar.x" [attr.y]="100 - bar.errH" [attr.width]="8" [attr.height]="bar.errH" rx="1" fill="#f87171" opacity="0.8"/>
+                  <rect
+                    [attr.x]="bar.x"
+                    [attr.y]="100 - bar.errH"
+                    [attr.width]="8"
+                    [attr.height]="bar.errH"
+                    rx="1"
+                    fill="#f87171"
+                    opacity="0.8"
+                  />
                 }
               }
             </svg>
@@ -33,13 +49,20 @@
           }
         </div>
         <div class="impact-chart">
-          <h4>Live Traffic <small>{{ totalRps() }} req/s from Prometheus</small></h4>
+          <h4>
+            Live Traffic <small>{{ totalRps() }} req/s from Prometheus</small>
+          </h4>
           @if (trafficBreakdown().length) {
             <div class="traffic-list">
               @for (t of trafficBreakdown(); track t.uri) {
                 <div class="traffic-row">
                   <span class="traffic-uri">{{ t.uri }}</span>
-                  <span class="traffic-status" [class.t-ok]="t.status.startsWith('2')" [class.t-err]="t.status.startsWith('4') || t.status.startsWith('5')">{{ t.status }}</span>
+                  <span
+                    class="traffic-status"
+                    [class.t-ok]="t.status.startsWith('2')"
+                    [class.t-err]="t.status.startsWith('4') || t.status.startsWith('5')"
+                    >{{ t.status }}</span
+                  >
                   <span class="traffic-count">{{ t.count }}</span>
                 </div>
               }
@@ -57,7 +80,12 @@
       @for (a of actions; track a.name) {
         <div class="scenario-row">
           <div class="scenario-meta">
-            <span class="scenario-badge" [style.background]="a.color + '20'" [style.color]="a.color">{{ a.icon }}</span>
+            <span
+              class="scenario-badge"
+              [style.background]="a.color + '20'"
+              [style.color]="a.color"
+              >{{ a.icon }}</span
+            >
             <div class="scenario-desc">
               <strong>{{ a.name }}</strong>
               <span>{{ a.description }}</span>
@@ -65,7 +93,9 @@
           </div>
           <div class="scenario-action">
             @if (a.name === 'Generate Traffic') {
-              <label class="inline-param"><input type="number" [(ngModel)]="trafficDuration" min="1" max="60" />s</label>
+              <label class="inline-param"
+                ><input type="number" [(ngModel)]="trafficDuration" min="1" max="60" />s</label
+              >
               <button class="run-btn" (click)="a.action()" [disabled]="trafficRunning()">
                 {{ trafficRunning() ? '...' : '▶ Run' }}
               </button>
@@ -89,8 +119,12 @@
           </div>
         </div>
         <div class="scenario-action">
-          <label class="inline-param">×<input type="number" [(ngModel)]="fakerCount" min="1" max="500" /></label>
-          <label class="inline-param"><input type="number" [(ngModel)]="fakerDelay" min="0" max="2000" />ms</label>
+          <label class="inline-param"
+            >×<input type="number" [(ngModel)]="fakerCount" min="1" max="500"
+          /></label>
+          <label class="inline-param"
+            ><input type="number" [(ngModel)]="fakerDelay" min="0" max="2000" />ms</label
+          >
           <button class="run-btn" (click)="runFaker()" [disabled]="fakerRunning()">
             {{ fakerRunning() ? '...' : '▶ Run' }}
           </button>

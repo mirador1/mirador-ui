@@ -251,7 +251,9 @@ h2 {
   font-size: 0.7rem;
   cursor: pointer;
 
-  &:hover { border-color: var(--color-accent); }
+  &:hover {
+    border-color: var(--color-accent);
+  }
   &.active {
     background: var(--color-accent);
     color: white;

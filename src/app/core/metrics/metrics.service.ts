@@ -102,7 +102,8 @@ export class MetricsService {
     // Parse histogram buckets to compute percentiles
     // Aggregate all buckets across URIs/methods/status
     const bucketMap = new Map<number, number>();
-    const bucketRegex = /^http_server_requests_seconds_bucket\{[^}]*le="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/gm;
+    const bucketRegex =
+      /^http_server_requests_seconds_bucket\{[^}]*le="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/gm;
     let bm;
     while ((bm = bucketRegex.exec(raw)) !== null) {
       const le = parseFloat(bm[1]);
