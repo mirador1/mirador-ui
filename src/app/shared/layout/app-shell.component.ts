@@ -248,6 +248,30 @@ export class AppShellComponent {
       children: [],
     },
     {
+      id: 'audit',
+      icon: '🛡️',
+      label: 'Audit Trail',
+      path: '/audit',
+      tip: 'Paginated audit events with action and user filters, auto-refresh every 30s',
+      children: [],
+    },
+    {
+      id: 'timeline',
+      icon: '⚡',
+      label: 'Live Feed',
+      path: '/timeline',
+      tip: 'Live SSE stream of newly created customers with slide-in animation',
+      children: [],
+    },
+    {
+      id: 'security',
+      icon: '🔐',
+      label: 'Security Demo',
+      path: '/security',
+      tip: 'Interactive SQL Injection, XSS and CORS vulnerability demos',
+      children: [],
+    },
+    {
       id: 'about',
       icon: 'ℹ️',
       label: 'About',
@@ -325,6 +349,9 @@ export class AppShellComponent {
       keywords: 'settings config actuator loggers info beans',
     },
     { label: '📋 Activity', path: '/activity', keywords: 'activity timeline events log history' },
+    { label: '🛡️ Audit Trail', path: '/audit', keywords: 'audit trail security events login failed blocked customer created' },
+    { label: '⚡ Live Feed', path: '/timeline', keywords: 'live feed timeline sse stream customers realtime' },
+    { label: '🔐 Security Demo', path: '/security', keywords: 'security sql injection xss cors vulnerability demo' },
   ];
 
   get filteredSearchItems() {

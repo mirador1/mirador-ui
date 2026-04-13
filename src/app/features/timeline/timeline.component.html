@@ -1,0 +1,47 @@
+<section class="timeline-page">
+  <header class="page-header">
+    <div class="header-row">
+      <div>
+        <h1>⚡ Live Feed</h1>
+        <p class="subtitle">Real-time customer creation stream via SSE — last {{ events().length }} of 50</p>
+      </div>
+      <div class="status-area">
+        <span class="status-pill" [class]="statusClass(status())">{{ statusLabel(status()) }}</span>
+        @if (status() === 'disconnected' || status() === 'reconnecting') {
+          <button class="btn btn-ghost" (click)="reconnect()">Reconnect</button>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (events().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">📡</div>
+      <p>Waiting for customer events…</p>
+      <p class="empty-hint">Create a customer via the Customers page or Chaos traffic generator to see events appear here.</p>
+    </div>
+  }
+
+  <div class="timeline-list">
+    @for (event of events(); track event.id) {
+      <div class="timeline-item" [class.is-new]="event.isNew">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card">
+          <div class="card-header">
+            <span class="customer-name">{{ event.name }}</span>
+            @if (event.isNew) {
+              <span class="new-badge">NEW</span>
+            }
+          </div>
+          <div class="card-meta">
+            <span class="email">{{ event.email }}</span>
+            <span class="separator">·</span>
+            <span class="ts">{{ event.createdAt | date:'HH:mm:ss' }}</span>
+            <span class="separator">·</span>
+            <span class="id">ID #{{ event.id }}</span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</section>
