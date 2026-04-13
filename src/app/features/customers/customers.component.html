@@ -29,14 +29,6 @@
         />
       </div>
       <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
-      <button class="action-btn" (click)="loadRecent()">
-        📦 Recent
-        <app-info-tip text="Fetches the last 10 created customers from the Redis ring buffer (LPUSH + LTRIM)." command="GET /customers/recent" source="Redis LIST" />
-      </button>
-      <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
-        ⚡ {{ aggregateLoading() ? 'Running...' : 'Aggregate' }}
-        <app-info-tip text="Runs two tasks in parallel using Java virtual threads: fetch customer list + compute stats. Observe the response time." command="GET /customers/aggregate" source="Virtual Threads (Project Loom)" />
-      </button>
     </div>
 
     @if (listError()) {
@@ -366,36 +358,6 @@
       </article>
     }
 
-    <!-- Recent customers (Redis) -->
-    @if (recent()) {
-      <article class="card">
-        <h3>Recent Customers <small>Redis ring buffer · GET /customers/recent</small></h3>
-        @if (recent()!.length) {
-          <ul class="recent-list">
-            @for (c of recent()!; track c.id) {
-              <li>
-                <strong>{{ c.name }}</strong> <span class="muted">— {{ c.email }}</span>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="muted">Buffer empty — create some customers first.</p>
-        }
-      </article>
-    }
-
-    <!-- Aggregate result (virtual threads) -->
-    @if (aggregate() || aggregateError()) {
-      <article class="card">
-        <h3>Aggregate Result <small>Virtual threads · GET /customers/aggregate</small></h3>
-        @if (aggregateError()) {
-          <p class="success-note">{{ aggregateError() }}</p>
-        }
-        @if (aggregate()) {
-          <pre>{{ aggregate() | json }}</pre>
-        }
-      </article>
-    }
   }
   <!-- end @if auth -->
 </section>
