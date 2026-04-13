@@ -1,0 +1,118 @@
+h2 { margin: 0 0 0.25rem; }
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;
+}
+.subtitle { margin: 0; color: var(--text-label); font-size: 0.9rem; }
+.header-actions { display: flex; gap: 0.5rem; }
+
+.alert-warn {
+  background: var(--bg-warn); color: var(--text-warn);
+  border: 1px solid var(--border-warn); border-radius: 6px;
+  padding: 0.65rem 1rem; font-size: 0.9rem;
+  a { color: var(--text-link); }
+}
+
+.monitor-btn {
+  padding: 0.4rem 0.85rem; background: var(--color-accent); color: white;
+  border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+  &:hover { background: var(--color-accent-hover); }
+  &.active { background: #dc2626; &:hover { background: #b91c1c; } }
+}
+
+// ── Impact chart ────────────────────────────────────────────────────────────
+.impact-chart {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+
+  h4 { margin: 0 0 0.5rem; font-size: 0.88rem; small { color: var(--text-muted); font-weight: normal; } }
+}
+
+.chart-svg { width: 100%; height: 100px; }
+
+// ── Panels ──────────────────────────────────────────────────────────────────
+.panels-layout {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;
+  @media (max-width: 768px) { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 1rem; box-shadow: var(--shadow-card);
+
+  h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
+}
+
+.panel-desc { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--text-secondary); }
+
+.actions-grid { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.chaos-btn {
+  display: flex; align-items: center; gap: 0.65rem;
+  padding: 0.55rem 0.75rem; background: var(--bg-card-hover);
+  border: none; border-left: 3px solid; border-radius: 6px;
+  cursor: pointer; text-align: left; color: var(--text-primary);
+  transition: background 0.15s;
+
+  &:hover { background: var(--color-accent-light); }
+}
+
+.chaos-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+.chaos-info {
+  display: flex; flex-direction: column; gap: 0.1rem;
+  strong { font-size: 0.85rem; }
+  small { font-size: 0.72rem; color: var(--text-muted); }
+}
+
+.traffic-controls, .faker-controls {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem; margin-top: 0.75rem;
+
+  label {
+    font-size: 0.82rem; color: var(--text-label); display: flex; align-items: center; gap: 0.3rem;
+    input { width: 55px; padding: 0.3rem; border: 1px solid var(--border-input); border-radius: 4px;
+            background: var(--bg-input); color: var(--text-primary); font-size: 0.82rem; }
+  }
+}
+
+.run-btn {
+  padding: 0.35rem 0.75rem; background: var(--color-accent); color: white;
+  border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.82rem;
+  &:hover:not(:disabled) { background: var(--color-accent-hover); }
+  &:disabled { opacity: 0.6; }
+}
+
+.stop-btn {
+  padding: 0.35rem 0.65rem; background: #dc2626; color: white;
+  border: none; border-radius: 4px; cursor: pointer; font-size: 0.82rem;
+  &:hover { background: #b91c1c; }
+}
+
+.progress-bar {
+  height: 6px; background: var(--bg-code); border-radius: 3px; margin-top: 0.5rem; overflow: hidden;
+}
+.progress-fill { height: 100%; background: var(--color-accent); border-radius: 3px; transition: width 0.2s; }
+.progress-text { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+
+// ── Log ─────────────────────────────────────────────────────────────────────
+.card {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 1rem; box-shadow: var(--shadow-card);
+  h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+}
+
+.chaos-log {
+  background: var(--bg-terminal); border-radius: 6px; padding: 0.65rem 0.85rem;
+  max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.78rem;
+}
+
+.log-entry {
+  display: flex; gap: 0.5rem; padding: 0.15rem 0;
+  &.log-action .log-msg { color: #93c5fd; }
+  &.log-impact .log-msg { color: #fde68a; }
+  &.log-info .log-msg { color: #86efac; }
+}
+
+.log-time { color: #64748b; flex-shrink: 0; }
+.log-msg { word-break: break-all; }

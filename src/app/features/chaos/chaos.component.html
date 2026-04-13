@@ -1,0 +1,97 @@
+<section>
+  <div class="page-header">
+    <div>
+      <h2>Chaos & Traffic</h2>
+      <p class="subtitle">Simulate failures, generate data, and observe real-time impact</p>
+    </div>
+    <div class="header-actions">
+      <button class="monitor-btn" [class.active]="monitoring()" (click)="toggleMonitoring()">
+        {{ monitoring() ? '⏹ Stop' : '▶ Start' }} impact monitor
+      </button>
+    </div>
+  </div>
+
+  @if (!auth.isAuthenticated()) {
+    <div class="alert-warn">Please <a routerLink="/login">sign in</a> first.</div>
+  } @else {
+
+  <!-- Impact monitor chart -->
+  @if (impactSamples().length > 1) {
+    <div class="impact-chart">
+      <h4>Impact Monitor <small>(5 health pings every 2s)</small></h4>
+      <svg viewBox="0 0 300 100" preserveAspectRatio="none" class="chart-svg">
+        @for (bar of impactChartBars(); track $index) {
+          <rect [attr.x]="bar.x" [attr.y]="100 - bar.okH - bar.errH" [attr.width]="8" [attr.height]="bar.okH" rx="1" fill="#4ade80" opacity="0.8" />
+          @if (bar.errH > 0) {
+            <rect [attr.x]="bar.x" [attr.y]="100 - bar.errH" [attr.width]="8" [attr.height]="bar.errH" rx="1" fill="#f87171" opacity="0.8" />
+          }
+        }
+      </svg>
+    </div>
+  }
+
+  <div class="panels-layout">
+    <!-- Chaos actions -->
+    <div class="panel">
+      <h3>Chaos Actions</h3>
+      <div class="actions-grid">
+        @for (a of actions; track a.name) {
+          <button class="chaos-btn" (click)="a.action()" [style.border-left-color]="a.color">
+            <span class="chaos-icon">{{ a.icon }}</span>
+            <div class="chaos-info">
+              <strong>{{ a.name }}</strong>
+              <small>{{ a.description }}</small>
+            </div>
+          </button>
+        }
+      </div>
+
+      <!-- Traffic generator controls -->
+      <div class="traffic-controls">
+        <label>Duration <input type="number" [(ngModel)]="trafficDuration" min="1" max="60" /> s</label>
+        @if (trafficRunning()) {
+          <button class="stop-btn" (click)="stopTraffic()">⏹ Stop traffic</button>
+        }
+      </div>
+    </div>
+
+    <!-- Faker generator -->
+    <div class="panel">
+      <h3>Data Generator (Faker)</h3>
+      <p class="panel-desc">Create realistic customer records with random names and emails.</p>
+      <div class="faker-controls">
+        <label>Count <input type="number" [(ngModel)]="fakerCount" min="1" max="500" /></label>
+        <label>Delay <input type="number" [(ngModel)]="fakerDelay" min="0" max="2000" /> ms</label>
+        <button class="run-btn" (click)="runFaker()" [disabled]="fakerRunning()">
+          {{ fakerRunning() ? 'Running...' : '▶ Generate' }}
+        </button>
+        @if (fakerRunning()) {
+          <button class="stop-btn" (click)="stopFaker()">⏹</button>
+        }
+      </div>
+      @if (fakerRunning()) {
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="(fakerProgress() / fakerCount) * 100"></div>
+        </div>
+        <span class="progress-text">{{ fakerProgress() }} / {{ fakerCount }}</span>
+      }
+    </div>
+  </div>
+
+  <!-- Chaos log -->
+  @if (chaosLog().length) {
+    <article class="card">
+      <h3>Event Log</h3>
+      <div class="chaos-log">
+        @for (entry of chaosLog(); track $index) {
+          <div class="log-entry log-{{ entry.type }}">
+            <span class="log-time">{{ entry.time | date:'HH:mm:ss' }}</span>
+            <span class="log-msg">{{ entry.message }}</span>
+          </div>
+        }
+      </div>
+    </article>
+  }
+
+  } <!-- end auth -->
+</section>
