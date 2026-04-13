@@ -44,12 +44,13 @@ export class KeyboardService implements OnDestroy {
 
   private onKeyDown(e: KeyboardEvent): void {
     const target = e.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+    const isInput =
+      target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
 
     // Ctrl+K always works
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
-      this.showSearch.update(v => !v);
+      this.showSearch.update((v) => !v);
       return;
     }
 
@@ -67,7 +68,7 @@ export class KeyboardService implements OnDestroy {
     // ? shows help
     if (e.key === '?') {
       e.preventDefault();
-      this.showHelp.update(v => !v);
+      this.showHelp.update((v) => !v);
       return;
     }
 
@@ -77,18 +78,30 @@ export class KeyboardService implements OnDestroy {
       if (this._gTimer) clearTimeout(this._gTimer);
       e.preventDefault();
       switch (e.key.toLowerCase()) {
-        case 'd': this.router.navigateByUrl('/'); break;
-        case 'c': this.router.navigateByUrl('/customers'); break;
-        case 't': this.router.navigateByUrl('/diagnostic'); break;
-        case 's': this.router.navigateByUrl('/settings'); break;
-        case 'a': this.router.navigateByUrl('/activity'); break;
+        case 'd':
+          this.router.navigateByUrl('/');
+          break;
+        case 'c':
+          this.router.navigateByUrl('/customers');
+          break;
+        case 't':
+          this.router.navigateByUrl('/diagnostic');
+          break;
+        case 's':
+          this.router.navigateByUrl('/settings');
+          break;
+        case 'a':
+          this.router.navigateByUrl('/activity');
+          break;
       }
       return;
     }
 
     if (e.key === 'g') {
       this._gPending = true;
-      this._gTimer = setTimeout(() => { this._gPending = false; }, 500);
+      this._gTimer = setTimeout(() => {
+        this._gPending = false;
+      }, 500);
       return;
     }
 

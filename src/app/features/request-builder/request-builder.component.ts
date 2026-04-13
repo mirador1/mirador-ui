@@ -18,7 +18,7 @@ interface SavedRequest {
   standalone: true,
   imports: [FormsModule, RouterLink],
   templateUrl: './request-builder.component.html',
-  styleUrl: './request-builder.component.scss'
+  styleUrl: './request-builder.component.scss',
 })
 export class RequestBuilderComponent {
   private readonly http = inject(HttpClient);
@@ -40,21 +40,53 @@ export class RequestBuilderComponent {
 
   readonly presets: SavedRequest[] = [
     { name: 'Health check', method: 'GET', url: '/actuator/health', headers: '', body: '' },
-    { name: 'List customers (v1)', method: 'GET', url: '/customers?page=0&size=10', headers: 'X-API-Version: 1.0', body: '' },
-    { name: 'List customers (v2)', method: 'GET', url: '/customers?page=0&size=10', headers: 'X-API-Version: 2.0', body: '' },
-    { name: 'Create customer', method: 'POST', url: '/customers', headers: 'Content-Type: application/json', body: '{\n  "name": "Test User",\n  "email": "test@example.com"\n}' },
-    { name: 'Customer summary', method: 'GET', url: '/customers/summary?page=0&size=20', headers: '', body: '' },
+    {
+      name: 'List customers (v1)',
+      method: 'GET',
+      url: '/customers?page=0&size=10',
+      headers: 'X-API-Version: 1.0',
+      body: '',
+    },
+    {
+      name: 'List customers (v2)',
+      method: 'GET',
+      url: '/customers?page=0&size=10',
+      headers: 'X-API-Version: 2.0',
+      body: '',
+    },
+    {
+      name: 'Create customer',
+      method: 'POST',
+      url: '/customers',
+      headers: 'Content-Type: application/json',
+      body: '{\n  "name": "Test User",\n  "email": "test@example.com"\n}',
+    },
+    {
+      name: 'Customer summary',
+      method: 'GET',
+      url: '/customers/summary?page=0&size=20',
+      headers: '',
+      body: '',
+    },
     { name: 'Recent (Redis)', method: 'GET', url: '/customers/recent', headers: '', body: '' },
     { name: 'Aggregate (VT)', method: 'GET', url: '/customers/aggregate', headers: '', body: '' },
     { name: 'Bio (Ollama)', method: 'GET', url: '/customers/1/bio', headers: '', body: '' },
     { name: 'Todos', method: 'GET', url: '/customers/1/todos', headers: '', body: '' },
     { name: 'Enrich (Kafka)', method: 'GET', url: '/customers/1/enrich', headers: '', body: '' },
-    { name: 'Prometheus metrics', method: 'GET', url: '/actuator/prometheus', headers: '', body: '' },
+    {
+      name: 'Prometheus metrics',
+      method: 'GET',
+      url: '/actuator/prometheus',
+      headers: '',
+      body: '',
+    },
     { name: 'Actuator info', method: 'GET', url: '/actuator/info', headers: '', body: '' },
     { name: 'Loggers', method: 'GET', url: '/actuator/loggers', headers: '', body: '' },
   ];
 
-  history = signal<Array<{ method: string; url: string; status: number; timeMs: number; timestamp: Date }>>([]);
+  history = signal<
+    Array<{ method: string; url: string; status: number; timeMs: number; timestamp: Date }>
+  >([]);
 
   loadPreset(p: SavedRequest): void {
     this.method = p.method;
@@ -83,11 +115,20 @@ export class RequestBuilderComponent {
 
     let req$;
     switch (this.method) {
-      case 'POST': req$ = this.http.post(fullUrl, this.bodyText || null, options); break;
-      case 'PUT': req$ = this.http.put(fullUrl, this.bodyText || null, options); break;
-      case 'DELETE': req$ = this.http.delete(fullUrl, options); break;
-      case 'PATCH': req$ = this.http.patch(fullUrl, this.bodyText || null, options); break;
-      default: req$ = this.http.get(fullUrl, options);
+      case 'POST':
+        req$ = this.http.post(fullUrl, this.bodyText || null, options);
+        break;
+      case 'PUT':
+        req$ = this.http.put(fullUrl, this.bodyText || null, options);
+        break;
+      case 'DELETE':
+        req$ = this.http.delete(fullUrl, options);
+        break;
+      case 'PATCH':
+        req$ = this.http.patch(fullUrl, this.bodyText || null, options);
+        break;
+      default:
+        req$ = this.http.get(fullUrl, options);
     }
 
     req$.subscribe({
@@ -112,7 +153,7 @@ export class RequestBuilderComponent {
         this.responseHeaders.set(null);
         this.loading.set(false);
         this.recordHistory(this.method, this.url, err.status || 0, elapsed);
-      }
+      },
     });
   }
 
@@ -125,7 +166,10 @@ export class RequestBuilderComponent {
   }
 
   private recordHistory(method: string, url: string, status: number, timeMs: number): void {
-    this.history.update(h => [{ method, url, status, timeMs, timestamp: new Date() }, ...h.slice(0, 19)]);
+    this.history.update((h) => [
+      { method, url, status, timeMs, timestamp: new Date() },
+      ...h.slice(0, 19),
+    ]);
   }
 
   statusColorClass(): string {

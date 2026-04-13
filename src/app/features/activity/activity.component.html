@@ -12,10 +12,7 @@
 
   <div class="filter-bar">
     @for (f of typeFilters; track f) {
-      <button
-        class="filter-btn"
-        [class.active]="filterType() === f"
-        (click)="filterType.set(f)">
+      <button class="filter-btn" [class.active]="filterType() === f" (click)="filterType.set(f)">
         {{ typeLabels[f] }}
       </button>
     }
@@ -37,7 +34,7 @@
           <div class="timeline-content">
             <div class="timeline-header">
               <span class="timeline-message">{{ event.message }}</span>
-              <span class="timeline-time">{{ event.timestamp | date:'HH:mm:ss' }}</span>
+              <span class="timeline-time">{{ event.timestamp | date: 'HH:mm:ss' }}</span>
             </div>
             @if (event.details) {
               <div class="timeline-details">{{ event.details }}</div>

@@ -10,7 +10,7 @@ describe('ApiService', () => {
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()]
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     service = TestBed.inject(ApiService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -21,7 +21,7 @@ describe('ApiService', () => {
   });
 
   it('should call login endpoint', () => {
-    service.login('admin', 'admin').subscribe(res => {
+    service.login('admin', 'admin').subscribe((res) => {
       expect(res.token).toBe('jwt-123');
     });
     const req = httpMock.expectOne(`${service.baseUrl()}/auth/login`);
@@ -31,17 +31,25 @@ describe('ApiService', () => {
   });
 
   it('should fetch customers with version header', () => {
-    service.getCustomers(0, 10, '2.0').subscribe(res => {
+    service.getCustomers(0, 10, '2.0').subscribe((res) => {
       expect(res.content.length).toBe(1);
     });
-    const req = httpMock.expectOne(r => r.url.includes('/customers') && !r.url.includes('/summary'));
+    const req = httpMock.expectOne(
+      (r) => r.url.includes('/customers') && !r.url.includes('/summary'),
+    );
     expect(req.request.headers.get('X-API-Version')).toBe('2.0');
-    req.flush({ content: [{ id: 1, name: 'A', email: 'a@b.com' }], totalElements: 1, totalPages: 1, size: 10, number: 0 });
+    req.flush({
+      content: [{ id: 1, name: 'A', email: 'a@b.com' }],
+      totalElements: 1,
+      totalPages: 1,
+      size: 10,
+      number: 0,
+    });
   });
 
   it('should pass search param when provided', () => {
     service.getCustomers(0, 10, '1.0', 'alice').subscribe();
-    const req = httpMock.expectOne(r => r.url.includes('/customers'));
+    const req = httpMock.expectOne((r) => r.url.includes('/customers'));
     expect(req.request.params.get('search')).toBe('alice');
     req.flush({ content: [], totalElements: 0, totalPages: 0, size: 10, number: 0 });
   });

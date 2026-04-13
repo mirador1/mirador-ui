@@ -11,188 +11,226 @@
       Please <a routerLink="/login">sign in</a> to access observability data.
     </div>
   } @else {
+    <div class="tabs">
+      <button [class.tab-active]="activeTab() === 'traces'" (click)="switchTab('traces')">
+        Traces <small>Zipkin / Tempo</small>
+      </button>
+      <button [class.tab-active]="activeTab() === 'logs'" (click)="switchTab('logs')">
+        Logs <small>Loki</small>
+      </button>
+      <button [class.tab-active]="activeTab() === 'latency'" (click)="switchTab('latency')">
+        Latency <small>Prometheus</small>
+      </button>
+      <button [class.tab-active]="activeTab() === 'live'" (click)="switchTab('live')">
+        Live Feed <small>Metrics</small>
+      </button>
+    </div>
 
-  <div class="tabs">
-    <button [class.tab-active]="activeTab() === 'traces'" (click)="switchTab('traces')">
-      Traces <small>Zipkin / Tempo</small>
-    </button>
-    <button [class.tab-active]="activeTab() === 'logs'" (click)="switchTab('logs')">
-      Logs <small>Loki</small>
-    </button>
-    <button [class.tab-active]="activeTab() === 'latency'" (click)="switchTab('latency')">
-      Latency <small>Prometheus</small>
-    </button>
-    <button [class.tab-active]="activeTab() === 'live'" (click)="switchTab('live')">
-      Live Feed <small>Metrics</small>
-    </button>
-  </div>
+    <!-- ── Traces tab ──────────────────────────────────────────────────── -->
+    @if (activeTab() === 'traces') {
+      <div class="tab-content">
+        <div class="controls-row">
+          <label>
+            Service
+            <input type="text" [(ngModel)]="traceService" />
+          </label>
+          <label>
+            Limit
+            <input type="number" [(ngModel)]="traceLimit" min="1" max="100" />
+          </label>
+          <button class="run-btn" (click)="fetchTraces()" [disabled]="tracesLoading()">
+            {{ tracesLoading() ? 'Loading...' : '▶ Fetch traces' }}
+          </button>
+        </div>
 
-  <!-- ── Traces tab ──────────────────────────────────────────────────── -->
-  @if (activeTab() === 'traces') {
-    <div class="tab-content">
-      <div class="controls-row">
-        <label>
-          Service
-          <input type="text" [(ngModel)]="traceService" />
-        </label>
-        <label>
-          Limit
-          <input type="number" [(ngModel)]="traceLimit" min="1" max="100" />
-        </label>
-        <button class="run-btn" (click)="fetchTraces()" [disabled]="tracesLoading()">
-          {{ tracesLoading() ? 'Loading...' : '▶ Fetch traces' }}
-        </button>
-      </div>
+        @if (tracesError()) {
+          <div class="alert-error">{{ tracesError() }}</div>
+        }
 
-      @if (tracesError()) {
-        <div class="alert-error">{{ tracesError() }}</div>
-      }
-
-      @if (traces().length) {
-        <div class="trace-list">
-          @for (t of traces(); track t.traceId) {
-            <div class="trace-item" (click)="selectTrace(t)" [class.expanded]="selectedTrace()?.traceId === t.traceId">
-              <div class="trace-header">
-                <code class="trace-id">{{ t.traceId.slice(0, 16) }}</code>
-                <span class="trace-op">{{ t.operationName }}</span>
-                <span class="trace-duration">{{ t.durationMs | number:'1.1-1' }} ms</span>
-                <span class="trace-spans">{{ t.spans.length }} spans</span>
-                <span class="trace-time">{{ t.timestamp | date:'HH:mm:ss' }}</span>
-                <button class="flame-btn" (click)="openFlameGraph(t); $event.stopPropagation()">Flame</button>
-              </div>
-              @if (selectedTrace()?.traceId === t.traceId) {
-                <div class="span-list">
-                  @for (s of t.spans; track s.spanId) {
-                    <div class="span-item">
-                      <span class="span-service">{{ s.serviceName }}</span>
-                      <span class="span-op">{{ s.operationName }}</span>
-                      <span class="span-duration">{{ s.duration / 1000 | number:'1.1-1' }} ms</span>
-                      <div class="span-bar-wrapper">
-                        <div class="span-bar" [style.width.%]="(s.duration / (t.durationMs * 1000)) * 100"></div>
-                      </div>
-                    </div>
-                  }
+        @if (traces().length) {
+          <div class="trace-list">
+            @for (t of traces(); track t.traceId) {
+              <div
+                class="trace-item"
+                (click)="selectTrace(t)"
+                [class.expanded]="selectedTrace()?.traceId === t.traceId"
+              >
+                <div class="trace-header">
+                  <code class="trace-id">{{ t.traceId.slice(0, 16) }}</code>
+                  <span class="trace-op">{{ t.operationName }}</span>
+                  <span class="trace-duration">{{ t.durationMs | number: '1.1-1' }} ms</span>
+                  <span class="trace-spans">{{ t.spans.length }} spans</span>
+                  <span class="trace-time">{{ t.timestamp | date: 'HH:mm:ss' }}</span>
+                  <button class="flame-btn" (click)="openFlameGraph(t); $event.stopPropagation()">
+                    Flame
+                  </button>
                 </div>
-              }
-            </div>
-          }
-        </div>
-      } @else if (!tracesLoading() && !tracesError()) {
-        <p class="empty-text">No traces loaded. Click "Fetch traces" to query Zipkin/Tempo.</p>
-      }
-    </div>
-  }
-
-  <!-- ── Logs tab ────────────────────────────────────────────────────── -->
-  @if (activeTab() === 'logs') {
-    <div class="tab-content">
-      <div class="controls-row">
-        <label class="query-label">
-          LogQL Query
-          <input type="text" [(ngModel)]="lokiQuery" class="query-input" />
-        </label>
-        <label>
-          Limit
-          <input type="number" [(ngModel)]="lokiLimit" min="10" max="1000" />
-        </label>
-        <button class="run-btn" (click)="fetchLogs()" [disabled]="logsLoading()">
-          {{ logsLoading() ? 'Loading...' : '▶ Query' }}
-        </button>
-        <button class="run-btn" [class.active-poll]="logsPolling()" (click)="toggleLogsPolling()">
-          {{ logsPolling() ? '⏹ Stop' : '↻ Live' }}
-        </button>
-      </div>
-
-      @if (logsError()) {
-        <div class="alert-error">{{ logsError() }}</div>
-      }
-
-      @if (logs().length) {
-        <div class="log-panel">
-          @for (entry of logs(); track $index) {
-            <div class="log-entry" [class]="logLevelClass(entry.level)">
-              <span class="log-ts">{{ entry.timestamp }}</span>
-              <span class="log-text">{{ entry.line }}</span>
-            </div>
-          }
-        </div>
-      } @else if (!logsLoading() && !logsError()) {
-        <p class="empty-text">No logs loaded. Click "Query" to fetch from Loki.</p>
-      }
-    </div>
-  }
-
-  <!-- ── Latency tab ─────────────────────────────────────────────────── -->
-  @if (activeTab() === 'latency') {
-    <div class="tab-content">
-      <div class="controls-row">
-        <button class="run-btn" (click)="fetchLatencyHistogram()" [disabled]="latencyLoading()">
-          {{ latencyLoading() ? 'Loading...' : '▶ Fetch histogram' }}
-        </button>
-        <span class="hint">from <code>/actuator/prometheus</code> http_server_requests_seconds_bucket</span>
-      </div>
-
-      @if (histogramBars().length) {
-        <div class="histogram-container">
-          <div class="histogram-chart">
-            @for (bar of histogramBars(); track bar.label) {
-              <div class="histogram-col">
-                <span class="histogram-count">{{ bar.count }}</span>
-                <div class="histogram-bar" [style.height.%]="bar.height"></div>
-                <span class="histogram-label">{{ bar.label }}</span>
+                @if (selectedTrace()?.traceId === t.traceId) {
+                  <div class="span-list">
+                    @for (s of t.spans; track s.spanId) {
+                      <div class="span-item">
+                        <span class="span-service">{{ s.serviceName }}</span>
+                        <span class="span-op">{{ s.operationName }}</span>
+                        <span class="span-duration"
+                          >{{ s.duration / 1000 | number: '1.1-1' }} ms</span
+                        >
+                        <div class="span-bar-wrapper">
+                          <div
+                            class="span-bar"
+                            [style.width.%]="(s.duration / (t.durationMs * 1000)) * 100"
+                          ></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
           </div>
-        </div>
-      } @else if (!latencyLoading()) {
-        <p class="empty-text">Click "Fetch histogram" to load latency distribution from Prometheus metrics.</p>
-      }
-    </div>
-  }
-
-  <!-- Flame graph overlay -->
-  @if (flameViewTrace()) {
-    <div class="flame-overlay">
-      <div class="flame-header">
-        <h4>Flame Graph — {{ flameViewTrace()!.operationName }} ({{ flameViewTrace()!.durationMs | number:'1.1-1' }} ms)</h4>
-        <button class="close-btn" (click)="flameViewTrace.set(null)">✕</button>
-      </div>
-      <div class="flame-chart">
-        @for (row of flameRows(); track $index) {
-          <div class="flame-bar" [style.left.%]="row.left" [style.width.%]="row.width" [style.top.px]="row.depth * 24" [title]="row.service + ' / ' + row.name">
-            <span class="flame-label">{{ row.service }}: {{ row.name }}</span>
-          </div>
+        } @else if (!tracesLoading() && !tracesError()) {
+          <p class="empty-text">No traces loaded. Click "Fetch traces" to query Zipkin/Tempo.</p>
         }
       </div>
-    </div>
-  }
+    }
 
-  <!-- ── Live feed tab ────────────────────────────────────────────���──── -->
-  @if (activeTab() === 'live') {
-    <div class="tab-content">
-      <div class="controls-row">
-        <button class="run-btn" [class.active-poll]="livePolling()" (click)="toggleLiveFeed()">
-          {{ livePolling() ? '⏹ Stop' : '▶ Start' }} live feed
-        </button>
-        <span class="hint">Polls <code>/actuator/prometheus</code> every 2s for endpoint metrics</span>
+    <!-- ── Logs tab ────────────────────────────────────────────────────── -->
+    @if (activeTab() === 'logs') {
+      <div class="tab-content">
+        <div class="controls-row">
+          <label class="query-label">
+            LogQL Query
+            <input type="text" [(ngModel)]="lokiQuery" class="query-input" />
+          </label>
+          <label>
+            Limit
+            <input type="number" [(ngModel)]="lokiLimit" min="10" max="1000" />
+          </label>
+          <button class="run-btn" (click)="fetchLogs()" [disabled]="logsLoading()">
+            {{ logsLoading() ? 'Loading...' : '▶ Query' }}
+          </button>
+          <button class="run-btn" [class.active-poll]="logsPolling()" (click)="toggleLogsPolling()">
+            {{ logsPolling() ? '⏹ Stop' : '↻ Live' }}
+          </button>
+        </div>
+
+        @if (logsError()) {
+          <div class="alert-error">{{ logsError() }}</div>
+        }
+
+        @if (logs().length) {
+          <div class="log-panel">
+            @for (entry of logs(); track $index) {
+              <div class="log-entry" [class]="logLevelClass(entry.level)">
+                <span class="log-ts">{{ entry.timestamp }}</span>
+                <span class="log-text">{{ entry.line }}</span>
+              </div>
+            }
+          </div>
+        } @else if (!logsLoading() && !logsError()) {
+          <p class="empty-text">No logs loaded. Click "Query" to fetch from Loki.</p>
+        }
       </div>
+    }
 
-      @if (liveFeed().length) {
-        <div class="log-panel">
-          @for (entry of liveFeed(); track $index) {
-            <div class="log-entry" [class]="entry.status.startsWith('2') ? 'log-info' : entry.status.startsWith('4') ? 'log-warn' : 'log-error'">
-              <span class="log-ts">{{ entry.time }}</span>
-              <span class="feed-method">{{ entry.method }}</span>
-              <span class="feed-uri">{{ entry.uri }}</span>
-              <span class="feed-status">{{ entry.status }}</span>
+    <!-- ── Latency tab ─────────────────────────────────────────────────── -->
+    @if (activeTab() === 'latency') {
+      <div class="tab-content">
+        <div class="controls-row">
+          <button class="run-btn" (click)="fetchLatencyHistogram()" [disabled]="latencyLoading()">
+            {{ latencyLoading() ? 'Loading...' : '▶ Fetch histogram' }}
+          </button>
+          <span class="hint"
+            >from <code>/actuator/prometheus</code> http_server_requests_seconds_bucket</span
+          >
+        </div>
+
+        @if (histogramBars().length) {
+          <div class="histogram-container">
+            <div class="histogram-chart">
+              @for (bar of histogramBars(); track bar.label) {
+                <div class="histogram-col">
+                  <span class="histogram-count">{{ bar.count }}</span>
+                  <div class="histogram-bar" [style.height.%]="bar.height"></div>
+                  <span class="histogram-label">{{ bar.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        } @else if (!latencyLoading()) {
+          <p class="empty-text">
+            Click "Fetch histogram" to load latency distribution from Prometheus metrics.
+          </p>
+        }
+      </div>
+    }
+
+    <!-- Flame graph overlay -->
+    @if (flameViewTrace()) {
+      <div class="flame-overlay">
+        <div class="flame-header">
+          <h4>
+            Flame Graph — {{ flameViewTrace()!.operationName }} ({{
+              flameViewTrace()!.durationMs | number: '1.1-1'
+            }}
+            ms)
+          </h4>
+          <button class="close-btn" (click)="flameViewTrace.set(null)">✕</button>
+        </div>
+        <div class="flame-chart">
+          @for (row of flameRows(); track $index) {
+            <div
+              class="flame-bar"
+              [style.left.%]="row.left"
+              [style.width.%]="row.width"
+              [style.top.px]="row.depth * 24"
+              [title]="row.service + ' / ' + row.name"
+            >
+              <span class="flame-label">{{ row.service }}: {{ row.name }}</span>
             </div>
           }
         </div>
-      } @else if (!livePolling()) {
-        <p class="empty-text">Click "Start live feed" to monitor backend requests in real-time.</p>
-      }
-    </div>
-  }
+      </div>
+    }
 
-  } <!-- end auth -->
+    <!-- ── Live feed tab ────────────────────────────────────────────���──── -->
+    @if (activeTab() === 'live') {
+      <div class="tab-content">
+        <div class="controls-row">
+          <button class="run-btn" [class.active-poll]="livePolling()" (click)="toggleLiveFeed()">
+            {{ livePolling() ? '⏹ Stop' : '▶ Start' }} live feed
+          </button>
+          <span class="hint"
+            >Polls <code>/actuator/prometheus</code> every 2s for endpoint metrics</span
+          >
+        </div>
+
+        @if (liveFeed().length) {
+          <div class="log-panel">
+            @for (entry of liveFeed(); track $index) {
+              <div
+                class="log-entry"
+                [class]="
+                  entry.status.startsWith('2')
+                    ? 'log-info'
+                    : entry.status.startsWith('4')
+                      ? 'log-warn'
+                      : 'log-error'
+                "
+              >
+                <span class="log-ts">{{ entry.time }}</span>
+                <span class="feed-method">{{ entry.method }}</span>
+                <span class="feed-uri">{{ entry.uri }}</span>
+                <span class="feed-status">{{ entry.status }}</span>
+              </div>
+            }
+          </div>
+        } @else if (!livePolling()) {
+          <p class="empty-text">
+            Click "Start live feed" to monitor backend requests in real-time.
+          </p>
+        }
+      </div>
+    }
+  }
+  <!-- end auth -->
 </section>

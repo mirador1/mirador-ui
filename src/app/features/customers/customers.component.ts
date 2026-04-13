@@ -9,7 +9,7 @@ import {
   EnrichedCustomer,
   TodoItem,
   Page,
-  AggregatedResponse
+  AggregatedResponse,
 } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -28,7 +28,7 @@ type SortDir = 'asc' | 'desc';
   standalone: true,
   imports: [FormsModule, JsonPipe, DatePipe, RouterLink],
   templateUrl: './customers.component.html',
-  styleUrl: './customers.component.scss'
+  styleUrl: './customers.component.scss',
 })
 export class CustomersComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
@@ -126,7 +126,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   // ── Sort ──────────────────────────────────────────────────────────────────
   toggleSort(field: SortField): void {
     if (this.sortField() === field) {
-      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+      this.sortDir.update((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       this.sortField.set(field);
       this.sortDir.set('asc');
@@ -151,13 +151,25 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
     if (this.summaryMode()) {
       this.api.getCustomerSummary(this.currentPage()).subscribe({
-        next: p => { this.summaries.set(p); this.listLoading.set(false); },
-        error: err => { this.listError.set(httpError(err)); this.listLoading.set(false); }
+        next: (p) => {
+          this.summaries.set(p);
+          this.listLoading.set(false);
+        },
+        error: (err) => {
+          this.listError.set(httpError(err));
+          this.listLoading.set(false);
+        },
       });
     } else {
       this.api.getCustomers(this.currentPage(), 10, this.apiVersion(), search, sort).subscribe({
-        next: p => { this.customers.set(p); this.listLoading.set(false); },
-        error: err => { this.listError.set(httpError(err)); this.listLoading.set(false); }
+        next: (p) => {
+          this.customers.set(p);
+          this.listLoading.set(false);
+        },
+        error: (err) => {
+          this.listError.set(httpError(err));
+          this.listLoading.set(false);
+        },
       });
     }
   }
@@ -169,29 +181,29 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 
   toggleSummaryMode(): void {
-    this.summaryMode.update(v => !v);
+    this.summaryMode.update((v) => !v);
     this.currentPage.set(0);
     this.loadCustomers();
   }
 
   prevPage(): void {
     if (this.currentPage() > 0) {
-      this.currentPage.update(p => p - 1);
+      this.currentPage.update((p) => p - 1);
       this.loadCustomers();
     }
   }
 
   nextPage(): void {
     if (this.currentPage() < this.totalPages() - 1) {
-      this.currentPage.update(p => p + 1);
+      this.currentPage.update((p) => p + 1);
       this.loadCustomers();
     }
   }
 
   loadRecent(): void {
     this.api.getRecentCustomers().subscribe({
-      next: r => this.recent.set(r),
-      error: err => this.listError.set(httpError(err))
+      next: (r) => this.recent.set(r),
+      error: (err) => this.listError.set(httpError(err)),
     });
   }
 
@@ -201,15 +213,15 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.aggregate.set(null);
     const t0 = Date.now();
     this.api.getAggregate().subscribe({
-      next: r => {
+      next: (r) => {
         this.aggregate.set(r);
         this.aggregateLoading.set(false);
         this.aggregateError.set(`Completed in ${Date.now() - t0} ms (virtual threads)`);
       },
-      error: err => {
+      error: (err) => {
         this.aggregateError.set(httpError(err));
         this.aggregateLoading.set(false);
-      }
+      },
     });
   }
 
@@ -224,21 +236,23 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.createSuccess.set(null);
 
     const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
-    this.api.createCustomer({ name: this.newName.trim(), email: this.newEmail.trim() }, key).subscribe({
-      next: c => {
-        this.createSuccess.set(c);
-        this.newName = '';
-        this.newEmail = '';
-        this.createLoading.set(false);
-        this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
-        this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
-        this.loadCustomers();
-      },
-      error: err => {
-        this.createError.set(httpError(err));
-        this.createLoading.set(false);
-      }
-    });
+    this.api
+      .createCustomer({ name: this.newName.trim(), email: this.newEmail.trim() }, key)
+      .subscribe({
+        next: (c) => {
+          this.createSuccess.set(c);
+          this.newName = '';
+          this.newEmail = '';
+          this.createLoading.set(false);
+          this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
+          this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
+          this.loadCustomers();
+        },
+        error: (err) => {
+          this.createError.set(httpError(err));
+          this.createLoading.set(false);
+        },
+      });
   }
 
   resetIdempotencyKey(): void {
@@ -263,19 +277,21 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.editLoading.set(true);
     this.editError.set('');
 
-    this.api.updateCustomer(c.id, { name: this.editName.trim(), email: this.editEmail.trim() }).subscribe({
-      next: updated => {
-        this.editingCustomer.set(null);
-        this.editLoading.set(false);
-        this.toast.show(`Customer "${updated.name}" updated`, 'success');
-        this.activity.log('customer-update', `Updated "${updated.name}" (ID ${updated.id})`);
-        this.loadCustomers();
-      },
-      error: err => {
-        this.editError.set(httpError(err));
-        this.editLoading.set(false);
-      }
-    });
+    this.api
+      .updateCustomer(c.id, { name: this.editName.trim(), email: this.editEmail.trim() })
+      .subscribe({
+        next: (updated) => {
+          this.editingCustomer.set(null);
+          this.editLoading.set(false);
+          this.toast.show(`Customer "${updated.name}" updated`, 'success');
+          this.activity.log('customer-update', `Updated "${updated.name}" (ID ${updated.id})`);
+          this.loadCustomers();
+        },
+        error: (err) => {
+          this.editError.set(httpError(err));
+          this.editLoading.set(false);
+        },
+      });
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -300,11 +316,11 @@ export class CustomersComponent implements OnInit, OnDestroy {
         this.activity.log('customer-delete', `Deleted "${c.name}" (ID ${c.id})`);
         this.loadCustomers();
       },
-      error: err => {
+      error: (err) => {
         this.deleteLoading.set(false);
         this.toast.show(httpError(err), 'error');
         this.deletingCustomer.set(null);
-      }
+      },
     });
   }
 
@@ -315,13 +331,13 @@ export class CustomersComponent implements OnInit, OnDestroy {
       this.selectedIds.set(new Set());
       this.selectAll.set(false);
     } else {
-      this.selectedIds.set(new Set(content.map(c => c.id!)));
+      this.selectedIds.set(new Set(content.map((c) => c.id!)));
       this.selectAll.set(true);
     }
   }
 
   toggleSelectOne(id: number): void {
-    this.selectedIds.update(set => {
+    this.selectedIds.update((set) => {
       const next = new Set(set);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -353,7 +369,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
         error: () => {
           errors++;
           if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
-        }
+        },
       });
     }
   }
@@ -396,14 +412,16 @@ export class CustomersComponent implements OnInit, OnDestroy {
           return;
         }
       } else if (file.name.endsWith('.csv')) {
-        const lines = content.split('\n').filter(l => l.trim());
+        const lines = content.split('\n').filter((l) => l.trim());
         const header = lines[0].toLowerCase();
         const hasHeader = header.includes('name') && header.includes('email');
         const dataLines = hasHeader ? lines.slice(1) : lines;
-        records = dataLines.map(line => {
-          const parts = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-          return { name: parts[0] || '', email: parts[1] || '' };
-        }).filter(r => r.name && r.email);
+        records = dataLines
+          .map((line) => {
+            const parts = line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
+            return { name: parts[0] || '', email: parts[1] || '' };
+          })
+          .filter((r) => r.name && r.email);
       } else {
         this.toast.show('Unsupported file type. Use .json or .csv', 'error');
         return;
@@ -432,8 +450,18 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
     for (const record of records) {
       this.api.createCustomer(record).subscribe({
-        next: () => { ok++; done++; this.importProgress.set(done); this.checkImportDone(done, records.length, ok, errors); },
-        error: () => { errors++; done++; this.importProgress.set(done); this.checkImportDone(done, records.length, ok, errors); }
+        next: () => {
+          ok++;
+          done++;
+          this.importProgress.set(done);
+          this.checkImportDone(done, records.length, ok, errors);
+        },
+        error: () => {
+          errors++;
+          done++;
+          this.importProgress.set(done);
+          this.checkImportDone(done, records.length, ok, errors);
+        },
       });
     }
   }
@@ -442,22 +470,23 @@ export class CustomersComponent implements OnInit, OnDestroy {
     if (done < total) return;
     this.importLoading.set(false);
     this.importResults.set({ ok, errors });
-    this.toast.show(`Import complete: ${ok} created, ${errors} failed`, errors > 0 ? 'warn' : 'success');
-    this.activity.log('bulk-import', `Imported ${ok} customers (${errors} errors)`, `Total: ${total} records`);
+    this.toast.show(
+      `Import complete: ${ok} created, ${errors} failed`,
+      errors > 0 ? 'warn' : 'success',
+    );
+    this.activity.log(
+      'bulk-import',
+      `Imported ${ok} customers (${errors} errors)`,
+      `Total: ${total} records`,
+    );
     this.loadCustomers();
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
   exportJson(): void {
-    const data = this.summaryMode()
-      ? this.summaries()?.content
-      : this.customers()?.content;
+    const data = this.summaryMode() ? this.summaries()?.content : this.customers()?.content;
     if (!data?.length) return;
-    this.downloadFile(
-      JSON.stringify(data, null, 2),
-      'customers.json',
-      'application/json'
-    );
+    this.downloadFile(JSON.stringify(data, null, 2), 'customers.json', 'application/json');
   }
 
   exportCsv(): void {
@@ -466,17 +495,15 @@ export class CustomersComponent implements OnInit, OnDestroy {
     const headers = ['id', 'name', 'email'];
     if (this.apiVersion() === '2.0') headers.push('createdAt');
 
-    const rows = data.map(c =>
-      headers.map(h => {
-        const val = (c as unknown as Record<string, unknown>)[h] ?? '';
-        return `"${String(val).replace(/"/g, '""')}"`;
-      }).join(',')
+    const rows = data.map((c) =>
+      headers
+        .map((h) => {
+          const val = (c as unknown as Record<string, unknown>)[h] ?? '';
+          return `"${String(val).replace(/"/g, '""')}"`;
+        })
+        .join(','),
     );
-    this.downloadFile(
-      [headers.join(','), ...rows].join('\n'),
-      'customers.csv',
-      'text/csv'
-    );
+    this.downloadFile([headers.join(','), ...rows].join('\n'), 'customers.csv', 'text/csv');
   }
 
   private downloadFile(content: string, filename: string, mime: string): void {
@@ -516,18 +543,36 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
     if (tab === 'bio') {
       this.api.getCustomerBio(c.id).subscribe({
-        next: r => { this.bio.set(r.bio); this.detailLoading.set(false); },
-        error: err => { this.detailError.set(httpError(err)); this.detailLoading.set(false); }
+        next: (r) => {
+          this.bio.set(r.bio);
+          this.detailLoading.set(false);
+        },
+        error: (err) => {
+          this.detailError.set(httpError(err));
+          this.detailLoading.set(false);
+        },
       });
     } else if (tab === 'todos') {
       this.api.getCustomerTodos(c.id).subscribe({
-        next: r => { this.todos.set(r); this.detailLoading.set(false); },
-        error: err => { this.detailError.set(httpError(err)); this.detailLoading.set(false); }
+        next: (r) => {
+          this.todos.set(r);
+          this.detailLoading.set(false);
+        },
+        error: (err) => {
+          this.detailError.set(httpError(err));
+          this.detailLoading.set(false);
+        },
       });
     } else if (tab === 'enrich') {
       this.api.enrichCustomer(c.id).subscribe({
-        next: r => { this.enriched.set(r); this.detailLoading.set(false); },
-        error: err => { this.detailError.set(httpError(err)); this.detailLoading.set(false); }
+        next: (r) => {
+          this.enriched.set(r);
+          this.detailLoading.set(false);
+        },
+        error: (err) => {
+          this.detailError.set(httpError(err));
+          this.detailLoading.set(false);
+        },
       });
     }
   }

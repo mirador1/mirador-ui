@@ -2,171 +2,182 @@
   <div class="page-header">
     <div>
       <h2>Settings</h2>
-      <p class="subtitle">Backend configuration & Actuator explorer — {{ env.current().name }} ({{ env.baseUrl() }})</p>
+      <p class="subtitle">
+        Backend configuration & Actuator explorer — {{ env.current().name }} ({{ env.baseUrl() }})
+      </p>
     </div>
     <button class="action-btn" (click)="loadInfo()">↻ Refresh</button>
   </div>
 
   @if (!auth.isAuthenticated()) {
-    <div class="alert-warn">
-      Please <a routerLink="/login">sign in</a> to access settings.
-    </div>
+    <div class="alert-warn">Please <a routerLink="/login">sign in</a> to access settings.</div>
   } @else {
-
-  @if (error()) {
-    <div class="alert-error">⚠ {{ error() }}</div>
-  }
-
-  <!-- Stats row -->
-  <div class="stats-row">
-    @if (actuatorBeans() !== null) {
-      <div class="stat-card">
-        <span class="stat-value">{{ actuatorBeans() }}</span>
-        <span class="stat-label">Spring Beans</span>
-      </div>
+    @if (error()) {
+      <div class="alert-error">⚠ {{ error() }}</div>
     }
-    <div class="stat-card">
-      <span class="stat-value">{{ configValues().length }}</span>
-      <span class="stat-label">Config Properties</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-value">{{ loggers().length || '—' }}</span>
-      <span class="stat-label">Loggers</span>
-    </div>
-  </div>
 
-  <!-- Config properties -->
-  @if (configValues().length) {
-    <article class="card">
-      <h3>Configuration Properties <small>from /actuator/env</small></h3>
-      <div class="config-table-wrapper">
-        <table>
-          <thead>
-            <tr><th>Key</th><th>Value</th><th>Source</th></tr>
-          </thead>
-          <tbody>
-            @for (c of configValues(); track c.key) {
-              <tr>
-                <td class="key-cell">{{ c.key }}</td>
-                <td class="value-cell">{{ c.value }}</td>
-                <td class="source-cell">{{ c.source }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </article>
-  }
-
-  <!-- Actuator endpoint explorer -->
-  <article class="card">
-    <h3>Actuator Endpoint Explorer</h3>
-    <div class="endpoint-btns">
-      @for (ep of endpoints; track ep.path) {
-        <button
-          class="endpoint-btn"
-          [class.active]="selectedEndpoint() === ep.path"
-          (click)="callEndpoint(ep.path)">
-          {{ ep.label }}
-        </button>
+    <!-- Stats row -->
+    <div class="stats-row">
+      @if (actuatorBeans() !== null) {
+        <div class="stat-card">
+          <span class="stat-value">{{ actuatorBeans() }}</span>
+          <span class="stat-label">Spring Beans</span>
+        </div>
       }
-    </div>
-
-    @if (endpointLoading()) {
-      <p class="muted">Loading...</p>
-    }
-    @if (endpointResult()) {
-      <div class="result-panel">
-        <pre>{{ endpointResult() }}</pre>
+      <div class="stat-card">
+        <span class="stat-value">{{ configValues().length }}</span>
+        <span class="stat-label">Config Properties</span>
       </div>
-    }
-  </article>
-
-  <!-- Loggers -->
-  <article class="card">
-    <div class="loggers-header">
-      <h3>Loggers <small>POST /actuator/loggers/&#123;name&#125;</small></h3>
-      <button class="action-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
-        {{ loggerLoading() ? 'Loading...' : 'Load Loggers' }}
-      </button>
+      <div class="stat-card">
+        <span class="stat-value">{{ loggers().length || '—' }}</span>
+        <span class="stat-label">Loggers</span>
+      </div>
     </div>
 
-    @if (loggers().length) {
-      <input
-        class="logger-search"
-        type="text"
-        placeholder="Filter loggers..."
-        [(ngModel)]="loggerFilter" />
-
-      <div class="loggers-list">
-        @for (l of filteredLoggers; track l.name) {
-          <div class="logger-item">
-            <span class="logger-name">{{ l.name }}</span>
-            <div class="logger-levels">
-              @for (level of ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']; track level) {
-                <button
-                  class="level-btn"
-                  [class.level-active]="l.level === level"
-                  [class]="'level-' + level.toLowerCase()"
-                  (click)="setLoggerLevel(l.name, level)">
-                  {{ level }}
-                </button>
+    <!-- Config properties -->
+    @if (configValues().length) {
+      <article class="card">
+        <h3>Configuration Properties <small>from /actuator/env</small></h3>
+        <div class="config-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of configValues(); track c.key) {
+                <tr>
+                  <td class="key-cell">{{ c.key }}</td>
+                  <td class="value-cell">{{ c.value }}</td>
+                  <td class="source-cell">{{ c.source }}</td>
+                </tr>
               }
-            </div>
-          </div>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    }
+
+    <!-- Actuator endpoint explorer -->
+    <article class="card">
+      <h3>Actuator Endpoint Explorer</h3>
+      <div class="endpoint-btns">
+        @for (ep of endpoints; track ep.path) {
+          <button
+            class="endpoint-btn"
+            [class.active]="selectedEndpoint() === ep.path"
+            (click)="callEndpoint(ep.path)"
+          >
+            {{ ep.label }}
+          </button>
         }
       </div>
-    }
-  </article>
 
-  <!-- SQL Explorer -->
-  <article class="card">
-    <h3>SQL Explorer <small>POST /sql</small></h3>
-    <div class="sql-presets">
-      @for (p of sqlPresets; track p) {
-        <button class="sql-preset" (click)="sqlQuery = p">{{ p.slice(0, 50) }}</button>
+      @if (endpointLoading()) {
+        <p class="muted">Loading...</p>
       }
-    </div>
-    <textarea class="sql-input" [(ngModel)]="sqlQuery" rows="3" placeholder="SELECT ..."></textarea>
-    <button class="action-btn sql-run" (click)="executeSql()" [disabled]="sqlLoading()">
-      {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
-    </button>
+      @if (endpointResult()) {
+        <div class="result-panel">
+          <pre>{{ endpointResult() }}</pre>
+        </div>
+      }
+    </article>
 
-    @if (sqlError()) {
-      <div class="sql-error">{{ sqlError() }}</div>
-    }
+    <!-- Loggers -->
+    <article class="card">
+      <div class="loggers-header">
+        <h3>Loggers <small>POST /actuator/loggers/&#123;name&#125;</small></h3>
+        <button class="action-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
+          {{ loggerLoading() ? 'Loading...' : 'Load Loggers' }}
+        </button>
+      </div>
 
-    @if (sqlResult()) {
-      <div class="sql-result">
-        <table>
-          <thead>
-            <tr>
-              @for (col of sqlResult()!.columns; track col) {
-                <th>{{ col }}</th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of sqlResult()!.rows; track $index) {
+      @if (loggers().length) {
+        <input
+          class="logger-search"
+          type="text"
+          placeholder="Filter loggers..."
+          [(ngModel)]="loggerFilter"
+        />
+
+        <div class="loggers-list">
+          @for (l of filteredLoggers; track l.name) {
+            <div class="logger-item">
+              <span class="logger-name">{{ l.name }}</span>
+              <div class="logger-levels">
+                @for (level of ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']; track level) {
+                  <button
+                    class="level-btn"
+                    [class.level-active]="l.level === level"
+                    [class]="'level-' + level.toLowerCase()"
+                    (click)="setLoggerLevel(l.name, level)"
+                  >
+                    {{ level }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </article>
+
+    <!-- SQL Explorer -->
+    <article class="card">
+      <h3>SQL Explorer <small>POST /sql</small></h3>
+      <div class="sql-presets">
+        @for (p of sqlPresets; track p) {
+          <button class="sql-preset" (click)="sqlQuery = p">{{ p.slice(0, 50) }}</button>
+        }
+      </div>
+      <textarea
+        class="sql-input"
+        [(ngModel)]="sqlQuery"
+        rows="3"
+        placeholder="SELECT ..."
+      ></textarea>
+      <button class="action-btn sql-run" (click)="executeSql()" [disabled]="sqlLoading()">
+        {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
+      </button>
+
+      @if (sqlError()) {
+        <div class="sql-error">{{ sqlError() }}</div>
+      }
+
+      @if (sqlResult()) {
+        <div class="sql-result">
+          <table>
+            <thead>
               <tr>
-                @for (cell of row; track $index) {
-                  <td>{{ cell }}</td>
+                @for (col of sqlResult()!.columns; track col) {
+                  <th>{{ col }}</th>
                 }
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  </article>
-
-  <!-- Actuator info -->
-  @if (actuatorInfo()) {
-    <article class="card">
-      <h3>Application Info <small>/actuator/info</small></h3>
-      <pre>{{ actuatorInfo() | json }}</pre>
+            </thead>
+            <tbody>
+              @for (row of sqlResult()!.rows; track $index) {
+                <tr>
+                  @for (cell of row; track $index) {
+                    <td>{{ cell }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </article>
-  }
 
-  } <!-- end auth -->
+    <!-- Actuator info -->
+    @if (actuatorInfo()) {
+      <article class="card">
+        <h3>Application Info <small>/actuator/info</small></h3>
+        <pre>{{ actuatorInfo() | json }}</pre>
+      </article>
+    }
+  }
+  <!-- end auth -->
 </section>

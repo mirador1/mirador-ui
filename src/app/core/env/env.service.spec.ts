@@ -20,14 +20,14 @@ describe('EnvService', () => {
   });
 
   it('should switch environment', () => {
-    const docker = service.environments.find(e => e.name === 'Docker')!;
+    const docker = service.environments.find((e) => e.name === 'Docker')!;
     service.select(docker);
     expect(service.current().name).toBe('Docker');
     expect(service.baseUrl()).toBe('http://localhost:9080');
   });
 
   it('should persist selection to localStorage', () => {
-    const staging = service.environments.find(e => e.name === 'Staging')!;
+    const staging = service.environments.find((e) => e.name === 'Staging')!;
     service.select(staging);
     const stored = JSON.parse(localStorage.getItem('env')!);
     expect(stored.name).toBe('Staging');

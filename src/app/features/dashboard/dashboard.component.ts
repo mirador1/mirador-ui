@@ -29,7 +29,7 @@ interface LatencyResult {
   standalone: true,
   imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.scss'
+  styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
@@ -68,23 +68,63 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { label: 'Off', value: 0 },
     { label: '10s', value: 10 },
     { label: '30s', value: 30 },
-    { label: '1min', value: 60 }
+    { label: '1min', value: 60 },
   ];
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _previousHealthStatus: string | null = null;
 
   readonly links = [
-    { label: 'Grafana — Metrics', sub: 'HTTP throughput & latency dashboards', url: 'http://localhost:3000', icon: '📊' },
-    { label: 'Grafana — Traces & Logs', sub: 'Tempo traces · Loki log correlation', url: 'http://localhost:3001', icon: '🔍' },
-    { label: 'Prometheus', sub: 'Raw metrics & PromQL queries', url: 'http://localhost:9090', icon: '🔥' },
+    {
+      label: 'Grafana — Metrics',
+      sub: 'HTTP throughput & latency dashboards',
+      url: 'http://localhost:3000',
+      icon: '📊',
+    },
+    {
+      label: 'Grafana — Traces & Logs',
+      sub: 'Tempo traces · Loki log correlation',
+      url: 'http://localhost:3001',
+      icon: '🔍',
+    },
+    {
+      label: 'Prometheus',
+      sub: 'Raw metrics & PromQL queries',
+      url: 'http://localhost:9090',
+      icon: '🔥',
+    },
     { label: 'Zipkin', sub: 'Distributed tracing UI', url: 'http://localhost:9411', icon: '🔗' },
     { label: 'Pyroscope', sub: 'Continuous profiling', url: 'http://localhost:4040', icon: '🧬' },
-    { label: 'Swagger UI', sub: 'Interactive API documentation', url: `${this.env.baseUrl()}/swagger-ui.html`, icon: '📄' },
-    { label: 'Actuator /metrics', sub: 'Prometheus scrape endpoint', url: `${this.env.baseUrl()}/actuator/prometheus`, icon: '📈' },
-    { label: 'pgAdmin', sub: 'PostgreSQL database manager', url: 'http://localhost:5050', icon: '🐘' },
-    { label: 'Kafka UI', sub: 'Topics, consumers & messages', url: 'http://localhost:9080', icon: '📨' },
+    {
+      label: 'Swagger UI',
+      sub: 'Interactive API documentation',
+      url: `${this.env.baseUrl()}/swagger-ui.html`,
+      icon: '📄',
+    },
+    {
+      label: 'Actuator /metrics',
+      sub: 'Prometheus scrape endpoint',
+      url: `${this.env.baseUrl()}/actuator/prometheus`,
+      icon: '📈',
+    },
+    {
+      label: 'pgAdmin',
+      sub: 'PostgreSQL database manager',
+      url: 'http://localhost:5050',
+      icon: '🐘',
+    },
+    {
+      label: 'Kafka UI',
+      sub: 'Topics, consumers & messages',
+      url: 'http://localhost:9080',
+      icon: '📨',
+    },
     { label: 'RedisInsight', sub: 'Redis key browser', url: 'http://localhost:5540', icon: '🗄️' },
-    { label: 'Keycloak Admin', sub: 'OAuth2 identity provider (admin/admin)', url: 'http://localhost:9090/admin', icon: '🔐' }
+    {
+      label: 'Keycloak Admin',
+      sub: 'OAuth2 identity provider (admin/admin)',
+      url: 'http://localhost:9090/admin',
+      icon: '🔐',
+    },
   ];
 
   ngOnInit(): void {
@@ -103,7 +143,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.error.set('');
 
     this.api.getHealth().subscribe({
-      next: v => {
+      next: (v) => {
         const newStatus = (v as { status?: string })?.status ?? '?';
         if (this._previousHealthStatus && this._previousHealthStatus !== newStatus) {
           if (newStatus === 'UP') {
@@ -128,27 +168,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.health.set({ status: 'UNREACHABLE' });
         this.error.set(`Backend not reachable at ${this.env.baseUrl()}`);
         this.recordHistory();
-      }
+      },
     });
 
     this.api.getReadiness().subscribe({
-      next: v => this.readiness.set(v),
-      error: () => this.readiness.set({ status: 'UNREACHABLE' })
+      next: (v) => this.readiness.set(v),
+      error: () => this.readiness.set({ status: 'UNREACHABLE' }),
     });
 
     this.api.getLiveness().subscribe({
-      next: v => this.liveness.set(v),
-      error: () => this.liveness.set({ status: 'UNREACHABLE' })
+      next: (v) => this.liveness.set(v),
+      error: () => this.liveness.set({ status: 'UNREACHABLE' }),
     });
 
     this.api.getCustomers(0, 1).subscribe({
-      next: page => this.customerCount.set(page.totalElements),
-      error: () => this.customerCount.set(null)
+      next: (page) => this.customerCount.set(page.totalElements),
+      error: () => this.customerCount.set(null),
     });
 
     this.api.getPrometheusMetrics().subscribe({
-      next: text => this.metrics.set(this.metricsService.parsePrometheus(text)),
-      error: () => this.metricsError.set('Could not fetch metrics')
+      next: (text) => this.metrics.set(this.metricsService.parsePrometheus(text)),
+      error: () => this.metricsError.set('Could not fetch metrics'),
     });
   }
 
@@ -162,7 +202,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private stopTimer(): void {
-    if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    if (this._timer) {
+      clearInterval(this._timer);
+      this._timer = null;
+    }
   }
 
   // ── Real-time chart (delegates to MetricsService) ──────────────────────────
@@ -173,18 +216,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   chartBars(): Array<{ x: number; height: number; rps: number }> {
     const samples = this.metricsService.samples();
     if (samples.length < 2) return [];
-    const maxRps = Math.max(1, ...samples.map(s => s.rps));
+    const maxRps = Math.max(1, ...samples.map((s) => s.rps));
     const barWidth = 300 / 40;
     return samples.map((s, i) => ({
       x: i * barWidth,
       height: (s.rps / maxRps) * 80,
-      rps: s.rps
+      rps: s.rps,
     }));
   }
 
   chartMaxRps(): number {
     const samples = this.metricsService.samples();
-    return Math.max(1, ...samples.map(s => s.rps));
+    return Math.max(1, ...samples.map((s) => s.rps));
   }
 
   // ── Latency comparator ────────────────────────────────────────────────────
@@ -194,7 +237,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const envs = [
       this.env.environments[this.latencyEnvA()],
-      this.env.environments[this.latencyEnvB()]
+      this.env.environments[this.latencyEnvB()],
     ];
 
     const count = this.latencyCount();
@@ -207,26 +250,35 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       for (let i = 0; i < count; i++) {
         const t0 = performance.now();
-        this.http.get(`${envDef.baseUrl}/actuator/health`).pipe(
-          catchError(() => { errors++; return of(null); })
-        ).subscribe(() => {
-          timings.push(performance.now() - t0);
-          done++;
-          if (done === count) {
-            timings.sort((a, b) => a - b);
-            const avg = timings.length ? timings.reduce((a, b) => a + b, 0) / timings.length : 0;
-            const p95 = timings.length ? timings[Math.floor(timings.length * 0.95)] : 0;
-            this.latencyResults.update(r => [...r, {
-              envName: envDef.name,
-              avgMs: Math.round(avg * 10) / 10,
-              p95Ms: Math.round(p95 * 10) / 10,
-              errors,
-              total: count
-            }]);
-            completed++;
-            if (completed === 2) this.latencyRunning.set(false);
-          }
-        });
+        this.http
+          .get(`${envDef.baseUrl}/actuator/health`)
+          .pipe(
+            catchError(() => {
+              errors++;
+              return of(null);
+            }),
+          )
+          .subscribe(() => {
+            timings.push(performance.now() - t0);
+            done++;
+            if (done === count) {
+              timings.sort((a, b) => a - b);
+              const avg = timings.length ? timings.reduce((a, b) => a + b, 0) / timings.length : 0;
+              const p95 = timings.length ? timings[Math.floor(timings.length * 0.95)] : 0;
+              this.latencyResults.update((r) => [
+                ...r,
+                {
+                  envName: envDef.name,
+                  avgMs: Math.round(avg * 10) / 10,
+                  p95Ms: Math.round(p95 * 10) / 10,
+                  errors,
+                  total: count,
+                },
+              ]);
+              completed++;
+              if (completed === 2) this.latencyRunning.set(false);
+            }
+          });
       }
     }
   }
@@ -243,13 +295,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly depEdgesCoords = (() => {
     const nodes = this.depNodes;
     const edges = [
-      { from: 'api', to: 'pg' }, { from: 'api', to: 'redis' },
-      { from: 'api', to: 'kafka' }, { from: 'api', to: 'ollama' },
+      { from: 'api', to: 'pg' },
+      { from: 'api', to: 'redis' },
+      { from: 'api', to: 'kafka' },
+      { from: 'api', to: 'ollama' },
       { from: 'api', to: 'keycloak' },
     ];
-    return edges.map(e => {
-      const f = nodes.find(n => n.id === e.from)!;
-      const t = nodes.find(n => n.id === e.to)!;
+    return edges.map((e) => {
+      const f = nodes.find((n) => n.id === e.from)!;
+      const t = nodes.find((n) => n.id === e.to)!;
       return { x1: f.x, y1: f.y, x2: t.x, y2: t.y };
     });
   })();
@@ -266,18 +320,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
       keycloak: `${base}/actuator/health`,
     };
 
-    this.http.get<any>(`${base}/actuator/health`).pipe(catchError(() => of(null))).subscribe(h => {
-      const status: Record<string, 'up' | 'down' | 'unknown'> = {};
-      status['api'] = h?.status === 'UP' ? 'up' : 'down';
-      // Parse component health from actuator if available
-      const components = h?.components ?? {};
-      status['pg'] = components['db']?.status === 'UP' ? 'up' : (components['db'] ? 'down' : 'unknown');
-      status['redis'] = components['redis']?.status === 'UP' ? 'up' : (components['redis'] ? 'down' : 'unknown');
-      status['kafka'] = components['kafka']?.status === 'UP' ? 'up' : (components['kafka'] ? 'down' : 'unknown');
-      status['ollama'] = 'unknown'; // no direct health check
-      status['keycloak'] = 'unknown';
-      this.depStatus.set(status);
-    });
+    this.http
+      .get<any>(`${base}/actuator/health`)
+      .pipe(catchError(() => of(null)))
+      .subscribe((h) => {
+        const status: Record<string, 'up' | 'down' | 'unknown'> = {};
+        status['api'] = h?.status === 'UP' ? 'up' : 'down';
+        // Parse component health from actuator if available
+        const components = h?.components ?? {};
+        status['pg'] =
+          components['db']?.status === 'UP' ? 'up' : components['db'] ? 'down' : 'unknown';
+        status['redis'] =
+          components['redis']?.status === 'UP' ? 'up' : components['redis'] ? 'down' : 'unknown';
+        status['kafka'] =
+          components['kafka']?.status === 'UP' ? 'up' : components['kafka'] ? 'down' : 'unknown';
+        status['ollama'] = 'unknown'; // no direct health check
+        status['keycloak'] = 'unknown';
+        this.depStatus.set(status);
+      });
   }
 
   depNodeColor(id: string): string {
@@ -292,22 +352,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   buildHeatmap(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: text => {
+      next: (text) => {
         // Use total request count as a proxy; build 24 simulated cells based on current rate
         const match = text.match(/http_server_requests_seconds_count\b.*?\s+(\d+\.?\d*)/m);
         const total = match ? parseFloat(match[1]) : 0;
         const cells = Array.from({ length: 24 }, (_, i) => ({
           hour: i,
-          count: Math.round(total / 24 * (0.5 + Math.random()))
+          count: Math.round((total / 24) * (0.5 + Math.random())),
         }));
         this.heatmapData.set(cells);
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   heatmapColor(count: number): string {
-    const max = Math.max(1, ...this.heatmapData().map(c => c.count));
+    const max = Math.max(1, ...this.heatmapData().map((c) => c.count));
     const intensity = count / max;
     if (intensity < 0.2) return 'var(--bg-card-hover)';
     if (intensity < 0.4) return '#bbf7d0';
@@ -317,8 +377,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Snapshot comparator ───────────────────────────────────────────────────
-  snapshotA = signal<ParsedMetrics & { customerCount: number; timestamp: Date } | null>(null);
-  snapshotB = signal<ParsedMetrics & { customerCount: number; timestamp: Date } | null>(null);
+  snapshotA = signal<(ParsedMetrics & { customerCount: number; timestamp: Date }) | null>(null);
+  snapshotB = signal<(ParsedMetrics & { customerCount: number; timestamp: Date }) | null>(null);
 
   takeSnapshot(slot: 'A' | 'B'): void {
     const m = this.metrics();
@@ -338,7 +398,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const b = this.snapshotB();
     if (!a || !b) return null;
     const diff = (label: string, av: number, bv: number) => {
-      const pct = av === 0 ? (bv > 0 ? '+100%' : '0%') : `${bv >= av ? '+' : ''}${(((bv - av) / av) * 100).toFixed(1)}%`;
+      const pct =
+        av === 0
+          ? bv > 0
+            ? '+100%'
+            : '0%'
+          : `${bv >= av ? '+' : ''}${(((bv - av) / av) * 100).toFixed(1)}%`;
       return { label, a: av, b: bv, pct };
     };
     return [
@@ -356,9 +421,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       time: new Date(),
       health: this.extractStatus(this.health()),
       readiness: this.extractStatus(this.readiness()),
-      liveness: this.extractStatus(this.liveness())
+      liveness: this.extractStatus(this.liveness()),
     };
-    this.healthHistory.update(h => [...h.slice(-29), snap]);
+    this.healthHistory.update((h) => [...h.slice(-29), snap]);
   }
 
   private extractStatus(data: unknown): string {

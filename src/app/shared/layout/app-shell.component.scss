@@ -38,9 +38,14 @@
   cursor: pointer;
   line-height: 1;
 
-  &:hover { background: #15294a; color: white; }
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
 
-  @media (max-width: 768px) { display: block; }
+  @media (max-width: 768px) {
+    display: block;
+  }
 }
 
 .topbar h1 {
@@ -54,7 +59,9 @@
   display: flex;
   gap: 1.25rem;
 
-  @media (max-width: 768px) { display: none; }
+  @media (max-width: 768px) {
+    display: none;
+  }
 }
 
 .topbar a {
@@ -65,7 +72,9 @@
   transition: color 0.15s;
 }
 
-.topbar a:hover { color: #dbeafe; }
+.topbar a:hover {
+  color: #dbeafe;
+}
 
 .topbar a.active {
   color: white;
@@ -79,7 +88,10 @@
   gap: 0.75rem;
 
   @media (max-width: 768px) {
-    .env-selector, .logout-btn { display: none; }
+    .env-selector,
+    .logout-btn {
+      display: none;
+    }
   }
 }
 
@@ -114,7 +126,9 @@
     font-weight: 600;
     border-radius: 6px;
 
-    &:hover { background: var(--bg-card-hover); }
+    &:hover {
+      background: var(--bg-card-hover);
+    }
   }
 }
 
@@ -129,11 +143,15 @@
   font-size: 0.9rem;
   text-align: left;
 
-  &:hover { background: var(--bg-error); }
+  &:hover {
+    background: var(--bg-error);
+  }
 }
 
 // ── Environment selector ────────────────────────────────────────────────────
-.env-selector { position: relative; }
+.env-selector {
+  position: relative;
+}
 
 .env-btn {
   display: flex;
@@ -147,30 +165,58 @@
   font-size: 0.82rem;
   color: #93b4d8;
 
-  &:hover { background: #15294a; color: white; }
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
 }
 
 .env-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
 }
 
 .env-dropdown {
-  position: absolute; right: 0; top: calc(100% + 4px);
-  background: var(--bg-card); border: 1px solid var(--border-default);
-  border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 220px; z-index: 100; overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 220px;
+  z-index: 100;
+  overflow: hidden;
 }
 
 .env-option {
-  display: flex; flex-direction: column; gap: 0.1rem; width: 100%;
-  padding: 0.55rem 0.85rem; background: transparent; border: none;
-  cursor: pointer; text-align: left; color: var(--text-primary); font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 0.85rem;
 
-  small { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; }
-  &:hover { background: var(--bg-card-hover); }
+  small {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: monospace;
+  }
+  &:hover {
+    background: var(--bg-card-hover);
+  }
   &.env-active {
     background: var(--color-accent-light);
-    strong { color: var(--color-accent); }
+    strong {
+      color: var(--color-accent);
+    }
   }
 }
 
@@ -185,7 +231,10 @@
   line-height: 1;
   color: #93b4d8;
 
-  &:hover { background: #15294a; color: white; }
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
 }
 
 .logout-btn {
@@ -197,7 +246,10 @@
   font-size: 0.85rem;
   color: #93b4d8;
 
-  &:hover { background: #15294a; color: white; }
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
 }
 
 .login-link {
@@ -210,14 +262,19 @@
 .content {
   padding: 1.5rem;
 
-  @media (max-width: 768px) { padding: 1rem; }
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 }
 
 // ── Modal overlay ───────────────────────────────────────────────────────────
 .modal-overlay {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  display: flex; align-items: flex-start; justify-content: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   padding-top: 15vh;
   z-index: 1000;
 }
@@ -263,11 +320,19 @@
   font-size: 0.9rem;
   text-align: left;
 
-  &:hover { background: var(--bg-card-hover); }
+  &:hover {
+    background: var(--bg-card-hover);
+  }
 }
 
-.search-label { font-weight: 600; }
-.search-path { font-family: monospace; font-size: 0.78rem; color: var(--text-muted); }
+.search-label {
+  font-weight: 600;
+}
+.search-path {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
 
 // ── Keyboard shortcuts modal ────────────────────────────────────────────────
 .shortcuts-modal {
@@ -286,7 +351,10 @@
   align-items: center;
   margin-bottom: 1rem;
 
-  h3 { margin: 0; font-size: 1rem; }
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
 }
 
 .close-btn {
@@ -297,7 +365,9 @@
   color: var(--text-muted);
   padding: 0.2rem;
 
-  &:hover { color: var(--text-primary); }
+  &:hover {
+    color: var(--text-primary);
+  }
 }
 
 .shortcuts-grid {

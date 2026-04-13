@@ -2,7 +2,9 @@
   <div class="page-header">
     <div>
       <h2>Dashboard</h2>
-      <p class="subtitle">Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})</p>
+      <p class="subtitle">
+        Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})
+      </p>
     </div>
     <div class="header-actions">
       <div class="auto-refresh">
@@ -11,14 +13,15 @@
           @for (opt of intervalOptions; track opt.value) {
             <button
               [class.active]="autoRefreshInterval() === opt.value"
-              (click)="setAutoRefresh(opt.value)">
+              (click)="setAutoRefresh(opt.value)"
+            >
               {{ opt.label }}
             </button>
           }
         </div>
       </div>
       @if (lastRefresh()) {
-        <span class="ts">{{ lastRefresh() | date:'HH:mm:ss' }}</span>
+        <span class="ts">{{ lastRefresh() | date: 'HH:mm:ss' }}</span>
       }
       <button class="refresh-btn" (click)="refresh()">↻ Refresh</button>
     </div>
@@ -38,19 +41,19 @@
     </article>
     @if (metrics()) {
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpRequestsTotal | number:'1.0-0' }}</span>
+        <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
         <span class="stat-label">HTTP Requests (total)</span>
       </article>
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpLatencyP50 | number:'1.1-1' }} ms</span>
+        <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
         <span class="stat-label">Latency p50</span>
       </article>
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpLatencyP95 | number:'1.1-1' }} ms</span>
+        <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
         <span class="stat-label">Latency p95</span>
       </article>
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpLatencyP99 | number:'1.1-1' }} ms</span>
+        <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
         <span class="stat-label">Latency p99</span>
       </article>
     }
@@ -67,7 +70,7 @@
   @if (metricsService.samples().length > 1) {
     <div class="chart-container">
       <div class="chart-y-axis">
-        <span>{{ chartMaxRps() | number:'1.1-1' }} rps</span>
+        <span>{{ chartMaxRps() | number: '1.1-1' }} rps</span>
         <span>0</span>
       </div>
       <svg viewBox="0 0 300 100" class="bar-chart" preserveAspectRatio="none">
@@ -79,8 +82,9 @@
             [attr.height]="bar.height"
             rx="1"
             fill="var(--color-accent)"
-            opacity="0.8">
-            <title>{{ bar.rps | number:'1.1-1' }} req/s</title>
+            opacity="0.8"
+          >
+            <title>{{ bar.rps | number: '1.1-1' }} req/s</title>
           </rect>
         }
       </svg>
@@ -96,13 +100,19 @@
     <div class="sparkline-container">
       <span class="sparkline-label">Health history ({{ healthHistory().length }} checks)</span>
       <svg viewBox="0 0 200 30" class="sparkline">
-        <path [attr.d]="sparklinePath()" fill="none" stroke="var(--color-accent)" stroke-width="2"/>
+        <path
+          [attr.d]="sparklinePath()"
+          fill="none"
+          stroke="var(--color-accent)"
+          stroke-width="2"
+        />
         @for (snap of healthHistory(); track $index; let i = $index) {
           <circle
             [attr.cx]="i * (200 / (healthHistory().length - 1))"
             [attr.cy]="snap.health === 'UP' ? 5 : 25"
             r="3"
-            [attr.fill]="snap.health === 'UP' ? '#4ade80' : '#f87171'" />
+            [attr.fill]="snap.health === 'UP' ? '#4ade80' : '#f87171'"
+          />
         }
       </svg>
       <div class="sparkline-legend">
@@ -144,7 +154,9 @@
   <!-- Latency comparator -->
   <h3>Latency Comparator</h3>
   <article class="card">
-    <p class="card-desc">Compare response times between two environments by pinging /actuator/health.</p>
+    <p class="card-desc">
+      Compare response times between two environments by pinging /actuator/health.
+    </p>
     <div class="comparator-controls">
       <div class="comparator-env">
         <label>
@@ -170,7 +182,13 @@
       <div class="comparator-env">
         <label>
           Requests
-          <input type="number" [ngModel]="latencyCount()" (ngModelChange)="latencyCount.set($event)" min="1" max="50" />
+          <input
+            type="number"
+            [ngModel]="latencyCount()"
+            (ngModelChange)="latencyCount.set($event)"
+            min="1"
+            max="50"
+          />
         </label>
       </div>
       <button class="run-btn" (click)="runLatencyComparison()" [disabled]="latencyRunning()">
@@ -184,9 +202,18 @@
           <div class="result-card">
             <h4>{{ r.envName }}</h4>
             <div class="result-stats">
-              <div><span class="result-value">{{ r.avgMs }} ms</span><span class="result-label">avg</span></div>
-              <div><span class="result-value">{{ r.p95Ms }} ms</span><span class="result-label">p95</span></div>
-              <div><span class="result-value">{{ r.errors }}/{{ r.total }}</span><span class="result-label">errors</span></div>
+              <div>
+                <span class="result-value">{{ r.avgMs }} ms</span
+                ><span class="result-label">avg</span>
+              </div>
+              <div>
+                <span class="result-value">{{ r.p95Ms }} ms</span
+                ><span class="result-label">p95</span>
+              </div>
+              <div>
+                <span class="result-value">{{ r.errors }}/{{ r.total }}</span
+                ><span class="result-label">errors</span>
+              </div>
             </div>
           </div>
         }
@@ -204,15 +231,34 @@
       <!-- Edges -->
       @for (edge of depEdgesCoords; track $index) {
         <line
-          [attr.x1]="edge.x1" [attr.y1]="edge.y1"
-          [attr.x2]="edge.x2" [attr.y2]="edge.y2"
-          stroke="var(--border-default)" stroke-width="1.5" />
+          [attr.x1]="edge.x1"
+          [attr.y1]="edge.y1"
+          [attr.x2]="edge.x2"
+          [attr.y2]="edge.y2"
+          stroke="var(--border-default)"
+          stroke-width="1.5"
+        />
       }
       <!-- Nodes -->
       @for (node of depNodes; track node.id) {
-        <circle [attr.cx]="node.x" [attr.cy]="node.y" r="18" [attr.fill]="depNodeColor(node.id)" opacity="0.2" />
+        <circle
+          [attr.cx]="node.x"
+          [attr.cy]="node.y"
+          r="18"
+          [attr.fill]="depNodeColor(node.id)"
+          opacity="0.2"
+        />
         <circle [attr.cx]="node.x" [attr.cy]="node.y" r="6" [attr.fill]="depNodeColor(node.id)" />
-        <text [attr.x]="node.x" [attr.y]="node.y + 30" text-anchor="middle" fill="var(--text-secondary)" font-size="10" font-weight="600">{{ node.label }}</text>
+        <text
+          [attr.x]="node.x"
+          [attr.y]="node.y + 30"
+          text-anchor="middle"
+          fill="var(--text-secondary)"
+          font-size="10"
+          font-weight="600"
+        >
+          {{ node.label }}
+        </text>
       }
     </svg>
   </div>
@@ -225,7 +271,11 @@
   @if (heatmapData().length) {
     <div class="heatmap-container">
       @for (cell of heatmapData(); track cell.hour) {
-        <div class="heatmap-cell" [style.background]="heatmapColor(cell.count)" [title]="cell.hour + 'h: ' + cell.count + ' req'">
+        <div
+          class="heatmap-cell"
+          [style.background]="heatmapColor(cell.count)"
+          [title]="cell.hour + 'h: ' + cell.count + ' req'"
+        >
           <span class="heatmap-hour">{{ cell.hour }}h</span>
         </div>
       }
@@ -243,14 +293,23 @@
   @if (snapshotDiff()) {
     <div class="snapshot-diff">
       <table>
-        <thead><tr><th>Metric</th><th>Before (A)</th><th>After (B)</th><th>Change</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Before (A)</th>
+            <th>After (B)</th>
+            <th>Change</th>
+          </tr>
+        </thead>
         <tbody>
           @for (d of snapshotDiff()!; track d.label) {
             <tr>
               <td>{{ d.label }}</td>
-              <td class="mono">{{ d.a | number:'1.1-1' }}</td>
-              <td class="mono">{{ d.b | number:'1.1-1' }}</td>
-              <td class="mono" [class.positive]="d.b > d.a" [class.negative]="d.b < d.a">{{ d.pct }}</td>
+              <td class="mono">{{ d.a | number: '1.1-1' }}</td>
+              <td class="mono">{{ d.b | number: '1.1-1' }}</td>
+              <td class="mono" [class.positive]="d.b > d.a" [class.negative]="d.b < d.a">
+                {{ d.pct }}
+              </td>
             </tr>
           }
         </tbody>

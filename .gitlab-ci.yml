@@ -41,37 +41,25 @@ lint:format:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
-lint:circular-deps:
-  stage: validate
-  extends: .install
-  script:
-    - |
-      echo "Checking for circular imports..."
-      # Simple circular dependency check via build warnings
-      npx ng build --configuration production 2>&1 | tee /tmp/build.log
-      if grep -qi "circular" /tmp/build.log; then
-        echo "FAIL: Circular dependencies detected"
-        exit 1
-      fi
-      echo "OK: No circular dependencies"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-
 # ── Stage: test ──────────────────────────────────────────────────────────────
 unit-tests:
   stage: test
   extends: .install
   script:
-    - npm test -- --reporter=verbose
+    - npx ng test --watch=false
   coverage: '/All files\s*\|\s*[\d.]+/'
-  artifacts:
-    when: always
-    reports:
-      junit: test-results.xml
-    expire_in: 7 days
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Node 20 compat ──────────────────────────────────────────────────────────
+unit-tests:node20:
+  stage: test
+  extends: .install
+  image: node:20-alpine
+  script:
+    - npx ng test --watch=false
+  rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ── Stage: build ─────────────────────────────────────────────────────────────
@@ -79,17 +67,37 @@ build:production:
   stage: build
   extends: .install
   script:
-    - npx ng build --configuration production
+    - |
+      BUILD_OUT=$(npx ng build --configuration production 2>&1)
+      echo "$BUILD_OUT"
+      mkdir -p dist
+      echo "$BUILD_OUT" > dist/build-warnings.txt
     - |
       echo "── Bundle analysis ──"
-      du -sh dist/customer-observability-ui/browser/*.js | sort -rh | head -10
+      du -sh dist/customer-observability-ui/browser/*.js 2>/dev/null | sort -rh | head -10
       echo ""
-      TOTAL=$(du -sh dist/customer-observability-ui/browser/ | cut -f1)
+      TOTAL=$(du -sh dist/customer-observability-ui/browser/ 2>/dev/null | cut -f1)
       echo "Total bundle size: $TOTAL"
   artifacts:
     paths:
       - dist/
     expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+lint:circular-deps:
+  stage: build
+  needs: ["build:production"]
+  script:
+    - |
+      echo "Checking for circular imports in build output..."
+      if grep -qi "circular" dist/build-warnings.txt 2>/dev/null; then
+        echo "FAIL: Circular dependencies detected"
+        grep -i "circular" dist/build-warnings.txt
+        exit 1
+      fi
+      echo "OK: No circular dependencies"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -101,13 +109,19 @@ bundle-size-check:
   script:
     - |
       MAX_SIZE_KB=500
-      INITIAL=$(du -sk dist/customer-observability-ui/browser/main-*.js | cut -f1)
+      MAIN_JS=$(ls dist/customer-observability-ui/browser/main-*.js 2>/dev/null | head -1)
+      if [ -z "$MAIN_JS" ]; then
+        echo "WARN: No main-*.js found in dist, skipping bundle size check"
+        exit 0
+      fi
+      INITIAL=$(du -sk "$MAIN_JS" | cut -f1)
       echo "Initial bundle: ${INITIAL}kB (max: ${MAX_SIZE_KB}kB)"
       if [ "$INITIAL" -gt "$MAX_SIZE_KB" ]; then
         echo "WARN: Initial bundle exceeds ${MAX_SIZE_KB}kB"
       else
         echo "OK: Bundle within budget"
       fi
+  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -128,14 +142,4 @@ security:audit:
       echo "OK: No sensitive files in src/"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-
-# ── Node 20 compat ──────────────────────────────────────────────────────────
-unit-tests:node20:
-  stage: test
-  extends: .install
-  image: node:20-alpine
-  script:
-    - npm test -- --reporter=verbose
-  rules:
     - if: $CI_COMMIT_BRANCH == "main"

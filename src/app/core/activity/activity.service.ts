@@ -1,6 +1,13 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ActivityType = 'customer-create' | 'customer-update' | 'customer-delete' | 'health-change' | 'diagnostic-run' | 'env-switch' | 'bulk-import';
+export type ActivityType =
+  | 'customer-create'
+  | 'customer-update'
+  | 'customer-delete'
+  | 'health-change'
+  | 'diagnostic-run'
+  | 'env-switch'
+  | 'bulk-import';
 
 export interface ActivityEvent {
   id: number;
@@ -21,9 +28,9 @@ export class ActivityService {
       type,
       message,
       timestamp: new Date(),
-      details
+      details,
     };
-    this.events.update(list => [event, ...list.slice(0, 199)]); // keep last 200
+    this.events.update((list) => [event, ...list.slice(0, 199)]); // keep last 200
   }
 
   clear(): void {
@@ -31,6 +38,6 @@ export class ActivityService {
   }
 
   filterByType(type: ActivityType): ActivityEvent[] {
-    return this.events().filter(e => e.type === type);
+    return this.events().filter((e) => e.type === type);
   }
 }

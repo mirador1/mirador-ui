@@ -48,7 +48,9 @@ export class ApiService {
   private readonly env = inject(EnvService);
   readonly baseUrl = computed(() => this.env.baseUrl());
 
-  private get url(): string { return this.baseUrl(); }
+  private get url(): string {
+    return this.baseUrl();
+  }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   login(username: string, password: string): Observable<{ token: string }> {
@@ -70,21 +72,25 @@ export class ApiService {
   }
 
   // ── Customers ─────────────────────────────────────────────────────────────
-  getCustomers(page = 0, size = 10, version = '1.0', search?: string, sort?: string): Observable<Page<Customer>> {
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
+  getCustomers(
+    page = 0,
+    size = 10,
+    version = '1.0',
+    search?: string,
+    sort?: string,
+  ): Observable<Page<Customer>> {
+    let params = new HttpParams().set('page', page.toString()).set('size', size.toString());
     if (search) params = params.set('search', search);
     if (sort) params = params.set('sort', sort);
     return this.http.get<Page<Customer>>(`${this.url}/customers`, {
       headers: new HttpHeaders({ 'X-API-Version': version }),
-      params
+      params,
     });
   }
 
   getCustomerSummary(page = 0, size = 20): Observable<Page<CustomerSummary>> {
     return this.http.get<Page<CustomerSummary>>(`${this.url}/customers/summary`, {
-      params: { page: page.toString(), size: size.toString() }
+      params: { page: page.toString(), size: size.toString() },
     });
   }
 
@@ -98,7 +104,7 @@ export class ApiService {
 
   createCustomer(
     payload: { name: string; email: string },
-    idempotencyKey?: string
+    idempotencyKey?: string,
   ): Observable<Customer> {
     let headers = new HttpHeaders();
     if (idempotencyKey) {

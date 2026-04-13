@@ -5,356 +5,424 @@
   </div>
 
   @if (!auth.isAuthenticated()) {
-    <div class="alert-warn">
-      Please <a routerLink="/login">sign in</a> to access this feature.
-    </div>
+    <div class="alert-warn">Please <a routerLink="/login">sign in</a> to access this feature.</div>
   } @else {
-
-  <!-- Controls bar -->
-  <div class="controls-bar">
-    <div class="control-group">
-      <span class="label">API Version</span>
-      <div class="toggle-btns">
-        <button [class.active]="apiVersion() === '1.0'" (click)="setVersion('1.0')">v1.0</button>
-        <button [class.active]="apiVersion() === '2.0'" (click)="setVersion('2.0')">v2.0 <small>+createdAt</small></button>
+    <!-- Controls bar -->
+    <div class="controls-bar">
+      <div class="control-group">
+        <span class="label">API Version</span>
+        <div class="toggle-btns">
+          <button [class.active]="apiVersion() === '1.0'" (click)="setVersion('1.0')">v1.0</button>
+          <button [class.active]="apiVersion() === '2.0'" (click)="setVersion('2.0')">
+            v2.0 <small>+createdAt</small>
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="control-group">
-      <span class="label">View</span>
-      <div class="toggle-btns">
-        <button [class.active]="!summaryMode()" (click)="toggleSummaryMode()">Full</button>
-        <button [class.active]="summaryMode()" (click)="toggleSummaryMode()">Summary <small>id+name</small></button>
+      <div class="control-group">
+        <span class="label">View</span>
+        <div class="toggle-btns">
+          <button [class.active]="!summaryMode()" (click)="toggleSummaryMode()">Full</button>
+          <button [class.active]="summaryMode()" (click)="toggleSummaryMode()">
+            Summary <small>id+name</small>
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="search-box">
-      <input
-        type="text"
-        placeholder="Search name or email..."
-        [value]="searchQuery()"
-        (input)="onSearchInput($any($event.target).value)" />
-    </div>
-    <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
-    <button class="action-btn" (click)="loadRecent()">📦 Recent (Redis)</button>
-    <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
-      ⚡ {{ aggregateLoading() ? 'Running...' : 'Aggregate (Virtual Threads)' }}
-    </button>
-    <div class="export-group">
-      <button class="action-btn" (click)="exportJson()">↓ JSON</button>
-      <button class="action-btn" (click)="exportCsv()">↓ CSV</button>
-    </div>
-    <div class="import-group">
-      <label class="import-btn">
-        ↑ Import
-        <input type="file" accept=".json,.csv" (change)="onFileSelected($event)" hidden />
-      </label>
-    </div>
-  </div>
-
-  <!-- Import progress -->
-  @if (importLoading()) {
-    <div class="import-progress">
-      <div class="progress-bar">
-        <div class="progress-fill" [style.width.%]="(importProgress() / importTotal()) * 100"></div>
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search name or email..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($any($event.target).value)"
+        />
       </div>
-      <span class="progress-text">{{ importProgress() }} / {{ importTotal() }}</span>
-    </div>
-  }
-  @if (importResults()) {
-    <div class="import-result">
-      Imported: {{ importResults()!.ok }} created, {{ importResults()!.errors }} errors
-    </div>
-  }
-
-  @if (listError()) {
-    <div class="alert-error">⚠ {{ listError() }}</div>
-  }
-
-  <!-- Batch delete bar -->
-  @if (hasSelection()) {
-    <div class="batch-bar">
-      <span>{{ selectedIds().size }} selected</span>
-      <button class="danger-btn" (click)="openBatchDelete()">Delete selected</button>
-    </div>
-  }
-
-  <!-- Create + List layout -->
-  <div class="main-layout">
-
-    <!-- Create form -->
-    <article class="card create-card">
-      <h3>Create Customer</h3>
-
-      <label>
-        Name
-        <input [(ngModel)]="newName" placeholder="Alice Martin" />
-      </label>
-      <label>
-        Email
-        <input [(ngModel)]="newEmail" type="email" placeholder="alice@example.com" />
-      </label>
-
-      <div class="idem-row">
-        <label class="idem-label">
-          <input type="checkbox" [ngModel]="useIdempotencyKey()" (ngModelChange)="useIdempotencyKey.set($event)" />
-          Idempotency-Key
-        </label>
-        @if (useIdempotencyKey()) {
-          <code class="idem-key">{{ idempotencyKey() }}</code>
-          <button class="sm-btn" (click)="resetIdempotencyKey()">New key</button>
-        }
-      </div>
-
-      <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
-        {{ createLoading() ? 'Creating...' : '+ Create' }}
+      <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
+      <button class="action-btn" (click)="loadRecent()">📦 Recent (Redis)</button>
+      <button class="action-btn" (click)="runAggregate()" [disabled]="aggregateLoading()">
+        ⚡ {{ aggregateLoading() ? 'Running...' : 'Aggregate (Virtual Threads)' }}
       </button>
-
-      @if (createError()) {
-        <p class="error-text">{{ createError() }}</p>
-      }
-      @if (createSuccess()) {
-        <div class="success-box">
-          Created → ID {{ createSuccess()!.id }}: <strong>{{ createSuccess()!.name }}</strong>
-        </div>
-      }
-    </article>
-
-    <!-- Customer list -->
-    <article class="card list-card">
-      <div class="list-header">
-        <h3>
-          @if (summaryMode()) { Summary } @else { Customer List }
-          @if (!summaryMode() && customers()) {
-            <small>({{ customers()!.totalElements }} total · page {{ currentPage() + 1 }}/{{ totalPages() }})</small>
-          }
-          @if (summaryMode() && summaries()) {
-            <small>({{ summaries()!.totalElements }} total)</small>
-          }
-        </h3>
-        <div class="page-btns">
-          <button class="sm-btn" (click)="prevPage()" [disabled]="currentPage() === 0">‹</button>
-          <button class="sm-btn" (click)="nextPage()" [disabled]="currentPage() >= totalPages() - 1">›</button>
-        </div>
+      <div class="export-group">
+        <button class="action-btn" (click)="exportJson()">↓ JSON</button>
+        <button class="action-btn" (click)="exportCsv()">↓ CSV</button>
       </div>
+      <div class="import-group">
+        <label class="import-btn">
+          ↑ Import
+          <input type="file" accept=".json,.csv" (change)="onFileSelected($event)" hidden />
+        </label>
+      </div>
+    </div>
 
-      @if (listLoading()) {
-        <p class="muted">Loading...</p>
-      } @else if (summaryMode()) {
-        <!-- Summary mode -->
-        @if (summaries()?.content?.length) {
-          <table>
-            <thead><tr><th>ID</th><th>Name</th></tr></thead>
-            <tbody>
-              @for (s of summaries()!.content; track s.id) {
-                <tr><td>{{ s.id }}</td><td>{{ s.name }}</td></tr>
-              }
-            </tbody>
-          </table>
-          <p class="version-note">GET /customers/summary — projection: SELECT id, name only</p>
-        } @else {
-          <p class="muted">No data.</p>
-        }
-      } @else {
-        <!-- Full mode -->
-        @if (customers()?.content?.length) {
-          <table>
-            <thead>
-              <tr>
-                <th class="check-col">
-                  <input type="checkbox" [checked]="selectAll()" (change)="toggleSelectAll()" />
-                </th>
-                <th class="sortable" (click)="toggleSort('id')">ID <span class="sort-icon">{{ sortIcon('id') }}</span></th>
-                <th class="sortable" (click)="toggleSort('name')">Name <span class="sort-icon">{{ sortIcon('name') }}</span></th>
-                <th class="sortable" (click)="toggleSort('email')">Email <span class="sort-icon">{{ sortIcon('email') }}</span></th>
-                @if (apiVersion() === '2.0') {
-                  <th class="sortable" (click)="toggleSort('createdAt')">Created at <span class="sort-icon">{{ sortIcon('createdAt') }}</span></th>
-                }
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (c of customers()!.content; track c.id) {
-                <tr [class.selected-row]="selectedCustomer()?.id === c.id">
-                  <td class="check-col">
-                    <input type="checkbox" [checked]="selectedIds().has(c.id!)" (change)="toggleSelectOne(c.id!)" />
-                  </td>
-                  <td>{{ c.id }}</td>
-                  <td>{{ c.name }}</td>
-                  <td>{{ c.email }}</td>
-                  @if (apiVersion() === '2.0') {
-                    <td>{{ c.createdAt | date:'short' }}</td>
-                  }
-                  <td class="actions-cell">
-                    <button class="tag-btn bio" (click)="selectCustomer(c, 'bio')">Bio</button>
-                    <button class="tag-btn todos" (click)="selectCustomer(c, 'todos')">Todos</button>
-                    <button class="tag-btn enrich" (click)="selectCustomer(c, 'enrich')">Enrich</button>
-                    <button class="tag-btn edit" (click)="openEdit(c)">Edit</button>
-                    <button class="tag-btn delete" (click)="openDelete(c)">Del</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-          @if (apiVersion() === '2.0') {
-            <p class="version-note">v2.0 — X-API-Version: 2.0 · <code>createdAt</code> field included</p>
-          } @else {
-            <p class="version-note">v1.0 — X-API-Version: 1.0 · no <code>createdAt</code> field</p>
-          }
-        } @else {
-          <p class="muted">No customers yet. Create one.</p>
-        }
-      }
-    </article>
-  </div>
+    <!-- Import progress -->
+    @if (importLoading()) {
+      <div class="import-progress">
+        <div class="progress-bar">
+          <div
+            class="progress-fill"
+            [style.width.%]="(importProgress() / importTotal()) * 100"
+          ></div>
+        </div>
+        <span class="progress-text">{{ importProgress() }} / {{ importTotal() }}</span>
+      </div>
+    }
+    @if (importResults()) {
+      <div class="import-result">
+        Imported: {{ importResults()!.ok }} created, {{ importResults()!.errors }} errors
+      </div>
+    }
 
-  <!-- Edit modal -->
-  @if (editingCustomer()) {
-    <div class="modal-overlay" (click)="cancelEdit()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h3>Edit Customer #{{ editingCustomer()!.id }}</h3>
+    @if (listError()) {
+      <div class="alert-error">⚠ {{ listError() }}</div>
+    }
+
+    <!-- Batch delete bar -->
+    @if (hasSelection()) {
+      <div class="batch-bar">
+        <span>{{ selectedIds().size }} selected</span>
+        <button class="danger-btn" (click)="openBatchDelete()">Delete selected</button>
+      </div>
+    }
+
+    <!-- Create + List layout -->
+    <div class="main-layout">
+      <!-- Create form -->
+      <article class="card create-card">
+        <h3>Create Customer</h3>
+
         <label>
           Name
-          <input [(ngModel)]="editName" />
+          <input [(ngModel)]="newName" placeholder="Alice Martin" />
         </label>
         <label>
           Email
-          <input [(ngModel)]="editEmail" type="email" />
+          <input [(ngModel)]="newEmail" type="email" placeholder="alice@example.com" />
         </label>
-        @if (editError()) {
-          <p class="error-text">{{ editError() }}</p>
+
+        <div class="idem-row">
+          <label class="idem-label">
+            <input
+              type="checkbox"
+              [ngModel]="useIdempotencyKey()"
+              (ngModelChange)="useIdempotencyKey.set($event)"
+            />
+            Idempotency-Key
+          </label>
+          @if (useIdempotencyKey()) {
+            <code class="idem-key">{{ idempotencyKey() }}</code>
+            <button class="sm-btn" (click)="resetIdempotencyKey()">New key</button>
+          }
+        </div>
+
+        <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
+          {{ createLoading() ? 'Creating...' : '+ Create' }}
+        </button>
+
+        @if (createError()) {
+          <p class="error-text">{{ createError() }}</p>
         }
-        <div class="modal-actions">
-          <button class="sm-btn" (click)="cancelEdit()">Cancel</button>
-          <button class="primary-btn" (click)="saveEdit()" [disabled]="editLoading()">
-            {{ editLoading() ? 'Saving...' : 'Save' }}
+        @if (createSuccess()) {
+          <div class="success-box">
+            Created → ID {{ createSuccess()!.id }}: <strong>{{ createSuccess()!.name }}</strong>
+          </div>
+        }
+      </article>
+
+      <!-- Customer list -->
+      <article class="card list-card">
+        <div class="list-header">
+          <h3>
+            @if (summaryMode()) {
+              Summary
+            } @else {
+              Customer List
+            }
+            @if (!summaryMode() && customers()) {
+              <small
+                >({{ customers()!.totalElements }} total · page {{ currentPage() + 1 }}/{{
+                  totalPages()
+                }})</small
+              >
+            }
+            @if (summaryMode() && summaries()) {
+              <small>({{ summaries()!.totalElements }} total)</small>
+            }
+          </h3>
+          <div class="page-btns">
+            <button class="sm-btn" (click)="prevPage()" [disabled]="currentPage() === 0">‹</button>
+            <button
+              class="sm-btn"
+              (click)="nextPage()"
+              [disabled]="currentPage() >= totalPages() - 1"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+
+        @if (listLoading()) {
+          <p class="muted">Loading...</p>
+        } @else if (summaryMode()) {
+          <!-- Summary mode -->
+          @if (summaries()?.content?.length) {
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of summaries()!.content; track s.id) {
+                  <tr>
+                    <td>{{ s.id }}</td>
+                    <td>{{ s.name }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            <p class="version-note">GET /customers/summary — projection: SELECT id, name only</p>
+          } @else {
+            <p class="muted">No data.</p>
+          }
+        } @else {
+          <!-- Full mode -->
+          @if (customers()?.content?.length) {
+            <table>
+              <thead>
+                <tr>
+                  <th class="check-col">
+                    <input type="checkbox" [checked]="selectAll()" (change)="toggleSelectAll()" />
+                  </th>
+                  <th class="sortable" (click)="toggleSort('id')">
+                    ID <span class="sort-icon">{{ sortIcon('id') }}</span>
+                  </th>
+                  <th class="sortable" (click)="toggleSort('name')">
+                    Name <span class="sort-icon">{{ sortIcon('name') }}</span>
+                  </th>
+                  <th class="sortable" (click)="toggleSort('email')">
+                    Email <span class="sort-icon">{{ sortIcon('email') }}</span>
+                  </th>
+                  @if (apiVersion() === '2.0') {
+                    <th class="sortable" (click)="toggleSort('createdAt')">
+                      Created at <span class="sort-icon">{{ sortIcon('createdAt') }}</span>
+                    </th>
+                  }
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of customers()!.content; track c.id) {
+                  <tr [class.selected-row]="selectedCustomer()?.id === c.id">
+                    <td class="check-col">
+                      <input
+                        type="checkbox"
+                        [checked]="selectedIds().has(c.id!)"
+                        (change)="toggleSelectOne(c.id!)"
+                      />
+                    </td>
+                    <td>{{ c.id }}</td>
+                    <td>{{ c.name }}</td>
+                    <td>{{ c.email }}</td>
+                    @if (apiVersion() === '2.0') {
+                      <td>{{ c.createdAt | date: 'short' }}</td>
+                    }
+                    <td class="actions-cell">
+                      <button class="tag-btn bio" (click)="selectCustomer(c, 'bio')">Bio</button>
+                      <button class="tag-btn todos" (click)="selectCustomer(c, 'todos')">
+                        Todos
+                      </button>
+                      <button class="tag-btn enrich" (click)="selectCustomer(c, 'enrich')">
+                        Enrich
+                      </button>
+                      <button class="tag-btn edit" (click)="openEdit(c)">Edit</button>
+                      <button class="tag-btn delete" (click)="openDelete(c)">Del</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if (apiVersion() === '2.0') {
+              <p class="version-note">
+                v2.0 — X-API-Version: 2.0 · <code>createdAt</code> field included
+              </p>
+            } @else {
+              <p class="version-note">
+                v1.0 — X-API-Version: 1.0 · no <code>createdAt</code> field
+              </p>
+            }
+          } @else {
+            <p class="muted">No customers yet. Create one.</p>
+          }
+        }
+      </article>
+    </div>
+
+    <!-- Edit modal -->
+    @if (editingCustomer()) {
+      <div class="modal-overlay" (click)="cancelEdit()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <h3>Edit Customer #{{ editingCustomer()!.id }}</h3>
+          <label>
+            Name
+            <input [(ngModel)]="editName" />
+          </label>
+          <label>
+            Email
+            <input [(ngModel)]="editEmail" type="email" />
+          </label>
+          @if (editError()) {
+            <p class="error-text">{{ editError() }}</p>
+          }
+          <div class="modal-actions">
+            <button class="sm-btn" (click)="cancelEdit()">Cancel</button>
+            <button class="primary-btn" (click)="saveEdit()" [disabled]="editLoading()">
+              {{ editLoading() ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Delete confirmation modal -->
+    @if (deletingCustomer()) {
+      <div class="modal-overlay" (click)="cancelDelete()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <h3>Delete Customer</h3>
+          <p class="modal-text">
+            Are you sure you want to delete <strong>{{ deletingCustomer()!.name }}</strong> (ID
+            {{ deletingCustomer()!.id }})?
+          </p>
+          <div class="modal-actions">
+            <button class="sm-btn" (click)="cancelDelete()">Cancel</button>
+            <button class="danger-btn" (click)="confirmDelete()" [disabled]="deleteLoading()">
+              {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Batch delete confirmation modal -->
+    @if (confirmBatchDelete()) {
+      <div class="modal-overlay" (click)="cancelBatchDelete()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <h3>Batch Delete</h3>
+          <p class="modal-text">
+            Delete {{ selectedIds().size }} selected customers? This cannot be undone.
+          </p>
+          <div class="modal-actions">
+            <button class="sm-btn" (click)="cancelBatchDelete()">Cancel</button>
+            <button
+              class="danger-btn"
+              (click)="executeBatchDelete()"
+              [disabled]="batchDeleteLoading()"
+            >
+              {{ batchDeleteLoading() ? 'Deleting...' : 'Delete All' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Customer detail panel -->
+    @if (selectedCustomer()) {
+      <article class="card detail-card">
+        <div class="detail-header">
+          <h3>
+            Customer #{{ selectedCustomer()!.id }} —
+            <strong>{{ selectedCustomer()!.name }}</strong>
+            <small>{{ selectedCustomer()!.email }}</small>
+          </h3>
+          <button class="sm-btn" (click)="closeDetail()">✕ Close</button>
+        </div>
+
+        <div class="tabs">
+          <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
+            🤖 AI Bio <small>Ollama / llama3.2</small>
+          </button>
+          <button [class.tab-active]="activeTab() === 'todos'" (click)="switchTab('todos')">
+            ✅ Todos <small>JSONPlaceholder</small>
+          </button>
+          <button [class.tab-active]="activeTab() === 'enrich'" (click)="switchTab('enrich')">
+            📨 Enrich <small>Kafka request-reply</small>
           </button>
         </div>
-      </div>
-    </div>
-  }
 
-  <!-- Delete confirmation modal -->
-  @if (deletingCustomer()) {
-    <div class="modal-overlay" (click)="cancelDelete()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h3>Delete Customer</h3>
-        <p class="modal-text">
-          Are you sure you want to delete <strong>{{ deletingCustomer()!.name }}</strong> (ID {{ deletingCustomer()!.id }})?
-        </p>
-        <div class="modal-actions">
-          <button class="sm-btn" (click)="cancelDelete()">Cancel</button>
-          <button class="danger-btn" (click)="confirmDelete()" [disabled]="deleteLoading()">
-            {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+        @if (detailLoading()) {
+          <p class="muted">Calling backend...</p>
+        }
+        @if (detailError()) {
+          <p class="error-text">{{ detailError() }}</p>
+        }
 
-  <!-- Batch delete confirmation modal -->
-  @if (confirmBatchDelete()) {
-    <div class="modal-overlay" (click)="cancelBatchDelete()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h3>Batch Delete</h3>
-        <p class="modal-text">Delete {{ selectedIds().size }} selected customers? This cannot be undone.</p>
-        <div class="modal-actions">
-          <button class="sm-btn" (click)="cancelBatchDelete()">Cancel</button>
-          <button class="danger-btn" (click)="executeBatchDelete()" [disabled]="batchDeleteLoading()">
-            {{ batchDeleteLoading() ? 'Deleting...' : 'Delete All' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+        @if (activeTab() === 'bio' && bio()) {
+          <div class="detail-body">
+            <p class="detail-label">
+              GET /customers/{{ selectedCustomer()!.id }}/bio → Ollama (llama3.2 with circuit
+              breaker)
+            </p>
+            <blockquote>{{ bio() }}</blockquote>
+          </div>
+        }
 
-  <!-- Customer detail panel -->
-  @if (selectedCustomer()) {
-    <article class="card detail-card">
-      <div class="detail-header">
-        <h3>
-          Customer #{{ selectedCustomer()!.id }} —
-          <strong>{{ selectedCustomer()!.name }}</strong>
-          <small>{{ selectedCustomer()!.email }}</small>
-        </h3>
-        <button class="sm-btn" (click)="closeDetail()">✕ Close</button>
-      </div>
+        @if (activeTab() === 'todos' && todos()) {
+          <div class="detail-body">
+            <p class="detail-label">
+              GET /customers/{{ selectedCustomer()!.id }}/todos → jsonplaceholder.typicode.com
+              (resilience4j fallback)
+            </p>
+            <ul class="todos-list">
+              @for (t of todos()!.slice(0, 8); track t.id) {
+                <li [class.done]="t.completed">
+                  <span class="todo-check">{{ t.completed ? '✓' : '○' }}</span>
+                  {{ t.title }}
+                </li>
+              }
+            </ul>
+          </div>
+        }
 
-      <div class="tabs">
-        <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
-          🤖 AI Bio <small>Ollama / llama3.2</small>
-        </button>
-        <button [class.tab-active]="activeTab() === 'todos'" (click)="switchTab('todos')">
-          ✅ Todos <small>JSONPlaceholder</small>
-        </button>
-        <button [class.tab-active]="activeTab() === 'enrich'" (click)="switchTab('enrich')">
-          📨 Enrich <small>Kafka request-reply</small>
-        </button>
-      </div>
+        @if (activeTab() === 'enrich' && enriched()) {
+          <div class="detail-body">
+            <p class="detail-label">
+              GET /customers/{{ selectedCustomer()!.id }}/enrich → Kafka customer.request →
+              customer.reply (5 s timeout)
+            </p>
+            <pre>{{ enriched() | json }}</pre>
+          </div>
+        }
+      </article>
+    }
 
-      @if (detailLoading()) {
-        <p class="muted">Calling backend...</p>
-      }
-      @if (detailError()) {
-        <p class="error-text">{{ detailError() }}</p>
-      }
-
-      @if (activeTab() === 'bio' && bio()) {
-        <div class="detail-body">
-          <p class="detail-label">GET /customers/{{ selectedCustomer()!.id }}/bio → Ollama (llama3.2 with circuit breaker)</p>
-          <blockquote>{{ bio() }}</blockquote>
-        </div>
-      }
-
-      @if (activeTab() === 'todos' && todos()) {
-        <div class="detail-body">
-          <p class="detail-label">GET /customers/{{ selectedCustomer()!.id }}/todos → jsonplaceholder.typicode.com (resilience4j fallback)</p>
-          <ul class="todos-list">
-            @for (t of todos()!.slice(0, 8); track t.id) {
-              <li [class.done]="t.completed">
-                <span class="todo-check">{{ t.completed ? '✓' : '○' }}</span>
-                {{ t.title }}
+    <!-- Recent customers (Redis) -->
+    @if (recent()) {
+      <article class="card">
+        <h3>Recent Customers <small>Redis ring buffer · GET /customers/recent</small></h3>
+        @if (recent()!.length) {
+          <ul class="recent-list">
+            @for (c of recent()!; track c.id) {
+              <li>
+                <strong>{{ c.name }}</strong> <span class="muted">— {{ c.email }}</span>
               </li>
             }
           </ul>
-        </div>
-      }
+        } @else {
+          <p class="muted">Buffer empty — create some customers first.</p>
+        }
+      </article>
+    }
 
-      @if (activeTab() === 'enrich' && enriched()) {
-        <div class="detail-body">
-          <p class="detail-label">GET /customers/{{ selectedCustomer()!.id }}/enrich → Kafka customer.request → customer.reply (5 s timeout)</p>
-          <pre>{{ enriched() | json }}</pre>
-        </div>
-      }
-    </article>
+    <!-- Aggregate result (virtual threads) -->
+    @if (aggregate() || aggregateError()) {
+      <article class="card">
+        <h3>Aggregate Result <small>Virtual threads · GET /customers/aggregate</small></h3>
+        @if (aggregateError()) {
+          <p class="success-note">{{ aggregateError() }}</p>
+        }
+        @if (aggregate()) {
+          <pre>{{ aggregate() | json }}</pre>
+        }
+      </article>
+    }
   }
-
-  <!-- Recent customers (Redis) -->
-  @if (recent()) {
-    <article class="card">
-      <h3>Recent Customers <small>Redis ring buffer · GET /customers/recent</small></h3>
-      @if (recent()!.length) {
-        <ul class="recent-list">
-          @for (c of recent()!; track c.id) {
-            <li><strong>{{ c.name }}</strong> <span class="muted">— {{ c.email }}</span></li>
-          }
-        </ul>
-      } @else {
-        <p class="muted">Buffer empty — create some customers first.</p>
-      }
-    </article>
-  }
-
-  <!-- Aggregate result (virtual threads) -->
-  @if (aggregate() || aggregateError()) {
-    <article class="card">
-      <h3>Aggregate Result <small>Virtual threads · GET /customers/aggregate</small></h3>
-      @if (aggregateError()) {
-        <p class="success-note">{{ aggregateError() }}</p>
-      }
-      @if (aggregate()) {
-        <pre>{{ aggregate() | json }}</pre>
-      }
-    </article>
-  }
-
-  } <!-- end @if auth -->
+  <!-- end @if auth -->
 </section>
