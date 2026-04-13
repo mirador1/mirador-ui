@@ -1,13 +1,52 @@
 <section>
   <div class="page-header">
-    <h2>Diagnostic</h2>
-    <p class="subtitle">Interactive backend scenarios — observability, resilience, messaging</p>
+    <div>
+      <h2>Diagnostic</h2>
+      <p class="subtitle">Interactive backend scenarios — observability, resilience, messaging</p>
+    </div>
+    <div class="header-actions">
+      <button class="run-all-btn" (click)="runAll()" [disabled]="runAllRunning()">
+        {{ runAllRunning() ? 'Running all...' : '▶▶ Run All' }}
+      </button>
+      <button class="action-btn" (click)="toggleHistory()">
+        {{ showHistory() ? 'Hide History' : 'History' }} ({{ runHistory().length }})
+      </button>
+      @if (runHistory().length) {
+        <button class="action-btn" (click)="exportHistory()">↓ Export</button>
+      }
+    </div>
   </div>
 
   @if (!auth.isAuthenticated()) {
     <div class="alert-warn">
       Please <a routerLink="/login">sign in</a> to run diagnostics (most endpoints require auth).
     </div>
+  }
+
+  <!-- Run history panel -->
+  @if (showHistory() && runHistory().length) {
+    <article class="card history-card">
+      <div class="history-header">
+        <h3>Run History <small>{{ runHistory().length }} runs</small></h3>
+        <button class="sm-btn" (click)="clearHistory()">Clear</button>
+      </div>
+      <div class="history-list">
+        @for (run of runHistory(); track $index) {
+          <div class="history-item">
+            <div class="history-meta">
+              <span class="scenario-tag">{{ run.scenario }}</span>
+              <span class="history-time">{{ run.timestamp | date:'HH:mm:ss' }}</span>
+              <span class="history-duration">{{ run.durationMs }} ms</span>
+            </div>
+            <div class="history-summary">
+              @for (line of run.logs.slice(-2); track $index) {
+                <span class="log-line log-{{ line.kind }}">{{ line.text }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </article>
   }
 
   <!-- ── 1. API Versioning ─────────────────────────────────────────────── -->
@@ -23,7 +62,7 @@
       </div>
     </div>
     <button class="run-btn" (click)="runVersionComparison()" [disabled]="versionRunning()">
-      {{ versionRunning() ? 'Running…' : '▶ Compare v1 vs v2' }}
+      {{ versionRunning() ? 'Running...' : '▶ Compare v1 vs v2' }}
     </button>
     @if (versionLog().length) {
       <div class="log-panel">
@@ -52,7 +91,7 @@
       <button class="sm-btn" (click)="resetIdemKey()">New key</button>
     </div>
     <button class="run-btn" (click)="runIdempotency()" [disabled]="idemRunning()">
-      {{ idemRunning() ? 'Running…' : '▶ Send twice with same key' }}
+      {{ idemRunning() ? 'Running...' : '▶ Send twice with same key' }}
     </button>
     @if (idemLog().length) {
       <div class="log-panel">
@@ -83,7 +122,7 @@
       </label>
     </div>
     <button class="run-btn" (click)="runRateLimit()" [disabled]="rateLimitRunning()">
-      {{ rateLimitRunning() ? 'Running…' : '▶ Fire requests' }}
+      {{ rateLimitRunning() ? 'Running...' : '▶ Fire requests' }}
     </button>
     @if (rateLimitLog().length) {
       <div class="log-panel">
@@ -114,7 +153,7 @@
       </label>
     </div>
     <button class="run-btn" (click)="runEnrich()" [disabled]="enrichRunning()">
-      {{ enrichRunning() ? 'Waiting for Kafka reply…' : '▶ Enrich customer' }}
+      {{ enrichRunning() ? 'Waiting for Kafka reply...' : '▶ Enrich customer' }}
     </button>
     @if (enrichLog().length) {
       <div class="log-panel">
@@ -139,7 +178,7 @@
       </div>
     </div>
     <button class="run-btn" (click)="runAggregate()" [disabled]="aggregateRunning()">
-      {{ aggregateRunning() ? 'Running parallel tasks…' : '▶ Run aggregate' }}
+      {{ aggregateRunning() ? 'Running parallel tasks...' : '▶ Run aggregate' }}
     </button>
     @if (aggregateLog().length) {
       <div class="log-panel">
