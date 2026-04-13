@@ -402,6 +402,44 @@ pre {
   overflow-y: auto;
 }
 
+// ── Quick traffic ───────────────────────────────────────────────────────────
+.quick-traffic {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+}
+
+.traffic-btn {
+  padding: 0.35rem 0.85rem;
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #047857;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.traffic-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 // ── Dependency graph ────────────────────────────────────────────────────────
 .dep-graph-container {
   background: var(--bg-card);

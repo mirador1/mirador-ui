@@ -8,6 +8,7 @@ import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.service';
+import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 interface HealthSnapshot {
   time: Date;
@@ -27,7 +28,7 @@ interface LatencyResult {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule],
+  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -280,6 +281,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
             }
           });
       }
+    }
+  }
+
+  // ── Quick traffic generator ────────────────────────────────────────────────
+  trafficRunning = signal(false);
+
+  quickTraffic(): void {
+    this.trafficRunning.set(true);
+    const base = this.env.baseUrl();
+    const endpoints = [
+      `${base}/customers?page=0&size=5`,
+      `${base}/customers?page=0&size=5`,
+      `${base}/actuator/health`,
+      `${base}/customers/recent`,
+      `${base}/customers/summary?page=0&size=5`,
+    ];
+    let done = 0;
+    const total = 20;
+    for (let i = 0; i < total; i++) {
+      const url = endpoints[i % endpoints.length];
+      this.http.get(url).pipe(catchError(() => of(null))).subscribe(() => {
+        done++;
+        if (done === total) {
+          this.trafficRunning.set(false);
+          this.toast.show('20 requests sent — refresh to see updated metrics', 'success');
+          this.refresh();
+        }
+      });
     }
   }
 
