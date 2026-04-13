@@ -32,6 +32,16 @@ export const routes: Routes = [
       import('./features/observability/observability.component').then(m => m.ObservabilityComponent)
   },
   {
+    path: 'request-builder',
+    loadComponent: () =>
+      import('./features/request-builder/request-builder.component').then(m => m.RequestBuilderComponent)
+  },
+  {
+    path: 'chaos',
+    loadComponent: () =>
+      import('./features/chaos/chaos.component').then(m => m.ChaosComponent)
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./features/login/login.component').then(m => m.LoginComponent)
