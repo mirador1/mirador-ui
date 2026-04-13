@@ -101,7 +101,7 @@ export class ObservabilityComponent implements OnDestroy {
 
     // Proxied via Angular dev server (proxy.conf.json: /zipkin -> localhost:9411)
     this.http
-      .get<any[][]>('/zipkin/api/v2/traces', {
+      .get<any[][]>('/docker-api/zipkin/api/v2/traces', {
         params: {
           serviceName: this.traceService,
           limit: this.traceLimit.toString(),
@@ -156,7 +156,7 @@ export class ObservabilityComponent implements OnDestroy {
     const start = (Date.now() - 3600000) * 1e6; // 1 hour ago
 
     this.http
-      .get<any>('/loki/loki/api/v1/query_range', {
+      .get<any>('/docker-api/loki/loki/api/v1/query_range', {
         params: {
           query: this.lokiQuery,
           limit: this.lokiLimit.toString(),
