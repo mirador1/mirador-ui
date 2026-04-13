@@ -7,25 +7,13 @@ import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
+import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.service';
 
 interface HealthSnapshot {
   time: Date;
   health: string;
   readiness: string;
   liveness: string;
-}
-
-interface ParsedMetrics {
-  httpRequestsTotal: number;
-  httpLatencyP50: number;
-  httpLatencyP95: number;
-  httpLatencyP99: number;
-}
-
-interface MetricsSample {
-  time: Date;
-  requestsTotal: number;
-  rps: number;
 }
 
 interface LatencyResult {
@@ -49,6 +37,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
+  readonly metricsService = inject(MetricsService);
 
   health = signal<unknown>(null);
   readiness = signal<unknown>(null);
@@ -64,10 +53,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // ── Health history ─────────────────────────────────────────────────────────
   healthHistory = signal<HealthSnapshot[]>([]);
 
-  // ── Real-time chart ───────────────────────────────────────────────────────
-  metricsSamples = signal<MetricsSample[]>([]);
-  private _chartTimer: ReturnType<typeof setInterval> | null = null;
-  chartRunning = signal(false);
+  // ── Real-time chart (persisted in MetricsService) ──────────────────────────
 
   // ── Latency comparator ────────────────────────────────────────────────────
   latencyEnvA = signal(0); // index in env.environments
@@ -108,7 +94,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
-    this.stopChart();
     window.removeEventListener('app:refresh', this._onRefresh);
   }
 
@@ -162,7 +147,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
 
     this.api.getPrometheusMetrics().subscribe({
-      next: text => this.metrics.set(this.parsePrometheus(text)),
+      next: text => this.metrics.set(this.metricsService.parsePrometheus(text)),
       error: () => this.metricsError.set('Could not fetch metrics')
     });
   }
@@ -180,46 +165,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this._timer) { clearInterval(this._timer); this._timer = null; }
   }
 
-  // ── Real-time chart ───────────────────────────────────────────────────────
+  // ── Real-time chart (delegates to MetricsService) ──────────────────────────
   toggleChart(): void {
-    if (this.chartRunning()) {
-      this.stopChart();
-    } else {
-      this.startChart();
-    }
-  }
-
-  private startChart(): void {
-    this.chartRunning.set(true);
-    this.metricsSamples.set([]);
-    this.sampleMetrics();
-    this._chartTimer = setInterval(() => this.sampleMetrics(), 3000);
-  }
-
-  private stopChart(): void {
-    this.chartRunning.set(false);
-    if (this._chartTimer) { clearInterval(this._chartTimer); this._chartTimer = null; }
-  }
-
-  private sampleMetrics(): void {
-    this.api.getPrometheusMetrics().subscribe({
-      next: text => {
-        const parsed = this.parsePrometheus(text);
-        const samples = this.metricsSamples();
-        const prevTotal = samples.length > 0 ? samples[samples.length - 1].requestsTotal : parsed.httpRequestsTotal;
-        const rps = Math.max(0, (parsed.httpRequestsTotal - prevTotal) / 3);
-        this.metricsSamples.update(s => [...s.slice(-39), {
-          time: new Date(),
-          requestsTotal: parsed.httpRequestsTotal,
-          rps
-        }]);
-      },
-      error: () => {}
-    });
+    this.metricsService.toggle();
   }
 
   chartBars(): Array<{ x: number; height: number; rps: number }> {
-    const samples = this.metricsSamples();
+    const samples = this.metricsService.samples();
     if (samples.length < 2) return [];
     const maxRps = Math.max(1, ...samples.map(s => s.rps));
     const barWidth = 300 / 40;
@@ -231,7 +183,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   chartMaxRps(): number {
-    const samples = this.metricsSamples();
+    const samples = this.metricsService.samples();
     return Math.max(1, ...samples.map(s => s.rps));
   }
 
@@ -411,23 +363,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private extractStatus(data: unknown): string {
     return (data as { status?: string })?.status ?? '?';
-  }
-
-  private parsePrometheus(raw: string): ParsedMetrics {
-    const getCounter = (name: string): number => {
-      const match = raw.match(new RegExp(`^${name}\\b.*?\\s+(\\d+\\.?\\d*)`, 'm'));
-      return match ? parseFloat(match[1]) : 0;
-    };
-    const getQuantile = (name: string, q: string): number => {
-      const match = raw.match(new RegExp(`^${name}\\{.*quantile="${q}".*\\}\\s+(\\d+\\.?\\d*(?:E[+-]?\\d+)?)`, 'm'));
-      return match ? parseFloat(match[1]) * 1000 : 0;
-    };
-    return {
-      httpRequestsTotal: getCounter('http_server_requests_seconds_count'),
-      httpLatencyP50: getQuantile('http_server_requests_seconds', '0.5'),
-      httpLatencyP95: getQuantile('http_server_requests_seconds', '0.95'),
-      httpLatencyP99: getQuantile('http_server_requests_seconds', '0.99')
-    };
   }
 
   statusClass(data: unknown): string {

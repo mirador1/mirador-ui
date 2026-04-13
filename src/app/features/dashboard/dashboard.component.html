@@ -60,11 +60,11 @@
   <div class="section-header">
     <h3>Real-time HTTP Throughput</h3>
     <button class="refresh-btn" (click)="toggleChart()">
-      {{ chartRunning() ? '⏹ Stop' : '▶ Start' }} live chart
+      {{ metricsService.running() ? '⏹ Stop' : '▶ Start' }} live chart
     </button>
   </div>
 
-  @if (metricsSamples().length > 1) {
+  @if (metricsService.samples().length > 1) {
     <div class="chart-container">
       <div class="chart-y-axis">
         <span>{{ chartMaxRps() | number:'1.1-1' }} rps</span>
@@ -85,7 +85,7 @@
         }
       </svg>
     </div>
-  } @else if (chartRunning()) {
+  } @else if (metricsService.running()) {
     <p class="muted">Collecting samples...</p>
   }
 
