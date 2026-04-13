@@ -1,11 +1,25 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { forkJoin, catchError, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { ActivityService } from '../../core/activity/activity.service';
+import { EnvService } from '../../core/env/env.service';
+
+interface DiffLine {
+  type: 'same' | 'add' | 'remove';
+  text: string;
+}
+
+interface StressSample {
+  second: number;
+  ok: number;
+  err: number;
+}
 
 interface LogLine {
   kind: 'req' | 'res' | 'err' | 'info';
@@ -26,14 +40,17 @@ function ts(): string {
 @Component({
   selector: 'app-diagnostic',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, DecimalPipe],
   templateUrl: './diagnostic.component.html',
   styleUrl: './diagnostic.component.scss'
 })
 export class DiagnosticComponent {
   private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly activity = inject(ActivityService);
+  private readonly env = inject(EnvService);
 
   // ── Run history ────────────────────────────────────────────────────────────
   runHistory = signal<RunRecord[]>([]);
@@ -254,6 +271,117 @@ export class DiagnosticComponent {
     });
   }
 
+  // ── 6. Version Diff ────────────────────────────────────────────────────────
+  versionDiff = signal<DiffLine[]>([]);
+
+  private computeDiff(v1: unknown, v2: unknown): void {
+    const lines1 = JSON.stringify(v1, null, 2).split('\n');
+    const lines2 = JSON.stringify(v2, null, 2).split('\n');
+    const diff: DiffLine[] = [];
+    const maxLen = Math.max(lines1.length, lines2.length);
+
+    for (let i = 0; i < maxLen; i++) {
+      const l1 = lines1[i] ?? '';
+      const l2 = lines2[i] ?? '';
+      if (l1 === l2) {
+        diff.push({ type: 'same', text: l1 });
+      } else {
+        if (l1) diff.push({ type: 'remove', text: l1 });
+        if (l2) diff.push({ type: 'add', text: l2 });
+      }
+    }
+    this.versionDiff.set(diff);
+  }
+
+  runVersionDiff(): void {
+    this.versionRunning.set(true);
+    this.versionDiff.set([]);
+    forkJoin({
+      v1: this.api.getCustomers(0, 1, '1.0').pipe(catchError(e => of({ error: e.status }))),
+      v2: this.api.getCustomers(0, 1, '2.0').pipe(catchError(e => of({ error: e.status })))
+    }).subscribe(({ v1, v2 }) => {
+      const c1 = (v1 as any).content?.[0] ?? v1;
+      const c2 = (v2 as any).content?.[0] ?? v2;
+      this.computeDiff(c1, c2);
+      this.versionRunning.set(false);
+    });
+  }
+
+  // ── 7. Stress Test ────────────────────────────────────────────────────────
+  stressLog = signal<LogLine[]>([]);
+  stressSamples = signal<StressSample[]>([]);
+  stressRunning = signal(false);
+  stressDuration = 10; // seconds
+  stressConcurrency = 5;
+  stressEndpoint = '/customers?page=0&size=1';
+  private _stressAbort = false;
+
+  async runStressTest(): Promise<void> {
+    this.stressRunning.set(true);
+    this._stressAbort = false;
+    this.stressSamples.set([]);
+    this.stressLog.set([
+      { kind: 'info', text: `Stress test: ${this.stressConcurrency} concurrent, ${this.stressDuration}s, endpoint: ${this.stressEndpoint}` }
+    ]);
+
+    const baseUrl = this.env.baseUrl();
+    const endpoint = this.stressEndpoint;
+    let totalOk = 0;
+    let totalErr = 0;
+
+    for (let sec = 0; sec < this.stressDuration && !this._stressAbort; sec++) {
+      const t0 = Date.now();
+      let secOk = 0;
+      let secErr = 0;
+
+      const batch = Array.from({ length: this.stressConcurrency }, () =>
+        this.http.get(`${baseUrl}${endpoint}`).pipe(
+          catchError(() => { secErr++; return of(null); })
+        ).toPromise().then(() => { if (secErr === 0) secOk++; })
+      );
+
+      await Promise.all(batch);
+      // Correct count: secOk was only incremented when no error
+      secOk = this.stressConcurrency - secErr;
+      totalOk += secOk;
+      totalErr += secErr;
+
+      this.stressSamples.update(s => [...s, { second: sec + 1, ok: secOk, err: secErr }]);
+      this.stressLog.update(l => [...l, {
+        kind: secErr > 0 ? 'err' as const : 'res' as const,
+        text: `[${sec + 1}s] ${secOk} OK / ${secErr} errors`
+      }]);
+
+      // Wait remainder of the second
+      const elapsed = Date.now() - t0;
+      if (elapsed < 1000) await new Promise(r => setTimeout(r, 1000 - elapsed));
+    }
+
+    this.stressLog.update(l => [...l, {
+      kind: 'info',
+      text: `Done: ${totalOk + totalErr} requests (${totalOk} OK, ${totalErr} errors) over ${this.stressDuration}s`
+    }]);
+    this.stressRunning.set(false);
+    this.recordRun('Stress Test', this.stressLog(), this.stressDuration * 1000);
+    this.activity.log('diagnostic-run', `Stress test: ${totalOk + totalErr} requests in ${this.stressDuration}s`);
+  }
+
+  stopStressTest(): void {
+    this._stressAbort = true;
+  }
+
+  stressChartBars(): Array<{ x: number; okH: number; errH: number }> {
+    const samples = this.stressSamples();
+    if (!samples.length) return [];
+    const max = Math.max(1, ...samples.map(s => s.ok + s.err));
+    const barW = 300 / Math.max(samples.length, 1);
+    return samples.map((s, i) => ({
+      x: i * barW,
+      okH: (s.ok / max) * 80,
+      errH: (s.err / max) * 80
+    }));
+  }
+
   // ── Run All ───────────────────────────────────────────────────────────────
   async runAll(): Promise<void> {
     this.runAllRunning.set(true);
@@ -286,8 +414,9 @@ export class DiagnosticComponent {
   private recordRun(scenario: string, logs: LogLine[], durationMs: number): void {
     this.runHistory.update(h => [
       { scenario, timestamp: new Date(), logs, durationMs },
-      ...h.slice(0, 49) // keep last 50
+      ...h.slice(0, 49)
     ]);
+    this.activity.log('diagnostic-run', `${scenario} completed in ${durationMs} ms`);
   }
 
   toggleHistory(): void {

@@ -188,4 +188,100 @@
       </div>
     }
   </article>
+
+  <!-- ── 6. Version Diff ──────────────────────────────────────────────── -->
+  <article class="card">
+    <div class="scenario-header">
+      <div class="scenario-badge version">Diff</div>
+      <div>
+        <h3>API Response Diff — v1.0 vs v2.0</h3>
+        <p>
+          Fetches the same customer with both API versions and renders a colored diff.
+          Lines in <span class="diff-legend-add">green</span> are v2-only fields,
+          lines in <span class="diff-legend-remove">red</span> are v1-only.
+        </p>
+      </div>
+    </div>
+    <button class="run-btn" (click)="runVersionDiff()" [disabled]="versionRunning()">
+      {{ versionRunning() ? 'Running...' : '▶ Generate diff' }}
+    </button>
+    @if (versionDiff().length) {
+      <div class="diff-panel">
+        @for (line of versionDiff(); track $index) {
+          <div class="diff-line diff-{{ line.type }}">
+            <span class="diff-marker">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>
+            {{ line.text }}
+          </div>
+        }
+      </div>
+    }
+  </article>
+
+  <!-- ── 7. Stress Test ───────────────────────────────────────────────── -->
+  <article class="card">
+    <div class="scenario-header">
+      <div class="scenario-badge rate">Load</div>
+      <div>
+        <h3>Stress Test — Sustained Load</h3>
+        <p>
+          Sends a continuous stream of requests for a configurable duration.
+          Observe throughput and error rate in real-time. Uses the selected
+          environment's base URL.
+        </p>
+      </div>
+    </div>
+    <div class="stress-controls">
+      <label>
+        Duration (s)
+        <input type="number" [(ngModel)]="stressDuration" min="1" max="60" />
+      </label>
+      <label>
+        Concurrency
+        <input type="number" [(ngModel)]="stressConcurrency" min="1" max="20" />
+      </label>
+      <label>
+        Endpoint
+        <input type="text" [(ngModel)]="stressEndpoint" class="endpoint-input" />
+      </label>
+    </div>
+    <div class="stress-actions">
+      <button class="run-btn" (click)="runStressTest()" [disabled]="stressRunning()">
+        {{ stressRunning() ? 'Running...' : '▶ Start stress test' }}
+      </button>
+      @if (stressRunning()) {
+        <button class="stop-btn" (click)="stopStressTest()">⏹ Stop</button>
+      }
+    </div>
+
+    @if (stressSamples().length) {
+      <div class="stress-chart">
+        <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+          @for (bar of stressChartBars(); track $index) {
+            <rect
+              [attr.x]="bar.x" [attr.y]="100 - bar.okH - bar.errH"
+              [attr.width]="6" [attr.height]="bar.okH"
+              rx="1" fill="#4ade80" opacity="0.8" />
+            @if (bar.errH > 0) {
+              <rect
+                [attr.x]="bar.x" [attr.y]="100 - bar.errH"
+                [attr.width]="6" [attr.height]="bar.errH"
+                rx="1" fill="#f87171" opacity="0.8" />
+            }
+          }
+        </svg>
+        <div class="stress-legend">
+          <span class="legend-ok">OK</span>
+          <span class="legend-err">Errors</span>
+        </div>
+      </div>
+    }
+
+    @if (stressLog().length) {
+      <div class="log-panel">
+        @for (line of stressLog(); track $index) {
+          <div class="log-line log-{{ line.kind }}">{{ line.text }}</div>
+        }
+      </div>
+    }
+  </article>
 </section>
