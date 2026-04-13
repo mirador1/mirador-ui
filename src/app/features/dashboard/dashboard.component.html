@@ -2,13 +2,25 @@
   <div class="page-header">
     <div>
       <h2>Dashboard</h2>
-      <p class="subtitle">Backend health overview — <strong>localhost:8080</strong></p>
+      <p class="subtitle">Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})</p>
     </div>
     <div class="header-actions">
+      <div class="auto-refresh">
+        <span class="label">Auto-refresh</span>
+        <div class="toggle-btns">
+          @for (opt of intervalOptions; track opt.value) {
+            <button
+              [class.active]="autoRefreshInterval() === opt.value"
+              (click)="setAutoRefresh(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
       @if (lastRefresh()) {
-        <span class="ts">Refreshed at {{ lastRefresh() | date:'HH:mm:ss' }}</span>
+        <span class="ts">{{ lastRefresh() | date:'HH:mm:ss' }}</span>
       }
-      <button (click)="refresh()">↻ Refresh</button>
+      <button class="refresh-btn" (click)="refresh()">↻ Refresh</button>
     </div>
   </div>
 
@@ -18,7 +30,55 @@
     </div>
   }
 
+  <!-- Stats cards -->
+  <div class="stats-grid">
+    <article class="stat-card">
+      <span class="stat-value">{{ customerCount() ?? '—' }}</span>
+      <span class="stat-label">Total Customers</span>
+    </article>
+    @if (metrics()) {
+      <article class="stat-card">
+        <span class="stat-value">{{ metrics()!.httpRequestsTotal | number:'1.0-0' }}</span>
+        <span class="stat-label">HTTP Requests (total)</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-value">{{ metrics()!.httpLatencyP50 | number:'1.1-1' }} ms</span>
+        <span class="stat-label">Latency p50</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-value">{{ metrics()!.httpLatencyP95 | number:'1.1-1' }} ms</span>
+        <span class="stat-label">Latency p95</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-value">{{ metrics()!.httpLatencyP99 | number:'1.1-1' }} ms</span>
+        <span class="stat-label">Latency p99</span>
+      </article>
+    }
+  </div>
+
   <h3>Health Probes</h3>
+
+  <!-- Health history sparkline -->
+  @if (healthHistory().length > 1) {
+    <div class="sparkline-container">
+      <span class="sparkline-label">Health history ({{ healthHistory().length }} checks)</span>
+      <svg viewBox="0 0 200 30" class="sparkline">
+        <path [attr.d]="sparklinePath()" fill="none" stroke="var(--color-accent)" stroke-width="2"/>
+        @for (snap of healthHistory(); track $index; let i = $index) {
+          <circle
+            [attr.cx]="i * (200 / (healthHistory().length - 1))"
+            [attr.cy]="snap.health === 'UP' ? 5 : 25"
+            r="3"
+            [attr.fill]="snap.health === 'UP' ? '#4ade80' : '#f87171'" />
+        }
+      </svg>
+      <div class="sparkline-legend">
+        <span class="legend-up">UP</span>
+        <span class="legend-down">DOWN</span>
+      </div>
+    </div>
+  }
+
   <div class="probes-grid">
     <article class="card">
       <div class="card-title">
