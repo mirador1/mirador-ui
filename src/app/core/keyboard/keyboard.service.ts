@@ -1,3 +1,16 @@
+/**
+ * KeyboardService — Global keyboard shortcut handler.
+ *
+ * Provides Vim-style two-key navigation sequences (e.g., G then D for Dashboard)
+ * and single-key actions (D for dark mode, R for refresh, ? for help).
+ *
+ * Key features:
+ * - Shortcuts are disabled when focus is in input/textarea/select elements
+ * - G key starts a 500ms window for the second key (navigation)
+ * - Ctrl+K / Cmd+K opens the global search overlay (works even in inputs)
+ * - R dispatches a custom `app:refresh` event that feature pages can listen to
+ * - Escape closes any open modal or search overlay
+ */
 import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeService } from '../theme/theme.service';
@@ -31,6 +44,7 @@ export class KeyboardService implements OnDestroy {
     { key: 'D', description: 'Toggle dark/light mode', category: 'Actions' },
   ];
 
+  /** Whether the G key was pressed, waiting for the second key within 500ms */
   private _gPending = false;
   private _gTimer: ReturnType<typeof setTimeout> | null = null;
 

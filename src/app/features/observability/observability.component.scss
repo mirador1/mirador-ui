@@ -37,11 +37,11 @@ h2 {
 .tabs {
   display: flex;
   gap: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   border-bottom: 2px solid var(--border-default);
 
   button {
-    padding: 0.55rem 1.25rem;
+    padding: 0.6rem 1.25rem;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -49,19 +49,64 @@ h2 {
     font-size: 0.92rem;
     color: var(--text-label);
     margin-bottom: -2px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
 
     small {
       font-size: 0.72rem;
       color: var(--text-muted);
-      margin-left: 0.3rem;
     }
     &:hover {
       color: var(--color-accent);
+      background: var(--bg-card-hover);
     }
     &.tab-active {
       color: var(--color-accent);
       border-bottom-color: var(--color-accent);
       font-weight: 600;
+      background: var(--bg-card);
+    }
+  }
+}
+
+.tab-icon {
+  font-size: 1rem;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.tab-desc-text {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.tab-links {
+  display: flex;
+  gap: 0.75rem;
+
+  a {
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+
+    &:hover {
+      opacity: 1;
+      text-decoration: underline;
     }
   }
 }
@@ -307,6 +352,8 @@ h2 {
 
 // ── Latency histogram ───────────────────────────────────────────────────────
 .histogram-container {
+  display: flex;
+  align-items: stretch;
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: 8px;
@@ -355,6 +402,32 @@ h2 {
   margin-top: 0.3rem;
   font-family: monospace;
   white-space: nowrap;
+}
+
+.histogram-y-axis {
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
+
+  span {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.histogram-x-label {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+.histogram-col {
+  cursor: help;
 }
 
 // ── Flame graph ─────────────────────────────────────────────────────────────

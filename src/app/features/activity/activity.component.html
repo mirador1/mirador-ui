@@ -12,20 +12,27 @@
 
   <div class="filter-bar">
     @for (f of typeFilters; track f) {
-      <button class="filter-btn" [class.active]="filterType() === f" (click)="filterType.set(f)">
-        {{ typeLabels[f] }}
+      <button class="filter-btn" [class.active]="filterType() === f" (click)="filterType.set(f)" [title]="typeLabels[f].tip">
+        {{ typeLabels[f].icon }} {{ typeLabels[f].label }}
       </button>
     }
+  </div>
+
+  <div class="quick-actions">
+    <span class="quick-label">Generate activity:</span>
+    <button class="action-btn" (click)="quickCreate()">+ Create customer</button>
+    <button class="action-btn" (click)="quickHealth()">💚 Health check</button>
+    <button class="action-btn" (click)="quickTraffic()" [disabled]="generating()">
+      {{ generating() ? 'Generating...' : '⚡ Full cycle (all 7 event types)' }}
+    </button>
   </div>
 
   @if (filteredEvents.length === 0) {
     <div class="empty-state">
       <p>No activity yet.</p>
       <p class="empty-hint">
-        Events are logged in-memory during this browser session. Try:
-        creating a customer, generating traffic from the Dashboard,
-        running a diagnostic scenario, or stopping a Docker container.
-        Each action will appear here with a timestamp.
+        Click one of the buttons above to generate events, or use other pages
+        (Dashboard, Customers, Diagnostic, Chaos) — all actions appear here.
       </p>
     </div>
   } @else {

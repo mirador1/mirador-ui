@@ -1,3 +1,15 @@
+/**
+ * RequestBuilderComponent — Postman-like HTTP client built into the app.
+ *
+ * Features:
+ * - 13 pre-configured request presets (health, CRUD, actuator, etc.)
+ * - Method selector (GET/POST/PUT/DELETE/PATCH)
+ * - Custom headers and body input
+ * - Response display: status code (color-coded), timing, headers, formatted body
+ * - Request history (last 20) with click-to-replay
+ *
+ * URLs can be relative (prefixed with EnvService base URL) or absolute.
+ */
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
@@ -5,6 +17,7 @@ import { RouterLink } from '@angular/router';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
+/** Pre-configured request template */
 interface SavedRequest {
   name: string;
   method: string;

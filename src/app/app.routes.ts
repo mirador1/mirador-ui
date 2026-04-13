@@ -1,3 +1,10 @@
+/**
+ * Application routes — all feature pages are lazy-loaded via `loadComponent`
+ * to minimize the initial bundle size and improve startup performance.
+ *
+ * Each route maps to a standalone component in `features/`.
+ * The wildcard route (`**`) redirects unknown paths to the dashboard.
+ */
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
@@ -50,6 +57,10 @@ export const routes: Routes = [
   {
     path: 'chaos',
     loadComponent: () => import('./features/chaos/chaos.component').then((m) => m.ChaosComponent),
+  },
+  {
+    path: 'about',
+    loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
   },
   {
     path: 'login',

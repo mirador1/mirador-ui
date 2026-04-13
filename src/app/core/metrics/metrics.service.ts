@@ -1,13 +1,30 @@
+/**
+ * MetricsService — Persistent Prometheus metrics polling.
+ *
+ * Polls `/actuator/prometheus` every 3 seconds and computes:
+ * - Requests per second (RPS) from total request count deltas
+ * - Latency percentiles (p50/p95/p99) from HTTP histogram buckets
+ *
+ * Key design: this is a singleton service whose polling state **persists
+ * across page navigation**. The live throughput chart on the Dashboard
+ * continues collecting data even when the user navigates to other pages.
+ *
+ * The `parsePrometheus()` method handles raw Prometheus text format,
+ * aggregating histogram buckets across all URIs/methods/statuses and
+ * using linear interpolation within buckets for percentile estimation.
+ */
 import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { EnvService } from '../env/env.service';
 
+/** Single polling sample with timestamp, cumulative total, and computed RPS */
 export interface MetricsSample {
   time: Date;
   requestsTotal: number;
   rps: number;
 }
 
+/** Parsed metrics extracted from Prometheus text exposition format */
 export interface ParsedMetrics {
   httpRequestsTotal: number;
   httpLatencyP50: number;
@@ -44,11 +61,13 @@ export class MetricsService {
     else this.start();
   }
 
+  /** Fetch Prometheus metrics and compute RPS from request count delta */
   private poll(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
         const parsed = this.parsePrometheus(text);
         const current = this.samples();
+        // RPS = (current total - previous total) / polling interval (3s)
         const prevTotal =
           current.length > 0 ? current[current.length - 1].requestsTotal : parsed.httpRequestsTotal;
         const rps = Math.max(0, (parsed.httpRequestsTotal - prevTotal) / 3);
@@ -65,6 +84,12 @@ export class MetricsService {
     });
   }
 
+  /**
+   * Parse raw Prometheus text format into structured metrics.
+   *
+   * Extracts HTTP request counts and computes latency percentiles from
+   * histogram buckets using linear interpolation within bucket boundaries.
+   */
   parsePrometheus(raw: string): ParsedMetrics {
     // Total request count (sum across all URIs)
     let totalCount = 0;

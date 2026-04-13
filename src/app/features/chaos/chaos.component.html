@@ -17,7 +17,6 @@
     <!-- Impact monitor -->
     @if (monitoring()) {
       <div class="monitor-grid">
-        <!-- Health pings chart -->
         <div class="impact-chart">
           <h4>Health Pings <small>5 probes every 2s</small></h4>
           @if (impactSamples().length > 1) {
@@ -33,8 +32,6 @@
             <p class="muted">Collecting...</p>
           }
         </div>
-
-        <!-- Traffic breakdown -->
         <div class="impact-chart">
           <h4>Live Traffic <small>{{ totalRps() }} req/s from Prometheus</small></h4>
           @if (trafficBreakdown().length) {
@@ -54,62 +51,60 @@
       </div>
     }
 
-    <div class="panels-layout">
+    <!-- Scenarios table (same layout as Diagnostic) -->
+    <div class="scenarios-table">
       <!-- Chaos actions -->
-      <div class="panel">
-        <h3>Chaos Actions</h3>
-        <div class="actions-grid">
-          @for (a of actions; track a.name) {
-            <button class="chaos-btn" (click)="a.action()" [style.border-left-color]="a.color">
-              <span class="chaos-icon">{{ a.icon }}</span>
-              <div class="chaos-info">
-                <strong>{{ a.name }}</strong>
-                <small>{{ a.description }}</small>
-              </div>
-            </button>
-          }
+      @for (a of actions; track a.name) {
+        <div class="scenario-row">
+          <div class="scenario-meta">
+            <span class="scenario-badge" [style.background]="a.color + '20'" [style.color]="a.color">{{ a.icon }}</span>
+            <div class="scenario-desc">
+              <strong>{{ a.name }}</strong>
+              <span>{{ a.description }}</span>
+            </div>
+          </div>
+          <div class="scenario-action">
+            @if (a.name === 'Generate Traffic') {
+              <label class="inline-param"><input type="number" [(ngModel)]="trafficDuration" min="1" max="60" />s</label>
+              <button class="run-btn" (click)="a.action()" [disabled]="trafficRunning()">
+                {{ trafficRunning() ? '...' : '▶ Run' }}
+              </button>
+              @if (trafficRunning()) {
+                <button class="stop-btn" (click)="stopTraffic()">⏹</button>
+              }
+            } @else {
+              <button class="run-btn" (click)="a.action()">▶ Run</button>
+            }
+          </div>
         </div>
-
-        <!-- Traffic generator controls -->
-        <div class="traffic-controls">
-          <label
-            >Duration
-            <input type="number" [(ngModel)]="trafficDuration" min="1" max="60" /> s</label
-          >
-          @if (trafficRunning()) {
-            <button class="stop-btn" (click)="stopTraffic()">⏹ Stop traffic</button>
-          }
-        </div>
-      </div>
+      }
 
       <!-- Faker generator -->
-      <div class="panel">
-        <h3>Data Generator (Faker)</h3>
-        <p class="panel-desc">Create realistic customer records with random names and emails.</p>
-        <div class="faker-controls">
-          <label>Count <input type="number" [(ngModel)]="fakerCount" min="1" max="500" /></label>
-          <label
-            >Delay <input type="number" [(ngModel)]="fakerDelay" min="0" max="2000" /> ms</label
-          >
+      <div class="scenario-row">
+        <div class="scenario-meta">
+          <span class="scenario-badge" style="background: #8b5cf620; color: #8b5cf6">🎭</span>
+          <div class="scenario-desc">
+            <strong>Generate Fake Customers</strong>
+            <span>Create realistic records with random names &amp; emails</span>
+          </div>
+        </div>
+        <div class="scenario-action">
+          <label class="inline-param">×<input type="number" [(ngModel)]="fakerCount" min="1" max="500" /></label>
+          <label class="inline-param"><input type="number" [(ngModel)]="fakerDelay" min="0" max="2000" />ms</label>
           <button class="run-btn" (click)="runFaker()" [disabled]="fakerRunning()">
-            {{ fakerRunning() ? 'Running...' : '▶ Generate' }}
+            {{ fakerRunning() ? '...' : '▶ Run' }}
           </button>
           @if (fakerRunning()) {
             <button class="stop-btn" (click)="stopFaker()">⏹</button>
+            <span class="progress-inline">{{ fakerProgress() }}/{{ fakerCount }}</span>
           }
         </div>
-        @if (fakerRunning()) {
-          <div class="progress-bar">
-            <div class="progress-fill" [style.width.%]="(fakerProgress() / fakerCount) * 100"></div>
-          </div>
-          <span class="progress-text">{{ fakerProgress() }} / {{ fakerCount }}</span>
-        }
       </div>
     </div>
 
     <!-- Chaos log -->
     @if (chaosLog().length) {
-      <article class="card">
+      <article class="card log-card">
         <h3>Event Log</h3>
         <div class="chaos-log">
           @for (entry of chaosLog(); track $index) {
@@ -122,5 +117,4 @@
       </article>
     }
   }
-  <!-- end auth -->
 </section>

@@ -1,14 +1,33 @@
+/**
+ * ChaosComponent — Failure injection, traffic generation, and impact monitoring.
+ *
+ * Chaos actions:
+ * - Exhaust Rate Limit: 120 rapid requests to exceed the 100 req/min bucket
+ * - Kafka Timeout: triggers 5s enrich timeout via /customers/1/enrich
+ * - Circuit Breaker Trip: 10 rapid /bio calls to open Ollama's circuit breaker
+ * - Invalid Payload Flood: 50 empty POST /customers for validation errors
+ * - Concurrent Writes: 20 simultaneous customer creates
+ * - Generate Traffic: mixed GET/POST for N seconds
+ *
+ * Impact monitor: polls every 2s with 5 health pings + Prometheus traffic breakdown.
+ * Shows a live stacked bar chart (OK vs errors) and top-10 endpoint breakdown with RPS.
+ *
+ * Faker generator: creates N customers with realistic random names/emails
+ * using a configurable delay between requests. Abortable mid-run.
+ */
 import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
+import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 
+/** Chaos action definition with name, description, and action callback */
 interface ChaosAction {
   name: string;
   description: string;
@@ -17,6 +36,7 @@ interface ChaosAction {
   action: () => void;
 }
 
+/** Impact monitoring sample: health ping results + average latency */
 interface ImpactSample {
   time: Date;
   ok: number;
@@ -33,6 +53,7 @@ interface ImpactSample {
 })
 export class ChaosComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiService);
   readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
@@ -246,28 +267,31 @@ export class ChaosComponent implements OnDestroy {
   private triggerKafkaTimeout(): void {
     this.logAction('Triggering Kafka enrich timeout (5s)...');
     const base = this.env.baseUrl();
-    const t0 = Date.now();
-    this.http
-      .get(`${base}/customers/1/enrich`)
-      .pipe(catchError((e) => of({ error: true, status: e.status })))
-      .subscribe((res: any) => {
-        const elapsed = Date.now() - t0;
-        if (res.error) {
-          this.logImpact(`Kafka timeout: ${res.status} after ${elapsed} ms`);
-        } else {
-          this.logImpact(`Kafka responded OK in ${elapsed} ms (consumer is running)`);
-        }
-      });
+    this.api.getFirstCustomerId().subscribe(id => {
+      const t0 = Date.now();
+      this.http
+        .get(`${base}/customers/${id}/enrich`)
+        .pipe(catchError((e) => of({ error: true, status: e.status })))
+        .subscribe((res: any) => {
+          const elapsed = Date.now() - t0;
+          if (res.error) {
+            this.logImpact(`Kafka timeout: ${res.status} after ${elapsed} ms`);
+          } else {
+            this.logImpact(`Kafka responded OK in ${elapsed} ms (consumer is running)`);
+          }
+        });
+    });
   }
 
   private tripCircuitBreaker(): void {
     this.logAction('Hitting /bio 10 times to trip circuit breaker...');
     const base = this.env.baseUrl();
+    this.api.getFirstCustomerId().subscribe(id => {
     let opened = 0;
     let done = 0;
     for (let i = 0; i < 10; i++) {
       this.http
-        .get(`${base}/customers/1/bio`)
+        .get(`${base}/customers/${id}/bio`)
         .pipe(
           catchError((e) => {
             if (e.status === 503 || e.status === 500) opened++;
@@ -285,6 +309,7 @@ export class ChaosComponent implements OnDestroy {
           }
         });
     }
+    }); // end getFirstCustomerId
   }
 
   private invalidPayloadFlood(): void {

@@ -1,3 +1,20 @@
+/**
+ * DiagnosticComponent — Interactive test scenarios with terminal-style output.
+ *
+ * Seven scenarios that exercise backend features and display results as
+ * color-coded log lines (req=blue, res=green, err=red, info=gray):
+ *
+ * 1. API Versioning — Side-by-side v1 vs v2 response comparison
+ * 2. Idempotency — Same key sent twice, verifies cached response
+ * 3. Rate Limiting — Burst N concurrent requests, observe 429s
+ * 4. Kafka Enrich — Request-reply timing, 504 on timeout
+ * 5. Virtual Threads — Parallel task execution via /customers/aggregate
+ * 6. Version Diff — Colored JSON diff between v1 and v2 responses
+ * 7. Stress Test — Sustained load with live SVG chart of throughput + errors
+ *
+ * "Run All" executes scenarios 1-5 sequentially (polls `running` signal).
+ * History is kept in-memory (last 50 runs) and exportable as JSON.
+ */
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,22 +27,26 @@ import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { EnvService } from '../../core/env/env.service';
 
+/** A single line in a JSON diff view */
 interface DiffLine {
   type: 'same' | 'add' | 'remove';
   text: string;
 }
 
+/** Per-second throughput sample during a stress test */
 interface StressSample {
   second: number;
   ok: number;
   err: number;
 }
 
+/** Terminal-style log line with type-based coloring */
 interface LogLine {
   kind: 'req' | 'res' | 'err' | 'info';
   text: string;
 }
 
+/** Persisted record of a completed diagnostic run */
 interface RunRecord {
   scenario: string;
   timestamp: Date;
@@ -33,6 +54,7 @@ interface RunRecord {
   durationMs: number;
 }
 
+/** Current time as HH:MM:SS.mmm for log prefixing */
 function ts(): string {
   return new Date().toISOString().slice(11, 23);
 }

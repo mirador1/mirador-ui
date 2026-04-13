@@ -39,7 +39,7 @@
             class="endpoint-btn"
             [class.active]="selectedEndpoint() === ep.path"
             (click)="callEndpoint(ep.path)">
-            {{ ep.label }}
+            {{ ep.icon }} {{ ep.label }}
           </button>
         }
       </div>
@@ -62,28 +62,89 @@
       </article>
     }
 
-    <!-- External tools -->
+    <!-- Loggers -->
     <article class="card">
-      <h3>External Admin Tools</h3>
-      <p class="card-desc">These features require dedicated tools. Click to open in a new tab.</p>
-      <div class="ext-links">
-        <a href="http://localhost:5050" target="_blank" rel="noopener" class="ext-link">
-          <strong>pgAdmin</strong>
-          <small>SQL queries, table browser, database management</small>
-        </a>
-        <a [href]="env.baseUrl() + '/swagger-ui.html'" target="_blank" rel="noopener" class="ext-link">
-          <strong>Swagger UI</strong>
-          <small>Full API documentation with interactive testing</small>
-        </a>
-        <a href="http://localhost:9080" target="_blank" rel="noopener" class="ext-link">
-          <strong>Kafka UI</strong>
-          <small>Topics, consumer groups, messages</small>
-        </a>
-        <a href="http://localhost:5540" target="_blank" rel="noopener" class="ext-link">
-          <strong>RedisInsight</strong>
-          <small>Key browser, memory analysis</small>
-        </a>
+      <h3>📝 Loggers</h3>
+      <div class="logger-controls">
+        <button class="action-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
+          {{ loggerLoading() ? 'Loading...' : '↻ Load loggers' }}
+        </button>
+        @if (loggers().length) {
+          <input type="text" placeholder="Filter loggers..." [(ngModel)]="loggerFilter" class="logger-filter" />
+        }
       </div>
+      @if (filteredLoggers.length) {
+        <div class="logger-list">
+          @for (l of filteredLoggers; track l.name) {
+            <div class="logger-row">
+              <span class="logger-name">{{ l.name }}</span>
+              <span class="logger-level">{{ l.level }}</span>
+              <div class="logger-actions">
+                @for (lv of ['TRACE','DEBUG','INFO','WARN','ERROR']; track lv) {
+                  <button class="level-btn" [class.active]="l.level === lv" (click)="setLoggerLevel(l.name, lv)">{{ lv }}</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
     </article>
+
+    <!-- SQL Explorer & PostgreSQL Diagnostics -->
+    <article class="card">
+      <h3>🐘 SQL Explorer & PostgreSQL Diagnostics</h3>
+      <p class="card-desc">
+        Execute read-only SQL queries via <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a> (read-only).
+        For write operations (VACUUM, ANALYZE, REINDEX), use <a href="http://localhost:5050" target="_blank" rel="noopener">🛢️ pgAdmin</a>.
+      </p>
+
+      <div class="sql-presets">
+        @for (cat of sqlPresetCategories; track cat.label) {
+          <div class="sql-cat">
+            <strong class="sql-cat-label">{{ cat.label }}</strong>
+            <div class="sql-cat-btns">
+              @for (p of cat.presets; track p.name) {
+                <button class="sql-preset-btn" (click)="sqlQuery = p.query; executeSql()" [title]="p.tip">{{ p.icon }} {{ p.name }}</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="sql-editor">
+        <textarea [(ngModel)]="sqlQuery" rows="3" class="sql-textarea" placeholder="SELECT ..."></textarea>
+        <button class="run-btn" (click)="executeSql()" [disabled]="sqlLoading()">
+          {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
+        </button>
+      </div>
+
+      @if (sqlError()) {
+        <div class="alert-error">{{ sqlError() }}</div>
+      }
+
+      @if (sqlResult()) {
+        <div class="sql-result">
+          <table>
+            <thead>
+              <tr>
+                @for (col of sqlResult()!.columns; track col) {
+                  <th>{{ col }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of sqlResult()!.rows; track $index) {
+                <tr>
+                  @for (cell of row; track $index) {
+                    <td>{{ cell }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </article>
+
   } <!-- end auth -->
 </section>

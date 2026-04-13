@@ -1,3 +1,10 @@
+/**
+ * EnvService — Multi-environment URL management.
+ *
+ * Manages the active backend environment (Local, Docker, Staging, etc.).
+ * All API calls use `baseUrl()` to resolve the target server dynamically.
+ * The selected environment is persisted in localStorage and restored on reload.
+ */
 import { Injectable, signal, computed } from '@angular/core';
 
 export interface Environment {
@@ -5,6 +12,7 @@ export interface Environment {
   baseUrl: string;
 }
 
+/** Available backend environments — add entries here for Docker/Staging/Prod */
 const ENVIRONMENTS: Environment[] = [
   { name: 'Local', baseUrl: 'http://localhost:8080' },
 ];

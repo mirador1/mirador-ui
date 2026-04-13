@@ -1,74 +1,65 @@
-<div class="shell">
+<div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="hamburger" (click)="toggleMobileMenu()">
-        {{ mobileMenuOpen() ? '✕' : '☰' }}
+      <button class="sidebar-toggle" (click)="sidebarCollapsed.update(v => !v)" title="Toggle sidebar">
+        {{ sidebarCollapsed() ? '☰' : '✕' }}
       </button>
       <h1>Customer Observability UI</h1>
     </div>
 
-    @if (auth.isAuthenticated()) {
-      <nav class="desktop-nav">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
-          >Dashboard</a
-        >
-        <a routerLink="/customers" routerLinkActive="active">Customers</a>
-        <a routerLink="/diagnostic" routerLinkActive="active">Diagnostic</a>
-        <a routerLink="/observability" routerLinkActive="active">Observability</a>
-        <a routerLink="/visualizations" routerLinkActive="active">Viz</a>
-        <a routerLink="/request-builder" routerLinkActive="active">API</a>
-        <a routerLink="/chaos" routerLinkActive="active">Chaos</a>
-        <a routerLink="/settings" routerLinkActive="active">Settings</a>
-        <a routerLink="/activity" routerLinkActive="active">Activity</a>
-      </nav>
-
-      <div class="topbar-actions">
-        <!-- Theme toggle -->
-        <button
-          class="theme-btn"
-          (click)="theme.toggle()"
-          [title]="
-            theme.theme() === 'light' ? 'Switch to dark mode (D)' : 'Switch to light mode (D)'
-          "
-        >
+    <div class="topbar-actions">
+      @if (auth.isAuthenticated()) {
+        <button class="theme-btn" (click)="theme.toggle()" [title]="theme.theme() === 'light' ? 'Dark mode (D)' : 'Light mode (D)'">
           {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
         </button>
-
+        <button class="search-btn" (click)="showSearch.set(true)" title="Search (Ctrl+K)">🔍</button>
         <button class="logout-btn" (click)="logout()">Sign out</button>
-      </div>
-    } @else {
-      <div class="topbar-actions">
+      } @else {
         <button class="theme-btn" (click)="theme.toggle()">
           {{ theme.theme() === 'light' ? '🌙' : '☀️' }}
         </button>
         <a routerLink="/login" class="login-link">Sign in</a>
-      </div>
-    }
+      }
+    </div>
   </header>
 
-  <!-- Mobile navigation overlay -->
-  @if (mobileMenuOpen()) {
-    <div class="mobile-nav-overlay" (click)="closeMobileMenu()">
-      <nav class="mobile-nav" (click)="$event.stopPropagation()">
-        <a routerLink="/" (click)="closeMobileMenu()">Dashboard</a>
-        <a routerLink="/customers" (click)="closeMobileMenu()">Customers</a>
-        <a routerLink="/diagnostic" (click)="closeMobileMenu()">Diagnostic</a>
-        <a routerLink="/observability" (click)="closeMobileMenu()">Observability</a>
-        <a routerLink="/visualizations" (click)="closeMobileMenu()">Visualizations</a>
-        <a routerLink="/request-builder" (click)="closeMobileMenu()">API Builder</a>
-        <a routerLink="/chaos" (click)="closeMobileMenu()">Chaos & Traffic</a>
-        <a routerLink="/settings" (click)="closeMobileMenu()">Settings</a>
-        <a routerLink="/activity" (click)="closeMobileMenu()">Activity</a>
-        @if (auth.isAuthenticated()) {
-          <button class="mobile-logout" (click)="logout(); closeMobileMenu()">Sign out</button>
-        }
-      </nav>
-    </div>
-  }
+  <div class="layout">
+    <!-- Sidebar navigation -->
+    @if (auth.isAuthenticated()) {
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          @for (section of navTree; track section.id) {
+            <div class="nav-section" [class.nav-active]="isActive(section.path)">
+              <div class="nav-header" (click)="section.children.length ? toggleSection(section.id) : null">
+                <a [routerLink]="section.path" class="nav-link" [class.active]="isActive(section.path)" [title]="sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip">
+                  <span class="nav-icon">{{ section.icon }}</span>
+                  @if (!sidebarCollapsed()) {
+                    <span class="nav-label">{{ section.label }}</span>
+                  }
+                </a>
+                @if (section.children.length && !sidebarCollapsed()) {
+                  <button class="nav-expand" (click)="toggleSection(section.id); $event.stopPropagation()">
+                    {{ isSectionExpanded(section.id) ? '▾' : '▸' }}
+                  </button>
+                }
+              </div>
+              @if (section.children.length && isSectionExpanded(section.id) && !sidebarCollapsed()) {
+                <div class="nav-children">
+                  @for (child of section.children; track child.label) {
+                    <span class="nav-child" [title]="child.tip">{{ child.label }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </nav>
+      </aside>
+    }
 
-  <main class="content">
-    <router-outlet />
-  </main>
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
 
   <!-- Toast notifications -->
   @if (toast.toasts().length) {
@@ -101,5 +92,4 @@
       </div>
     </div>
   }
-
 </div>

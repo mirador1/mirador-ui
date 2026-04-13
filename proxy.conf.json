@@ -1,16 +1,4 @@
 {
-  "/zipkin": {
-    "target": "http://localhost:9411",
-    "secure": false,
-    "changeOrigin": true,
-    "pathRewrite": { "^/zipkin": "" }
-  },
-  "/loki": {
-    "target": "http://localhost:3100",
-    "secure": false,
-    "changeOrigin": true,
-    "pathRewrite": { "^/loki": "" }
-  },
   "/proxy/kafka-ui": {
     "target": "http://localhost:9080",
     "secure": false,
@@ -28,11 +16,5 @@
     "secure": false,
     "changeOrigin": true,
     "pathRewrite": { "^/proxy/keycloak": "" }
-  },
-  "/docker-api": {
-    "target": "http://localhost:3333",
-    "secure": false,
-    "changeOrigin": true,
-    "pathRewrite": { "^/docker-api": "" }
   }
 }

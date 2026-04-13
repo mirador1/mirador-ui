@@ -1,13 +1,28 @@
-import { Component, Input, signal } from '@angular/core';
+/**
+ * InfoTipComponent — Contextual tooltip popover.
+ *
+ * Displays an "i" icon that shows a popup on hover or click with:
+ * - Optional title (bold header)
+ * - Text body (main explanation)
+ * - Optional command (monospace code block)
+ * - Optional source attribution (italic footer)
+ *
+ * Used throughout the app to provide inline documentation for metrics,
+ * features, and configuration values without cluttering the UI.
+ */
+import { Component, Input, signal, ElementRef, inject } from '@angular/core';
 
 @Component({
   selector: 'app-info-tip',
   standalone: true,
   template: `
-    <span class="info-trigger" (click)="open.set(!open())" (mouseenter)="hover.set(true)" (mouseleave)="hover.set(false)">
+    <span class="info-trigger" (click)="open.set(!open())" (mouseenter)="onEnter()" (mouseleave)="hover.set(false)">
       <span class="info-icon">i</span>
       @if (open() || hover()) {
-        <span class="info-popup" [class.info-wide]="wide">
+        <span class="info-popup" [class.info-wide]="wide || image" [class.info-below]="showBelow()">
+          @if (image) {
+            <img class="info-image" [src]="image" [alt]="title || 'Preview'" loading="lazy" />
+          }
           @if (title) {
             <strong class="info-title">{{ title }}</strong>
           }
@@ -75,7 +90,7 @@ import { Component, Input, signal } from '@angular/core';
       gap: 0.3rem;
       animation: fade-in 0.15s ease-out;
 
-      &.info-wide { min-width: 300px; max-width: 420px; }
+      &.info-wide { min-width: 300px; max-width: 440px; }
 
       &::after {
         content: '';
@@ -86,6 +101,27 @@ import { Component, Input, signal } from '@angular/core';
         border: 6px solid transparent;
         border-top-color: var(--border-default);
       }
+
+      &.info-below {
+        bottom: auto;
+        top: calc(100% + 8px);
+
+        &::after {
+          top: auto;
+          bottom: 100%;
+          border-top-color: transparent;
+          border-bottom-color: var(--border-default);
+        }
+      }
+    }
+
+    .info-image {
+      width: 100%;
+      border-radius: 4px;
+      border: 1px solid var(--border-default);
+      max-height: 180px;
+      object-fit: cover;
+      object-position: top left;
     }
 
     .info-title {
@@ -125,12 +161,23 @@ import { Component, Input, signal } from '@angular/core';
   `]
 })
 export class InfoTipComponent {
+  private readonly el = inject(ElementRef);
+
   @Input() text = '';
   @Input() title = '';
   @Input() command = '';
   @Input() source = '';
+  @Input() image = '';
   @Input() wide = false;
 
   open = signal(false);
   hover = signal(false);
+  showBelow = signal(false);
+
+  onEnter(): void {
+    // If the element is in the top 250px of the viewport, show popup below instead of above
+    const rect = this.el.nativeElement.getBoundingClientRect();
+    this.showBelow.set(rect.top < 250);
+    this.hover.set(true);
+  }
 }

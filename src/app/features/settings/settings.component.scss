@@ -382,3 +382,58 @@ pre {
 
   &:hover { border-color: var(--color-accent); }
 }
+
+// ── Loggers ─────────────────────────────────────────────────────────────────
+.logger-controls {
+  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;
+}
+.logger-filter {
+  padding: 0.35rem 0.6rem; border: 1px solid var(--border-input); border-radius: 4px;
+  background: var(--bg-input); color: var(--text-primary); font-size: 0.82rem; width: 250px;
+}
+.logger-list { max-height: 300px; overflow-y: auto; }
+.logger-row {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-default); font-size: 0.78rem;
+  &:last-child { border-bottom: none; }
+}
+.logger-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); font-family: monospace; font-size: 0.72rem; }
+.logger-level { font-weight: 700; font-size: 0.7rem; color: var(--text-muted); width: 50px; }
+.logger-actions { display: flex; gap: 0.2rem; }
+.level-btn {
+  padding: 0.15rem 0.35rem; border: 1px solid var(--border-default); border-radius: 3px;
+  background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.6rem;
+  &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  &.active { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+}
+
+// ── SQL Explorer ────────────────────────────────────────────────────────────
+.sql-presets { margin-bottom: 0.75rem; }
+.sql-cat { margin-bottom: 0.5rem; }
+.sql-cat-label { font-size: 0.78rem; color: var(--text-primary); display: block; margin-bottom: 0.3rem; }
+.sql-cat-btns { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.sql-preset-btn {
+  padding: 0.25rem 0.55rem; border: 1px solid var(--border-default); border-radius: 4px;
+  background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; font-size: 0.72rem;
+  &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+}
+.sql-editor { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.75rem; }
+.sql-textarea {
+  flex: 1; padding: 0.5rem; border: 1px solid var(--border-input); border-radius: 4px;
+  background: var(--bg-terminal); color: #86efac; font-family: monospace; font-size: 0.78rem; resize: vertical;
+}
+.run-btn {
+  padding: 0.4rem 0.85rem; background: var(--color-accent); color: white; border: none;
+  border-radius: 4px; cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+  &:hover:not(:disabled) { background: var(--color-accent-hover); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+.sql-result {
+  overflow-x: auto;
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.75rem;
+    th { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 2px solid var(--border-default); font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); }
+    td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border-default); color: var(--text-primary); font-family: monospace; font-size: 0.72rem; white-space: nowrap; }
+    tr:hover td { background: var(--bg-card-hover); }
+  }
+}

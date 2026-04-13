@@ -8,31 +8,64 @@
     <div class="alert-warn">Please <a routerLink="/login">sign in</a> first.</div>
   } @else {
     <div class="tabs">
-      <button [class.tab-active]="activeTab() === 'golden'" (click)="switchTab('golden')">Golden Signals</button>
-      <button [class.tab-active]="activeTab() === 'jvm'" (click)="switchTab('jvm')">JVM Gauges</button>
-      <button [class.tab-active]="activeTab() === 'topology'" (click)="switchTab('topology')">Topology</button>
-      <button [class.tab-active]="activeTab() === 'waterfall'" (click)="switchTab('waterfall')">Waterfall</button>
-      <button [class.tab-active]="activeTab() === 'sankey'" (click)="switchTab('sankey')">Sankey</button>
-      <button [class.tab-active]="activeTab() === 'errors'" (click)="switchTab('errors')">Error Timeline</button>
-      <button [class.tab-active]="activeTab() === 'kafka'" (click)="switchTab('kafka')">Kafka Lag</button>
-      <button [class.tab-active]="activeTab() === 'slowdb'" (click)="switchTab('slowdb')">Slow Queries</button>
-      <button [class.tab-active]="activeTab() === 'bundle3d'" (click)="switchTab('bundle3d')">Bundle</button>
+      @for (tab of vizTabs; track tab.id) {
+        <button [class.tab-active]="activeTab() === tab.id" (click)="switchTab(tab.id)" [title]="tab.tip">
+          <span class="tab-icon">{{ tab.icon }}</span> {{ tab.label }}
+        </button>
+      }
     </div>
 
     <!-- ── Golden Signals ──────────────────────────────────────────────── -->
     @if (activeTab() === 'golden') {
       <div class="tab-content">
         <p class="tab-desc">
-          The 4 SRE golden signals from Google's Site Reliability Engineering book.
-          Latency, traffic, errors and saturation give a complete health picture of any service.
-          <app-info-tip text="Parsed from /actuator/prometheus. Latency = p95 from histogram buckets. Traffic = total http_server_requests_seconds_count. Errors = 5xx count / total. Saturation = JVM live threads as a proxy." command="GET /actuator/prometheus" source="Micrometer histogram + JVM metrics" [wide]="true" />
+          Live metrics from Prometheus. Select which cards to display — {{selectedMetricIds().length}} of {{allMetrics.length}} available.
+          <app-info-tip text="All metrics are parsed from /actuator/prometheus (Micrometer). Click 'Configure' to add or remove metric cards. Your selection is saved in localStorage." command="GET /actuator/prometheus" source="Micrometer + JVM metrics" [wide]="true" />
         </p>
-        <button class="run-btn" (click)="fetchGoldenSignals()">↻ Fetch from Prometheus</button>
+        <div class="golden-actions">
+          <button class="run-btn" (click)="fetchGoldenSignals()">↻ Fetch from Prometheus</button>
+          <button class="run-btn" (click)="showMetricPicker.set(!showMetricPicker())">
+            {{ showMetricPicker() ? '✕ Close' : '⚙ Configure' }}
+          </button>
+        </div>
+
+        @if (showMetricPicker()) {
+          <div class="metric-picker">
+            <div class="picker-controls">
+              <input type="text" class="picker-search" placeholder="Filter by name..." [ngModel]="metricFilterText" (ngModelChange)="metricFilterText = $event" />
+              <div class="picker-categories">
+                <button class="picker-cat" [class.active]="metricFilterCategory === ''" (click)="metricFilterCategory = ''">All ({{ allMetrics.length }})</button>
+                @for (cat of metricCategories; track cat) {
+                  <button class="picker-cat" [class.active]="metricFilterCategory === cat" (click)="metricFilterCategory = cat">{{ cat }}</button>
+                }
+              </div>
+            </div>
+            <div class="picker-grid">
+              @for (m of filteredMetrics(); track m.id) {
+                <button
+                  class="picker-item"
+                  [class.picker-selected]="isMetricSelected(m.id)"
+                  (click)="toggleMetric(m.id)"
+                >
+                  <span class="picker-icon">{{ m.icon }}</span>
+                  <span class="picker-name">{{ m.name }}</span>
+                  <span class="picker-cat-badge">{{ m.category }}</span>
+                </button>
+              }
+            </div>
+            <span class="picker-count">{{ selectedMetricIds().length }} selected / {{ allMetrics.length }} available</span>
+          </div>
+        }
+
         @if (goldenSignals().length) {
           <div class="golden-grid">
-            @for (s of goldenSignals(); track s.name) {
+            @for (s of goldenSignals(); track s.id) {
               <div class="golden-card golden-{{ s.status }}">
-                <span class="golden-name">{{ s.name }}</span>
+                <div class="golden-header">
+                  <span class="golden-icon">{{ s.icon }}</span>
+                  <span class="golden-name">{{ s.name }}</span>
+                  <app-info-tip [title]="s.name" [text]="s.tip" source="Prometheus" />
+                </div>
                 <span class="golden-value">{{ s.value }}</span>
                 <span class="golden-detail">{{ s.detail }}</span>
               </div>
@@ -46,61 +79,65 @@
     @if (activeTab() === 'jvm') {
       <div class="tab-content">
         <p class="tab-desc">
-          JVM runtime metrics from the Spring Boot application.
-          Monitor heap memory usage, CPU load, active threads and GC pause time.
-          <app-info-tip text="Heap = jvm_memory_used_bytes (area=heap). CPU = process_cpu_usage (0-1 scaled to %). Threads = jvm_threads_live_threads. GC = jvm_gc_pause_seconds_sum." command="jvm_memory_used_bytes, process_cpu_usage, jvm_threads_live_threads" source="/actuator/prometheus" [wide]="true" />
+          JVM & system gauges — {{ selectedGaugeIds().length }} of {{ allGauges.length }} available.
+          <app-info-tip text="Circular gauges showing real-time JVM and system metrics. Click 'Configure' to choose which gauges to display. Selection saved in localStorage." command="GET /actuator/prometheus" source="Micrometer JVM metrics" [wide]="true" />
         </p>
-        <button class="run-btn" (click)="fetchJvmGauges()">↻ Fetch JVM metrics from Prometheus</button>
+        <div class="golden-actions">
+          <button class="run-btn" (click)="fetchJvmGauges()">↻ Fetch from Prometheus</button>
+          <button class="run-btn" (click)="showGaugePicker.set(!showGaugePicker())">
+            {{ showGaugePicker() ? '✕ Close' : '⚙ Configure' }}
+          </button>
+        </div>
+
+        @if (showGaugePicker()) {
+          <div class="metric-picker">
+            <div class="picker-controls">
+              <input type="text" class="picker-search" placeholder="Filter by name..." [ngModel]="gaugeFilterText" (ngModelChange)="gaugeFilterText = $event" />
+              <div class="picker-categories">
+                <button class="picker-cat" [class.active]="gaugeFilterCategory === ''" (click)="gaugeFilterCategory = ''">All ({{ allGauges.length }})</button>
+                @for (cat of gaugeCategories; track cat) {
+                  <button class="picker-cat" [class.active]="gaugeFilterCategory === cat" (click)="gaugeFilterCategory = cat">{{ cat }}</button>
+                }
+              </div>
+            </div>
+            <div class="picker-grid">
+              @for (g of filteredGauges(); track g.id) {
+                <button
+                  class="picker-item"
+                  [class.picker-selected]="isGaugeSelected(g.id)"
+                  (click)="toggleGauge(g.id)"
+                >
+                  <span class="picker-icon">{{ g.icon }}</span>
+                  <span class="picker-name">{{ g.label }}</span>
+                  <span class="picker-cat-badge">{{ g.category }}</span>
+                </button>
+              }
+            </div>
+            <span class="picker-count">{{ selectedGaugeIds().length }} selected / {{ allGauges.length }} available</span>
+          </div>
+        }
+
         @if (gauges().length) {
           <div class="gauges-grid">
-            @for (g of gauges(); track g.label) {
+            @for (g of gauges(); track g.id) {
               <div class="gauge-card">
                 <svg viewBox="0 0 100 100" class="gauge-svg">
                   <path d="M 21.7 78.3 A 40 40 0 1 1 78.3 78.3" fill="none" stroke="var(--border-default)" stroke-width="8" stroke-linecap="round"/>
                   <path [attr.d]="gaugeArc(g.value, g.max)" fill="none" [attr.stroke]="g.color" stroke-width="8" stroke-linecap="round"/>
                   <text x="50" y="50" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="700">{{ g.value }}</text>
                   <text x="50" y="62" text-anchor="middle" fill="var(--text-muted)" font-size="8">{{ g.unit }}</text>
+                  <title>{{ g.tip }}</title>
                 </svg>
-                <span class="gauge-label">{{ g.label }}</span>
+                <div class="gauge-footer">
+                  <span class="gauge-icon">{{ g.icon }}</span>
+                  <span class="gauge-label">{{ g.label }}</span>
+                  <app-info-tip [title]="g.label" [text]="g.tip" source="Prometheus" />
+                </div>
                 <span class="gauge-range">0 — {{ g.max }} {{ g.unit }}</span>
               </div>
             }
           </div>
         }
-      </div>
-    }
-
-    <!-- ── Topology map ────────────────────────────────────────────────── -->
-    @if (activeTab() === 'topology') {
-      <div class="tab-content">
-        <p class="tab-desc">
-          Service dependency map showing the backend and all its infrastructure components.
-          Green = running, Red = down, Grey = unknown. Click "Check status" to probe each service.
-          <app-info-tip text="API/PostgreSQL/Redis are checked via /actuator/health components. Kafka via Kafka UI API. Ollama via /api/tags. The animated particles are decorative — they simulate traffic flow but don't represent real requests." [wide]="true" />
-        </p>
-        <div class="controls-row">
-          <button class="run-btn" (click)="refreshTopology()">↻ Check service health</button>
-          <button class="run-btn" [class.active-btn]="topoAnimating()" (click)="toggleTopoAnimation()">
-            {{ topoAnimating() ? '⏹ Stop' : '▶ Animate' }} traffic (decorative)
-          </button>
-        </div>
-        <div class="topo-container">
-          <svg viewBox="0 0 800 280" class="topo-svg">
-            @for (e of topoEdgeCoords(); track $index) {
-              <line [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" stroke="var(--border-default)" stroke-width="1.5" stroke-dasharray="4 2"/>
-            }
-            @for (p of particlePositions(); track $index) {
-              <circle [attr.cx]="p.cx" [attr.cy]="p.cy" r="4" [attr.fill]="p.color" opacity="0.9">
-                <animate attributeName="r" values="3;5;3" dur="0.6s" repeatCount="indefinite"/>
-              </circle>
-            }
-            @for (node of topoNodes(); track node.id) {
-              <circle [attr.cx]="node.x" [attr.cy]="node.y" r="22" [attr.fill]="topoNodeColor(node.status)" opacity="0.15"/>
-              <circle [attr.cx]="node.x" [attr.cy]="node.y" r="8" [attr.fill]="topoNodeColor(node.status)"/>
-              <text [attr.x]="node.x" [attr.y]="node.y + 34" text-anchor="middle" fill="var(--text-secondary)" font-size="10" font-weight="600">{{ node.label }}</text>
-            }
-          </svg>
-        </div>
       </div>
     }
 
@@ -169,9 +206,14 @@
           actions to see the impact.
           <app-info-tip text="Fires 5 GET /customers?page=0&size=1 requests per sample. Any non-2xx response counts as an error. Useful to observe the impact of stopping a Docker container or exhausting the rate limit." [wide]="true" />
         </p>
-        <button class="run-btn" [class.active-btn]="errorPolling()" (click)="toggleErrorPolling()">
-          {{ errorPolling() ? '⏹ Stop monitoring' : '▶ Start error monitoring (polls every 3s)' }}
-        </button>
+        <div class="golden-actions">
+          <button class="run-btn" [class.active-btn]="errorPolling()" (click)="toggleErrorPolling()">
+            {{ errorPolling() ? '⏹ Stop monitoring' : '▶ Start error monitoring (polls every 3s)' }}
+          </button>
+          <button class="run-btn" (click)="generateErrors()" [disabled]="errorsGenerating()">
+            {{ errorsGenerating() ? 'Generating...' : '💥 Generate errors' }}
+          </button>
+        </div>
         @if (errorSamples().length) {
           <div class="error-chart-container">
             <svg viewBox="0 0 400 100" preserveAspectRatio="none" class="error-svg">
@@ -197,9 +239,14 @@
           polls the metric every 5 seconds.
           <app-info-tip text="Reads kafka_consumer_fetch_manager_records_lag_max from Prometheus. If this metric is not available (consumer not running), a simulated value is shown. In production, high lag triggers alerts." command="kafka_consumer_fetch_manager_records_lag_max" source="/actuator/prometheus" [wide]="true" />
         </p>
-        <button class="run-btn" [class.active-btn]="kafkaPolling()" (click)="toggleKafkaPolling()">
-          {{ kafkaPolling() ? '⏹ Stop monitoring' : '▶ Start lag monitoring (polls every 5s)' }}
-        </button>
+        <div class="golden-actions">
+          <button class="run-btn" [class.active-btn]="kafkaPolling()" (click)="toggleKafkaPolling()">
+            {{ kafkaPolling() ? '⏹ Stop monitoring' : '▶ Start lag monitoring (polls every 5s)' }}
+          </button>
+          <button class="run-btn" (click)="generateKafkaTraffic()" [disabled]="kafkaTrafficRunning()">
+            {{ kafkaTrafficRunning() ? 'Generating...' : '⚡ Generate Kafka traffic' }}
+          </button>
+        </div>
         @if (kafkaLag().length > 1) {
           <div class="kafka-chart">
             <div class="kafka-y"><span>{{ kafkaLagMax() | number:'1.0-0' }}</span><span>0</span></div>
@@ -261,13 +308,6 @@
                 <span class="treemap-name">{{ chunk.name }}</span>
                 <span class="treemap-size">{{ chunk.size }}kB</span>
                 <span class="treemap-pct">{{ chunk.pct }}%</span>
-              </div>
-            }
-          </div>
-          <div class="treemap-3d">
-            @for (chunk of bundleChunks(); track chunk.name; let i = $index) {
-              <div class="block-3d" [style.--block-color]="treemapColor(i)" [style.height.px]="chunk.size * 3" [title]="chunk.name">
-                <span>{{ chunk.name.split(' ')[0] }}</span>
               </div>
             }
           </div>

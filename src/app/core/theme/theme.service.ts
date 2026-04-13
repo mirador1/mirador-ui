@@ -1,3 +1,11 @@
+/**
+ * ThemeService — Dark/light mode toggle.
+ *
+ * Sets the `data-theme` attribute on `<html>` which activates CSS custom
+ * properties defined in `styles.scss`. Theme preference is persisted in
+ * localStorage. Uses an Angular `effect()` to react to signal changes
+ * and update both the DOM and storage atomically.
+ */
 import { Injectable, signal, effect } from '@angular/core';
 
 export type Theme = 'light' | 'dark';

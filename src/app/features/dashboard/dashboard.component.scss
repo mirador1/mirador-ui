@@ -135,6 +135,28 @@ h2 {
   letter-spacing: 0.03em;
 }
 
+.stat-links {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.35rem;
+
+  a {
+    font-size: 0.7rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    opacity: 0.75;
+    transition: opacity 0.15s;
+
+    &:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+  }
+}
+
 // ── Sparkline ───────────────────────────────────────────────────────────────
 .sparkline-container {
   background: var(--bg-card);
@@ -464,17 +486,42 @@ pre {
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  padding: 0.65rem 0.85rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  flex-direction: row;
   box-shadow: var(--shadow-card);
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, opacity 0.2s;
+  position: relative;
+
+  &.docker-up {
+    border-left: none;
+  }
 
   &.docker-down {
     border-color: var(--border-error);
-    opacity: 0.7;
+    opacity: 0.65;
+    border-left: none;
   }
+}
+
+.docker-indicator {
+  width: 5px;
+  flex-shrink: 0;
+  border-radius: 8px 0 0 8px;
+
+  &.indicator-up {
+    background: #4ade80;
+  }
+  &.indicator-down {
+    background: #f87171;
+  }
+}
+
+.docker-body {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .docker-header {
@@ -483,41 +530,55 @@ pre {
   gap: 0.4rem;
 }
 
-.docker-status {
-  font-size: 0.6rem;
-  font-weight: 800;
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  text-transform: uppercase;
-
-  &.status-up {
-    background: var(--bg-badge-up);
-    color: var(--text-success);
-  }
-  &.status-down {
-    background: var(--bg-badge-down);
-    color: var(--text-error);
-  }
-}
-
 .docker-name {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.docker-image {
+.docker-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.docker-port {
   font-size: 0.68rem;
   color: var(--text-muted);
   font-family: monospace;
+  margin-left: 0.1rem;
+}
+
+.docker-description {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.docker-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.15rem;
+}
+
+.docker-status-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  &.status-up {
+    color: #4ade80;
+  }
+  &.status-down {
+    color: #f87171;
+  }
 }
 
 .docker-actions {
   display: flex;
   gap: 0.25rem;
-  margin-top: 0.15rem;
 }
 
 .docker-btn {
@@ -548,22 +609,226 @@ pre {
     color: #0369a1;
     &:hover:not(:disabled) { background: #bae6fd; }
   }
+  &.docker-link {
+    background: #e0f2fe;
+    color: #0369a1;
+    text-decoration: none;
+    &:hover { background: #bae6fd; }
+  }
+  &.docker-down {
+    background: #fee2e2;
+    color: #b91c1c;
+    &:hover:not(:disabled) { background: #fecaca; }
+  }
+  &.docker-up {
+    background: #dcfce7;
+    color: #166534;
+    &:hover:not(:disabled) { background: #bbf7d0; }
+  }
 }
 
-// ── Dependency graph ────────────────────────────────────────────────────────
-.dep-graph-container {
+// ── Architecture columns ─────────────────────────────────────────────────────
+.archi-columns {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.archi-col {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.archi-col-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.35rem 0;
+  border-bottom: 2px solid var(--border-default);
+  margin-bottom: 0.25rem;
+}
+
+.archi-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  padding: 0 0.15rem;
+  margin-top: 2rem;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.archi-card {
   background: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: row;
   box-shadow: var(--shadow-card);
+  transition: border-color 0.2s, opacity 0.2s;
+  min-width: 0;
+
+  &.archi-down {
+    border-color: var(--border-error);
+    opacity: 0.6;
+  }
 }
 
-.dep-graph {
+.archi-indicator {
+  width: 4px;
+  flex-shrink: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+.archi-body {
+  flex: 1;
+  padding: 0.4rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.archi-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.archi-icon { font-size: 0.85rem; flex-shrink: 0; }
+
+.archi-name {
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archi-port {
+  font-size: 0.6rem;
+  font-family: monospace;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.archi-desc {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archi-conn {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archi-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-top: 0.1rem;
+}
+
+.archi-status {
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.archi-actions {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.dep-aggregate {
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+
+  &.dep-all-up {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+  }
+
+  &.dep-some-down {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+  }
+}
+
+// ── Dependencies table ──────────────────────────────────────────────────────
+.dep-table-container {
+  margin-bottom: 1rem;
+}
+
+.dep-table {
   width: 100%;
-  height: auto;
-  max-height: 220px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    color: var(--text-primary);
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+}
+
+.dep-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+.dep-status-text {
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.dep-role {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
 }
 
 // ── Heatmap ─────────────────────────────────────────────────────────────────

@@ -1,3 +1,17 @@
+/**
+ * CustomersComponent — Full CRUD management page for customers.
+ *
+ * Features:
+ * - Paginated list with server-side search (300ms debounce) and sort
+ * - API versioning toggle (v1.0 / v2.0 — v2 adds createdAt field)
+ * - Full/Summary view modes (summary = id + name projection)
+ * - Create form with optional idempotency key for replay safety
+ * - Inline edit modal and delete confirmation
+ * - Batch selection with "select all" and bulk delete
+ * - Per-customer detail tabs: Bio (Ollama LLM), Todos (JSONPlaceholder), Enrich (Kafka)
+ * - Import from JSON/CSV files with progress tracking
+ * - Export current page as JSON or CSV
+ */
 import { Component, inject, signal, computed, OnInit, OnDestroy, viewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
@@ -16,10 +30,12 @@ import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
+/** Generate a UUID v4 for idempotency keys */
 function uuid(): string {
   return crypto.randomUUID();
 }
 
+/** Per-customer detail panel tabs */
 type DetailTab = 'bio' | 'todos' | 'enrich';
 type SortField = 'id' | 'name' | 'email' | 'createdAt';
 type SortDir = 'asc' | 'desc';
@@ -230,7 +246,13 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
   // ── Create ─────────────────────────────────────────────────────────────────
   createCustomer(): void {
-    if (!this.newName().trim() || !this.newEmail().trim()) {
+    // Read directly from DOM — signals may not be synced in zoneless mode
+    const nameEl = this.nameInput()?.nativeElement;
+    const emailEl = this.emailInput()?.nativeElement;
+    const name = (nameEl?.value ?? this.newName()).trim();
+    const email = (emailEl?.value ?? this.newEmail()).trim();
+
+    if (!name || !email) {
       this.createError.set('Name and email are required.');
       return;
     }
@@ -240,14 +262,14 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
     const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
     this.api
-      .createCustomer({ name: this.newName().trim(), email: this.newEmail().trim() }, key)
+      .createCustomer({ name, email }, key)
       .subscribe({
         next: (c) => {
           this.createSuccess.set(c);
           this.newName.set('');
           this.newEmail.set('');
-          if (this.nameInput()) this.nameInput()!.nativeElement.value = '';
-          if (this.emailInput()) this.emailInput()!.nativeElement.value = '';
+          if (nameEl) nameEl.value = '';
+          if (emailEl) emailEl.value = '';
           this.createLoading.set(false);
           this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
           this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
@@ -587,6 +609,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 }
 
+/** Extract a human-readable error message from HTTP error responses */
 function httpError(err: unknown): string {
   const e = err as { status?: number; message?: string };
   if (e.status === 401) return 'Not authenticated — please sign in.';

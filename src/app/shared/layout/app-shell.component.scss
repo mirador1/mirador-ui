@@ -27,125 +27,129 @@
   gap: 0.75rem;
 }
 
-.hamburger {
-  display: none;
+.sidebar-toggle {
   background: transparent;
   border: 1px solid #4a6a8a;
   border-radius: 4px;
   color: #93b4d8;
-  font-size: 1.1rem;
+  font-size: 1rem;
   padding: 0.2rem 0.5rem;
   cursor: pointer;
   line-height: 1;
+  &:hover { background: #15294a; color: white; }
+}
 
-  &:hover {
-    background: #15294a;
-    color: white;
-  }
-
-  @media (max-width: 768px) {
-    display: block;
-  }
+.search-btn {
+  background: transparent;
+  border: 1px solid #4a6a8a;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #93b4d8;
+  &:hover { background: #15294a; color: white; }
 }
 
 .topbar h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #e2eaf5;
   white-space: nowrap;
-}
-
-.desktop-nav {
-  display: flex;
-  gap: 1.25rem;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-}
-
-.topbar a {
-  text-decoration: none;
-  color: #93b4d8;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: color 0.15s;
-}
-
-.topbar a:hover {
-  color: #dbeafe;
-}
-
-.topbar a.active {
-  color: white;
-  border-bottom: 2px solid #60a5fa;
-  padding-bottom: 2px;
 }
 
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    .env-selector,
-    .logout-btn {
-      display: none;
-    }
-  }
+  gap: 0.6rem;
 }
 
-// ── Mobile nav ──────────────────────────────────────────────────────────────
-.mobile-nav-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 200;
-}
-
-.mobile-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 260px;
-  background: var(--bg-card);
-  padding: 1.5rem 1rem;
+// ── Layout (sidebar + content) ──────────────────────────────────────────────
+.layout {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
-  z-index: 201;
+  min-height: calc(100vh - 50px);
+}
 
-  a {
-    display: block;
-    padding: 0.65rem 0.85rem;
-    color: var(--text-primary);
-    text-decoration: none;
-    font-size: 0.95rem;
-    font-weight: 600;
-    border-radius: 6px;
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-default);
+  overflow-y: auto;
+  transition: width 0.2s;
 
-    &:hover {
-      background: var(--bg-card-hover);
-    }
+  .sidebar-collapsed & {
+    width: 48px;
   }
 }
 
-.mobile-logout {
-  margin-top: 1rem;
-  padding: 0.55rem 0.85rem;
-  background: transparent;
-  border: 1px solid var(--border-input);
-  border-radius: 6px;
-  color: var(--text-error);
-  cursor: pointer;
-  font-size: 0.9rem;
-  text-align: left;
+.sidebar-nav {
+  padding: 0.5rem 0;
+}
 
-  &:hover {
-    background: var(--bg-error);
+.nav-section {
+  &.nav-active > .nav-header .nav-link {
+    color: var(--color-accent);
+    font-weight: 700;
   }
+}
+
+.nav-header {
+  display: flex;
+  align-items: center;
+}
+
+.nav-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+  &.active { color: var(--color-accent); }
+}
+
+.nav-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-expand {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.5rem;
+  &:hover { color: var(--text-primary); }
+}
+
+.nav-children {
+  padding-left: 2rem;
+}
+
+.nav-child {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 3px;
+  &:hover { background: var(--bg-card-hover); color: var(--text-primary); }
 }
 
 // ── Environment selector ────────────────────────────────────────────────────
@@ -260,10 +264,13 @@
 }
 
 .content {
-  padding: 1.5rem;
+  flex: 1;
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  min-width: 0;
 
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 }
 

@@ -1,3 +1,12 @@
+/**
+ * ActivityService — In-session event timeline.
+ *
+ * Records user and system events (CRUD ops, health changes, diagnostics, imports)
+ * in a signal-based array (capped at 200 entries). Events are displayed in the
+ * Activity page and can be filtered by type.
+ *
+ * This is an in-memory store — events are lost on page reload.
+ */
 import { Injectable, signal } from '@angular/core';
 
 export type ActivityType =
