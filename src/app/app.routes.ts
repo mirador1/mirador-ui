@@ -37,6 +37,11 @@ export const routes: Routes = [
       import('./features/request-builder/request-builder.component').then(m => m.RequestBuilderComponent)
   },
   {
+    path: 'visualizations',
+    loadComponent: () =>
+      import('./features/visualizations/visualizations.component').then(m => m.VisualizationsComponent)
+  },
+  {
     path: 'chaos',
     loadComponent: () =>
       import('./features/chaos/chaos.component').then(m => m.ChaosComponent)

@@ -33,6 +33,7 @@ export class AppShellComponent {
     { label: 'Customers', path: '/customers', keywords: 'customers list create manage' },
     { label: 'Diagnostic', path: '/diagnostic', keywords: 'diagnostic test scenarios' },
     { label: 'Observability', path: '/observability', keywords: 'observability traces logs latency zipkin loki tempo flame' },
+    { label: 'Visualizations', path: '/visualizations', keywords: 'visualizations golden signals gauges topology waterfall sankey kafka lag' },
     { label: 'API Builder', path: '/request-builder', keywords: 'api request builder postman http' },
     { label: 'Chaos & Traffic', path: '/chaos', keywords: 'chaos traffic faker generate stress load' },
     { label: 'Settings', path: '/settings', keywords: 'settings config actuator loggers sql' },
