@@ -1,0 +1,16 @@
+{
+  "name": "Customer Observability UI",
+  "short_name": "Obs UI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "description": "Observability and management UI for customer-service backend",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

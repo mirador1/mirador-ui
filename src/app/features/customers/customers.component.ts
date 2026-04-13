@@ -13,6 +13,7 @@ import {
 } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { ActivityService } from '../../core/activity/activity.service';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -33,6 +34,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly activity = inject(ActivityService);
 
   // ── List state ─────────────────────────────────────────────────────────────
   customers = signal<Page<Customer> | null>(null);
@@ -229,6 +231,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
         this.newEmail = '';
         this.createLoading.set(false);
         this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
+        this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
         this.loadCustomers();
       },
       error: err => {
@@ -265,6 +268,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
         this.editingCustomer.set(null);
         this.editLoading.set(false);
         this.toast.show(`Customer "${updated.name}" updated`, 'success');
+        this.activity.log('customer-update', `Updated "${updated.name}" (ID ${updated.id})`);
         this.loadCustomers();
       },
       error: err => {
@@ -293,6 +297,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
         this.deletingCustomer.set(null);
         this.deleteLoading.set(false);
         this.toast.show(`Customer "${c.name}" deleted`, 'success');
+        this.activity.log('customer-delete', `Deleted "${c.name}" (ID ${c.id})`);
         this.loadCustomers();
       },
       error: err => {
@@ -363,6 +368,82 @@ export class CustomersComponent implements OnInit, OnDestroy {
     } else {
       this.toast.show(`Deleted ${ok} customers`, 'success');
     }
+    this.loadCustomers();
+  }
+
+  // ── Bulk import ────────────────────────────────────────────────────────────
+  importLoading = signal(false);
+  importProgress = signal(0);
+  importTotal = signal(0);
+  importResults = signal<{ ok: number; errors: number } | null>(null);
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      let records: Array<{ name: string; email: string }> = [];
+
+      if (file.name.endsWith('.json')) {
+        try {
+          records = JSON.parse(content);
+          if (!Array.isArray(records)) records = [records];
+        } catch {
+          this.toast.show('Invalid JSON file', 'error');
+          return;
+        }
+      } else if (file.name.endsWith('.csv')) {
+        const lines = content.split('\n').filter(l => l.trim());
+        const header = lines[0].toLowerCase();
+        const hasHeader = header.includes('name') && header.includes('email');
+        const dataLines = hasHeader ? lines.slice(1) : lines;
+        records = dataLines.map(line => {
+          const parts = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+          return { name: parts[0] || '', email: parts[1] || '' };
+        }).filter(r => r.name && r.email);
+      } else {
+        this.toast.show('Unsupported file type. Use .json or .csv', 'error');
+        return;
+      }
+
+      if (!records.length) {
+        this.toast.show('No valid records found in file', 'warn');
+        return;
+      }
+
+      this.executeBulkImport(records);
+    };
+    reader.readAsText(file);
+    input.value = ''; // reset so same file can be re-selected
+  }
+
+  private executeBulkImport(records: Array<{ name: string; email: string }>): void {
+    this.importLoading.set(true);
+    this.importProgress.set(0);
+    this.importTotal.set(records.length);
+    this.importResults.set(null);
+
+    let ok = 0;
+    let errors = 0;
+    let done = 0;
+
+    for (const record of records) {
+      this.api.createCustomer(record).subscribe({
+        next: () => { ok++; done++; this.importProgress.set(done); this.checkImportDone(done, records.length, ok, errors); },
+        error: () => { errors++; done++; this.importProgress.set(done); this.checkImportDone(done, records.length, ok, errors); }
+      });
+    }
+  }
+
+  private checkImportDone(done: number, total: number, ok: number, errors: number): void {
+    if (done < total) return;
+    this.importLoading.set(false);
+    this.importResults.set({ ok, errors });
+    this.toast.show(`Import complete: ${ok} created, ${errors} failed`, errors > 0 ? 'warn' : 'success');
+    this.activity.log('bulk-import', `Imported ${ok} customers (${errors} errors)`, `Total: ${total} records`);
     this.loadCustomers();
   }
 
