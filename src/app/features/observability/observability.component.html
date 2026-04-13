@@ -22,6 +22,9 @@
     <button [class.tab-active]="activeTab() === 'latency'" (click)="switchTab('latency')">
       Latency <small>Prometheus</small>
     </button>
+    <button [class.tab-active]="activeTab() === 'live'" (click)="switchTab('live')">
+      Live Feed <small>Metrics</small>
+    </button>
   </div>
 
   <!-- ── Traces tab ──────────────────────────────────────────────────── -->
@@ -55,6 +58,7 @@
                 <span class="trace-duration">{{ t.durationMs | number:'1.1-1' }} ms</span>
                 <span class="trace-spans">{{ t.spans.length }} spans</span>
                 <span class="trace-time">{{ t.timestamp | date:'HH:mm:ss' }}</span>
+                <button class="flame-btn" (click)="openFlameGraph(t); $event.stopPropagation()">Flame</button>
               </div>
               @if (selectedTrace()?.traceId === t.traceId) {
                 <div class="span-list">
@@ -142,6 +146,50 @@
         </div>
       } @else if (!latencyLoading()) {
         <p class="empty-text">Click "Fetch histogram" to load latency distribution from Prometheus metrics.</p>
+      }
+    </div>
+  }
+
+  <!-- Flame graph overlay -->
+  @if (flameViewTrace()) {
+    <div class="flame-overlay">
+      <div class="flame-header">
+        <h4>Flame Graph — {{ flameViewTrace()!.operationName }} ({{ flameViewTrace()!.durationMs | number:'1.1-1' }} ms)</h4>
+        <button class="close-btn" (click)="flameViewTrace.set(null)">✕</button>
+      </div>
+      <div class="flame-chart">
+        @for (row of flameRows(); track $index) {
+          <div class="flame-bar" [style.left.%]="row.left" [style.width.%]="row.width" [style.top.px]="row.depth * 24" [title]="row.service + ' / ' + row.name">
+            <span class="flame-label">{{ row.service }}: {{ row.name }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Live feed tab ────────────────────────────────────────────���──── -->
+  @if (activeTab() === 'live') {
+    <div class="tab-content">
+      <div class="controls-row">
+        <button class="run-btn" [class.active-poll]="livePolling()" (click)="toggleLiveFeed()">
+          {{ livePolling() ? '⏹ Stop' : '▶ Start' }} live feed
+        </button>
+        <span class="hint">Polls <code>/actuator/prometheus</code> every 2s for endpoint metrics</span>
+      </div>
+
+      @if (liveFeed().length) {
+        <div class="log-panel">
+          @for (entry of liveFeed(); track $index) {
+            <div class="log-entry" [class]="entry.status.startsWith('2') ? 'log-info' : entry.status.startsWith('4') ? 'log-warn' : 'log-error'">
+              <span class="log-ts">{{ entry.time }}</span>
+              <span class="feed-method">{{ entry.method }}</span>
+              <span class="feed-uri">{{ entry.uri }}</span>
+              <span class="feed-status">{{ entry.status }}</span>
+            </div>
+          }
+        </div>
+      } @else if (!livePolling()) {
+        <p class="empty-text">Click "Start live feed" to monitor backend requests in real-time.</p>
       }
     </div>
   }

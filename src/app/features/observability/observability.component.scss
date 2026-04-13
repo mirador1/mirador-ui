@@ -290,3 +290,64 @@ h2 { margin: 0 0 0.25rem; }
   font-family: monospace;
   white-space: nowrap;
 }
+
+// ── Flame graph ─────────────────────────────────────────────────────────────
+.flame-btn {
+  padding: 0.15rem 0.4rem; border: 1px solid var(--border-input);
+  border-radius: 3px; background: var(--bg-card); color: var(--text-muted);
+  cursor: pointer; font-size: 0.65rem;
+  &:hover { background: var(--bg-card-hover); color: var(--color-accent); }
+}
+
+.flame-overlay {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 1rem; margin-top: 1rem; box-shadow: var(--shadow-card);
+}
+
+.flame-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;
+  h4 { margin: 0; font-size: 0.9rem; }
+}
+
+.close-btn {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 1.1rem; color: var(--text-muted); padding: 0.2rem;
+  &:hover { color: var(--text-primary); }
+}
+
+.flame-chart {
+  position: relative; height: 80px; background: var(--bg-terminal);
+  border-radius: 6px; overflow: hidden;
+}
+
+.flame-bar {
+  position: absolute; height: 20px; border-radius: 2px;
+  background: var(--color-accent); opacity: 0.7;
+  display: flex; align-items: center; padding: 0 4px;
+  cursor: default; min-width: 4px;
+
+  &:nth-child(odd) { background: #7c3aed; }
+  &:nth-child(3n) { background: #059669; }
+  &:hover { opacity: 1; }
+}
+
+.flame-label {
+  font-size: 0.6rem; color: white; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+// ── Live feed ───────────────────────────────────────────────────────────────
+.feed-method {
+  font-weight: 700; font-size: 0.72rem; min-width: 40px;
+  color: #93c5fd;
+}
+
+.feed-uri {
+  flex: 1; color: #cbd5e1; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
+.feed-status {
+  font-weight: 700; font-size: 0.72rem; min-width: 30px;
+  color: #86efac;
+}

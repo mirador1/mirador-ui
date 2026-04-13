@@ -36,7 +36,7 @@ interface LatencyBucket {
   count: number;
 }
 
-type ObsTab = 'traces' | 'logs' | 'latency';
+type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
 
 @Component({
   selector: 'app-observability',
@@ -74,8 +74,18 @@ export class ObservabilityComponent implements OnDestroy {
   latencyBuckets = signal<LatencyBucket[]>([]);
   latencyLoading = signal(false);
 
+  // ── Flame graph ───────────────────────────────────────────────────────────
+  flameViewTrace = signal<Trace | null>(null);
+
+  // ── Live request feed ─────────────────────────────────────────────────────
+  liveFeed = signal<Array<{ time: string; method: string; uri: string; status: string; duration: string }>>([]);
+  livePolling = signal(false);
+  private _liveTimer: ReturnType<typeof setInterval> | null = null;
+  private _lastRequestCount = 0;
+
   ngOnDestroy(): void {
     this.stopLogsPolling();
+    this.stopLiveFeed();
   }
 
   switchTab(tab: ObsTab): void {
@@ -237,5 +247,65 @@ export class ObservabilityComponent implements OnDestroy {
       height: (b.count / max) * 100,
       count: b.count
     }));
+  }
+
+  // ── Flame graph ───────────────────────────────────────────────────────────
+  openFlameGraph(t: Trace): void {
+    this.flameViewTrace.set(this.flameViewTrace()?.traceId === t.traceId ? null : t);
+  }
+
+  flameRows(): Array<{ name: string; service: string; left: number; width: number; depth: number }> {
+    const t = this.flameViewTrace();
+    if (!t || !t.spans.length) return [];
+    const totalDuration = t.durationMs * 1000; // microseconds
+    if (totalDuration === 0) return [];
+
+    return t.spans.map((s, i) => ({
+      name: s.operationName,
+      service: s.serviceName,
+      left: (i / t.spans.length) * 100, // simplified positioning
+      width: Math.max(2, (s.duration / totalDuration) * 100),
+      depth: i % 3 // simplified depth
+    }));
+  }
+
+  // ── Live request feed ─────────────────────────────────────────────────────
+  toggleLiveFeed(): void {
+    if (this.livePolling()) {
+      this.stopLiveFeed();
+    } else {
+      this.livePolling.set(true);
+      this.pollMetricsForFeed();
+      this._liveTimer = setInterval(() => this.pollMetricsForFeed(), 2000);
+    }
+  }
+
+  private stopLiveFeed(): void {
+    this.livePolling.set(false);
+    if (this._liveTimer) { clearInterval(this._liveTimer); this._liveTimer = null; }
+  }
+
+  private pollMetricsForFeed(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: text => {
+        const entries: Array<{ time: string; method: string; uri: string; status: string; duration: string }> = [];
+        const regex = /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          entries.push({
+            time: new Date().toISOString().slice(11, 23),
+            method: m[1],
+            uri: m[3],
+            status: m[2],
+            duration: '-'
+          });
+        }
+        // Only add new entries based on count changes
+        if (entries.length > 0) {
+          this.liveFeed.update(f => [...entries.slice(0, 5), ...f].slice(0, 100));
+        }
+      },
+      error: () => {}
+    });
   }
 }
