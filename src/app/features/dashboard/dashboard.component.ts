@@ -96,8 +96,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { label: 'Swagger UI', sub: 'Interactive API documentation', url: `${this.env.baseUrl()}/swagger-ui.html`, icon: '📄' },
     { label: 'Actuator /metrics', sub: 'Prometheus scrape endpoint', url: `${this.env.baseUrl()}/actuator/prometheus`, icon: '📈' },
     { label: 'pgAdmin', sub: 'PostgreSQL database manager', url: 'http://localhost:5050', icon: '🐘' },
-    { label: 'Kafka UI', sub: 'Topics, consumers & messages', url: 'http://localhost:8090', icon: '📨' },
-    { label: 'Redis Commander', sub: 'Redis key browser', url: 'http://localhost:8081', icon: '🗄️' },
+    { label: 'Kafka UI', sub: 'Topics, consumers & messages', url: 'http://localhost:9080', icon: '📨' },
+    { label: 'RedisInsight', sub: 'Redis key browser', url: 'http://localhost:5540', icon: '🗄️' },
     { label: 'Keycloak Admin', sub: 'OAuth2 identity provider (admin/admin)', url: 'http://localhost:9090/admin', icon: '🔐' }
   ];
 

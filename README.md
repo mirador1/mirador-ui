@@ -41,8 +41,8 @@ graph TB
         Loki[Loki :3100]
         Pyroscope[Pyroscope :4040]
         PgAdmin[pgAdmin :5050]
-        KafkaUI[Kafka UI :8090]
-        RedisCmd[Redis Commander :8081]
+        KafkaUI[Kafka UI :9080]
+        RedisInsight[RedisInsight :5540]
     end
 
     Frontend --> API
@@ -132,7 +132,7 @@ Real-time health overview with metrics and monitoring.
 - **Health sparkline** — visual history of health check results
 - **Auto-refresh** — configurable polling (10s / 30s / 1min) with toast on state change
 - **Latency comparator** — ping two environments side-by-side, compare avg/p95/errors
-- **Observability links** — Grafana, Prometheus, Zipkin, Pyroscope, Swagger, pgAdmin, Kafka UI, Redis Commander, Keycloak
+- **Observability links** — Grafana, Prometheus, Zipkin, Pyroscope, Swagger, pgAdmin, Kafka UI, RedisInsight, Keycloak
 
 ### Customers
 
@@ -221,8 +221,8 @@ Chronological event timeline aggregating all actions in the current session. Fil
 | Pyroscope | http://localhost:4040 |
 | Loki | http://localhost:3100 |
 | pgAdmin | http://localhost:5050 |
-| Kafka UI | http://localhost:8090 |
-| Redis Commander | http://localhost:8081 |
+| Kafka UI | http://localhost:9080 |
+| RedisInsight | http://localhost:5540 |
 | Keycloak | http://localhost:9090/admin |
 
 ## Build
