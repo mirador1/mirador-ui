@@ -542,6 +542,76 @@
   }
 }
 
+// Violation summary badges row
+.violation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+// Ruleset chips (PMD)
+.ruleset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.ruleset-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+}
+.ruleset-name {
+  color: var(--text-secondary);
+}
+.ruleset-count {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+// Badge variants
+.badge-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge-ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+// section-badge (pass/fail/warn inline in section header)
+.section-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  &.badge-pass {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  &.badge-fail {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  &.badge-warn {
+    background: #fef3c7;
+    color: #92400e;
+  }
+}
+
+// Color helpers
+.pct-ok {
+  color: #15803d;
+}
+
 .metrics-summary {
   display: flex;
   gap: 1rem;

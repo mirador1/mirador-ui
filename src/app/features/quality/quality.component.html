@@ -211,6 +211,34 @@
               </tbody>
             </table>
           </div>
+
+          @if (r.tests.slowestTests && r.tests.slowestTests.length > 0) {
+            <h4 style="margin-top: 1rem">🐢 Slowest Tests (top 10)</h4>
+            <div class="table-wrap">
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th>Test</th>
+                    <th class="num-col" style="width: 7em">Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (t of r.tests.slowestTests; track t.name) {
+                    <tr>
+                      <td class="muted" style="font-size: 0.78rem">{{ t.name }}</td>
+                      <td
+                        class="num-col"
+                        [class.pct-warn]="t.timeMs > 1000"
+                        [class.pct-bad]="t.timeMs > 5000"
+                      >
+                        {{ t.time }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         </section>
       }
 
@@ -418,6 +446,304 @@
       </section>
 
       <!-- ================================================================== -->
+      <!-- PMD SECTION -->
+      <!-- ================================================================== -->
+      @if (r.pmd) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">🔍</span>
+            PMD Analysis
+            @if (r.pmd.available) {
+              <span class="section-count">{{ r.pmd.total }} violations</span>
+              <span
+                class="section-badge"
+                [class.badge-pass]="r.pmd.total === 0"
+                [class.badge-fail]="r.pmd.total! > 0"
+              >
+                {{ r.pmd.total === 0 ? 'CLEAN' : 'ISSUES' }}
+              </span>
+            }
+          </h3>
+
+          @if (!r.pmd.available) {
+            <div class="info-card">ℹ Run <code>mvn verify</code> to generate PMD report.</div>
+          } @else if (r.pmd.total === 0) {
+            <div class="success-card">✅ No PMD violations found.</div>
+          } @else {
+            <!-- Summary badges -->
+            <div class="violation-summary">
+              @for (entry of entries(r.pmd.byPriority); track entry[0]) {
+                <span
+                  class="badge"
+                  [class.badge-fail]="entry[0] === 'High'"
+                  [class.badge-warn]="entry[0] === 'Medium'"
+                >
+                  {{ entry[0] }}: {{ entry[1] }}
+                </span>
+              }
+            </div>
+            <!-- By ruleset -->
+            <div class="ruleset-row">
+              @for (entry of entries(r.pmd.byRuleset); track entry[0]) {
+                <div class="ruleset-chip">
+                  <span class="ruleset-name">{{ entry[0] }}</span>
+                  <span class="ruleset-count">{{ entry[1] }}</span>
+                </div>
+              }
+            </div>
+            <!-- Top rules -->
+            @if (r.pmd.topRules && r.pmd.topRules.length > 0) {
+              <div class="table-wrap" style="margin-top: 0.75rem">
+                <table class="quality-table">
+                  <thead>
+                    <tr>
+                      <th>Top Violated Rules</th>
+                      <th class="num-col">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (rule of r.pmd.topRules; track rule.rule) {
+                      <tr>
+                        <td>{{ rule.rule }}</td>
+                        <td class="num-col">{{ rule.count }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- CHECKSTYLE SECTION -->
+      <!-- ================================================================== -->
+      @if (r.checkstyle) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">✏️</span>
+            Checkstyle
+            @if (r.checkstyle.available) {
+              <span class="section-count">{{ r.checkstyle.total }} violations</span>
+              <span
+                class="section-badge"
+                [class.badge-pass]="r.checkstyle.total === 0"
+                [class.badge-fail]="r.checkstyle.total! > 0"
+              >
+                {{ r.checkstyle.total === 0 ? 'CLEAN' : 'ISSUES' }}
+              </span>
+            }
+          </h3>
+
+          @if (!r.checkstyle.available) {
+            <div class="info-card">
+              ℹ Run <code>mvn verify</code> to generate Checkstyle report.
+            </div>
+          } @else if (r.checkstyle.total === 0) {
+            <div class="success-card">✅ No Checkstyle violations found.</div>
+          } @else {
+            <div class="violation-summary">
+              @for (entry of entries(r.checkstyle.bySeverity); track entry[0]) {
+                <span class="badge" [class]="'badge-' + severityColor(entry[0])"
+                  >{{ entry[0] }}: {{ entry[1] }}</span
+                >
+              }
+            </div>
+            @if (r.checkstyle.topCheckers && r.checkstyle.topCheckers.length > 0) {
+              <div class="table-wrap" style="margin-top: 0.75rem">
+                <table class="quality-table">
+                  <thead>
+                    <tr>
+                      <th>Top Checks Failed</th>
+                      <th class="num-col">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of r.checkstyle.topCheckers; track c.checker) {
+                      <tr>
+                        <td>{{ c.checker }}</td>
+                        <td class="num-col">{{ c.count }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- OWASP CVE SECTION -->
+      <!-- ================================================================== -->
+      @if (r.owasp) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">🛡️</span>
+            OWASP Dependency Check
+            @if (r.owasp.available) {
+              <span class="section-count">{{ r.owasp.total }} CVEs</span>
+              <span
+                class="section-badge"
+                [class.badge-pass]="r.owasp.total === 0"
+                [class.badge-fail]="r.owasp.total! > 0"
+              >
+                {{ r.owasp.total === 0 ? 'CLEAN' : 'VULNERABLE' }}
+              </span>
+            }
+          </h3>
+
+          @if (!r.owasp.available) {
+            <div class="info-card">
+              ℹ Run <code>./run.sh security-check</code> to generate the CVE report.
+            </div>
+          } @else if (r.owasp.total === 0) {
+            <div class="success-card">✅ No known vulnerabilities found in dependencies.</div>
+          } @else {
+            <div class="violation-summary">
+              @for (entry of entries(r.owasp.bySeverity); track entry[0]) {
+                <span class="badge" [class]="'badge-' + severityColor(entry[0])"
+                  >{{ entry[0] }}: {{ entry[1] }}</span
+                >
+              }
+            </div>
+            <div class="table-wrap" style="margin-top: 0.75rem">
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th style="width: 9em">CVE</th>
+                    <th style="width: 6em">Severity</th>
+                    <th style="width: 4em">Score</th>
+                    <th>Dependency</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of r.owasp.vulnerabilities; track v.cve) {
+                    <tr>
+                      <td>
+                        <code class="hash">{{ v.cve }}</code>
+                      </td>
+                      <td [class]="'pct-' + severityColor(v.severity)">
+                        <strong>{{ v.severity }}</strong>
+                      </td>
+                      <td
+                        class="num-col"
+                        [class.pct-bad]="v.score >= 7"
+                        [class.pct-warn]="v.score >= 4 && v.score < 7"
+                      >
+                        {{ v.score | number: '1.1-1' }}
+                      </td>
+                      <td class="muted" style="font-size: 0.78rem">{{ v.dependency }}</td>
+                      <td style="font-size: 0.78rem">{{ v.description }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- PITEST MUTATION TESTING SECTION -->
+      <!-- ================================================================== -->
+      @if (r.pitest) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">🧬</span>
+            Mutation Testing (PIT)
+            @if (r.pitest.available) {
+              <span class="section-count">{{ r.pitest.score }}% mutation score</span>
+              <span
+                class="section-badge"
+                [class.badge-pass]="r.pitest.score! >= 70"
+                [class.badge-warn]="r.pitest.score! >= 50 && r.pitest.score! < 70"
+                [class.badge-fail]="r.pitest.score! < 50"
+              >
+                {{ r.pitest.score! >= 70 ? 'GOOD' : r.pitest.score! >= 50 ? 'WEAK' : 'POOR' }}
+              </span>
+            }
+          </h3>
+
+          @if (!r.pitest.available) {
+            <div class="info-card">
+              ℹ {{ r.pitest.note ?? 'Run: mvn test-compile pitest:mutationCoverage' }}
+            </div>
+          } @else {
+            <!-- Score bar -->
+            <div class="coverage-counters" style="margin-bottom: 1rem">
+              <div class="counter-card">
+                <div class="counter-label">Mutation Score</div>
+                <div class="counter-pct" [class]="'pct-' + coverageColor(r.pitest.score!)">
+                  {{ r.pitest.score | number: '1.1-1' }}%
+                </div>
+                <div class="counter-abs">{{ r.pitest.killed }} / {{ r.pitest.total }} killed</div>
+                <svg class="coverage-bar" viewBox="0 0 100 5" preserveAspectRatio="none">
+                  <rect x="0" y="0" width="100" height="5" fill="#e5e7eb" rx="2" />
+                  <rect
+                    x="0"
+                    y="0"
+                    [attr.width]="r.pitest.score"
+                    height="5"
+                    [attr.fill]="
+                      r.pitest.score! >= 70
+                        ? '#22c55e'
+                        : r.pitest.score! >= 50
+                          ? '#f59e0b'
+                          : '#ef4444'
+                    "
+                    rx="2"
+                  />
+                </svg>
+              </div>
+              <div class="counter-card">
+                <div class="counter-label">Survived</div>
+                <div class="counter-pct" [class.pct-bad]="r.pitest.survived! > 0">
+                  {{ r.pitest.survived }}
+                </div>
+                <div class="counter-abs">need more tests</div>
+              </div>
+              <div class="counter-card">
+                <div class="counter-label">No Coverage</div>
+                <div class="counter-pct pct-warn">{{ r.pitest.noCoverage }}</div>
+                <div class="counter-abs">uncovered code</div>
+              </div>
+            </div>
+
+            @if (r.pitest.survivingMutations && r.pitest.survivingMutations.length > 0) {
+              <h4>Surviving Mutations (write tests to kill these)</h4>
+              <div class="table-wrap">
+                <table class="quality-table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Method</th>
+                      <th>Mutator</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of r.pitest.survivingMutations; track $index) {
+                      <tr>
+                        <td>{{ m.class }}</td>
+                        <td class="muted">{{ m.method }}</td>
+                        <td>
+                          <span class="badge badge-warn">{{ m.mutator }}</span>
+                        </td>
+                        <td style="font-size: 0.78rem">{{ m.description }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </section>
+      }
+
+      <!-- ================================================================== -->
       <!-- GIT SECTION -->
       <!-- ================================================================== -->
       @if (r.git?.available) {
@@ -546,6 +872,12 @@
               <div class="metric-val">{{ r.metrics!.totalLines }}</div>
               <div class="metric-lbl">Lines (source)</div>
             </div>
+            @if (r.metrics!.totalComplexity) {
+              <div class="metric-card">
+                <div class="metric-val">{{ r.metrics!.totalComplexity }}</div>
+                <div class="metric-lbl">Cyclomatic complexity</div>
+              </div>
+            }
           </div>
           <div class="table-wrap">
             <table class="quality-table">
@@ -555,6 +887,7 @@
                   <th class="num-col">Classes</th>
                   <th class="num-col">Methods</th>
                   <th class="num-col">Lines</th>
+                  <th class="num-col">Complexity</th>
                 </tr>
               </thead>
               <tbody>
@@ -564,6 +897,13 @@
                     <td class="num-col">{{ pkg.classes }}</td>
                     <td class="num-col">{{ pkg.methods }}</td>
                     <td class="num-col">{{ pkg.lines }}</td>
+                    <td
+                      class="num-col"
+                      [class.pct-warn]="pkg.complexity! > 50"
+                      [class.pct-bad]="pkg.complexity! > 100"
+                    >
+                      {{ pkg.complexity ?? '—' }}
+                    </td>
                   </tr>
                 }
               </tbody>

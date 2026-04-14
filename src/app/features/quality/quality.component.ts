@@ -13,6 +13,12 @@ import { DecimalPipe } from '@angular/common';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
+export interface SlowTest {
+  name: string;
+  time: string;
+  timeMs: number;
+}
+
 export interface TestSuite {
   name: string;
   tests: number;
@@ -33,6 +39,7 @@ export interface TestsReport {
   time?: string;
   runAt?: string;
   suites?: TestSuite[];
+  slowestTests?: SlowTest[];
 }
 
 export interface Counter {
@@ -80,6 +87,70 @@ export interface BuildReport {
   springBootVersion?: string;
 }
 
+export interface PmdViolation {
+  file: string;
+  rule: string;
+  ruleset: string;
+  priority: string;
+  message: string;
+}
+export interface PmdReport {
+  available: boolean;
+  total?: number;
+  byRuleset?: Record<string, number>;
+  byPriority?: Record<string, number>;
+  topRules?: Array<{ rule: string; count: number }>;
+  violations?: PmdViolation[];
+}
+
+export interface CheckstyleViolation {
+  file: string;
+  line: string;
+  severity: string;
+  checker: string;
+  message: string;
+}
+export interface CheckstyleReport {
+  available: boolean;
+  total?: number;
+  bySeverity?: Record<string, number>;
+  topCheckers?: Array<{ checker: string; count: number }>;
+  violations?: CheckstyleViolation[];
+}
+
+export interface OwaspVuln {
+  cve: string;
+  severity: string;
+  score: number;
+  dependency: string;
+  description: string;
+}
+export interface OwaspReport {
+  available: boolean;
+  total?: number;
+  bySeverity?: Record<string, number>;
+  vulnerabilities?: OwaspVuln[];
+}
+
+export interface PitestMutation {
+  class: string;
+  method: string;
+  mutator: string;
+  description: string;
+}
+export interface PitestReport {
+  available: boolean;
+  note?: string;
+  total?: number;
+  killed?: number;
+  survived?: number;
+  noCoverage?: number;
+  score?: number;
+  byStatus?: Record<string, number>;
+  byMutator?: Record<string, number>;
+  survivingMutations?: PitestMutation[];
+}
+
 export interface QualityReport {
   generatedAt: string;
   tests: TestsReport;
@@ -105,8 +176,19 @@ export interface QualityReport {
     totalClasses?: number;
     totalMethods?: number;
     totalLines?: number;
-    packages?: Array<{ name: string; classes: number; methods: number; lines: number }>;
+    totalComplexity?: number;
+    packages?: Array<{
+      name: string;
+      classes: number;
+      methods: number;
+      lines: number;
+      complexity?: number;
+    }>;
   };
+  pmd?: PmdReport;
+  checkstyle?: CheckstyleReport;
+  owasp?: OwaspReport;
+  pitest?: PitestReport;
 }
 
 @Component({
@@ -156,5 +238,16 @@ export class QualityComponent implements OnInit {
   entries(obj: Record<string, number> | undefined): [string, number][] {
     if (!obj) return [];
     return Object.entries(obj);
+  }
+
+  severityColor(severity: string): string {
+    const s = severity.toUpperCase();
+    if (s === 'CRITICAL' || s === 'HIGH' || s === '1') return 'bad';
+    if (s === 'MEDIUM' || s === 'WARNING' || s === '2') return 'warn';
+    return 'ok';
+  }
+
+  priorityLabel(p: string): string {
+    return p === '1' ? 'High' : p === '2' ? 'Medium' : 'Low';
   }
 }
