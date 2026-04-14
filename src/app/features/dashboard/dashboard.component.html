@@ -240,6 +240,12 @@
           vector-effect="non-scaling-stroke"
         />
       </svg>
+      <!-- X-axis time labels (HH:MM) positioned proportionally -->
+      <div class="sparkline-xaxis" aria-hidden="true">
+        @for (lbl of sparklineXLabels(); track lbl.label) {
+          <span class="sparkline-xaxis-label" [style.left.%]="lbl.pct">{{ lbl.label }}</span>
+        }
+      </div>
       <div class="sparkline-legend">
         <span class="legend-up">UP</span>
         <span class="legend-down">DOWN</span>

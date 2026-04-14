@@ -186,6 +186,29 @@ h2 {
   height: 80px;
 }
 
+// X-axis minute labels below the sparkline
+.sparkline-xaxis {
+  position: relative;
+  height: 1.1rem;
+  margin-top: 3px;
+}
+
+.sparkline-xaxis-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+
+  // Keep first/last labels from overflowing the container
+  &:first-child {
+    transform: translateX(0);
+  }
+  &:last-child {
+    transform: translateX(-100%);
+  }
+}
+
 .sparkline-legend {
   display: flex;
   gap: 0.75rem;
