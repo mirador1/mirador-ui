@@ -590,12 +590,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   //                                               AKHQ
   //
   readonly topoColumns = [
-    'Client',
-    'Application',
-    'Data Stores',
-    'Data Tools',
-    'Obs Collectors',
-    'Obs Dashboards',
+    '🌐 Client',
+    '🍃 Application',
+    '🗄️ Data Stores',
+    '🛠️ Data Tools',
+    '📡 Obs Collectors',
+    '📊 Obs Dashboards',
   ];
 
   readonly topoNodes: Array<{

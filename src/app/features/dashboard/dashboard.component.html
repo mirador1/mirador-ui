@@ -417,6 +417,7 @@
                       [href]="node.url"
                       target="_blank"
                       rel="noopener"
+                      [title]="'Open ' + node.label + ' in a new browser tab (localhost:' + node.port + ')'"
                       >Open ↗</a
                     >
                   }
@@ -426,6 +427,7 @@
                         class="docker-btn docker-down"
                         (click)="dockerAction(c.name, 'stop')"
                         [disabled]="isDockerActionLoading(c.name, 'stop')"
+                        [title]="'Stop the ' + c.name + ' Docker container (docker stop ' + c.name + '). The service will show as DOWN until restarted.'"
                       >
                         {{ isDockerActionLoading(c.name, 'stop') ? '...' : '↓ Down' }}
                       </button>
@@ -434,6 +436,7 @@
                         class="docker-btn docker-up"
                         (click)="dockerAction(c.name, 'start')"
                         [disabled]="isDockerActionLoading(c.name, 'start')"
+                        [title]="'Start the ' + c.name + ' Docker container (docker start ' + c.name + '). The service will show as UP once healthy.'"
                       >
                         {{ isDockerActionLoading(c.name, 'start') ? '...' : '↑ Up' }}
                       </button>

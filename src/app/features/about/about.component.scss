@@ -252,6 +252,69 @@ h4 {
   color: var(--text-secondary);
 }
 
+// ── Technologies table ───────────────────────────────────────────────────────
+.tech-card {
+  overflow-x: auto;
+}
+
+.tech-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+
+  thead tr {
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-default);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: var(--bg-card-hover);
+    }
+  }
+
+  td {
+    padding: 0.45rem 0.6rem;
+    vertical-align: top;
+    line-height: 1.45;
+  }
+}
+
+.tech-col-name {
+  width: 140px;
+}
+.tech-col-desc {
+  width: 35%;
+}
+.tech-col-usage {
+  // fills remainder
+}
+
+.tech-name {
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+.tech-desc {
+  color: var(--text-secondary);
+}
+.tech-usage {
+  color: var(--text-secondary);
+}
+
 .quickstart-code {
   background: var(--bg-terminal);
   color: #86efac;

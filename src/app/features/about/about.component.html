@@ -234,6 +234,36 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Technologies                                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'tech') {
+    <article class="card tech-card">
+      <h3>All Technologies — A → Z</h3>
+      <p class="card-desc">
+        {{ technologies.length }} technologies used in this project, alphabetically sorted.
+      </p>
+      <table class="tech-table">
+        <thead>
+          <tr>
+            <th class="tech-col-name">Technology</th>
+            <th class="tech-col-desc">What it is</th>
+            <th class="tech-col-usage">How it's used here</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of technologies; track t.name) {
+            <tr>
+              <td class="tech-name">{{ t.name }}</td>
+              <td class="tech-desc">{{ t.description }}</td>
+              <td class="tech-usage">{{ t.usage }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!-- TAB: Shortcuts                                                         -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (activeTab() === 'shortcuts') {
