@@ -18,11 +18,13 @@ export class AboutComponent {
     | 'messaging'
     | 'data'
     | 'testing'
+    | 'deploy'
   >('overview');
 
   readonly tabs = [
     { id: 'overview', label: '📖 Overview' },
     { id: 'infra', label: '🏗️ Infrastructure' },
+    { id: 'deploy', label: '☸️ Kubernetes' },
     { id: 'tech', label: '📚 Technologies' },
     { id: 'compat', label: '🔀 Compatibility' },
     { id: 'obs-arch', label: '🔭 Observability' },

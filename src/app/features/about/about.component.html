@@ -691,6 +691,445 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Kubernetes deployment                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'deploy') {
+    <article class="card deploy-card">
+      <h2>☸️ Production Architecture — Kubernetes</h2>
+      <p class="card-intro">
+        When deployed to a Kubernetes cluster the two Docker images sit behind a single
+        <strong>Nginx Ingress</strong> on one hostname — the browser never makes a cross-origin
+        request, eliminating CORS entirely.
+      </p>
+
+      <!-- K8s architecture SVG diagram -->
+      <svg
+        viewBox="0 0 780 520"
+        class="arch-diagram k8s-diagram"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="Kubernetes architecture diagram"
+      >
+        <defs>
+          <marker id="k8s-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="var(--color-accent)" />
+          </marker>
+        </defs>
+
+        <!-- Internet -->
+        <rect
+          x="310"
+          y="10"
+          width="160"
+          height="36"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="var(--border-default)"
+          stroke-width="1.5"
+        />
+        <text
+          x="390"
+          y="33"
+          text-anchor="middle"
+          font-size="13"
+          fill="var(--text-primary)"
+          font-weight="600"
+        >
+          🌐 Internet (HTTPS)
+        </text>
+
+        <!-- Arrow Internet → Ingress -->
+        <line
+          x1="390"
+          y1="46"
+          x2="390"
+          y2="70"
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+          marker-end="url(#k8s-arrow)"
+        />
+        <text x="398" y="62" font-size="10" fill="var(--text-muted)">TLS</text>
+
+        <!-- Ingress namespace box -->
+        <rect
+          x="30"
+          y="72"
+          width="720"
+          height="58"
+          rx="8"
+          fill="none"
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+          stroke-dasharray="5,3"
+          opacity="0.6"
+        />
+        <text x="46" y="90" font-size="10" fill="var(--color-accent)" font-weight="600">
+          namespace: ingress-nginx
+        </text>
+        <rect
+          x="120"
+          y="94"
+          width="520"
+          height="28"
+          rx="6"
+          fill="var(--bg-card)"
+          stroke="var(--border-default)"
+          stroke-width="1.5"
+        />
+        <text
+          x="380"
+          y="113"
+          text-anchor="middle"
+          font-size="12"
+          fill="var(--text-primary)"
+          font-weight="600"
+        >
+          Nginx Ingress Controller
+        </text>
+        <text x="176" y="113" font-size="10" fill="var(--text-muted)">/api/(.*) → backend</text>
+        <text x="496" y="113" font-size="10" fill="var(--text-muted)">/(.*) → frontend</text>
+
+        <!-- Arrows Ingress → services -->
+        <line
+          x1="280"
+          y1="130"
+          x2="200"
+          y2="170"
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+          marker-end="url(#k8s-arrow)"
+        />
+        <line
+          x1="490"
+          y1="130"
+          x2="580"
+          y2="170"
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+          marker-end="url(#k8s-arrow)"
+        />
+
+        <!-- app namespace box -->
+        <rect
+          x="30"
+          y="165"
+          width="720"
+          height="110"
+          rx="8"
+          fill="none"
+          stroke="#6366f1"
+          stroke-width="1.5"
+          stroke-dasharray="5,3"
+          opacity="0.6"
+        />
+        <text x="46" y="183" font-size="10" fill="#6366f1" font-weight="600">namespace: app</text>
+
+        <!-- customer-service box -->
+        <rect
+          x="50"
+          y="188"
+          width="290"
+          height="76"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="#6366f1"
+          stroke-width="1.5"
+        />
+        <text
+          x="195"
+          y="207"
+          text-anchor="middle"
+          font-size="12"
+          fill="var(--text-primary)"
+          font-weight="700"
+        >
+          customer-service
+        </text>
+        <text x="195" y="222" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Spring Boot 4 · port 8080
+        </text>
+        <text x="195" y="237" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          replicas: 2 · HPA 1→5 @ 70% CPU
+        </text>
+        <text x="195" y="252" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          liveness + readiness + startup probes
+        </text>
+
+        <!-- customer-ui box -->
+        <rect
+          x="440"
+          y="188"
+          width="290"
+          height="76"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="#6366f1"
+          stroke-width="1.5"
+        />
+        <text
+          x="585"
+          y="207"
+          text-anchor="middle"
+          font-size="12"
+          fill="var(--text-primary)"
+          font-weight="700"
+        >
+          customer-ui
+        </text>
+        <text x="585" y="222" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Angular 21 + Nginx · port 80
+        </text>
+        <text x="585" y="237" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          replicas: 2 · RollingUpdate
+        </text>
+        <text x="585" y="252" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          baseUrl: /api (same-origin)
+        </text>
+
+        <!-- Arrow customer-service → infra -->
+        <line
+          x1="195"
+          y1="264"
+          x2="195"
+          y2="300"
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+          marker-end="url(#k8s-arrow)"
+        />
+
+        <!-- infra namespace box -->
+        <rect
+          x="30"
+          y="298"
+          width="720"
+          height="140"
+          rx="8"
+          fill="none"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+          stroke-dasharray="5,3"
+          opacity="0.6"
+        />
+        <text x="46" y="316" font-size="10" fill="#f59e0b" font-weight="600">namespace: infra</text>
+
+        <!-- PostgreSQL box -->
+        <rect
+          x="50"
+          y="322"
+          width="200"
+          height="100"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+        />
+        <text
+          x="150"
+          y="342"
+          text-anchor="middle"
+          font-size="12"
+          fill="var(--text-primary)"
+          font-weight="700"
+        >
+          🐘 PostgreSQL 17
+        </text>
+        <text x="150" y="358" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          StatefulSet + PVC 10 Gi
+        </text>
+        <text x="150" y="373" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Flyway V1–V6
+        </text>
+        <text x="150" y="388" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          customers + app_user + audit
+        </text>
+        <text x="150" y="403" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          + shedlock tables
+        </text>
+
+        <!-- Redis box -->
+        <rect
+          x="290"
+          y="322"
+          width="200"
+          height="100"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+        />
+        <text
+          x="390"
+          y="342"
+          text-anchor="middle"
+          font-size="12"
+          fill="var(--text-primary)"
+          font-weight="700"
+        >
+          ⚡ Redis 7
+        </text>
+        <text x="390" y="358" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Deployment · 128 MB
+        </text>
+        <text x="390" y="373" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          JWT blacklist (TTL)
+        </text>
+        <text x="390" y="388" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Rate-limit buckets
+        </text>
+        <text x="390" y="403" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Recent customer ring buffer
+        </text>
+
+        <!-- Kafka box -->
+        <rect
+          x="530"
+          y="322"
+          width="200"
+          height="100"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+        />
+        <text
+          x="630"
+          y="342"
+          text-anchor="middle"
+          font-size="12"
+          fill="var(--text-primary)"
+          font-weight="700"
+        >
+          📨 Kafka 3.8
+        </text>
+        <text x="630" y="358" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Deployment · KRaft mode
+        </text>
+        <text x="630" y="373" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          No ZooKeeper
+        </text>
+        <text x="630" y="388" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          Topics: created
+        </text>
+        <text x="630" y="403" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          request / reply
+        </text>
+
+        <!-- CI/CD deploy targets -->
+        <rect
+          x="30"
+          y="458"
+          width="720"
+          height="52"
+          rx="8"
+          fill="var(--bg-card)"
+          stroke="var(--border-default)"
+          stroke-width="1.5"
+        />
+        <text
+          x="390"
+          y="476"
+          text-anchor="middle"
+          font-size="11"
+          fill="var(--text-primary)"
+          font-weight="700"
+        >
+          CI/CD — 6 deployment targets
+        </text>
+        <text x="390" y="497" text-anchor="middle" font-size="10" fill="var(--text-muted)">
+          ✓ GKE Autopilot (default) · ▶ AWS EKS · ▶ Azure AKS · ▶ Cloud Run · ▶ Fly.io · ▶ k3s
+        </text>
+      </svg>
+
+      <!-- Deployment targets table -->
+      <h3>Deployment targets</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Type</th>
+            <th>Trigger</th>
+            <th>Use case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>☸️ GKE Autopilot</td>
+            <td>Managed K8s</td>
+            <td>Auto on <code>main</code></td>
+            <td>Default production</td>
+          </tr>
+          <tr>
+            <td>☸️ AWS EKS</td>
+            <td>Managed K8s</td>
+            <td>Manual ▶</td>
+            <td>AWS infrastructure</td>
+          </tr>
+          <tr>
+            <td>☸️ Azure AKS</td>
+            <td>Managed K8s</td>
+            <td>Manual ▶</td>
+            <td>Azure infrastructure</td>
+          </tr>
+          <tr>
+            <td>☁️ Cloud Run</td>
+            <td>Serverless</td>
+            <td>Manual ▶</td>
+            <td>Low traffic / demos</td>
+          </tr>
+          <tr>
+            <td>🚀 Fly.io</td>
+            <td>PaaS</td>
+            <td>Manual ▶</td>
+            <td>Side projects</td>
+          </tr>
+          <tr>
+            <td>🖥️ k3s / bare metal</td>
+            <td>Self-hosted K8s</td>
+            <td>Manual ▶</td>
+            <td>Hetzner / OVH / home lab</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Local kind -->
+      <h3>Local testing with kind</h3>
+      <p>
+        A <strong>kind</strong> (Kubernetes IN Docker) cluster mirrors the production setup on your
+        laptop. One command deploys the full stack including Postgres, Redis, Kafka, backend and
+        frontend.
+      </p>
+      <div class="code-block">
+        <pre>
+./scripts/deploy-local.sh          # build + deploy
+./scripts/deploy-local.sh --skip-build  # redeploy (keep images)
+./scripts/deploy-local.sh --delete     # tear down</pre
+        >
+      </div>
+      <p>
+        Access at <code>http://localhost:8090</code> after the script completes (~3 min first run).
+      </p>
+
+      <!-- Local GitLab Runner -->
+      <h3>Local CI runner (zero gitlab.com minutes)</h3>
+      <p>
+        A local <strong>GitLab Runner</strong> connects to gitlab.com and executes pipeline jobs on
+        your machine, consuming zero shared-runner minutes.
+      </p>
+      <div class="code-block">
+        <pre>
+docker compose -f docker-compose.runner.yml up -d
+./scripts/register-runner.sh &lt;TOKEN&gt;</pre
+        >
+      </div>
+      <p>
+        Get the token from
+        <strong>gitlab.com → Project → Settings → CI/CD → Runners → New project runner</strong>.
+        Every subsequent push runs the pipeline locally.
+      </p>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!-- TAB: Technologies                                                      -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (activeTab() === 'tech') {

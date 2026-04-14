@@ -491,3 +491,79 @@ h4 {
   justify-content: center;
   margin-top: 0.1rem;
 }
+
+// ── Kubernetes deploy tab ──────────────────────────────────────────────────
+.deploy-card {
+  h3 {
+    margin: 1.5rem 0 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.k8s-diagram {
+  width: 100%;
+  max-width: 780px;
+  height: auto;
+  margin: 1rem 0 1.5rem;
+  display: block;
+}
+
+.deploy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 1.5rem;
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  tr:first-child td {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  code {
+    font-size: 0.78rem;
+    background: var(--bg-elevated);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    color: var(--color-accent);
+  }
+}
+
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+
+  pre {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+}
