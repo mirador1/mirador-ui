@@ -102,55 +102,7 @@
       }
     </article>
 
-    <!-- Scheduled Jobs -->
-    <article class="card" title="View scheduled jobs and their last execution status">
-      <h3>🕐 Scheduled Jobs</h3>
-      <p class="card-desc">ShedLock entries — last execution state per scheduled task.</p>
-      <button class="btn-primary" (click)="loadScheduledJobs()">
-        {{ scheduledJobsLoading() ? 'Loading…' : '↻ Load jobs' }}
-      </button>
-
-      @if (scheduledJobsError()) {
-        <div class="error-note">{{ scheduledJobsError() }}</div>
-      }
-
-      @if (scheduledJobs().length > 0) {
-        <table class="jobs-table">
-          <thead>
-            <tr>
-              <th>Job name</th>
-              <th>Status</th>
-              <th>Last run</th>
-              <th>Locked by</th>
-              <th>Lock until</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (job of scheduledJobs(); track job.name) {
-              <tr>
-                <td class="job-name">{{ job.name }}</td>
-                <td>
-                  <span
-                    class="job-badge"
-                    [class.job-active]="isJobActive(job)"
-                    [class.job-idle]="!isJobActive(job)"
-                  >
-                    {{ isJobActive(job) ? 'ACTIVE' : 'IDLE' }}
-                  </span>
-                </td>
-                <td class="job-ts">
-                  {{ job.lockedAt ? (job.lockedAt | date: 'yyyy-MM-dd HH:mm:ss') : '—' }}
-                </td>
-                <td class="job-host">{{ job.lockedBy ?? '—' }}</td>
-                <td class="job-ts">
-                  {{ job.lockUntil ? (job.lockUntil | date: 'HH:mm:ss') : '—' }}
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
-    </article>
+    <!-- Scheduled Jobs moved to Diagnostic page -->
   }
   <!-- end auth -->
 </section>

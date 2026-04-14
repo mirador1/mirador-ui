@@ -20,12 +20,19 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { forkJoin, catchError, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { EnvService } from '../../core/env/env.service';
+
+interface ScheduledJob {
+  name: string;
+  lockUntil: string | null;
+  lockedAt: string | null;
+  lockedBy: string | null;
+}
 
 /** A single line in a JSON diff view */
 interface DiffLine {
@@ -500,5 +507,33 @@ export class DiagnosticComponent {
     a.download = `diagnostic-runs-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Scheduled Jobs ─────────────────────────────────────────────────────────
+  scheduledJobs = signal<ScheduledJob[]>([]);
+  scheduledJobsLoading = signal(false);
+  scheduledJobsError = signal('');
+
+  loadScheduledJobs(): void {
+    this.scheduledJobsLoading.set(true);
+    this.scheduledJobsError.set('');
+    const base = this.env.baseUrl();
+    const token = this.auth.token();
+    const headers = new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
+    this.http.get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers }).subscribe({
+      next: (jobs) => {
+        this.scheduledJobs.set(jobs);
+        this.scheduledJobsLoading.set(false);
+      },
+      error: (e) => {
+        this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
+        this.scheduledJobsLoading.set(false);
+      },
+    });
+  }
+
+  isJobActive(job: ScheduledJob): boolean {
+    if (!job.lockUntil) return false;
+    return new Date(job.lockUntil) > new Date();
   }
 }

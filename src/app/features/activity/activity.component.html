@@ -2,7 +2,12 @@
   <div class="page-header">
     <div>
       <h2>Activity</h2>
-      <p class="subtitle">Chronological event timeline — all actions in this session</p>
+      <p class="subtitle">
+        Chronological event timeline — all actions in this browser session. An
+        <strong>event</strong> is a client-side record created each time you (or the UI) performs an
+        action: creating a customer, running a diagnostic, checking health, importing a file, etc.
+        Events are stored in memory only — they reset on page reload.
+      </p>
     </div>
     <div class="header-actions">
       <span class="count">{{ filteredEvents.length }} events</span>

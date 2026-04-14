@@ -248,14 +248,6 @@ export class AppShellComponent {
       children: [],
     },
     {
-      id: 'audit',
-      icon: '🛡️',
-      label: 'Audit Trail',
-      path: '/audit',
-      tip: 'Paginated audit events with action and user filters, auto-refresh every 30s',
-      children: [],
-    },
-    {
       id: 'timeline',
       icon: '⚡',
       label: 'Live Feed',
@@ -266,10 +258,27 @@ export class AppShellComponent {
     {
       id: 'security',
       icon: '🔐',
-      label: 'Security Demo',
+      label: 'Security',
       path: '/security',
-      tip: 'Interactive SQL Injection, XSS and CORS vulnerability demos',
-      children: [],
+      tip: 'Security mechanisms, OWASP vulnerability demos, and audit trail',
+      children: [
+        {
+          id: 'security-demo',
+          icon: '💉',
+          label: 'Security Demo',
+          path: '/security',
+          tip: 'Interactive OWASP demos: SQL Injection, XSS, CORS, IDOR, JWT, Security Headers',
+          children: [],
+        },
+        {
+          id: 'audit',
+          icon: '🛡️',
+          label: 'Audit Trail',
+          path: '/audit',
+          tip: 'Paginated audit events with action and user filters, auto-refresh every 30s',
+          children: [],
+        },
+      ],
     },
     {
       id: 'about',
