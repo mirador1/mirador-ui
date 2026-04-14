@@ -387,15 +387,16 @@ export class ObservabilityComponent implements OnDestroy {
       this._es.addEventListener('ping', () => this.sseStatus.set('connected'));
       this._es.onopen = () => this.sseStatus.set('connected');
       this._es.onerror = () => {
-        this.sseStatus.set('reconnecting');
-        // Only manually reconnect when the EventSource is truly closed.
-        // If readyState is CONNECTING (0), the browser is already auto-reconnecting —
-        // destroying it here would cancel that attempt and create a double-reconnect loop.
-        if (!this._es || this._es.readyState === EventSource.CLOSED) {
-          this._es?.close();
+        if (!this._es) return;
+        if (this._es.readyState === EventSource.CLOSED) {
+          // Connection truly closed — manual reconnect needed.
+          this.sseStatus.set('reconnecting');
+          this._es.close();
           this._es = null;
           this._reconnectTimer = setTimeout(() => this.connectSse(), RECONNECT_DELAY_MS);
         }
+        // readyState === CONNECTING: browser is already auto-reconnecting.
+        // Don't touch the status — onopen will fire when it succeeds.
       };
     } catch {
       this.sseStatus.set('disconnected');
