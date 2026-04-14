@@ -13,7 +13,7 @@
  * Live Feed: Polls /actuator/prometheus every 2s and extracts HTTP request
  *   metrics to display a scrolling feed of method/URI/status entries.
  */
-import { Component, inject, signal, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -70,7 +70,7 @@ const MAX_SSE_EVENTS = 50;
 const NEW_BADGE_MS = 5_000;
 const RECONNECT_DELAY_MS = 3_000;
 
-type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
+type ObsTab = 'traces' | 'logger' | 'logs' | 'latency' | 'live';
 
 @Component({
   selector: 'app-observability',
@@ -79,7 +79,7 @@ type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
   templateUrl: './observability.component.html',
   styleUrl: './observability.component.scss',
 })
-export class ObservabilityComponent implements OnDestroy {
+export class ObservabilityComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
@@ -175,6 +175,11 @@ export class ObservabilityComponent implements OnDestroy {
   // ── Flame graph ───────────────────────────────────────────────────────────
   flameViewTrace = signal<Trace | null>(null);
 
+  ngOnInit(): void {
+    // Pre-connect SSE so it's ready by the time the user opens the Live tab
+    this.connectSse();
+  }
+
   ngOnDestroy(): void {
     this.stopLogsPolling();
     this.cleanupSse();
@@ -183,6 +188,9 @@ export class ObservabilityComponent implements OnDestroy {
 
   switchTab(tab: ObsTab): void {
     this.activeTab.set(tab);
+    if (tab === 'logger' && this.loggersList().length === 0) {
+      this.loadLoggers();
+    }
     if (tab === 'live' && this._es === null && this.sseStatus() === 'disconnected') {
       this.connectSse();
     }

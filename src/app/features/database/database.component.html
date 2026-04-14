@@ -1,4 +1,4 @@
-<section>
+<section class="db-layout">
   <div class="page-header">
     <div>
       <h2>Database</h2>
@@ -19,16 +19,124 @@
       Please <a routerLink="/login">sign in</a> to access the database explorer.
     </div>
   } @else {
-    <!-- SQL Explorer intro -->
-    <article class="card">
-      <h3>🐘 SQL Explorer</h3>
-      <p class="card-desc">
-        Execute read-only SQL queries via
-        <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a>. For write
-        operations (VACUUM, ANALYZE, REINDEX), use
-        <a href="http://localhost:5050" target="_blank" rel="noopener">pgAdmin</a>.
-      </p>
+    <!-- Category tabs -->
+    <div class="tabs">
+      <button [class.tab-active]="activeTab() === 'health'" (click)="activeTab.set('health')">
+        🏥 Health
+      </button>
+      <button [class.tab-active]="activeTab() === 'customer'" (click)="activeTab.set('customer')">
+        📋 Customer Data
+      </button>
+      <button
+        [class.tab-active]="activeTab() === 'diagnostics'"
+        (click)="activeTab.set('diagnostics')"
+      >
+        🔍 PG Diagnostics
+      </button>
+      <button [class.tab-active]="activeTab() === 'schema'" (click)="activeTab.set('schema')">
+        🔧 Schema &amp; Flyway
+      </button>
+      <button
+        [class.tab-active]="activeTab() === 'investigation'"
+        (click)="activeTab.set('investigation')"
+      >
+        🚨 Investigation
+      </button>
+      <button
+        [class.tab-active]="activeTab() === 'performance'"
+        (click)="activeTab.set('performance')"
+      >
+        🏎️ Performance
+      </button>
+    </div>
 
+    <!-- Health tab -->
+    @if (activeTab() === 'health') {
+      <div class="presets-area health-area">
+        <div class="health-intro">
+          <p class="health-desc">
+            Run 8 diagnostic checks in parallel — cache ratio, bloat, locks, idle transactions, long
+            queries, duplicate emails, seq scan patterns, unused indexes.
+          </p>
+          <button class="magic-btn" (click)="runHealthChecks()" [disabled]="healthRunning()">
+            @if (healthRunning()) {
+              <span class="magic-spin">⟳</span> Running checks…
+            } @else {
+              🪄 Run Diagnostic
+            }
+          </button>
+        </div>
+
+        @if (healthResults().length > 0) {
+          <div class="health-grid">
+            @for (r of healthResults(); track r.check.id) {
+              <div class="health-card" [class]="'hc-' + r.status">
+                <div class="hc-header">
+                  <span class="hc-icon">
+                    @switch (r.status) {
+                      @case ('ok') {
+                        ✅
+                      }
+                      @case ('warn') {
+                        ⚠️
+                      }
+                      @case ('crit') {
+                        ❌
+                      }
+                      @case ('loading') {
+                        ⟳
+                      }
+                      @case ('error') {
+                        🔌
+                      }
+                    }
+                  </span>
+                  <span class="hc-label">{{ r.check.label }}</span>
+                </div>
+                <p class="hc-desc">{{ r.check.description }}</p>
+                <p class="hc-detail">{{ r.detail }}</p>
+                @if (r.status !== 'loading' && r.status !== 'error') {
+                  <button class="hc-query-btn" (click)="sqlQuery = r.check.query; executeSql()">
+                    ▶ See raw data
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Tab preset buttons (hidden on Health tab) -->
+    @if (activeTab() !== 'health') {
+      <div class="presets-area">
+        @for (cat of sqlPresetCategories; track cat.id) {
+          @if (activeTab() === cat.id) {
+            <div class="sql-cat-btns">
+              @for (p of cat.presets; track p.name) {
+                <button
+                  class="sql-preset-btn"
+                  (click)="sqlQuery = p.query; executeSql()"
+                  [title]="p.tip"
+                >
+                  {{ p.icon }} {{ p.name }}
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- SQL Explorer — sticky at the bottom -->
+    <div class="sql-panel">
+      <div class="sql-panel-header">
+        <span class="sql-panel-title">🐘 SQL Explorer</span>
+        <span class="sql-panel-hint">
+          Read-only via <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a> —
+          click a preset above or type your own query
+        </span>
+      </div>
       <div class="sql-editor">
         <textarea
           [(ngModel)]="sqlQuery"
@@ -37,14 +145,12 @@
           placeholder="SELECT ..."
         ></textarea>
         <button class="run-btn" (click)="executeSql()" [disabled]="sqlLoading()">
-          {{ sqlLoading() ? 'Running...' : '▶ Execute' }}
+          {{ sqlLoading() ? 'Running...' : '▶ Run' }}
         </button>
       </div>
-
       @if (sqlError()) {
         <div class="alert-error">{{ sqlError() }}</div>
       }
-
       @if (sqlResult()) {
         <div class="sql-result">
           <table>
@@ -67,24 +173,6 @@
           </table>
         </div>
       }
-    </article>
-
-    <!-- SQL preset categories — one card per category -->
-    @for (cat of sqlPresetCategories; track cat.label) {
-      <article class="card">
-        <h3>{{ cat.label }}</h3>
-        <div class="sql-cat-btns">
-          @for (p of cat.presets; track p.name) {
-            <button
-              class="sql-preset-btn"
-              (click)="sqlQuery = p.query; executeSql()"
-              [title]="p.tip"
-            >
-              {{ p.icon }} {{ p.name }}
-            </button>
-          }
-        </div>
-      </article>
-    }
+    </div>
   }
 </section>

@@ -63,46 +63,7 @@
       </article>
     }
 
-    <!-- Loggers -->
-    <article class="card">
-      <h3>📝 Loggers</h3>
-      <div class="logger-controls">
-        <button class="action-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
-          {{ loggerLoading() ? 'Loading...' : '↻ Load loggers' }}
-        </button>
-        @if (loggers().length) {
-          <input
-            type="text"
-            placeholder="Filter loggers..."
-            [(ngModel)]="loggerFilter"
-            class="logger-filter"
-          />
-        }
-      </div>
-      @if (filteredLoggers.length) {
-        <div class="logger-list">
-          @for (l of filteredLoggers; track l.name) {
-            <div class="logger-row">
-              <span class="logger-name">{{ l.name }}</span>
-              <span class="logger-level">{{ l.level }}</span>
-              <div class="logger-actions">
-                @for (lv of ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']; track lv) {
-                  <button
-                    class="level-btn"
-                    [class.active]="l.level === lv"
-                    (click)="setLoggerLevel(l.name, lv)"
-                  >
-                    {{ lv }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      }
-    </article>
-
-    <!-- Scheduled Jobs moved to Diagnostic page -->
+    <!-- Loggers moved to Observability → Logger tab -->
   }
   <!-- end auth -->
 </section>

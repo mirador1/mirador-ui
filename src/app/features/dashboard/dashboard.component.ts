@@ -1090,4 +1090,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       })
       .join(' ');
   }
+
+  /** Area fill path — same as sparklinePath but closed at the bottom */
+  sparklineAreaPath(): string {
+    const history = this.healthHistory();
+    if (history.length < 2) return '';
+    const w = 200;
+    const h = 30;
+    const step = w / (history.length - 1);
+    const line = history
+      .map((s, i) => {
+        const y = s.health === 'UP' ? 5 : h - 5;
+        return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
+      })
+      .join(' ');
+    return `${line} L${w},${h} L0,${h} Z`;
+  }
 }
