@@ -520,7 +520,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     '🗄️ Data Stores',
     '🛠️ Data Tools',
     '📡 Obs Collectors',
-    '📊 Obs Dashboards',
   ];
 
   readonly topoNodes: Array<{
