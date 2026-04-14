@@ -264,4 +264,695 @@
       </table>
     </article>
   }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Compatibility                                                     -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'compat') {
+    <article class="card">
+      <h3>Maven Build Profiles</h3>
+      <p class="card-desc">
+        Five build profiles cover every supported combination of Spring Boot version and Java
+        release. The default profile always targets the latest stack.
+      </p>
+      <table class="compat-table">
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Spring Boot</th>
+            <th>Java</th>
+            <th>Notable differences</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>mvn verify</code></td>
+            <td>4.x</td>
+            <td>25</td>
+            <td>Virtual threads, ScopedValue, pattern matching — default profile</td>
+          </tr>
+          <tr>
+            <td><code>mvn verify -Dcompat</code></td>
+            <td>4.x</td>
+            <td>21</td>
+            <td>ScopedValue replaced by ThreadLocal overlay</td>
+          </tr>
+          <tr>
+            <td><code>mvn verify -Dcompat -Djava17</code></td>
+            <td>4.x</td>
+            <td>17</td>
+            <td>ThreadLocal + switch pattern matching rewritten as if/else</td>
+          </tr>
+          <tr>
+            <td><code>mvn verify -Dsb3</code></td>
+            <td>3.4.5</td>
+            <td>21</td>
+            <td>
+              OTel via micrometer bridge; <code>&#64;GetMapping(version=…)</code> → manual
+              Accept-header dispatch
+            </td>
+          </tr>
+          <tr>
+            <td><code>mvn verify -Dsb3 -Djava17</code></td>
+            <td>3.4.5</td>
+            <td>17</td>
+            <td>Combines SB3 bridge + Java 17 overlays</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h3>Source Overlay Technique</h3>
+      <p class="card-desc">
+        Main sources are copied to <code>target/merged-sources</code>. Version-specific directories
+        then overwrite only the files that differ — the rest compiles unchanged.
+      </p>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">📁</span>
+          <div>
+            <strong>src/main/java-compat</strong>
+            <span>ScopedValue → ThreadLocal replacement for Java &lt; 25</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">📁</span>
+          <div>
+            <strong>src/main/java-compat-java17</strong>
+            <span>Switch pattern matching → if/else for Java 17</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">📁</span>
+          <div>
+            <strong>src/main/java-sb3</strong>
+            <span>
+              <code>&#64;GetMapping(version=…)</code> → manual Accept-header dispatch for Spring
+              Boot 3
+            </span>
+          </div>
+        </div>
+      </div>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Observability Architecture                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'obs-arch') {
+    <article class="card intro-card">
+      <h3>Instrument once, visualize everywhere</h3>
+      <p>
+        A single OpenTelemetry OTLP exporter on the Spring Boot side fans out to every backend
+        simultaneously. Switching dashboards does not require any backend change — only the consumer
+        changes.
+      </p>
+    </article>
+
+    <article class="card">
+      <h3>Signal Routes</h3>
+      <table class="compat-table">
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th>Source</th>
+            <th>Transport</th>
+            <th>Backends</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Traces</strong></td>
+            <td>Spring Boot auto-instrumentation</td>
+            <td>OTEL OTLP (:4318)</td>
+            <td>Tempo (Grafana :3001) · Zipkin (:9411) · Jaeger (:16686)</td>
+          </tr>
+          <tr>
+            <td><strong>Logs</strong></td>
+            <td>Logback via OTel appender</td>
+            <td>OTEL OTLP (:4318)</td>
+            <td>Loki → Grafana (:3000/:3001) · direct LogQL via Nginx proxy (:3100)</td>
+          </tr>
+          <tr>
+            <td><strong>Metrics</strong></td>
+            <td>Micrometer (180+ metrics)</td>
+            <td>Prometheus scrape (:9090) + <code>/actuator/prometheus</code></td>
+            <td>Prometheus UI (:9091) · Grafana · Angular Metrics page</td>
+          </tr>
+          <tr>
+            <td><strong>Profiles</strong></td>
+            <td>Pyroscope Java agent (JVM)</td>
+            <td>Push to Pyroscope server</td>
+            <td>Pyroscope UI (:4040) — CPU, alloc, lock flamegraphs</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h3>Key Correlation Patterns</h3>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">🔗</span>
+          <div>
+            <strong>Trace–Log correlation</strong>
+            <span>
+              Every log line carries the active <code>traceId</code> in the MDC. Grafana Loki panel
+              shows a "Jump to trace" link that opens the corresponding Tempo span.
+            </span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">📌</span>
+          <div>
+            <strong>Exemplars (metric → trace)</strong>
+            <span>
+              Prometheus histogram buckets embed a <code>traceId</code> exemplar. Grafana renders a
+              scatter-plot overlay — clicking a dot opens the exact trace for that request.
+            </span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🧬</span>
+          <div>
+            <strong>Continuous profiling</strong>
+            <span>
+              Pyroscope agent samples the JVM at runtime. No code changes needed — attach
+              <code>./run.sh app-profiled</code> and flamegraphs appear at :4040.
+            </span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">📨</span>
+          <div>
+            <strong>Kafka trace propagation</strong>
+            <span>
+              TraceId is injected into Kafka message headers by the OTel Kafka instrumentation, so
+              spans connect across producer → broker → consumer → reply.
+            </span>
+          </div>
+        </div>
+      </div>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Resilience Patterns                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'resilience') {
+    <article class="card intro-card">
+      <h3>Four resilience patterns — all demonstrable in the browser</h3>
+      <p>
+        Each pattern is wired into a real production path and can be triggered interactively from
+        the Diagnostic and Chaos pages without writing any code.
+      </p>
+    </article>
+
+    <div class="about-grid resilience-grid">
+      <div class="about-item resilience-item">
+        <span class="about-icon">🚦</span>
+        <div>
+          <strong>Rate Limiting — Bucket4j</strong>
+          <span>
+            Token-bucket algorithm, 10 requests/second per IP on customer endpoints. Excess requests
+            receive HTTP 429 with a <code>Retry-After</code> header indicating the remaining wait
+            time in milliseconds.
+          </span>
+        </div>
+      </div>
+      <div class="about-item resilience-item">
+        <span class="about-icon">⚡</span>
+        <div>
+          <strong>Circuit Breaker — Resilience4j</strong>
+          <span>
+            Wraps outbound calls to Ollama AI. Opens after 5 consecutive failures, transitions to
+            half-open state after 30 seconds and probes with a single request before closing again.
+          </span>
+        </div>
+      </div>
+      <div class="about-item resilience-item">
+        <span class="about-icon">🔁</span>
+        <div>
+          <strong>Retry — Resilience4j</strong>
+          <span>
+            Exponential backoff on transient failures from Redis and Kafka. Maximum 3 attempts. Only
+            retries on specific exception types to avoid masking permanent errors.
+          </span>
+        </div>
+      </div>
+      <div class="about-item resilience-item">
+        <span class="about-icon">🔑</span>
+        <div>
+          <strong>Idempotency Keys</strong>
+          <span>
+            Client sends <code>Idempotency-Key: &lt;uuid&gt;</code> header on mutating requests. The
+            server stores the response in Redis for 24 hours. A duplicate POST within the window
+            returns the cached response without re-executing the operation.
+          </span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Security Architecture                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'security-arch') {
+    <article class="card">
+      <h3>Authentication Modes</h3>
+      <p class="card-desc">
+        A single <code>JwtAuthenticationFilter</code> handles all three modes. The active mode is
+        determined at startup by environment variables — no code path changes required.
+      </p>
+      <table class="compat-table">
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Activation</th>
+            <th>Token format</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Simple JWT</strong></td>
+            <td>Default (no env var)</td>
+            <td>HS256</td>
+            <td>
+              <code>POST /auth/login</code> issues token signed with a configurable secret and
+              expiry. Validated by <code>JwtTokenProvider</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Keycloak OAuth2</strong></td>
+            <td><code>KEYCLOAK_URL</code> env var set</td>
+            <td>RS256</td>
+            <td>
+              Same filter validates RS256 tokens and extracts roles from
+              <code>realm_access.roles</code> claim.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>API Key</strong></td>
+            <td>Always active in parallel</td>
+            <td><code>X-API-Key</code> header</td>
+            <td>
+              <code>ApiKeyAuthenticationFilter</code> validates the header value against configured
+              keys before the JWT filter runs.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h3>Role-Based Access Control</h3>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">👤</span>
+          <div>
+            <strong>ROLE_USER</strong>
+            <span>Read-only access — GET endpoints on customer and diagnostic resources.</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🔑</span>
+          <div>
+            <strong>ROLE_ADMIN</strong>
+            <span>
+              Write access — POST / PUT / DELETE on <code>/customers</code> and all
+              <code>/actuator/**</code> endpoints.
+            </span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Security Demo Endpoints</h3>
+      <p class="card-desc">
+        Public endpoints at <code>/demo/security/**</code> deliberately showcase common
+        vulnerabilities side-by-side with their secure counterparts for educational purposes.
+      </p>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">💉</span>
+          <div>
+            <strong>SQL Injection</strong>
+            <span>Parameterized query (safe) vs. string-concatenated query (vulnerable)</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">📝</span>
+          <div>
+            <strong>XSS Reflection</strong>
+            <span>HTML-escaped output (safe) vs. raw unescaped output (vulnerable)</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🌐</span>
+          <div>
+            <strong>CORS Policy</strong>
+            <span>Demonstrates allowed vs. blocked cross-origin request enforcement</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🔓</span>
+          <div>
+            <strong>IDOR</strong>
+            <span>Object-level authorization bypass — accessing another user's resource</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🛡️</span>
+          <div>
+            <strong>Security Headers</strong>
+            <span>CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy inspection</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Messaging Pipeline                                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'messaging') {
+    <article class="card intro-card">
+      <h3>Kafka KRaft — no ZooKeeper</h3>
+      <p>
+        A single-broker Kafka cluster running in KRaft (Kafka Raft) mode. No external ZooKeeper
+        process is needed — the broker manages its own metadata via an internal Raft log.
+      </p>
+    </article>
+
+    <article class="card">
+      <h3>Customer Creation Pipeline</h3>
+      <p class="card-desc">End-to-end flow triggered by a single <code>POST /customers</code>.</p>
+      <div class="pipeline-steps">
+        <div class="pipeline-step">
+          <span class="pipeline-num">1</span>
+          <div>
+            <strong>POST /customers</strong>
+            <span
+              >Saves customer to PostgreSQL, then publishes a <code>CustomerCreatedEvent</code> to
+              the <code>customer-events</code> topic.</span
+            >
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <span class="pipeline-num">2</span>
+          <div>
+            <strong>CustomerEnrichmentConsumer</strong>
+            <span
+              >Reads the event from <code>customer-events</code> (consumer group:
+              <code>customer-service-group</code>).</span
+            >
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <span class="pipeline-num">3</span>
+          <div>
+            <strong>Ollama llama3.2</strong>
+            <span
+              >Calls the local LLM to generate a customer bio. Falls back to a mock response if
+              Ollama is unavailable.</span
+            >
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <span class="pipeline-num">4</span>
+          <div>
+            <strong>Enrich &amp; persist</strong>
+            <span>Updates the customer record with the generated bio in PostgreSQL.</span>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <span class="pipeline-num">5</span>
+          <div>
+            <strong>SSE push</strong>
+            <span
+              >Publishes the enriched customer to the Server-Sent Events stream — the Angular UI
+              receives it in real time without polling.</span
+            >
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Topic Configuration</h3>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">📋</span>
+          <div>
+            <strong>Topic: customer-events</strong>
+            <span
+              >3 partitions · replication factor 1 (dev) · consumer group:
+              customer-service-group</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🔗</span>
+          <div>
+            <strong>Trace propagation</strong>
+            <span
+              >TraceId injected into Kafka message headers so spans link across producer → broker →
+              consumer.</span
+            >
+          </div>
+        </div>
+      </div>
+      <h4>Monitoring Tools</h4>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">📊</span>
+          <div>
+            <strong>Kafka UI — :8085</strong>
+            <span>Browse topics, messages, and consumer groups</span>
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🔬</span>
+          <div>
+            <strong>AKHQ — :8086</strong>
+            <span>Advanced Kafka UI with live tail, schema registry, and ACL management</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Data Layer                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'data') {
+    <article class="card">
+      <h3>Three Data Stores — Distinct Roles</h3>
+      <table class="compat-table">
+        <thead>
+          <tr>
+            <th>Store</th>
+            <th>Primary role</th>
+            <th>Key features used</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>PostgreSQL 17</strong></td>
+            <td>Primary persistent store</td>
+            <td>
+              Flyway versioned migrations · HikariCP pool · cursor-based pagination (<code
+                >WHERE id &gt; :cursor LIMIT n+1</code
+              >) · offset pagination · <code>&#64;Timed</code> / <code>&#64;QueryMetrics</code> slow
+              query detection
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Redis 7</strong></td>
+            <td>Cache, idempotency, ring buffer</td>
+            <td>
+              Response caching with configurable TTL · idempotency key storage (24 h) ·
+              recent-customers sorted set · session data
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h3>Cache Pattern</h3>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">✍️</span>
+          <div>
+            <strong>Write-through on reads</strong>
+            <span
+              >Customer records are stored in Redis on first read. Subsequent reads are served from
+              cache until TTL expires or the record is updated.</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🗑️</span>
+          <div>
+            <strong>Cache invalidation on writes</strong>
+            <span
+              >Every PUT / PATCH / DELETE evicts the corresponding cache entry so stale data is
+              never served.</span
+            >
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Admin Tools</h3>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">🛢️</span>
+          <div>
+            <strong>pgAdmin — :5050</strong>
+            <span
+              >Full PostgreSQL admin UI (desktop mode, no login). Schema, SQL, ERD, backup.</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🔬</span>
+          <div>
+            <strong>pgweb — :8081</strong>
+            <span
+              >Lightweight read-only SQL client. The Database page uses its REST API to run 27 SQL
+              presets directly from the browser.</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🔎</span>
+          <div>
+            <strong>RedisInsight — :5540</strong>
+            <span
+              >Key browser, memory analysis, CLI. Inspect idempotency keys and ring buffer
+              contents.</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">📟</span>
+          <div>
+            <strong>Redis Commander — :8082</strong>
+            <span
+              >Live Redis command monitor. Watch real-time commands during idempotency or rate-limit
+              demos.</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <h4>Flyway Migrations</h4>
+      <p class="card-desc">
+        Versioned SQL files live in <code>src/main/resources/db/migration/V*.sql</code>. Flyway runs
+        automatically at Spring Boot startup and tracks applied migrations in the
+        <code>flyway_schema_history</code> table.
+      </p>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Testing Strategy                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'testing') {
+    <article class="card">
+      <h3>Test Layers</h3>
+      <table class="compat-table">
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Framework</th>
+            <th>Coverage</th>
+            <th>Run with</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Angular unit tests</strong></td>
+            <td>Vitest + jsdom</td>
+            <td>21 tests · 6 spec files — services, auth, env config, toast, theme</td>
+            <td><code>npm test</code></td>
+          </tr>
+          <tr>
+            <td><strong>Spring unit tests</strong></td>
+            <td>JUnit 5 + Mockito</td>
+            <td>
+              JwtTokenProvider · RecentCustomerBuffer · AggregationService — no Spring context
+            </td>
+            <td><code>mvn test</code></td>
+          </tr>
+          <tr>
+            <td><strong>Spring integration tests</strong></td>
+            <td>JUnit 5 + <code>&#64;SpringBootTest</code></td>
+            <td>
+              CustomerApiITest · CustomerNewEndpointsITest · CustomerRestClientITest — H2 + embedded
+              Kafka
+            </td>
+            <td><code>mvn verify</code></td>
+          </tr>
+          <tr>
+            <td><strong>Architecture rules</strong></td>
+            <td>ArchUnit</td>
+            <td>Package boundaries · no circular deps · naming conventions</td>
+            <td><code>mvn test</code></td>
+          </tr>
+          <tr>
+            <td><strong>Pre-push hook</strong></td>
+            <td>Lefthook</td>
+            <td>
+              Typecheck + Prettier + unit tests + production build — runs before every
+              <code>git push</code>
+            </td>
+            <td>Automatic</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h3>Test Counts &amp; CI</h3>
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-icon">🍃</span>
+          <div>
+            <strong>60 Spring tests</strong>
+            <span
+              >Unit + integration + architecture rules. Testcontainers spins up H2 and embedded
+              Kafka — no external services needed.</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🅰️</span>
+          <div>
+            <strong>21 Angular tests</strong>
+            <span
+              >Pure signal-based tests — no Zone.js, no <code>fakeAsync</code>, no
+              <code>detectChanges</code>. Signals are tested directly.</span
+            >
+          </div>
+        </div>
+        <div class="about-item">
+          <span class="about-icon">🏗️</span>
+          <div>
+            <strong>GitLab CI pipeline</strong>
+            <span
+              >Full pipeline mirrors <code>./run.sh verify</code>: lint → unit → integration →
+              build. Runs on every push to <code>dev</code>.</span
+            >
+          </div>
+        </div>
+      </div>
+    </article>
+  }
 </section>

@@ -7,7 +7,20 @@ import { Component, signal } from '@angular/core';
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
-  readonly activeTab = signal<'overview' | 'pages' | 'stack' | 'infra' | 'tech'>('overview');
+  readonly activeTab = signal<
+    | 'overview'
+    | 'pages'
+    | 'stack'
+    | 'infra'
+    | 'tech'
+    | 'compat'
+    | 'obs-arch'
+    | 'resilience'
+    | 'security-arch'
+    | 'messaging'
+    | 'data'
+    | 'testing'
+  >('overview');
 
   readonly tabs = [
     { id: 'overview', label: '📖 Overview' },
@@ -15,6 +28,13 @@ export class AboutComponent {
     { id: 'stack', label: '🔧 Stack' },
     { id: 'infra', label: '🏗️ Infrastructure' },
     { id: 'tech', label: '📚 Technologies' },
+    { id: 'compat', label: '🔀 Compatibility' },
+    { id: 'obs-arch', label: '🔭 Observability' },
+    { id: 'resilience', label: '🛡️ Resilience' },
+    { id: 'security-arch', label: '🔐 Security' },
+    { id: 'messaging', label: '📨 Messaging' },
+    { id: 'data', label: '🗄️ Data Layer' },
+    { id: 'testing', label: '🧪 Testing' },
   ] as const;
 
   readonly technologies: Array<{ name: string; url: string; description: string; usage: string }> =
