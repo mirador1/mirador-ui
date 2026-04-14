@@ -340,15 +340,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '5050',
       url: 'http://localhost:5050',
     },
-    akhq: {
-      icon: '🔬',
-      label: 'AKHQ',
-      description: 'Advanced Kafka UI',
-      detail:
-        'Full-featured Kafka UI — live tail of messages, consumer group management, schema registry support, topic creation/deletion, ACLs. Alternative to Kafka UI with more features.',
-      port: '8083',
-      url: 'http://localhost:8083',
-    },
     'kafka-ui': {
       icon: '📋',
       label: 'Kafka UI',
@@ -527,12 +518,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   //  CLIENT        APPLICATION    DATA STORES     DATA TOOLS       OBS COLLECTORS  OBS DASHBOARDS
   //  ─────────     ───────────    ──────────      ──────────       ──────────────  ──────────────
   //  Browser  →    API        →   PostgreSQL  →   pgAdmin          Prometheus  →   Grafana
-  //                Swagger        Redis       →   pgweb            Zipkin      →   Jaeger
+  //                Swagger        Redis       →   pgweb            Tempo       →   Grafana
   //                Actuator       Kafka       →   RedisInsight     Loki            Pyroscope
   //                Keycloak       Ollama      →   Redis Commander
   //                                               Kafka Consumer
   //                                               Kafka UI
-  //                                               AKHQ
   //
   readonly topoColumns = [
     '🌐 Client',
@@ -749,19 +739,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Provectus Kafka UI — browse topics (customer.created, customer.request, customer.reply), inspect individual messages with headers and payload, monitor consumer groups and lag. Also used by the Angular topology view to check Kafka health.',
       image: 'images/tools/kafka-ui.gif',
     },
-    {
-      id: 'akhq',
-      label: 'AKHQ',
-      col: 3,
-      row: 6,
-      icon: '🔬',
-      port: '8083',
-      container: 'akhq',
-      url: 'http://localhost:8083',
-      tip: 'Advanced Kafka UI',
-      detail:
-        'AKHQ (tchiotludo) — full-featured Kafka UI. Live tail of messages in real-time, consumer group management with lag visualization, schema registry support, topic creation/deletion, ACL management. More powerful than Kafka UI for debugging the enrich request-reply pattern.',
-    },
     // Col 4 — Observability Collectors
     {
       id: 'prometheus',
@@ -852,7 +829,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'redis', to: 'redis-commander' },
     { from: 'kafka', to: 'consumer' },
     { from: 'kafka', to: 'kafka-ui' },
-    { from: 'kafka', to: 'akhq' },
     // Col 1 → 4 (API pushes to obs collectors via OTLP on port 4318)
     { from: 'api', to: 'prometheus' },
     { from: 'api', to: 'tempo' }, // OTLP traces → Tempo (inside LGTM)
@@ -897,7 +873,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       keycloak: 'keycloak',
       pgweb: 'pgweb',
       'redis-commander': 'redis-commander',
-      akhq: 'akhq',
       'customerservice-jaeger': 'jaeger',
       pgadmin: 'pgadmin',
       'kafka-ui': 'kafka-ui',
@@ -962,7 +937,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     'redis-commander': 'Docker container state via Docker Engine API (container running = UP).',
     consumer: 'Inferred from Kafka container state — shown as UP when kafka-demo is running.',
     'kafka-ui': 'Docker container state via Docker Engine API (container running = UP).',
-    akhq: 'Docker container state via Docker Engine API (container running = UP).',
     prometheus: 'Docker container state via Docker Engine API (container running = UP).',
     zipkin: 'Docker container state via Docker Engine API (container running = UP).',
     loki: 'Docker container state via Docker Engine API (container running = UP).',

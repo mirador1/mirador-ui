@@ -43,15 +43,6 @@ export class AboutComponent {
     icon: string;
   }> = [
     {
-      name: 'AKHQ',
-      icon: '🔷',
-      url: 'https://akhq.io',
-      description:
-        'Advanced Kafka management UI with live tail, consumer lag, schema registry, and ACL management.',
-      usage:
-        'Pre-configured to connect to the local Kafka broker. The About page lists it on port 8083. Used to inspect topics, consumer groups, and replay messages during debugging.',
-    },
-    {
       name: 'Angular 21',
       icon: '🅰️',
       url: 'https://angular.dev',
@@ -149,7 +140,7 @@ export class AboutComponent {
       url: 'https://github.com/kafbat/kafka-ui',
       description: 'Web UI for browsing Kafka topics, messages, and consumer groups.',
       usage:
-        'Pre-configured on port 9080. Listed in the About Infrastructure tab and Dashboard Architecture view. Lighter alternative to AKHQ for quick topic inspection.',
+        'Pre-configured on port 9080. Listed in the About Infrastructure tab and Dashboard Architecture view. Supports topic inspection, consumer lag monitoring, message browsing, and live tail.',
     },
     {
       name: 'Keycloak 26',
@@ -466,13 +457,6 @@ export class AboutComponent {
       category: 'Admin',
       note: 'Live command monitor, auto-connects',
       url: 'http://localhost:8082',
-    },
-    {
-      port: 8083,
-      name: 'AKHQ',
-      category: 'Admin',
-      note: 'Advanced Kafka UI — live tail, ACLs',
-      url: 'http://localhost:8083',
     },
     // CI/CD
     {
