@@ -16,7 +16,7 @@
   } @else {
     <div class="tabs">
       <button [class.tab-active]="activeTab() === 'traces'" (click)="switchTab('traces')">
-        <span class="tab-icon">🔗</span> Traces <small>Zipkin</small>
+        <span class="tab-icon">🔗</span> Traces <small>Tempo / Zipkin</small>
       </button>
       <button [class.tab-active]="activeTab() === 'logger'" (click)="switchTab('logger')">
         <span class="tab-icon">📝</span> Loggers <small>Actuator</small>
@@ -36,23 +36,27 @@
     <div class="tab-bar">
       @switch (activeTab()) {
         @case ('traces') {
-          <span class="tab-desc-text"
-            >Distributed traces from Zipkin — click a trace to expand its span waterfall</span
-          >
+          <span class="tab-desc-text">
+            @if (traceSource() === 'tempo') {
+              Tempo search — TraceQL or tag filter, click a row to expand the span waterfall
+            } @else {
+              Zipkin traces — fetches the last N traces for a given service name
+            }
+          </span>
           <div class="tab-links">
+            <a
+              href="http://localhost:3001/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22nativeSearch%22%7D%5D,%22range%22:%7B%22from%22:%22now-1h%22,%22to%22:%22now%22%7D%7D"
+              target="_blank"
+              rel="noopener"
+              title="Grafana Explore with Tempo datasource — TraceQL queries with autocomplete, service graph, span metrics."
+              >🔍 Grafana Explore → Tempo</a
+            >
             <a
               href="http://localhost:9411"
               target="_blank"
               rel="noopener"
-              title="Zipkin native UI — search traces by service, duration, or annotation. Shows the full span tree for each request across microservices."
+              title="Zipkin native UI — also receives traces from Spring Boot via OTLP."
               >🔗 Zipkin UI</a
-            >
-            <a
-              href="http://localhost:3001"
-              target="_blank"
-              rel="noopener"
-              title="Grafana with Tempo datasource — correlate traces with logs and metrics in a single view. Click a traceID in Loki to jump to its trace."
-              >🔍 Grafana Tempo</a
             >
           </div>
         }
@@ -109,66 +113,223 @@
     <!-- ── Traces tab ──────────────────────────────────────────────────── -->
     @if (activeTab() === 'traces') {
       <div class="tab-content">
-        <div class="controls-row">
-          <label>
-            Service
-            <input type="text" [(ngModel)]="traceService" />
-          </label>
-          <label>
-            Limit
-            <input type="number" [(ngModel)]="traceLimit" min="1" max="100" />
-          </label>
-          <button class="run-btn" (click)="fetchTraces()" [disabled]="tracesLoading()">
-            {{ tracesLoading() ? 'Loading...' : '▶ Fetch traces' }}
+        <!-- Source toggle -->
+        <div class="source-toggle">
+          <button
+            [class.src-active]="traceSource() === 'tempo'"
+            (click)="traceSource.set('tempo')"
+            title="Query Tempo via Grafana datasource proxy (localhost:3001)"
+          >
+            🔍 Tempo
+          </button>
+          <button
+            [class.src-active]="traceSource() === 'zipkin'"
+            (click)="traceSource.set('zipkin')"
+            title="Query Zipkin directly (localhost:9411)"
+          >
+            🔗 Zipkin
           </button>
         </div>
 
-        @if (tracesError()) {
-          <div class="alert-error">{{ tracesError() }}</div>
-        }
+        <!-- ── Tempo search ── -->
+        @if (traceSource() === 'tempo') {
+          <div class="tempo-search-panel">
+            <!-- TraceQL row -->
+            <div class="controls-row">
+              <label class="label-full">
+                <span class="ctrl-label">TraceQL</span>
+                <input
+                  type="text"
+                  class="traceql-input"
+                  [(ngModel)]="tempoQuery"
+                  placeholder='e.g. { .http.url =~ "/customers" && duration > 50ms }'
+                  title="TraceQL expression. Leave empty to use tag-based search below."
+                />
+              </label>
+            </div>
 
-        @if (traces().length) {
-          <div class="trace-list">
-            @for (t of traces(); track t.traceId) {
-              <div
-                class="trace-item"
-                (click)="selectTrace(t)"
-                [class.expanded]="selectedTrace()?.traceId === t.traceId"
-              >
-                <div class="trace-header">
-                  <code class="trace-id">{{ t.traceId.slice(0, 16) }}</code>
-                  <span class="trace-op">{{ t.operationName }}</span>
-                  <span class="trace-duration">{{ t.durationMs | number: '1.1-1' }} ms</span>
-                  <span class="trace-spans">{{ t.spans.length }} spans</span>
-                  <span class="trace-time">{{ t.timestamp | date: 'HH:mm:ss' }}</span>
-                  <button class="flame-btn" (click)="openFlameGraph(t); $event.stopPropagation()">
-                    Flame
-                  </button>
-                </div>
-                @if (selectedTrace()?.traceId === t.traceId) {
-                  <div class="span-list">
-                    @for (s of t.spans; track s.spanId) {
-                      <div class="span-item">
-                        <span class="span-service">{{ s.serviceName }}</span>
-                        <span class="span-op">{{ s.operationName }}</span>
-                        <span class="span-duration"
-                          >{{ s.duration / 1000 | number: '1.1-1' }} ms</span
-                        >
-                        <div class="span-bar-wrapper">
-                          <div
-                            class="span-bar"
-                            [style.width.%]="(s.duration / (t.durationMs * 1000)) * 100"
-                          ></div>
+            <!-- Tag search row (used when TraceQL is empty) -->
+            <div class="controls-row">
+              <label>
+                <span class="ctrl-label">Tag key</span>
+                <select [(ngModel)]="tempoTagKey">
+                  @for (tag of tempoTags(); track tag) {
+                    <option [value]="tag">{{ tag }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span class="ctrl-label">Tag value</span>
+                <input type="text" [(ngModel)]="tempoTagValue" placeholder="filter value" />
+              </label>
+              <label>
+                <span class="ctrl-label">Lookback</span>
+                <select [(ngModel)]="tempoLookback">
+                  <option value="15m">15 min</option>
+                  <option value="1h">1 h</option>
+                  <option value="3h">3 h</option>
+                  <option value="6h">6 h</option>
+                  <option value="24h">24 h</option>
+                </select>
+              </label>
+              <label>
+                <span class="ctrl-label">Limit</span>
+                <input
+                  type="number"
+                  [(ngModel)]="tempoLimit"
+                  min="1"
+                  max="200"
+                  style="width: 4rem"
+                />
+              </label>
+              <button class="run-btn" (click)="fetchTempoSearch()" [disabled]="tempoLoading()">
+                {{ tempoLoading() ? 'Searching…' : '▶ Search' }}
+              </button>
+            </div>
+
+            @if (tempoError()) {
+              <div class="alert-error">{{ tempoError() }}</div>
+            }
+
+            <!-- Results list -->
+            @if (tempoSummaries().length) {
+              <div class="trace-list">
+                @for (row of tempoSummaries(); track row.traceID) {
+                  <div
+                    class="trace-item"
+                    [class.expanded]="tempoSelectedId() === row.traceID"
+                    (click)="selectTempoTrace(row.traceID)"
+                  >
+                    <div class="trace-header">
+                      <code class="trace-id">{{ row.traceID.slice(0, 16) }}</code>
+                      <span class="trace-op">{{ row.rootTraceName }}</span>
+                      <span class="trace-svc">{{ row.rootServiceName }}</span>
+                      <span class="trace-duration">{{ row.durationMs | number: '1.0-0' }} ms</span>
+                      <span class="trace-time">{{ formatNs(+row.startTimeUnixNano) }}</span>
+                    </div>
+
+                    <!-- Span waterfall (loaded on demand) -->
+                    @if (tempoSelectedId() === row.traceID) {
+                      @if (tempoDetailLoading()) {
+                        <p class="loading-text">Loading spans…</p>
+                      } @else if (tempoSelectedTrace()) {
+                        <div class="waterfall">
+                          <div class="waterfall-header"><span>Span</span><span>Duration</span></div>
+                          @for (r of tempoWaterfallRows(); track r.span.spanId) {
+                            <div
+                              class="wf-row"
+                              [title]="
+                                r.span.operationName +
+                                ' — ' +
+                                r.span.serviceName +
+                                ' — ' +
+                                (r.span.duration / 1000 | number: '1.2-2') +
+                                ' ms'
+                              "
+                            >
+                              <div
+                                class="wf-label"
+                                [style.padding-left.px]="r.depth * 12 + 4"
+                                [class.wf-error]="r.span.status === 'error'"
+                              >
+                                <span class="wf-dot" [style.background]="r.color"></span>
+                                <span class="wf-op">{{ r.span.operationName }}</span>
+                                <span class="wf-svc">{{ r.span.serviceName }}</span>
+                              </div>
+                              <div class="wf-bar-cell">
+                                <div class="wf-bar-track">
+                                  <div
+                                    class="wf-bar"
+                                    [style.left.%]="r.left"
+                                    [style.width.%]="r.width"
+                                    [style.background]="r.color"
+                                    [class.wf-bar-error]="r.span.status === 'error'"
+                                  ></div>
+                                </div>
+                                <span class="wf-dur"
+                                  >{{ r.span.duration / 1000 | number: '1.2-2' }} ms</span
+                                >
+                              </div>
+                            </div>
+                          }
                         </div>
-                      </div>
+                      }
                     }
                   </div>
                 }
               </div>
+            } @else if (!tempoLoading() && !tempoError()) {
+              <p class="empty-text">
+                Click <strong>Search</strong> to query Tempo. Uses TraceQL when filled, otherwise
+                tag search.
+              </p>
             }
           </div>
-        } @else if (!tracesLoading() && !tracesError()) {
-          <p class="empty-text">No traces loaded. Click "Fetch traces" to query Zipkin/Tempo.</p>
+        }
+
+        <!-- ── Zipkin search (legacy) ── -->
+        @if (traceSource() === 'zipkin') {
+          <div class="controls-row">
+            <label>
+              Service
+              <input type="text" [(ngModel)]="traceService" />
+            </label>
+            <label>
+              Limit
+              <input type="number" [(ngModel)]="traceLimit" min="1" max="100" />
+            </label>
+            <button class="run-btn" (click)="fetchTraces()" [disabled]="tracesLoading()">
+              {{ tracesLoading() ? 'Loading…' : '▶ Fetch traces' }}
+            </button>
+          </div>
+
+          @if (tracesError()) {
+            <div class="alert-error">{{ tracesError() }}</div>
+          }
+
+          @if (traces().length) {
+            <div class="trace-list">
+              @for (t of traces(); track t.traceId) {
+                <div
+                  class="trace-item"
+                  (click)="selectTrace(t)"
+                  [class.expanded]="selectedTrace()?.traceId === t.traceId"
+                >
+                  <div class="trace-header">
+                    <code class="trace-id">{{ t.traceId.slice(0, 16) }}</code>
+                    <span class="trace-op">{{ t.operationName }}</span>
+                    <span class="trace-duration">{{ t.durationMs | number: '1.1-1' }} ms</span>
+                    <span class="trace-spans">{{ t.spans.length }} spans</span>
+                    <span class="trace-time">{{ t.timestamp | date: 'HH:mm:ss' }}</span>
+                    <button class="flame-btn" (click)="openFlameGraph(t); $event.stopPropagation()">
+                      Flame
+                    </button>
+                  </div>
+                  @if (selectedTrace()?.traceId === t.traceId) {
+                    <div class="span-list">
+                      @for (s of t.spans; track s.spanId) {
+                        <div class="span-item">
+                          <span class="span-service">{{ s.serviceName }}</span>
+                          <span class="span-op">{{ s.operationName }}</span>
+                          <span class="span-duration"
+                            >{{ s.duration / 1000 | number: '1.1-1' }} ms</span
+                          >
+                          <div class="span-bar-wrapper">
+                            <div
+                              class="span-bar"
+                              [style.width.%]="(s.duration / (t.durationMs * 1000)) * 100"
+                            ></div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else if (!tracesLoading() && !tracesError()) {
+            <p class="empty-text">No traces loaded. Click "Fetch traces" to query Zipkin.</p>
+          }
         }
       </div>
     }

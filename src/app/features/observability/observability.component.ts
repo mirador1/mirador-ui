@@ -37,10 +37,22 @@ interface Trace {
 interface Span {
   traceId: string;
   spanId: string;
+  parentSpanId?: string;
   operationName: string;
   serviceName: string;
+  startTimeUnixNano: number;
   duration: number; // microseconds
   tags: Record<string, string>;
+  status?: string;
+}
+
+/** Summary row returned by Tempo /api/search */
+interface TempoTraceSummary {
+  traceID: string;
+  rootServiceName: string;
+  rootTraceName: string;
+  startTimeUnixNano: string;
+  durationMs: number;
 }
 
 /** Single log line parsed from Loki query response */
@@ -87,13 +99,33 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
 
   activeTab = signal<ObsTab>('traces');
 
-  // ── Traces (Zipkin/Tempo API) ─────────────────────────────────────────────
+  // ── Traces — source toggle ────────────────────────────────────────────────
+  /** 'zipkin' calls Zipkin directly; 'tempo' calls Tempo via Grafana proxy */
+  traceSource = signal<'zipkin' | 'tempo'>('tempo');
+
+  // ── Traces (Zipkin API) ───────────────────────────────────────────────────
   traces = signal<Trace[]>([]);
   tracesLoading = signal(false);
   tracesError = signal('');
   traceLimit = 20;
   traceService = 'customer-service';
   selectedTrace = signal<Trace | null>(null);
+
+  // ── Traces (Tempo API via Grafana proxy) ──────────────────────────────────
+  private readonly TEMPO_BASE = 'http://localhost:3001/api/datasources/proxy/uid/tempo';
+
+  tempoSummaries = signal<TempoTraceSummary[]>([]);
+  tempoLoading = signal(false);
+  tempoError = signal('');
+  tempoQuery = ''; // TraceQL expression — empty = tag search
+  tempoTagKey = 'http.url';
+  tempoTagValue = '';
+  tempoLimit = 20;
+  tempoLookback = '1h';
+  tempoSelectedId = signal<string | null>(null);
+  tempoSelectedTrace = signal<Trace | null>(null);
+  tempoDetailLoading = signal(false);
+  tempoTags = signal<string[]>([]);
 
   // ── Logs (Loki API) ───────────────────────────────────────────────────────
   logs = signal<LogEntry[]>([]);
@@ -178,6 +210,8 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Pre-connect SSE so it's ready by the time the user opens the Live tab
     this.connectSse();
+    // Pre-load Tempo tag list for the search autocomplete
+    this.loadTempoTags();
   }
 
   ngOnDestroy(): void {
@@ -190,6 +224,9 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
     this.activeTab.set(tab);
     if (tab === 'logger' && this.loggersList().length === 0) {
       this.loadLoggers();
+    }
+    if (tab === 'traces' && this.tempoTags().length === 0) {
+      this.loadTempoTags();
     }
     if (tab === 'live' && this._es === null && this.sseStatus() === 'disconnected') {
       this.connectSse();
@@ -221,10 +258,13 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
                 spans: spans.map((s: any) => ({
                   traceId: s.traceID || s.traceId,
                   spanId: s.spanID || s.id,
+                  parentSpanId: s.parentId,
                   operationName: s.operationName || s.name || '?',
                   serviceName: s.localEndpoint?.serviceName || s.process?.serviceName || '?',
+                  startTimeUnixNano: (s.timestamp || 0) * 1000, // µs → ns
                   duration: s.duration || 0,
                   tags: s.tags || {},
+                  status: 'ok',
                 })),
                 durationMs: totalDuration / 1000,
                 serviceName: root.localEndpoint?.serviceName || this.traceService,
@@ -246,6 +286,191 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
 
   selectTrace(t: Trace): void {
     this.selectedTrace.set(this.selectedTrace()?.traceId === t.traceId ? null : t);
+  }
+
+  // ── Tempo search ──────────────────────────────────────────────────────────
+
+  fetchTempoSearch(): void {
+    this.tempoLoading.set(true);
+    this.tempoError.set('');
+    this.tempoSelectedId.set(null);
+    this.tempoSelectedTrace.set(null);
+
+    const now = Date.now();
+    const lookbackMs: Record<string, number> = {
+      '15m': 15 * 60_000,
+      '1h': 3_600_000,
+      '3h': 3 * 3_600_000,
+      '6h': 6 * 3_600_000,
+      '24h': 24 * 3_600_000,
+    };
+    const startMs = now - (lookbackMs[this.tempoLookback] ?? 3_600_000);
+
+    const params: Record<string, string> = {
+      limit: this.tempoLimit.toString(),
+      start: Math.floor(startMs / 1000).toString(),
+      end: Math.floor(now / 1000).toString(),
+    };
+
+    // TraceQL mode — send q= parameter when query is non-empty
+    if (this.tempoQuery.trim()) {
+      params['q'] = this.tempoQuery.trim();
+    } else if (this.tempoTagValue.trim()) {
+      // Tag-based search mode
+      params['tags'] = `${this.tempoTagKey}=${this.tempoTagValue.trim()}`;
+    } else {
+      // No filter — add a service.name filter so results are relevant
+      params['tags'] = 'service.name=customer-service';
+    }
+
+    this.http
+      .get<{ traces?: TempoTraceSummary[] }>(`${this.TEMPO_BASE}/api/search`, { params })
+      .subscribe({
+        next: (r) => {
+          this.tempoSummaries.set(r.traces ?? []);
+          this.tempoLoading.set(false);
+        },
+        error: (e) => {
+          this.tempoError.set(
+            `Tempo unreachable (Grafana proxy http://localhost:3001) — ${e.status || 'check that LGTM is running'}.`,
+          );
+          this.tempoLoading.set(false);
+        },
+      });
+  }
+
+  loadTempoTags(): void {
+    this.http
+      .get<{ tagNames?: string[] }>(`${this.TEMPO_BASE}/api/search/tags`)
+      .subscribe({ next: (r) => this.tempoTags.set(r.tagNames ?? []) });
+  }
+
+  selectTempoTrace(id: string): void {
+    if (this.tempoSelectedId() === id) {
+      this.tempoSelectedId.set(null);
+      this.tempoSelectedTrace.set(null);
+      return;
+    }
+    this.tempoSelectedId.set(id);
+    this.tempoDetailLoading.set(true);
+    this.http.get<any>(`${this.TEMPO_BASE}/api/traces/${id}`).subscribe({
+      next: (otlp) => {
+        this.tempoSelectedTrace.set(this.parseOtlpTrace(id, otlp));
+        this.tempoDetailLoading.set(false);
+      },
+      error: () => {
+        this.tempoDetailLoading.set(false);
+      },
+    });
+  }
+
+  /** Parse OTLP ResourceSpans format into our internal Trace/Span model. */
+  private parseOtlpTrace(traceId: string, otlp: any): Trace {
+    const spans: Span[] = [];
+    for (const batch of otlp.batches ?? []) {
+      const svcAttr = (batch.resource?.attributes ?? []).find((a: any) => a.key === 'service.name');
+      const svcName: string = svcAttr?.value?.stringValue ?? 'unknown';
+      for (const scope of batch.scopeSpans ?? []) {
+        for (const s of scope.spans ?? []) {
+          // traceId and spanId are base64-encoded bytes in OTLP
+          const spanId: string = this.b64toHex(s.spanId ?? '');
+          const parentId: string | undefined = s.parentSpanId
+            ? this.b64toHex(s.parentSpanId)
+            : undefined;
+          const start = Number(s.startTimeUnixNano ?? 0);
+          const end = Number(s.endTimeUnixNano ?? 0);
+          const durUs = Math.round((end - start) / 1000); // ns → µs
+          const tags: Record<string, string> = {};
+          for (const attr of s.attributes ?? []) {
+            const v = attr.value;
+            tags[attr.key] =
+              v?.stringValue ?? v?.intValue?.toString() ?? v?.boolValue?.toString() ?? '';
+          }
+          spans.push({
+            traceId,
+            spanId,
+            parentSpanId: parentId,
+            operationName: s.name ?? '?',
+            serviceName: svcName,
+            startTimeUnixNano: start,
+            duration: durUs,
+            tags,
+            status: s.status?.code === 2 ? 'error' : 'ok',
+          });
+        }
+      }
+    }
+    spans.sort((a, b) => a.startTimeUnixNano - b.startTimeUnixNano);
+    const root = spans[0];
+    const traceStartNs = root?.startTimeUnixNano ?? 0;
+    const traceEndNs = Math.max(...spans.map((s) => s.startTimeUnixNano + s.duration * 1000));
+    const totalMs = Math.round((traceEndNs - traceStartNs) / 1e6);
+    return {
+      traceId,
+      spans,
+      durationMs: totalMs,
+      serviceName: root?.serviceName ?? 'unknown',
+      operationName: root?.operationName ?? '?',
+      timestamp: new Date(Math.round((traceStartNs ?? 0) / 1e6)),
+    };
+  }
+
+  private b64toHex(b64: string): string {
+    try {
+      return Array.from(atob(b64), (c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    } catch {
+      return b64; // already hex (older Tempo versions)
+    }
+  }
+
+  /** Span waterfall rows with relative position/width inside the selected Tempo trace. */
+  tempoWaterfallRows(): Array<{
+    span: Span;
+    depth: number;
+    left: number;
+    width: number;
+    color: string;
+  }> {
+    const t = this.tempoSelectedTrace();
+    if (!t || t.spans.length === 0) return [];
+
+    const traceStartNs = t.spans[0].startTimeUnixNano;
+    const totalDurNs = t.durationMs * 1e6;
+    if (totalDurNs === 0) return [];
+
+    // Build parent→children map for depth calculation
+    const depthMap = new Map<string, number>();
+    const parentMap = new Map<string, string | undefined>();
+    t.spans.forEach((s) => parentMap.set(s.spanId, s.parentSpanId));
+
+    const getDepth = (id: string, visited = new Set<string>()): number => {
+      if (visited.has(id)) return 0;
+      visited.add(id);
+      const parentId = parentMap.get(id);
+      if (!parentId || !depthMap.has(parentId)) return 0;
+      return (depthMap.get(parentId) ?? 0) + 1;
+    };
+
+    const COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+    return t.spans.map((s) => {
+      const d = getDepth(s.spanId);
+      depthMap.set(s.spanId, d);
+      const offsetNs = s.startTimeUnixNano - traceStartNs;
+      const left = (offsetNs / totalDurNs) * 100;
+      const width = Math.max(0.3, ((s.duration * 1000) / totalDurNs) * 100);
+      return {
+        span: s,
+        depth: d,
+        left,
+        width,
+        color: s.status === 'error' ? '#ef4444' : COLORS[d % COLORS.length],
+      };
+    });
+  }
+
+  /** Format nanoseconds timestamp as HH:mm:ss.SSS */
+  formatNs(ns: number): string {
+    return new Date(Math.round(ns / 1e6)).toISOString().slice(11, 23);
   }
 
   // ── Logs ──────────────────────────────────────────────────────────────────
