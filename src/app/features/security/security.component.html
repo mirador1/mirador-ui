@@ -42,28 +42,40 @@
         vulnerabilities for educational purposes.
       </div>
 
-      @for (group of mechanisms; track group.category) {
-        <div class="mech-group">
-          <h3 class="mech-category">{{ group.category }}</h3>
-          <div class="mech-grid">
-            @for (item of group.items; track item.name) {
-              <div class="mech-card" [class.mech-optional]="item.status === 'optional'">
-                <div class="mech-header">
-                  <strong class="mech-name">{{ item.name }}</strong>
-                  <span class="mech-badge" [class.mech-badge-optional]="item.status === 'optional'">
-                    {{ item.status === 'optional' ? 'optional' : 'active' }}
-                  </span>
-                </div>
-                <p class="mech-desc">{{ item.description }}</p>
-                <div class="mech-config">
-                  <span class="mech-config-label">Config</span>
-                  {{ item.config }}
-                </div>
-              </div>
+      <table class="mech-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Mechanism</th>
+            <th>Status</th>
+            <th>Description</th>
+            <th>Config / Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (group of mechanisms; track group.category) {
+            @for (item of group.items; track item.name; let first = $first) {
+              <tr [class.mech-optional-row]="item.status === 'optional'">
+                @if (first) {
+                  <td class="mech-cat-cell" [attr.rowspan]="group.items.length">
+                    {{ group.category }}
+                  </td>
+                }
+                <td class="mech-name-cell">{{ item.name }}</td>
+                <td>
+                  <span
+                    class="mech-badge"
+                    [class.mech-badge-optional]="item.status === 'optional'"
+                    >{{ item.status === 'optional' ? 'optional' : 'active' }}</span
+                  >
+                </td>
+                <td class="mech-desc-cell">{{ item.description }}</td>
+                <td class="mech-config-cell">{{ item.config }}</td>
+              </tr>
             }
-          </div>
-        </div>
-      }
+          }
+        </tbody>
+      </table>
     </div>
   }
 

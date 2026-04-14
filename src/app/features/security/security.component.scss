@@ -401,49 +401,65 @@
 }
 
 // ── Mechanisms Tab ─────────────────────────────────────────────────────────────
-.mech-group {
-  margin-bottom: 1.25rem;
-}
+.mech-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
 
-.mech-category {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary, #e5e7eb);
-  margin: 0 0 0.5rem;
-}
+  thead tr {
+    border-bottom: 2px solid var(--border, #2d3447);
+  }
 
-.mech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 0.5rem;
-}
+  th {
+    text-align: left;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #9ca3af);
+    font-weight: 700;
+    white-space: nowrap;
+  }
 
-.mech-card {
-  background: var(--card-bg, #1e2330);
-  border: 1px solid var(--border, #2d3447);
-  border-radius: 8px;
-  padding: 0.75rem 0.9rem;
+  tbody tr {
+    border-bottom: 1px solid var(--border, #2d3447);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    &.mech-optional-row {
+      opacity: 0.8;
+    }
+  }
 
-  &.mech-optional {
-    border-style: dashed;
-    opacity: 0.85;
+  td {
+    padding: 0.4rem 0.6rem;
+    vertical-align: top;
+    line-height: 1.4;
   }
 }
 
-.mech-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
+.mech-cat-cell {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary, #e5e7eb);
+  white-space: nowrap;
+  border-right: 1px solid var(--border, #2d3447);
+  padding-right: 0.75rem !important;
 }
 
-.mech-name {
-  font-size: 0.85rem;
+.mech-name-cell {
+  font-weight: 600;
   color: var(--text-primary, #e5e7eb);
+  white-space: nowrap;
+  font-size: 0.78rem;
 }
 
 .mech-badge {
-  font-size: 0.62rem;
+  display: inline-block;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   padding: 0.1em 0.4em;
@@ -451,6 +467,7 @@
   background: #14532d;
   color: #86efac;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 
   &.mech-badge-optional {
     background: #422006;
@@ -458,29 +475,17 @@
   }
 }
 
-.mech-desc {
-  font-size: 0.77rem;
+.mech-desc-cell {
   color: var(--text-muted, #9ca3af);
-  line-height: 1.45;
-  margin: 0 0 0.4rem;
+  font-size: 0.76rem;
+  max-width: 380px;
 }
 
-.mech-config {
+.mech-config-cell {
+  color: var(--text-muted, #9ca3af);
   font-size: 0.7rem;
-  color: var(--text-muted, #9ca3af);
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  line-height: 1.4;
-}
-
-.mech-config-label {
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-  color: var(--text-muted, #9ca3af);
-  margin-right: 0.35rem;
+  font-family: monospace;
+  max-width: 260px;
 }
 
 // ── Preset buttons ─────────────────────────────────────────────────────────────
