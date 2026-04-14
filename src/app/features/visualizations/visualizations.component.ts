@@ -24,16 +24,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
-type VizTab =
-  | 'topology'
-  | 'waterfall'
-  | 'sankey'
-  | 'errors'
-  | 'kafka'
-  | 'jvm'
-  | 'golden'
-  | 'slowdb'
-  | 'bundle3d';
+type VizTab = 'topology' | 'errors' | 'kafka' | 'jvm' | 'golden' | 'slowdb' | 'bundle3d';
 
 // ── Topology ────────────────────────────────────────────────────────────────
 interface TopoNode {
@@ -47,23 +38,6 @@ interface TopoParticle {
   fromId: string;
   toId: string;
   progress: number;
-  color: string;
-}
-
-// ── Waterfall ───────────────────────────────────────────────────────────────
-interface WaterfallEntry {
-  method: string;
-  uri: string;
-  status: number;
-  startMs: number;
-  durationMs: number;
-}
-
-// ── Sankey ───────────────────────────────────────────────────────────────────
-interface SankeyFlow {
-  from: string;
-  to: string;
-  value: number;
   color: string;
 }
 
@@ -160,18 +134,6 @@ export class VisualizationsComponent implements OnDestroy {
       tip: 'Circular gauges for JVM runtime metrics: heap, CPU, threads, GC, connection pools, disk',
     },
     {
-      id: 'waterfall',
-      label: 'Waterfall',
-      icon: '🏊',
-      tip: 'Parallel request timing bars (like Chrome DevTools Network tab). Shows start offset and duration for 6 endpoints',
-    },
-    {
-      id: 'sankey',
-      label: 'Sankey',
-      icon: '🔀',
-      tip: 'Flow diagram from HTTP endpoint → status code (2xx/4xx/5xx). Width proportional to request volume from Prometheus',
-    },
-    {
       id: 'errors',
       label: 'Error Timeline',
       icon: '💥',
@@ -258,13 +220,6 @@ export class VisualizationsComponent implements OnDestroy {
   topoParticles = signal<TopoParticle[]>([]);
   private _topoTimer: ReturnType<typeof setInterval> | null = null;
   topoAnimating = signal(false);
-
-  // ── Waterfall ─────────────────────────────────────────────────────────────
-  waterfallEntries = signal<WaterfallEntry[]>([]);
-  waterfallRunning = signal(false);
-
-  // ── Sankey ────────────────────────────────────────────────────────────────
-  sankeyFlows = signal<SankeyFlow[]>([]);
 
   // ── Error timeline ────────────────────────────────────────────────────────
   errorSamples = signal<ErrorSample[]>([]);
@@ -2667,105 +2622,6 @@ export class VisualizationsComponent implements OnDestroy {
         color: p.color,
       };
     });
-  }
-
-  // ── Waterfall ─────────────────────────────────────────────────────────────
-  async runWaterfall(): Promise<void> {
-    this.waterfallRunning.set(true);
-    this.waterfallEntries.set([]);
-    const base = this.env.baseUrl();
-    const endpoints = [
-      { method: 'GET', uri: '/actuator/health' },
-      { method: 'GET', uri: '/customers?page=0&size=5' },
-      { method: 'GET', uri: '/customers/summary?page=0&size=5' },
-      { method: 'GET', uri: '/customers/recent' },
-      { method: 'GET', uri: '/actuator/info' },
-      { method: 'GET', uri: '/customers/aggregate' },
-    ];
-    const globalStart = performance.now();
-
-    const promises = endpoints.map(async (ep) => {
-      const start = performance.now() - globalStart;
-      try {
-        const t0 = performance.now();
-        await this.http.get(`${base}${ep.uri}`).toPromise();
-        return {
-          method: ep.method,
-          uri: ep.uri,
-          status: 200,
-          startMs: start,
-          durationMs: performance.now() - t0,
-        };
-      } catch (e: any) {
-        return {
-          method: ep.method,
-          uri: ep.uri,
-          status: e.status || 0,
-          startMs: start,
-          durationMs: performance.now() - globalStart - start,
-        };
-      }
-    });
-
-    const results = await Promise.all(promises);
-    this.waterfallEntries.set(results);
-    this.waterfallRunning.set(false);
-  }
-
-  waterfallMaxMs(): number {
-    const entries = this.waterfallEntries();
-    return Math.max(1, ...entries.map((e) => e.startMs + e.durationMs));
-  }
-
-  // ── Sankey ────────────────────────────────────────────────────────────────
-  buildSankey(): void {
-    this.vizError.set('');
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        this.rawPrometheus.set(text);
-        const flows: SankeyFlow[] = [];
-        const regex =
-          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let m;
-        const byEndpoint: Record<string, Record<string, number>> = {};
-        while ((m = regex.exec(text)) !== null) {
-          const uri = m[3];
-          const status = m[2][0] + 'xx';
-          const count = parseFloat(m[4]);
-          if (!byEndpoint[uri]) byEndpoint[uri] = {};
-          byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
-        }
-        const colors: Record<string, string> = {
-          '2xx': '#4ade80',
-          '3xx': '#60a5fa',
-          '4xx': '#fbbf24',
-          '5xx': '#f87171',
-        };
-        for (const [uri, statuses] of Object.entries(byEndpoint)) {
-          for (const [status, count] of Object.entries(statuses)) {
-            if (count > 0) {
-              flows.push({
-                from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
-                to: status,
-                value: count,
-                color: colors[status] || '#94a3b8',
-              });
-            }
-          }
-        }
-        flows.sort((a, b) => b.value - a.value);
-        this.sankeyFlows.set(flows.slice(0, 20));
-      },
-      error: (err) => {
-        this.vizError.set(
-          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
-        );
-      },
-    });
-  }
-
-  sankeyMaxValue(): number {
-    return Math.max(1, ...this.sankeyFlows().map((f) => f.value));
   }
 
   // ── Error timeline ────────────────────────────────────────────────────────

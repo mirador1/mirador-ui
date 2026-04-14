@@ -2,7 +2,11 @@
   <div class="page-header">
     <div>
       <h2>Diagnostic</h2>
-      <p class="subtitle">Interactive backend scenarios — observability, resilience, messaging</p>
+      <p class="subtitle">
+        Tests actifs — tu déclenches une requête et tu observes le comportement du backend :
+        versioning d'API, idempotence, rate limiting, messaging Kafka, threads virtuels, timing de
+        requêtes (Waterfall), flux endpoint→status (Sankey), tests de charge.
+      </p>
     </div>
     <div class="header-actions">
       <button class="run-all-btn" (click)="runAll()" [disabled]="runAllRunning()">
@@ -43,9 +47,66 @@
     </article>
   }
 
-  <!-- Scenarios table -->
-  <div class="scenarios-table">
-    <!-- 1. API Versioning -->
+  <!-- Sub-tab navigation -->
+  <div class="tabs">
+    <button
+      [class.tab-active]="activeSubTab() === 'versioning'"
+      (click)="activeSubTab.set('versioning')"
+    >
+      🔀 Versioning
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'idempotency'"
+      (click)="activeSubTab.set('idempotency')"
+    >
+      🔁 Idempotency
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'rate-limit'"
+      (click)="activeSubTab.set('rate-limit')"
+    >
+      🚦 Rate Limit
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'kafka-enrich'"
+      (click)="activeSubTab.set('kafka-enrich')"
+    >
+      📨 Kafka Enrich
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'virtual-threads'"
+      (click)="activeSubTab.set('virtual-threads')"
+    >
+      🧵 Virtual Threads
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'version-diff'"
+      (click)="activeSubTab.set('version-diff')"
+    >
+      📝 Version Diff
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'waterfall'"
+      (click)="activeSubTab.set('waterfall')"
+    >
+      ⏱ Waterfall
+    </button>
+    <button [class.tab-active]="activeSubTab() === 'sankey'" (click)="activeSubTab.set('sankey')">
+      🔀 Sankey
+    </button>
+    <button [class.tab-active]="activeSubTab() === 'stress'" (click)="activeSubTab.set('stress')">
+      ⚡ Stress Test
+    </button>
+    <button
+      [class.tab-active]="activeSubTab() === 'scheduled'"
+      (click)="activeSubTab.set('scheduled')"
+    >
+      🕐 Scheduled Jobs
+    </button>
+  </div>
+
+  <!-- 1. API Versioning -->
+  @if (activeSubTab() === 'versioning') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge version">🔀 Version</span>
@@ -70,8 +131,10 @@
         </div>
       }
     </div>
+  }
 
-    <!-- 2. Idempotency -->
+  <!-- 2. Idempotency -->
+  @if (activeSubTab() === 'idempotency') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge idem">🔁 Idem</span>
@@ -98,8 +161,10 @@
         </div>
       }
     </div>
+  }
 
-    <!-- 3. Rate Limiting -->
+  <!-- 3. Rate Limiting -->
+  @if (activeSubTab() === 'rate-limit') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge rate">🚦 Rate</span>
@@ -124,8 +189,10 @@
         </div>
       }
     </div>
+  }
 
-    <!-- 4. Kafka Enrich -->
+  <!-- 4. Kafka Enrich -->
+  @if (activeSubTab() === 'kafka-enrich') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge kafka">📨 Kafka</span>
@@ -157,8 +224,10 @@
         </div>
       }
     </div>
+  }
 
-    <!-- 5. Virtual Threads -->
+  <!-- 5. Virtual Threads -->
+  @if (activeSubTab() === 'virtual-threads') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge vt">🧵 VT</span>
@@ -183,8 +252,10 @@
         </div>
       }
     </div>
+  }
 
-    <!-- 6. Version Diff -->
+  <!-- 6. Version Diff -->
+  @if (activeSubTab() === 'version-diff') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge version">📝 Diff</span>
@@ -212,8 +283,85 @@
         </div>
       }
     </div>
+  }
 
-    <!-- 7. Stress Test -->
+  <!-- 7. Waterfall -->
+  @if (activeSubTab() === 'waterfall') {
+    <div class="tab-content">
+      <p class="tab-desc">
+        HTTP request waterfall, like the Network tab in Chrome DevTools. Fires 6 requests in
+        parallel and shows when each one starts and how long it takes.
+      </p>
+      <button class="run-btn" (click)="runWaterfall()" [disabled]="waterfallRunning()">
+        {{ waterfallRunning() ? 'Running...' : '▶ Fire 6 parallel requests' }}
+      </button>
+      @if (waterfallEntries().length) {
+        <div class="waterfall-chart">
+          @for (e of waterfallEntries(); track $index) {
+            <div class="waterfall-row">
+              <span class="wf-method">{{ e.method }}</span>
+              <span class="wf-uri">{{ e.uri }}</span>
+              <div class="wf-bar-container">
+                <div
+                  class="wf-bar"
+                  [style.left.%]="(e.startMs / waterfallMaxMs()) * 100"
+                  [style.width.%]="Math.max(1, (e.durationMs / waterfallMaxMs()) * 100)"
+                  [class.wf-ok]="e.status < 400"
+                  [class.wf-err]="e.status >= 400"
+                >
+                  <span class="wf-time">{{ e.durationMs | number: '1.0-0' }}ms</span>
+                </div>
+              </div>
+              <span
+                class="wf-status"
+                [class.status-ok]="e.status < 400"
+                [class.status-err]="e.status >= 400"
+                >{{ e.status }}</span
+              >
+            </div>
+          }
+          <div class="wf-scale">
+            <span>0ms</span><span>{{ waterfallMaxMs() | number: '1.0-0' }}ms</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- 8. Sankey -->
+  @if (activeSubTab() === 'sankey') {
+    <div class="tab-content">
+      <p class="tab-desc">
+        Request flow diagram: each endpoint mapped to its HTTP status codes (2xx, 4xx, 5xx). Bar
+        width is proportional to the number of requests. Shows where errors concentrate.
+      </p>
+      <button class="run-btn" (click)="fetchSankeyData()">
+        ▶ Parse Prometheus metrics and build flow
+      </button>
+      @if (sankeyFlows().length) {
+        <div class="sankey-chart">
+          @for (f of sankeyFlows(); track $index) {
+            <div class="sankey-row">
+              <span class="sankey-from">{{ f.from }}</span>
+              <div class="sankey-bar-container">
+                <div
+                  class="sankey-bar"
+                  [style.width.%]="(f.value / sankeyMaxValue()) * 100"
+                  [style.background]="f.color"
+                >
+                  {{ f.value | number: '1.0-0' }}
+                </div>
+              </div>
+              <span class="sankey-to" [style.color]="f.color">{{ f.to }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- 9. Stress Test -->
+  @if (activeSubTab() === 'stress') {
     <div class="scenario-row">
       <div class="scenario-meta">
         <span class="scenario-badge rate">⚡ Load</span>
@@ -272,72 +420,75 @@
         </div>
       }
     </div>
-  </div>
+  }
 
-  <!-- Scheduled Jobs -->
-  <article
-    class="card"
-    style="margin-top: 0.75rem"
-    title="ShedLock prevents the same job from running on multiple instances simultaneously — useful in multi-node deployments"
-  >
-    <h3>🕐 Scheduled Jobs</h3>
-    <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0 0 0.6rem">
-      ShedLock entries — distributed lock state per
-      <code
-        style="
-          font-size: 0.78rem;
-          background: var(--bg-code);
-          padding: 0.1em 0.3em;
-          border-radius: 3px;
-        "
-        >@Scheduled</code
-      >
-      task. A job is <strong>ACTIVE</strong> when its lock has not yet expired (i.e. it is currently
-      running or recently ran).
-    </p>
-    <button class="action-btn" (click)="loadScheduledJobs()">
-      {{ scheduledJobsLoading() ? 'Loading…' : '↻ Load jobs' }}
-    </button>
-
-    @if (scheduledJobsError()) {
-      <p style="font-size: 0.82rem; color: #f87171; margin: 0.5rem 0 0">
-        {{ scheduledJobsError() }}
+  <!-- 10. Scheduled Jobs -->
+  @if (activeSubTab() === 'scheduled') {
+    <article
+      class="card"
+      title="ShedLock prevents the same job from running on multiple instances simultaneously — useful in multi-node deployments"
+    >
+      <h3>🕐 Scheduled Jobs</h3>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0 0 0.6rem">
+        ShedLock entries — distributed lock state per
+        <code
+          style="
+            font-size: 0.78rem;
+            background: var(--bg-code);
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+          "
+          >@Scheduled</code
+        >
+        task. A job is <strong>ACTIVE</strong> when its lock has not yet expired (i.e. it is
+        currently running or recently ran).
       </p>
-    }
+      <button class="action-btn" (click)="loadScheduledJobs()">
+        {{ scheduledJobsLoading() ? 'Loading…' : '↻ Load jobs' }}
+      </button>
 
-    @if (scheduledJobs().length > 0) {
-      <table class="jobs-table">
-        <thead>
-          <tr>
-            <th>Job name</th>
-            <th>Status</th>
-            <th>Last run</th>
-            <th>Locked by</th>
-            <th>Lock until</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (job of scheduledJobs(); track job.name) {
+      @if (scheduledJobsError()) {
+        <p style="font-size: 0.82rem; color: #f87171; margin: 0.5rem 0 0">
+          {{ scheduledJobsError() }}
+        </p>
+      }
+
+      @if (scheduledJobs().length > 0) {
+        <table class="jobs-table">
+          <thead>
             <tr>
-              <td class="job-name">{{ job.name }}</td>
-              <td>
-                <span
-                  class="job-badge"
-                  [class.job-active]="isJobActive(job)"
-                  [class.job-idle]="!isJobActive(job)"
-                >
-                  {{ isJobActive(job) ? 'ACTIVE' : 'IDLE' }}
-                </span>
-              </td>
-              <td class="job-ts">
-                {{ job.lockedAt ? (job.lockedAt | date: 'yyyy-MM-dd HH:mm:ss') : '—' }}
-              </td>
-              <td class="job-host">{{ job.lockedBy ?? '—' }}</td>
-              <td class="job-ts">{{ job.lockUntil ? (job.lockUntil | date: 'HH:mm:ss') : '—' }}</td>
+              <th>Job name</th>
+              <th>Status</th>
+              <th>Last run</th>
+              <th>Locked by</th>
+              <th>Lock until</th>
             </tr>
-          }
-        </tbody>
-      </table>
-    }
-  </article>
+          </thead>
+          <tbody>
+            @for (job of scheduledJobs(); track job.name) {
+              <tr>
+                <td class="job-name">{{ job.name }}</td>
+                <td>
+                  <span
+                    class="job-badge"
+                    [class.job-active]="isJobActive(job)"
+                    [class.job-idle]="!isJobActive(job)"
+                  >
+                    {{ isJobActive(job) ? 'ACTIVE' : 'IDLE' }}
+                  </span>
+                </td>
+                <td class="job-ts">
+                  {{ job.lockedAt ? (job.lockedAt | date: 'yyyy-MM-dd HH:mm:ss') : '—' }}
+                </td>
+                <td class="job-host">{{ job.lockedBy ?? '—' }}</td>
+                <td class="job-ts">
+                  {{ job.lockUntil ? (job.lockUntil | date: 'HH:mm:ss') : '—' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </article>
+  }
 </section>

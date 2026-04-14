@@ -111,7 +111,7 @@ export class AppShellComponent {
       icon: '📊',
       label: 'Metrics',
       path: '/visualizations',
-      tip: '78 metric cards, 55 JVM gauges, advanced charts',
+      tip: '78 metric cards, 55 JVM gauges, error timeline, Kafka lag, slow queries, bundle analysis',
       children: [
         {
           label: 'Golden Signals (78)',
@@ -121,8 +121,6 @@ export class AppShellComponent {
           label: 'JVM Gauges (55)',
           tip: '55 circular gauges: memory, CPU, threads, HikariCP, disk, with categories',
         },
-        { label: 'Waterfall', tip: '6 parallel requests timed like Chrome DevTools Network tab' },
-        { label: 'Sankey', tip: 'Endpoint → HTTP status flow diagram from Prometheus data' },
         { label: 'Error Timeline', tip: 'Live stacked bar chart OK vs errors, polls every 3s' },
         {
           label: 'Kafka Lag',
@@ -161,7 +159,7 @@ export class AppShellComponent {
       icon: '🧪',
       label: 'Diagnostic',
       path: '/diagnostic',
-      tip: '7 interactive scenarios testing backend resilience',
+      tip: '10 interactive scenarios: versioning, idempotency, rate limit, Kafka, virtual threads, waterfall, Sankey, stress',
       children: [
         {
           label: 'API Versioning',
@@ -184,6 +182,14 @@ export class AppShellComponent {
           tip: 'Two parallel tasks via Java virtual threads, observe elapsed time',
         },
         { label: 'Version Diff', tip: 'Colored JSON diff between v1 and v2 responses' },
+        {
+          label: 'Waterfall',
+          tip: '6 parallel requests timed like Chrome DevTools Network tab — observe parallelism and latency',
+        },
+        {
+          label: 'Sankey',
+          tip: 'Endpoint → HTTP status flow diagram built from Prometheus counters',
+        },
         {
           label: 'Stress Test',
           tip: 'Sustained load: configurable duration, concurrency, endpoint',

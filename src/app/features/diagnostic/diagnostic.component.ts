@@ -34,6 +34,35 @@ interface ScheduledJob {
   lockedBy: string | null;
 }
 
+/** Waterfall — one HTTP request entry */
+interface WaterfallEntry {
+  method: string;
+  uri: string;
+  status: number;
+  startMs: number;
+  durationMs: number;
+}
+
+/** Sankey — one endpoint → status flow */
+interface SankeyFlow {
+  from: string;
+  to: string;
+  value: number;
+  color: string;
+}
+
+type DiagnosticTab =
+  | 'versioning'
+  | 'idempotency'
+  | 'rate-limit'
+  | 'kafka-enrich'
+  | 'virtual-threads'
+  | 'version-diff'
+  | 'waterfall'
+  | 'sankey'
+  | 'stress'
+  | 'scheduled';
+
 /** A single line in a JSON diff view */
 interface DiffLine {
   type: 'same' | 'add' | 'remove';
@@ -80,6 +109,11 @@ export class DiagnosticComponent {
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
   private readonly env = inject(EnvService);
+
+  readonly Math = Math;
+
+  // ── Active sub-tab ────────────────────────────────────────────────────────
+  activeSubTab = signal<DiagnosticTab>('versioning');
 
   // ── Run history ────────────────────────────────────────────────────────────
   runHistory = signal<RunRecord[]>([]);
@@ -535,5 +569,102 @@ export class DiagnosticComponent {
   isJobActive(job: ScheduledJob): boolean {
     if (!job.lockUntil) return false;
     return new Date(job.lockUntil) > new Date();
+  }
+
+  // ── Waterfall ─────────────────────────────────────────────────────────────
+  waterfallEntries = signal<WaterfallEntry[]>([]);
+  waterfallRunning = signal(false);
+
+  async runWaterfall(): Promise<void> {
+    this.waterfallRunning.set(true);
+    this.waterfallEntries.set([]);
+    const base = this.env.baseUrl();
+    const endpoints = [
+      { method: 'GET', uri: '/actuator/health' },
+      { method: 'GET', uri: '/customers?page=0&size=5' },
+      { method: 'GET', uri: '/customers/summary?page=0&size=5' },
+      { method: 'GET', uri: '/customers/recent' },
+      { method: 'GET', uri: '/actuator/info' },
+      { method: 'GET', uri: '/customers/aggregate' },
+    ];
+    const globalStart = performance.now();
+
+    const promises = endpoints.map(async (ep) => {
+      const start = performance.now() - globalStart;
+      try {
+        const t0 = performance.now();
+        await this.http.get(`${base}${ep.uri}`).toPromise();
+        return {
+          method: ep.method,
+          uri: ep.uri,
+          status: 200,
+          startMs: start,
+          durationMs: performance.now() - t0,
+        };
+      } catch (e: any) {
+        return {
+          method: ep.method,
+          uri: ep.uri,
+          status: e.status || 0,
+          startMs: start,
+          durationMs: performance.now() - globalStart - start,
+        };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    this.waterfallEntries.set(results);
+    this.waterfallRunning.set(false);
+  }
+
+  waterfallMaxMs(): number {
+    const entries = this.waterfallEntries();
+    return Math.max(1, ...entries.map((e) => e.startMs + e.durationMs));
+  }
+
+  // ── Sankey ────────────────────────────────────────────────────────────────
+  sankeyFlows = signal<SankeyFlow[]>([]);
+
+  fetchSankeyData(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: (text) => {
+        const flows: SankeyFlow[] = [];
+        const regex =
+          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        let m;
+        const byEndpoint: Record<string, Record<string, number>> = {};
+        while ((m = regex.exec(text)) !== null) {
+          const uri = m[3];
+          const status = m[2][0] + 'xx';
+          const count = parseFloat(m[4]);
+          if (!byEndpoint[uri]) byEndpoint[uri] = {};
+          byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
+        }
+        const colors: Record<string, string> = {
+          '2xx': '#4ade80',
+          '3xx': '#60a5fa',
+          '4xx': '#fbbf24',
+          '5xx': '#f87171',
+        };
+        for (const [uri, statuses] of Object.entries(byEndpoint)) {
+          for (const [status, count] of Object.entries(statuses)) {
+            if (count > 0) {
+              flows.push({
+                from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
+                to: status,
+                value: count,
+                color: colors[status] || '#94a3b8',
+              });
+            }
+          }
+        }
+        flows.sort((a, b) => b.value - a.value);
+        this.sankeyFlows.set(flows.slice(0, 20));
+      },
+    });
+  }
+
+  sankeyMaxValue(): number {
+    return Math.max(1, ...this.sankeyFlows().map((f) => f.value));
   }
 }
