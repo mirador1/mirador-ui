@@ -79,6 +79,35 @@ interface LiveCustomer {
 
 type SseStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
+/**
+ * Minimal OTLP ResourceSpans shape returned by Tempo GET /api/traces/:id.
+ * Only the fields actually parsed in parseOtlpTrace() are typed here.
+ */
+interface OtlpAttribute {
+  key: string;
+  value?: { stringValue?: string; intValue?: string | number; boolValue?: boolean };
+}
+interface OtlpSpan {
+  spanId?: string;
+  parentSpanId?: string;
+  name?: string;
+  startTimeUnixNano?: string | number;
+  endTimeUnixNano?: string | number;
+  attributes?: OtlpAttribute[];
+  status?: { code?: number };
+}
+interface OtlpTrace {
+  batches?: Array<{
+    resource?: { attributes?: OtlpAttribute[] };
+    scopeSpans?: Array<{ spans?: OtlpSpan[] }>;
+  }>;
+}
+
+/** Minimal Loki /api/v1/query_range response shape. */
+interface LokiQueryResult {
+  data?: { result?: Array<{ values?: [string, string][] }> };
+}
+
 const MAX_SSE_EVENTS = 50;
 const NEW_BADGE_MS = 5_000;
 const RECONNECT_DELAY_MS = 3_000;
@@ -352,7 +381,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
     }
     this.tempoSelectedId.set(id);
     this.tempoDetailLoading.set(true);
-    this.http.get<any>(`${this.TEMPO_BASE}/api/traces/${id}`).subscribe({
+    this.http.get<OtlpTrace>(`${this.TEMPO_BASE}/api/traces/${id}`).subscribe({
       next: (otlp) => {
         this.tempoSelectedTrace.set(this.parseOtlpTrace(id, otlp));
         this.tempoDetailLoading.set(false);
@@ -364,10 +393,10 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
   }
 
   /** Parse OTLP ResourceSpans format into our internal Trace/Span model. */
-  private parseOtlpTrace(traceId: string, otlp: any): Trace {
+  private parseOtlpTrace(traceId: string, otlp: OtlpTrace): Trace {
     const spans: Span[] = [];
     for (const batch of otlp.batches ?? []) {
-      const svcAttr = (batch.resource?.attributes ?? []).find((a: any) => a.key === 'service.name');
+      const svcAttr = (batch.resource?.attributes ?? []).find((a) => a.key === 'service.name');
       const svcName: string = svcAttr?.value?.stringValue ?? 'unknown';
       for (const scope of batch.scopeSpans ?? []) {
         for (const s of scope.spans ?? []) {
@@ -483,7 +512,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
     const start = (Date.now() - 3600000) * 1e6; // 1 hour ago
 
     this.http
-      .get<any>('http://localhost:3100/loki/api/v1/query_range', {
+      .get<LokiQueryResult>('http://localhost:3100/loki/api/v1/query_range', {
         params: {
           query: this.lokiQuery,
           limit: this.lokiLimit.toString(),
