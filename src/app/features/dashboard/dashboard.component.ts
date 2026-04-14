@@ -309,7 +309,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Grafana LGTM all-in-one: bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI). Spring Boot sends traces and logs via OpenTelemetry OTLP (port 4318). Loki API on port 3100 is accessed via the CORS proxy.',
       image: 'images/tools/grafana.png',
       port: '3001',
-      url: 'http://localhost:3001',
+      url: 'http://localhost:3001/dashboards',
     },
     'customerservice-zipkin': {
       icon: '🔗',
@@ -818,7 +818,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: '🔍',
       port: '3001',
       container: 'customerservice-lgtm',
-      url: 'http://localhost:3001',
+      url: 'http://localhost:3001/dashboards',
       tip: 'Log aggregation',
       detail:
         'Grafana LGTM all-in-one: bundles Loki (log aggregation), Tempo (trace storage), Mimir (long-term metrics), and Grafana (UI) in a single container. Spring Boot sends logs via OpenTelemetry Logback appender → OTLP collector → Loki. Query with LogQL in the Angular Telemetry tab or Grafana Explore.',
@@ -976,6 +976,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (s === 'up') return '#4ade80';
     if (s === 'down') return '#f87171';
     return '#94a3b8';
+  }
+
+  /** Tooltip explaining how the UP/DOWN status of each node is probed. */
+  private readonly statusProbeDescriptions: Record<string, string> = {
+    client: 'Always UP — represents your browser, no probe needed.',
+    api: 'GET /actuator/health → HTTP 200 + JSON { status: "UP" }.',
+    swagger: 'Derived from API status — UP when the Spring Boot app is running.',
+    actuator: 'Derived from API status — UP when the Spring Boot app is running.',
+    keycloak: 'Docker container state via Docker Engine API (container running = UP).',
+    pg: 'Spring Boot health component "db" inside /actuator/health/components.',
+    redis: 'Spring Boot health component "redis" inside /actuator/health/components.',
+    kafka: 'Docker container state via Docker Engine API (container running = UP).',
+    ollama: 'Docker container state via Docker Engine API (container running = UP).',
+    pgadmin: 'Docker container state via Docker Engine API (container running = UP).',
+    pgweb: 'Docker container state via Docker Engine API (container running = UP).',
+    redisinsight: 'Docker container state via Docker Engine API (container running = UP).',
+    'redis-commander': 'Docker container state via Docker Engine API (container running = UP).',
+    consumer: 'Inferred from Kafka container state — shown as UP when kafka-demo is running.',
+    'kafka-ui': 'Docker container state via Docker Engine API (container running = UP).',
+    akhq: 'Docker container state via Docker Engine API (container running = UP).',
+    prometheus: 'Docker container state via Docker Engine API (container running = UP).',
+    zipkin: 'Docker container state via Docker Engine API (container running = UP).',
+    loki: 'Docker container state via Docker Engine API (container running = UP).',
+    grafana: 'Docker container state via Docker Engine API (container running = UP).',
+    pyroscope: 'Docker container state via Docker Engine API (container running = UP).',
+    jaeger: 'Docker container state via Docker Engine API (container running = UP).',
+    'spring-app': 'Docker container state via Docker Engine API (container running = UP).',
+  };
+
+  topoStatusTooltip(nodeId: string): string {
+    const probe =
+      this.statusProbeDescriptions[nodeId] ?? 'Docker container state via Docker Engine API.';
+    const s = this.topoStatus()[nodeId];
+    const stateLabel = s === 'up' ? '✅ UP' : s === 'down' ? '❌ DOWN' : '— unknown';
+    return `${stateLabel}\nProbe: ${probe}`;
   }
 
   // ── Heatmap ───────────────────────────────────────────────────────────────

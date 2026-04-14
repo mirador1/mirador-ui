@@ -397,7 +397,11 @@
                 <span class="archi-conn">→ {{ topoConnections(node.id).to.join(', ') }}</span>
               }
               <div class="archi-footer">
-                <span class="archi-status" [style.color]="topoNodeColor(node.id)">
+                <span
+                  class="archi-status"
+                  [style.color]="topoNodeColor(node.id)"
+                  [title]="topoStatusTooltip(node.id)"
+                >
                   {{
                     topoStatus()[node.id] === 'up'
                       ? 'UP'
