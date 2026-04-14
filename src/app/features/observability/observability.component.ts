@@ -56,7 +56,7 @@ interface LatencyBucket {
   count: number;
 }
 
-type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
+type ObsTab = 'traces' | 'logs' | 'latency';
 
 @Component({
   selector: 'app-observability',
@@ -98,18 +98,8 @@ export class ObservabilityComponent implements OnDestroy {
   // ── Flame graph ───────────────────────────────────────────────────────────
   flameViewTrace = signal<Trace | null>(null);
 
-  // ── Live request feed ─────────────────────────────────────────────────────
-  liveFeed = signal<
-    Array<{ time: string; method: string; uri: string; status: string; duration: string }>
-  >([]);
-  livePolling = signal(false);
-  liveTrafficRunning = signal(false);
-  private _liveTimer: ReturnType<typeof setInterval> | null = null;
-  private _lastRequestCount = 0;
-
   ngOnDestroy(): void {
     this.stopLogsPolling();
-    this.stopLiveFeed();
   }
 
   switchTab(tab: ObsTab): void {
@@ -386,83 +376,5 @@ export class ObservabilityComponent implements OnDestroy {
       width: Math.max(2, (s.duration / totalDuration) * 100),
       depth: i % 3, // simplified depth
     }));
-  }
-
-  // ── Live request feed ─────────────────────────────────────────────────────
-  /** Send a burst of varied requests to animate the live feed */
-  generateTrafficForFeed(): void {
-    this.liveTrafficRunning.set(true);
-    const base = this.env.baseUrl();
-    const endpoints = [
-      { method: 'GET', url: `${base}/customers?page=0&size=10` },
-      { method: 'GET', url: `${base}/customers?page=0&size=10` },
-      { method: 'GET', url: `${base}/actuator/health` },
-      { method: 'GET', url: `${base}/customers/recent` },
-      { method: 'GET', url: `${base}/customers/summary?page=0&size=5` },
-      { method: 'GET', url: `${base}/customers/aggregate` },
-      { method: 'GET', url: `${base}/customers/1/todos` },
-      { method: 'GET', url: `${base}/customers/1/enrich` },
-      { method: 'GET', url: `${base}/customers?page=999&size=1` },
-      { method: 'GET', url: `${base}/actuator/info` },
-    ];
-    let done = 0;
-    for (const ep of endpoints) {
-      this.http
-        .get(ep.url)
-        .pipe(catchError(() => of(null)))
-        .subscribe(() => {
-          done++;
-          if (done === endpoints.length) this.liveTrafficRunning.set(false);
-        });
-    }
-  }
-
-  toggleLiveFeed(): void {
-    if (this.livePolling()) {
-      this.stopLiveFeed();
-    } else {
-      this.livePolling.set(true);
-      this.pollMetricsForFeed();
-      this._liveTimer = setInterval(() => this.pollMetricsForFeed(), 2000);
-    }
-  }
-
-  private stopLiveFeed(): void {
-    this.livePolling.set(false);
-    if (this._liveTimer) {
-      clearInterval(this._liveTimer);
-      this._liveTimer = null;
-    }
-  }
-
-  private pollMetricsForFeed(): void {
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        const entries: Array<{
-          time: string;
-          method: string;
-          uri: string;
-          status: string;
-          duration: string;
-        }> = [];
-        const regex =
-          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let m;
-        while ((m = regex.exec(text)) !== null) {
-          entries.push({
-            time: new Date().toISOString().slice(11, 23),
-            method: m[1],
-            uri: m[3],
-            status: m[2],
-            duration: '-',
-          });
-        }
-        // Only add new entries based on count changes
-        if (entries.length > 0) {
-          this.liveFeed.update((f) => [...entries.slice(0, 5), ...f].slice(0, 100));
-        }
-      },
-      error: () => {},
-    });
   }
 }

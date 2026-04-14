@@ -1,12 +1,19 @@
 /**
- * TimelineComponent — Live customer creation feed via SSE.
+ * TimelineComponent — Live Feeds with two tabs.
  *
- * Connects to GET /customers/stream (Server-Sent Events).
- * New customers slide in at the top; keeps last 50 in memory.
- * "NEW" badge fades after 5 seconds per entry.
+ * Tab 1 — SSE (Customer Events):
+ *   Connects to GET /customers/stream (Server-Sent Events).
+ *   New customers slide in at the top; keeps last 50 in memory.
+ *   "NEW" badge fades after 5 seconds per entry.
+ *
+ * Tab 2 — Endpoint Activity:
+ *   Polls /actuator/prometheus every 2s and extracts HTTP request
+ *   metrics to display a scrolling feed of method/URI/status entries.
  */
 import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { catchError, of } from 'rxjs';
 import { EnvService } from '../../core/env/env.service';
 
 interface LiveCustomer {
@@ -32,7 +39,11 @@ const RECONNECT_DELAY_MS = 3_000;
 })
 export class TimelineComponent implements OnDestroy {
   private readonly env = inject(EnvService);
+  private readonly http = inject(HttpClient);
 
+  activeTab = signal<'sse' | 'activity'>('sse');
+
+  // ── SSE tab ───────────────────────────────────────────────────────────────
   events = signal<LiveCustomer[]>([]);
   status = signal<ConnectionStatus>('connecting');
 
@@ -40,14 +51,25 @@ export class TimelineComponent implements OnDestroy {
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private _badgeTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
+  // ── Activity tab (Prometheus polling) ────────────────────────────────────
+  liveFeed = signal<
+    Array<{ time: string; method: string; uri: string; status: string; duration: string }>
+  >([]);
+  livePolling = signal(false);
+  liveTrafficRunning = signal(false);
+  private _liveTimer: ReturnType<typeof setInterval> | null = null;
+  private _lastRequestCount = 0;
+
   constructor() {
     this.connect();
   }
 
   ngOnDestroy(): void {
     this.cleanup();
+    this.stopLiveFeed();
   }
 
+  // ── SSE ───────────────────────────────────────────────────────────────────
   private connect(): void {
     this.cleanup();
     this.status.set('connecting');
@@ -140,5 +162,83 @@ export class TimelineComponent implements OnDestroy {
       case 'disconnected':
         return 'status-disconnected';
     }
+  }
+
+  // ── Activity feed (Prometheus polling) ───────────────────────────────────
+  /** Send a burst of varied requests to animate the live feed */
+  generateTrafficForFeed(): void {
+    this.liveTrafficRunning.set(true);
+    const base = this.env.baseUrl();
+    const endpoints = [
+      { method: 'GET', url: `${base}/customers?page=0&size=10` },
+      { method: 'GET', url: `${base}/customers?page=0&size=10` },
+      { method: 'GET', url: `${base}/actuator/health` },
+      { method: 'GET', url: `${base}/customers/recent` },
+      { method: 'GET', url: `${base}/customers/summary?page=0&size=5` },
+      { method: 'GET', url: `${base}/customers/aggregate` },
+      { method: 'GET', url: `${base}/customers/1/todos` },
+      { method: 'GET', url: `${base}/customers/1/enrich` },
+      { method: 'GET', url: `${base}/customers?page=999&size=1` },
+      { method: 'GET', url: `${base}/actuator/info` },
+    ];
+    let done = 0;
+    for (const ep of endpoints) {
+      this.http
+        .get(ep.url)
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === endpoints.length) this.liveTrafficRunning.set(false);
+        });
+    }
+  }
+
+  toggleLiveFeed(): void {
+    if (this.livePolling()) {
+      this.stopLiveFeed();
+    } else {
+      this.livePolling.set(true);
+      this.pollMetricsForFeed();
+      this._liveTimer = setInterval(() => this.pollMetricsForFeed(), 2000);
+    }
+  }
+
+  private stopLiveFeed(): void {
+    this.livePolling.set(false);
+    if (this._liveTimer) {
+      clearInterval(this._liveTimer);
+      this._liveTimer = null;
+    }
+  }
+
+  private pollMetricsForFeed(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: (text) => {
+        const entries: Array<{
+          time: string;
+          method: string;
+          uri: string;
+          status: string;
+          duration: string;
+        }> = [];
+        const regex =
+          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          entries.push({
+            time: new Date().toISOString().slice(11, 23),
+            method: m[1],
+            uri: m[3],
+            status: m[2],
+            duration: '-',
+          });
+        }
+        // Only add new entries based on count changes
+        if (entries.length > 0) {
+          this.liveFeed.update((f) => [...entries.slice(0, 5), ...f].slice(0, 100));
+        }
+      },
+      error: () => {},
+    });
   }
 }

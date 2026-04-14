@@ -95,10 +95,6 @@ export class AppShellComponent {
           label: 'Latency Histogram',
           tip: 'HTTP response time distribution in 12 human-readable buckets',
         },
-        {
-          label: 'Live Feed',
-          tip: 'Scrolling HTTP endpoint metrics parsed from Prometheus every 2s',
-        },
       ],
     },
     {
@@ -249,10 +245,10 @@ export class AppShellComponent {
     },
     {
       id: 'timeline',
-      icon: '⚡',
-      label: 'Live Feed',
+      icon: '📡',
+      label: 'Live Feeds',
       path: '/timeline',
-      tip: 'Live SSE stream of newly created customers with slide-in animation',
+      tip: 'Two live views: SSE customer creation events + HTTP endpoint activity (Prometheus polling)',
       children: [],
     },
     {
@@ -364,9 +360,9 @@ export class AppShellComponent {
       keywords: 'audit trail security events login failed blocked customer created',
     },
     {
-      label: '⚡ Live Feed',
+      label: '📡 Live Feeds',
       path: '/timeline',
-      keywords: 'live feed timeline sse stream customers realtime',
+      keywords: 'live feed timeline sse stream customers realtime prometheus polling activity',
     },
     {
       label: '🔐 Security Demo',

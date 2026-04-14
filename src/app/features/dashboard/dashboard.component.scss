@@ -974,19 +974,22 @@ pre {
 }
 
 // ── Live Activity ─────────────────────────────────────────────────────────────
-.live-activity-row {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 1rem;
-  align-items: start;
+.live-feed-preview {
   margin-bottom: 1.5rem;
+  background: var(--bg-card, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
 }
 
-.live-names-card {
-  .card-title {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
+.view-all-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
   }
 }
 

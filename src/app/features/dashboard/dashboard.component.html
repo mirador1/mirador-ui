@@ -480,29 +480,16 @@
       <span class="section-sub">Real-time customer creation events (Server-Sent Events)</span>
     </div>
   </div>
-  <div class="live-activity-row">
-    <article
-      class="stat-card"
-      title="Counts customer creation events received via Server-Sent Events (SSE) from /customers/stream — a persistent HTTP connection that pushes updates from the backend without polling."
-    >
-      <div class="stat-label">New customers</div>
-      <div class="stat-value">{{ liveSessionCount() }}</div>
-      <div class="stat-sub">created since page load</div>
-    </article>
-    <article
-      class="card live-names-card"
-      title="The 5 most recent customers pushed live by the backend. Each entry appears within milliseconds of creation — no refresh needed."
-    >
-      <div class="card-title">Recent arrivals</div>
-      @if (liveRecentNames().length === 0) {
-        <p class="muted">Waiting for events… create a customer to see live updates.</p>
-      } @else {
-        <ul class="live-names-list">
-          @for (name of liveRecentNames(); track name) {
-            <li class="live-name-item">{{ name }}</li>
-          }
-        </ul>
-      }
-    </article>
+  <div class="live-feed-preview">
+    @if (liveRecentNames().length === 0) {
+      <p class="muted">Waiting for events… create a customer to see live updates.</p>
+    } @else {
+      <ul class="live-names-list">
+        @for (name of liveRecentNames(); track name) {
+          <li class="live-name-item">{{ name }}</li>
+        }
+      </ul>
+    }
+    <a routerLink="/timeline" class="view-all-link">View full live feeds →</a>
   </div>
 </section>

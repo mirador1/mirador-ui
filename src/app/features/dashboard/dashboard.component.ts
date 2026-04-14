@@ -17,6 +17,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
@@ -37,7 +38,7 @@ interface HealthSnapshot {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent],
+  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, RouterLink, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
