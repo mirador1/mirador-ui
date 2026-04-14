@@ -1,5 +1,12 @@
 # Mirador UI — Claude Instructions
 
+## Persistent task backlog
+
+**`TASKS.md`** (at the repo root) is the source of truth for pending work across sessions.
+- **Read it at the start of every session** — before doing anything else.
+- **Update it immediately** when a task is added, started, or completed.
+- This file survives context window resets; the conversation history does not.
+
 ## Claude workflow rules (apply to every session)
 
 - **Do not stop** between tasks — chain all pending work without asking "shall I continue?".
