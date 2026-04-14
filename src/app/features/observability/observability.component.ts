@@ -103,6 +103,7 @@ export class ObservabilityComponent implements OnDestroy {
     Array<{ time: string; method: string; uri: string; status: string; duration: string }>
   >([]);
   livePolling = signal(false);
+  liveTrafficRunning = signal(false);
   private _liveTimer: ReturnType<typeof setInterval> | null = null;
   private _lastRequestCount = 0;
 
@@ -388,6 +389,34 @@ export class ObservabilityComponent implements OnDestroy {
   }
 
   // ── Live request feed ─────────────────────────────────────────────────────
+  /** Send a burst of varied requests to animate the live feed */
+  generateTrafficForFeed(): void {
+    this.liveTrafficRunning.set(true);
+    const base = this.env.baseUrl();
+    const endpoints = [
+      { method: 'GET', url: `${base}/customers?page=0&size=10` },
+      { method: 'GET', url: `${base}/customers?page=0&size=10` },
+      { method: 'GET', url: `${base}/actuator/health` },
+      { method: 'GET', url: `${base}/customers/recent` },
+      { method: 'GET', url: `${base}/customers/summary?page=0&size=5` },
+      { method: 'GET', url: `${base}/customers/aggregate` },
+      { method: 'GET', url: `${base}/customers/1/todos` },
+      { method: 'GET', url: `${base}/customers/1/enrich` },
+      { method: 'GET', url: `${base}/customers?page=999&size=1` },
+      { method: 'GET', url: `${base}/actuator/info` },
+    ];
+    let done = 0;
+    for (const ep of endpoints) {
+      this.http
+        .get(ep.url)
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === endpoints.length) this.liveTrafficRunning.set(false);
+        });
+    }
+  }
+
   toggleLiveFeed(): void {
     if (this.livePolling()) {
       this.stopLiveFeed();

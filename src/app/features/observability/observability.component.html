@@ -320,6 +320,14 @@
           <button class="run-btn" [class.active-poll]="livePolling()" (click)="toggleLiveFeed()">
             {{ livePolling() ? '⏹ Stop' : '▶ Start' }} live feed
           </button>
+          <button
+            class="run-btn"
+            (click)="generateTrafficForFeed()"
+            [disabled]="liveTrafficRunning()"
+            title="Send 10 varied requests (GET /customers, /health, /recent, /aggregate, /todos…) to generate visible activity in the feed"
+          >
+            {{ liveTrafficRunning() ? 'Generating...' : '⚡ Generate traffic' }}
+          </button>
           <span class="hint"
             >Polls <code>/actuator/prometheus</code> every 2s for endpoint metrics</span
           >
