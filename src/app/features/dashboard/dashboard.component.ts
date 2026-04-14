@@ -1057,23 +1057,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Compute evenly-spaced x-axis labels (HH:MM) for the health history sparkline.
-   * Returns up to 5 labels with their percentage position along the x-axis so
-   * they can be placed with CSS `left: <pct>%`.
+   * Compute evenly-spaced x-axis labels (relative seconds) for the health history sparkline.
+   * The rightmost label is "0s" (now), earlier points show "-Xs" relative to the last snapshot.
+   * Returns up to 5 labels with their percentage position along the x-axis.
    */
   sparklineXLabels(): { pct: number; label: string }[] {
     const history = this.healthHistory();
     if (history.length < 2) return [];
-    // Up to 5 labels evenly distributed across the history window
+    const lastTime = history[history.length - 1].time.getTime();
     const count = Math.min(5, history.length);
     const step = (history.length - 1) / (count - 1);
     return Array.from({ length: count }, (_, i) => {
       const idx = Math.round(i * step);
-      const d = history[idx].time;
-      const hh = d.getHours().toString().padStart(2, '0');
-      const mm = d.getMinutes().toString().padStart(2, '0');
+      const diffSec = Math.round((history[idx].time.getTime() - lastTime) / 1000);
+      const label = diffSec === 0 ? '0s' : `${diffSec}s`;
       const pct = (idx / (history.length - 1)) * 100;
-      return { pct, label: `${hh}:${mm}` };
+      return { pct, label };
     });
   }
 
