@@ -304,31 +304,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     'customerservice-lgtm': {
       icon: '🔍',
       label: 'LGTM Stack',
-      description: 'Loki + Grafana + Tempo',
+      description: 'Grafana · Loki · Tempo · Mimir',
       detail:
-        'Grafana LGTM all-in-one: bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI). Spring Boot sends traces and logs via OpenTelemetry OTLP (port 4318). Loki API on port 3100 is accessed via the CORS proxy.',
+        'Grafana LGTM all-in-one (port 3001): bundles Loki (logs), Tempo (distributed traces), Mimir (long-term metrics), and Grafana (UI) in a single container. Spring Boot sends traces and logs via OpenTelemetry OTLP on port 4318 → OTel Collector → Tempo / Loki. There is no standalone Tempo UI — use Grafana Explore (port 3001) to search traces with TraceQL. Tempo HTTP API also exposed on port 3200 for direct lookups.',
       image: 'images/tools/grafana.png',
       port: '3001',
       url: 'http://localhost:3001/dashboards',
-    },
-    'customerservice-zipkin': {
-      icon: '🔗',
-      label: 'Zipkin',
-      description: 'Distributed tracing',
-      detail:
-        'Lightweight tracing UI. Receives spans from Spring Boot via the Zipkin exporter. The Angular Observability tab queries /api/v2/traces directly (CORS enabled via ZIPKIN_HTTP_ALLOWED_ORIGINS). Shows trace waterfall and span details.',
-      image: 'images/tools/zipkin.png',
-      port: '9411',
-      url: 'http://localhost:9411',
-    },
-    'customerservice-jaeger': {
-      icon: '🔭',
-      label: 'Jaeger',
-      description: 'Advanced tracing',
-      detail:
-        'Jaeger — richer tracing UI than Zipkin. Trace comparison, dependency graph, flamegraph view, critical path analysis. Useful for comparing traces before/after optimization.',
-      port: '16686',
-      url: 'http://localhost:16686',
     },
     'customerservice-pyroscope': {
       icon: '🧬',
@@ -797,18 +778,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
       image: 'images/tools/prometheus.png',
     },
     {
-      id: 'zipkin',
-      label: 'Zipkin',
+      id: 'tempo',
+      label: 'Tempo (LGTM)',
       col: 4,
       row: 1,
-      icon: '🔗',
-      port: '9411',
-      container: 'customerservice-zipkin',
-      url: 'http://localhost:9411',
-      tip: 'Trace collector',
+      icon: '⏱️',
+      port: '3001',
+      container: 'customerservice-lgtm',
+      url: 'http://localhost:3001/explore?schemaVersion=1&panes=%7B%22df4%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceqlSearch%22%2C%22limit%22%3A20%2C%22tableType%22%3A%22traces%22%2C%22filters%22%3A%5B%7B%22id%22%3A%220153af9c%22%2C%22operator%22%3A%22%3D%22%2C%22scope%22%3A%22span%22%7D%5D%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1',
+      tip: 'Distributed traces',
       detail:
-        'Zipkin — receives distributed traces from Spring Boot via the Zipkin exporter. Each HTTP request generates a trace with spans for controller, JPA, Redis, Kafka operations. The Angular Telemetry tab queries /api/v2/traces directly (CORS enabled). Shows span waterfall and timing.',
-      image: 'images/tools/zipkin.png',
+        'Grafana Tempo — distributed trace backend bundled inside the LGTM container (Grafana on port 3001). Spring Boot sends traces via OTLP on port 4318 → OTel collector → Tempo. Query with TraceQL in Grafana Explore or the Angular Observability Traces tab. Tempo HTTP API exposed on port 3200. Enables trace-to-log correlation: traceId links in Loki logs jump to the matching Tempo trace.',
+      image: 'images/tools/grafana.png',
     },
     {
       id: 'loki',
@@ -818,10 +799,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: '🔍',
       port: '3001',
       container: 'customerservice-lgtm',
-      url: 'http://localhost:3001/dashboards',
+      url: 'http://localhost:3001/explore',
       tip: 'Log aggregation',
       detail:
-        'Grafana LGTM all-in-one: bundles Loki (log aggregation), Tempo (trace storage), Mimir (long-term metrics), and Grafana (UI) in a single container. Spring Boot sends logs via OpenTelemetry Logback appender → OTLP collector → Loki. Query with LogQL in the Angular Telemetry tab or Grafana Explore.',
+        'Grafana Loki — log aggregation backend bundled inside the LGTM container. Spring Boot sends logs via OpenTelemetry Logback appender → OTLP collector → Loki. Query with LogQL in the Angular Observability Logs tab or Grafana Explore on port 3001. Each log line carries the traceId for Grafana trace-to-log correlation.',
       image: 'images/tools/grafana.png',
     },
     {
@@ -853,19 +834,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Standalone Grafana instance pre-provisioned with Prometheus datasource and custom Customer Service dashboard (HTTP throughput, latency percentiles, error rates, JVM metrics). Anonymous access enabled (no login). Opens directly on the overview dashboard. Also available: Grafana inside LGTM on port 3001 with Loki+Tempo datasources.',
       image: 'images/tools/grafana.png',
     },
-    {
-      id: 'jaeger',
-      label: 'Jaeger',
-      col: 5,
-      row: 1,
-      icon: '🔭',
-      port: '16686',
-      container: 'customerservice-jaeger',
-      url: 'http://localhost:16686/search?service=customer-service&lookback=1h',
-      tip: 'Advanced tracing',
-      detail:
-        'Jaeger — richer tracing UI than Zipkin. Features: trace comparison (before/after optimization), service dependency graph auto-generated from traces, flamegraph view, critical path analysis, deep dependency analysis. Receives traces via OTLP from the LGTM collector.',
-    },
   ];
 
   // All edges flow strictly left → right (lower col → higher col)
@@ -885,17 +853,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'kafka', to: 'consumer' },
     { from: 'kafka', to: 'kafka-ui' },
     { from: 'kafka', to: 'akhq' },
-    // Col 1 → 4 (API pushes to obs collectors)
+    // Col 1 → 4 (API pushes to obs collectors via OTLP on port 4318)
     { from: 'api', to: 'prometheus' },
-    { from: 'api', to: 'zipkin' },
-    { from: 'api', to: 'loki' },
+    { from: 'api', to: 'tempo' }, // OTLP traces → Tempo (inside LGTM)
+    { from: 'api', to: 'loki' }, // OTLP logs → Loki (inside LGTM)
     { from: 'api', to: 'pyroscope' },
     // Col 4 → 5 (collectors → dashboards)
     { from: 'prometheus', to: 'grafana' },
-    { from: 'zipkin', to: 'grafana' },
+    { from: 'tempo', to: 'grafana' },
     { from: 'loki', to: 'grafana' },
     { from: 'pyroscope', to: 'grafana' },
-    { from: 'zipkin', to: 'jaeger' },
   ];
   topoStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
 

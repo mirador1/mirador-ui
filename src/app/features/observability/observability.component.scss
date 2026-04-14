@@ -454,6 +454,22 @@ h2 {
 }
 
 // ── Flame graph ─────────────────────────────────────────────────────────────
+// Link that opens a specific trace directly in Grafana Explore
+.trace-grafana-link {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 3px;
+  white-space: nowrap;
+  &:hover {
+    background: var(--color-accent);
+    color: #fff;
+  }
+}
+
 .flame-btn {
   padding: 0.15rem 0.4rem;
   border: 1px solid var(--border-input);

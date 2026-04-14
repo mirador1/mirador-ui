@@ -82,7 +82,7 @@ export class AboutComponent {
       url: 'https://docs.docker.com/compose',
       description: 'Tool for defining and running multi-container Docker applications.',
       usage:
-        'Two compose files: `docker-compose.yml` (PostgreSQL, Redis, Kafka, Ollama, Keycloak, admin tools) and `docker-compose.observability.yml` (Grafana, Prometheus, Zipkin, Jaeger, Pyroscope, LGTM, Nginx proxies). The Dashboard Architecture view shows live status of all 22 containers.',
+        'Two compose files: `docker-compose.yml` (PostgreSQL, Redis, Kafka, Ollama, Keycloak, admin tools) and `docker-compose.observability.yml` (Grafana, Prometheus, Pyroscope, LGTM all-in-one with Tempo+Loki, Nginx proxies). The Dashboard Architecture view shows live status of all containers.',
     },
     {
       name: 'GitLab Runner',
@@ -125,15 +125,6 @@ export class AboutComponent {
       description: 'High-performance JDBC connection pool for Java.',
       usage:
         'Default connection pool used by Spring Data JPA. Pool metrics (active connections, pending threads, pool size, timeouts) are exposed as Prometheus metrics and visible in the Metrics page under the JVM gauges section.',
-    },
-    {
-      name: 'Jaeger',
-      icon: '🔭',
-      url: 'https://www.jaegertracing.io',
-      description:
-        'Distributed tracing backend with advanced analysis features: trace comparison, critical path, flamegraph, dependency graph.',
-      usage:
-        'Receives traces via OTLP from the LGTM collector on port 16686. Used in the Observability page Traces tab alongside Zipkin. Particularly useful for comparing two traces side-by-side or visualising the critical path of slow requests.',
     },
     {
       name: 'Java 25',
@@ -364,7 +355,7 @@ export class AboutComponent {
       description:
         "Grafana's scalable distributed tracing backend optimised for storage and query of trace data.",
       usage:
-        'Runs inside the LGTM container. Receives traces from the OTLP collector alongside Jaeger. Queried by the Grafana instance on port 3001. Enables trace-to-log correlation: clicking a traceId in the Loki logs panel jumps to the corresponding Tempo trace.',
+        'Runs inside the LGTM container (Grafana on port 3001). Spring Boot sends traces via OTLP → OTel collector → Tempo. Query with TraceQL in Grafana Explore or the Angular Observability Traces tab. Tempo HTTP API exposed on port 3200. Enables trace-to-log correlation: clicking a traceId in the Loki logs panel jumps straight to the matching trace.',
     },
     {
       name: 'TypeScript 5.9',
@@ -381,15 +372,6 @@ export class AboutComponent {
       description: 'Fast Vite-native unit testing framework compatible with the Jest API.',
       usage:
         'Replaces Karma+Jasmine for Angular unit tests. Runs with a jsdom environment. Tests cover services, pipes, and pure functions. Executed by `./run.sh test` and the GitLab CI pipeline. No `fakeAsync`/`tick` — async is handled with real Promises and `vi.useFakeTimers()`.',
-    },
-    {
-      name: 'Zipkin',
-      icon: '🔎',
-      url: 'https://zipkin.io',
-      description:
-        'Distributed tracing system with a lightweight web UI for visualising request flows.',
-      usage:
-        'Receives traces via its native HTTP protocol. Accessible on port 9411. Queried by the Angular Observability Traces tab to display span waterfalls and flamegraphs. Lighter-weight alternative to Jaeger for quick per-request inspection.',
     },
   ];
   readonly portMap: Array<{
@@ -494,8 +476,8 @@ export class AboutComponent {
       port: 3001,
       name: 'Grafana (LGTM)',
       category: 'Obs',
-      note: 'OTel traces, Loki logs, Tempo',
-      url: 'http://localhost:3001',
+      note: 'Tempo traces + Loki logs — use Explore for TraceQL',
+      url: 'http://localhost:3001/explore',
     },
     {
       port: 9091,
@@ -505,18 +487,11 @@ export class AboutComponent {
       url: 'http://localhost:9091',
     },
     {
-      port: 9411,
-      name: 'Zipkin',
+      port: 3200,
+      name: 'Tempo API',
       category: 'Obs',
-      note: 'Distributed tracing (lightweight UI)',
-      url: 'http://localhost:9411',
-    },
-    {
-      port: 16686,
-      name: 'Jaeger',
-      category: 'Obs',
-      note: 'Advanced tracing — comparison, flamegraph',
-      url: 'http://localhost:16686',
+      note: 'Trace query API — use Grafana Explore for the UI',
+      url: 'http://localhost:3001/explore?schemaVersion=1&panes=%7B%22df4%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceqlSearch%22%2C%22limit%22%3A20%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1',
     },
     {
       port: 4040,

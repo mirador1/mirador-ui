@@ -1,8 +1,9 @@
 /**
  * ObservabilityComponent — Live backend telemetry with 4 tabs.
  *
- * Traces: Fetches distributed traces from Zipkin API directly (CORS enabled via env var).
- *   Displays trace list, expandable span waterfall, and flame graph view.
+ * Traces: Queries Tempo via the Grafana datasource proxy (http://localhost:3001).
+ *   Supports TraceQL and tag-based search. Each trace links to Grafana Explore.
+ *   Displays expandable span waterfall on row click.
  *
  * Logs: Queries Loki directly via Nginx CORS proxy on port 3100.
  *   Color-coded by level (ERROR/WARN/INFO/DEBUG). Optional 5s live polling.
@@ -98,18 +99,6 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
 
   activeTab = signal<ObsTab>('traces');
-
-  // ── Traces — source toggle ────────────────────────────────────────────────
-  /** 'zipkin' calls Zipkin directly; 'tempo' calls Tempo via Grafana proxy */
-  traceSource = signal<'zipkin' | 'tempo'>('tempo');
-
-  // ── Traces (Zipkin API) ───────────────────────────────────────────────────
-  traces = signal<Trace[]>([]);
-  tracesLoading = signal(false);
-  tracesError = signal('');
-  traceLimit = 20;
-  traceService = 'customer-service';
-  selectedTrace = signal<Trace | null>(null);
 
   // ── Traces (Tempo API via Grafana proxy) ──────────────────────────────────
   private readonly TEMPO_BASE = 'http://localhost:3001/api/datasources/proxy/uid/tempo';
@@ -233,62 +222,57 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Traces ────────────────────────────────────────────────────────────────
-  fetchTraces(): void {
-    this.tracesLoading.set(true);
-    this.tracesError.set('');
-
-    // Call Zipkin directly — CORS enabled via ZIPKIN_HTTP_ALLOWED_ORIGINS in docker-compose
-    this.http
-      .get<any[][]>('http://localhost:9411/api/v2/traces', {
-        params: {
-          serviceName: this.traceService,
-          limit: this.traceLimit.toString(),
-          lookback: '3600000', // 1 hour
-        },
-      })
-      .subscribe({
-        next: (data) => {
-          this.traces.set(
-            data.map((spans) => {
-              const root = spans[0];
-              const totalDuration = spans.reduce((max, s) => Math.max(max, s.duration || 0), 0);
-              return {
-                traceId: root.traceID || root.traceId,
-                spans: spans.map((s: any) => ({
-                  traceId: s.traceID || s.traceId,
-                  spanId: s.spanID || s.id,
-                  parentSpanId: s.parentId,
-                  operationName: s.operationName || s.name || '?',
-                  serviceName: s.localEndpoint?.serviceName || s.process?.serviceName || '?',
-                  startTimeUnixNano: (s.timestamp || 0) * 1000, // µs → ns
-                  duration: s.duration || 0,
-                  tags: s.tags || {},
-                  status: 'ok',
-                })),
-                durationMs: totalDuration / 1000,
-                serviceName: root.localEndpoint?.serviceName || this.traceService,
-                operationName: root.name || root.operationName || '?',
-                timestamp: new Date((root.timestamp || 0) / 1000),
-              };
-            }),
-          );
-          this.tracesLoading.set(false);
-        },
-        error: (e) => {
-          this.tracesError.set(
-            `Could not fetch traces from Zipkin (localhost:9411) — ${e.status || 'unreachable'}. Is Zipkin running?`,
-          );
-          this.tracesLoading.set(false);
-        },
-      });
-  }
-
-  selectTrace(t: Trace): void {
-    this.selectedTrace.set(this.selectedTrace()?.traceId === t.traceId ? null : t);
-  }
-
   // ── Tempo search ──────────────────────────────────────────────────────────
+
+  /**
+   * Returns a Grafana Explore deep-link for the given Tempo trace ID.
+   * When traceId is omitted, returns the general Tempo search page.
+   */
+  tempoExploreUrl(traceId?: string): string {
+    if (traceId) {
+      const panes = encodeURIComponent(
+        JSON.stringify({
+          t: {
+            datasource: 'tempo',
+            queries: [
+              {
+                refId: 'A',
+                datasource: { type: 'tempo', uid: 'tempo' },
+                queryType: 'traceId',
+                query: traceId,
+              },
+            ],
+            range: { from: 'now-1h', to: 'now' },
+          },
+        }),
+      );
+      return `http://localhost:3001/explore?schemaVersion=1&panes=${panes}&orgId=1`;
+    }
+    // General Tempo search — TraceQL search with 1h window (URL provided by user)
+    return (
+      'http://localhost:3001/explore?schemaVersion=1&panes=' +
+      encodeURIComponent(
+        JSON.stringify({
+          df4: {
+            datasource: 'tempo',
+            queries: [
+              {
+                refId: 'A',
+                datasource: { type: 'tempo', uid: 'tempo' },
+                queryType: 'traceqlSearch',
+                limit: 20,
+                tableType: 'traces',
+                filters: [{ id: '0153af9c', operator: '=', scope: 'span' }],
+              },
+            ],
+            range: { from: 'now-1h', to: 'now' },
+            compact: false,
+          },
+        }),
+      ) +
+      '&orgId=1'
+    );
+  }
 
   fetchTempoSearch(): void {
     this.tempoLoading.set(true);
