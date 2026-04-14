@@ -38,93 +38,74 @@
     <article class="card">
       <h3>Architecture Overview</h3>
       <p>
-        The system is composed of <strong>22 services</strong> organized in 6 layers, all
+        The system is composed of <strong>22 services</strong> organized in 8 layers, all
         orchestrated via two Docker Compose files. Data flows strictly left-to-right: Client →
         Application → Data Stores → Tools → Collectors → Dashboards.
       </p>
 
-      <h4>1. Application Layer</h4>
-      <p>
-        The <strong>Customer API</strong> is a Spring Boot 4 application running on Java 25 with
-        virtual threads. It exposes a REST API for customer management (CRUD, search, sort,
-        pagination) with two API versions controlled by an <code>X-API-Version</code> header.
-        Authentication uses JWT tokens issued by <code>/auth/login</code> or by Keycloak
-        (OAuth2/OIDC). Every endpoint is instrumented with Micrometer observations, producing 180+
-        Prometheus metrics automatically.
-      </p>
-
-      <h4>2. Data Stores</h4>
-      <p>
-        <strong>PostgreSQL 17</strong> is the primary database, managed by Spring Data JPA with
-        Flyway migrations. <strong>Redis 7</strong> serves three purposes: idempotency key storage
-        (with TTL), the RecentCustomerBuffer (a ring buffer of the last 10 created customers via
-        LPUSH/LTRIM), and rate limit counters (Bucket4j). <strong>Apache Kafka</strong> (KRaft mode,
-        no ZooKeeper) handles two messaging patterns: async events on
-        <code>customer.created</code> topic, and synchronous request-reply enrichment via
-        <code>customer.request</code> / <code>customer.reply</code> topics (5-second timeout → 504).
-        <strong>Ollama</strong> runs the llama3.2 LLM locally for AI-generated customer bios via
-        Spring AI, protected by a Resilience4j circuit breaker.
-      </p>
-
-      <h4>3. Resilience Patterns</h4>
-      <p>
-        The backend implements four resilience patterns visible in the Diagnostic page:
-        <strong>Rate limiting</strong> (Bucket4j, 100 req/min per IP with 429 response),
-        <strong>Circuit breaker</strong> (Resilience4j on Ollama /bio — trips after 10 failures in
-        60s), <strong>Retry</strong> (on external API calls to JSONPlaceholder), and
-        <strong>Idempotency</strong> (LRU cache of 10k entries keyed by Idempotency-Key header).
-      </p>
-
-      <h4>4. Distributed Tracing</h4>
-      <p>
-        Every request generates a distributed trace propagated through HTTP, Kafka, Redis, and JPA.
-        Spring Boot exports traces via OpenTelemetry to the LGTM collector, which forwards them to
-        both <strong>Tempo</strong> (long-term storage, queried by Grafana) and
-        <strong>Jaeger</strong> (advanced analysis via OTLP). <strong>Zipkin</strong> receives
-        traces via its native protocol for its lightweight UI. Kafka observation is enabled (<code
-          >spring.kafka.listener/template.observation-enabled: true</code
-        >), so the traceID propagates through message headers across producer → broker → consumer →
-        reply.
-      </p>
-
-      <h4>5. Metrics &amp; Profiling</h4>
-      <p>
-        <strong>Prometheus</strong> scrapes <code>/actuator/prometheus</code> every 15 seconds,
-        collecting 180+ metrics: HTTP request histograms, JVM memory/threads/GC, HikariCP pool
-        stats, Lettuce Redis operations, Kafka producer/consumer timing, Spring Security filter
-        chain, Spring Data repository invocations, and custom application counters. The Angular UI
-        parses this raw Prometheus text format to display 78 configurable metric cards and 55
-        circular gauges — all built with raw SVG, no charting library.
-        <strong>Pyroscope</strong> captures continuous CPU, memory allocation, and lock contention
-        flamegraphs via the Java agent (itimer + alloc + lock events).
-      </p>
-
-      <h4>6. Log Aggregation</h4>
-      <p>
-        Application logs are bridged from Logback to OpenTelemetry via the
-        <code>opentelemetry-logback-appender</code>, then exported through the OTLP collector to
-        <strong>Loki</strong> inside the LGTM container. The Angular Telemetry tab queries Loki's
-        API directly (via a Nginx CORS proxy on port 3100) with LogQL. Each log line carries the
-        traceID, enabling trace-to-log correlation in Grafana.
-      </p>
-
-      <h4>7. Admin Tools</h4>
-      <p>
-        Each data store has dedicated admin UIs: <strong>pgAdmin</strong> and
-        <strong>pgweb</strong> for PostgreSQL (pgweb provides the REST API used by the Database
-        explorer), <strong>RedisInsight</strong> and <strong>Redis Commander</strong> for Redis,
-        <strong>Kafka UI</strong> and <strong>AKHQ</strong> for Kafka (AKHQ adds live tail and
-        consumer lag visualization). All tools are pre-configured to auto-connect without login.
-      </p>
-
-      <h4>8. Docker Infrastructure</h4>
-      <p>
-        The frontend controls Docker containers via a <strong>docker-socket-proxy</strong>
-        (tecnativa) that exposes a filtered, read-only Docker Engine API over TCP. A Nginx CORS
-        proxy adds cross-origin headers so the Angular app can call it from localhost:4200. The
-        Dashboard's Architecture view shows all 22 services with live UP/DOWN status, Open links,
-        and start/stop controls.
-      </p>
+      <table class="arch-table">
+        <thead>
+          <tr>
+            <th class="arch-col-layer">Couche</th>
+            <th class="arch-col-role">Rôle</th>
+            <th class="arch-col-tech">Technologies clés</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="arch-layer">🌐 Client</td>
+            <td class="arch-role">SPA Angular servie par <code>ng serve</code> sur :4200</td>
+            <td class="arch-tech">Angular 21 · TypeScript · SCSS · Raw SVG · Vitest</td>
+          </tr>
+          <tr>
+            <td class="arch-layer">🍃 Application</td>
+            <td class="arch-role">API REST Spring Boot 4 sur :8080 — JWT + Keycloak</td>
+            <td class="arch-tech">
+              Spring Boot 4 · Java 25 · Virtual Threads · Micrometer · Swagger
+            </td>
+          </tr>
+          <tr>
+            <td class="arch-layer">🗄️ Data Stores</td>
+            <td class="arch-role">Persistance, cache, messaging, IA</td>
+            <td class="arch-tech">PostgreSQL 17 · Redis 7 · Kafka (KRaft) · Ollama llama3.2</td>
+          </tr>
+          <tr>
+            <td class="arch-layer">🛡️ Resilience</td>
+            <td class="arch-role">Patterns de tolérance aux pannes</td>
+            <td class="arch-tech">
+              Bucket4j (rate limit) · Resilience4j (circuit breaker, retry) · Idempotency keys
+            </td>
+          </tr>
+          <tr>
+            <td class="arch-layer">🛠️ Data Tools</td>
+            <td class="arch-role">UI admin pour chaque store</td>
+            <td class="arch-tech">
+              pgAdmin · pgweb · RedisInsight · Redis Commander · Kafka UI · AKHQ
+            </td>
+          </tr>
+          <tr>
+            <td class="arch-layer">📡 Obs Collectors</td>
+            <td class="arch-role">Collecte de traces, logs et métriques</td>
+            <td class="arch-tech">
+              OpenTelemetry OTLP → LGTM (Loki + Tempo) · Zipkin · Jaeger · Pyroscope
+            </td>
+          </tr>
+          <tr>
+            <td class="arch-layer">📊 Obs Dashboards</td>
+            <td class="arch-role">Visualisation de la télémétrie</td>
+            <td class="arch-tech">
+              Grafana × 2 · Prometheus UI · Zipkin UI · Jaeger UI · Pyroscope
+            </td>
+          </tr>
+          <tr>
+            <td class="arch-layer">🏗️ Infrastructure</td>
+            <td class="arch-role">Orchestration et proxies</td>
+            <td class="arch-tech">
+              Docker Compose (2 files, 22 containers) · docker-socket-proxy · Nginx CORS proxy
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </article>
   }
 
@@ -156,7 +137,13 @@
           <div class="about-item">
             <span class="about-icon">{{ item.icon }}</span>
             <div>
-              <strong>{{ item.name }}</strong>
+              @if (item.url) {
+                <a [href]="item.url" target="_blank" rel="noopener" class="stack-link"
+                  ><strong>{{ item.name }}</strong></a
+                >
+              } @else {
+                <strong>{{ item.name }}</strong>
+              }
               <span>{{ item.detail }}</span>
             </div>
           </div>
@@ -196,8 +183,15 @@
           <div class="port-table">
             @for (p of portsByCategory(cat); track p.port) {
               <div class="port-row">
-                <code class="port-num">:{{ p.port }}</code>
-                <strong class="port-name">{{ p.name }}</strong>
+                @if (p.url) {
+                  <a [href]="p.url" target="_blank" rel="noopener" class="port-link">
+                    <code class="port-num">:{{ p.port }}</code>
+                    <strong class="port-name">{{ p.name }}</strong>
+                  </a>
+                } @else {
+                  <code class="port-num">:{{ p.port }}</code>
+                  <strong class="port-name">{{ p.name }}</strong>
+                }
                 <span class="port-note">{{ p.note }}</span>
               </div>
             }

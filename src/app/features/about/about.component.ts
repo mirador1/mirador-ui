@@ -325,13 +325,20 @@ export class AboutComponent {
           'Receives traces via its native HTTP protocol. Accessible on port 9411. Queried by the Angular Observability Traces tab to display span waterfalls and flamegraphs. Lighter-weight alternative to Jaeger for quick per-request inspection.',
       },
     ];
-  readonly portMap = [
+  readonly portMap: Array<{
+    port: number;
+    name: string;
+    category: string;
+    note: string;
+    url?: string;
+  }> = [
     // Application
     {
       port: 8080,
       name: 'Customer API',
       category: 'App',
       note: 'REST API + WebSocket + Swagger UI',
+      url: 'http://localhost:8080/swagger-ui.html',
     },
     { port: 4200, name: 'Angular UI', category: 'App', note: 'This frontend (ng serve)' },
     // Databases
@@ -343,47 +350,106 @@ export class AboutComponent {
     },
     { port: 6379, name: 'Redis', category: 'Data', note: 'Cache, idempotency, ring buffer' },
     { port: 9092, name: 'Kafka', category: 'Data', note: 'KRaft mode, PLAINTEXT_HOST listener' },
-    { port: 11434, name: 'Ollama', category: 'Data', note: 'Local LLM (llama3.2) for /bio' },
-    { port: 9090, name: 'Keycloak', category: 'Data', note: 'OAuth2/OIDC — admin / admin' },
+    {
+      port: 11434,
+      name: 'Ollama',
+      category: 'Data',
+      note: 'Local LLM (llama3.2) for /bio',
+      url: 'http://localhost:11434',
+    },
+    {
+      port: 9090,
+      name: 'Keycloak',
+      category: 'Data',
+      note: 'OAuth2/OIDC — admin / admin',
+      url: 'http://localhost:9090',
+    },
     // Admin Tools
     {
       port: 5050,
       name: 'pgAdmin',
       category: 'Admin',
       note: 'PostgreSQL UI (desktop mode, no login)',
+      url: 'http://localhost:5050',
     },
-    { port: 8081, name: 'pgweb', category: 'Admin', note: 'Lightweight SQL client + REST API' },
-    { port: 9080, name: 'Kafka UI', category: 'Admin', note: 'Topics, messages, consumer groups' },
+    {
+      port: 8081,
+      name: 'pgweb',
+      category: 'Admin',
+      note: 'Lightweight SQL client + REST API',
+      url: 'http://localhost:8081',
+    },
+    {
+      port: 9080,
+      name: 'Kafka UI',
+      category: 'Admin',
+      note: 'Topics, messages, consumer groups',
+      url: 'http://localhost:9080',
+    },
     {
       port: 5540,
       name: 'RedisInsight',
       category: 'Admin',
       note: 'Redis key browser, memory analysis',
+      url: 'http://localhost:5540',
     },
     {
       port: 8082,
       name: 'Redis Commander',
       category: 'Admin',
       note: 'Live command monitor, auto-connects',
+      url: 'http://localhost:8082',
     },
-    { port: 8083, name: 'AKHQ', category: 'Admin', note: 'Advanced Kafka UI — live tail, ACLs' },
+    {
+      port: 8083,
+      name: 'AKHQ',
+      category: 'Admin',
+      note: 'Advanced Kafka UI — live tail, ACLs',
+      url: 'http://localhost:8083',
+    },
     // Observability
-    { port: 3000, name: 'Grafana', category: 'Obs', note: 'Pre-provisioned dashboards (no login)' },
-    { port: 3001, name: 'Grafana (LGTM)', category: 'Obs', note: 'OTel traces, Loki logs, Tempo' },
+    {
+      port: 3000,
+      name: 'Grafana',
+      category: 'Obs',
+      note: 'Pre-provisioned dashboards (no login)',
+      url: 'http://localhost:3000',
+    },
+    {
+      port: 3001,
+      name: 'Grafana (LGTM)',
+      category: 'Obs',
+      note: 'OTel traces, Loki logs, Tempo',
+      url: 'http://localhost:3001',
+    },
     {
       port: 9091,
       name: 'Prometheus',
       category: 'Obs',
       note: 'Metrics store (9090 used by Keycloak)',
+      url: 'http://localhost:9091',
     },
-    { port: 9411, name: 'Zipkin', category: 'Obs', note: 'Distributed tracing (lightweight UI)' },
+    {
+      port: 9411,
+      name: 'Zipkin',
+      category: 'Obs',
+      note: 'Distributed tracing (lightweight UI)',
+      url: 'http://localhost:9411',
+    },
     {
       port: 16686,
       name: 'Jaeger',
       category: 'Obs',
       note: 'Advanced tracing — comparison, flamegraph',
+      url: 'http://localhost:16686',
     },
-    { port: 4040, name: 'Pyroscope', category: 'Obs', note: 'Continuous profiling — CPU, memory' },
+    {
+      port: 4040,
+      name: 'Pyroscope',
+      category: 'Obs',
+      note: 'Continuous profiling — CPU, memory',
+      url: 'http://localhost:4040',
+    },
     {
       port: 3100,
       name: 'Loki (CORS proxy)',
@@ -417,7 +483,10 @@ export class AboutComponent {
     { cmd: './run.sh security-check', desc: 'OWASP Dependency-Check (CVE scan)' },
   ];
 
-  readonly stack = [
+  readonly stack: Array<{
+    category: string;
+    items: Array<{ icon: string; name: string; detail: string; url?: string }>;
+  }> = [
     {
       category: 'Frontend',
       items: [
@@ -425,42 +494,73 @@ export class AboutComponent {
           icon: '🅰️',
           name: 'Angular 21',
           detail: 'Standalone components, zoneless change detection, signals-based state',
+          url: 'https://angular.dev',
         },
-        { icon: '📘', name: 'TypeScript 5.9', detail: 'Strict mode, no external state library' },
-        { icon: '🎨', name: 'SCSS', detail: 'CSS custom properties for dark/light theming' },
+        {
+          icon: '📘',
+          name: 'TypeScript 5.9',
+          detail: 'Strict mode, no external state library',
+          url: 'https://www.typescriptlang.org',
+        },
+        {
+          icon: '🎨',
+          name: 'SCSS',
+          detail: 'CSS custom properties for dark/light theming',
+          url: 'https://sass-lang.com',
+        },
         {
           icon: '📊',
           name: 'Raw SVG',
           detail: 'All charts and visualizations — no charting library',
+          url: 'https://developer.mozilla.org/en-US/docs/Web/SVG',
         },
-        { icon: '🧪', name: 'Vitest', detail: 'Unit tests with jsdom environment' },
+        {
+          icon: '🧪',
+          name: 'Vitest',
+          detail: 'Unit tests with jsdom environment',
+          url: 'https://vitest.dev',
+        },
       ],
     },
     {
       category: 'Backend',
       items: [
-        { icon: '🍃', name: 'Spring Boot 4', detail: 'Java 25, virtual threads, pattern matching' },
+        {
+          icon: '🍃',
+          name: 'Spring Boot 4',
+          detail: 'Java 25, virtual threads, pattern matching',
+          url: 'https://spring.io/projects/spring-boot',
+        },
         {
           icon: '🐘',
           name: 'PostgreSQL 17',
           detail: 'Primary database, Flyway migrations, Spring Data JPA',
+          url: 'https://www.postgresql.org',
         },
         {
           icon: '🗄️',
           name: 'Redis 7',
           detail: 'Distributed caching, idempotency keys, ring buffer',
+          url: 'https://redis.io',
         },
         {
           icon: '📨',
           name: 'Apache Kafka',
           detail: 'KRaft mode, async events, request-reply enrich pattern',
+          url: 'https://kafka.apache.org',
         },
         {
           icon: '🧠',
           name: 'Ollama',
           detail: 'Local LLM (llama3.2) for bio generation via Spring AI',
+          url: 'https://ollama.com',
         },
-        { icon: '🔐', name: 'Keycloak 26', detail: 'OAuth2/OIDC identity provider (optional)' },
+        {
+          icon: '🔐',
+          name: 'Keycloak 26',
+          detail: 'OAuth2/OIDC identity provider (optional)',
+          url: 'https://www.keycloak.org',
+        },
       ],
     },
     {
@@ -470,8 +570,14 @@ export class AboutComponent {
           icon: '⚡',
           name: 'Resilience4j',
           detail: 'Circuit breaker on Ollama /bio, retry on external APIs',
+          url: 'https://resilience4j.readme.io',
         },
-        { icon: '🚦', name: 'Bucket4j', detail: 'Rate limiting — 100 req/min per IP' },
+        {
+          icon: '🚦',
+          name: 'Bucket4j',
+          detail: 'Rate limiting — 100 req/min per IP',
+          url: 'https://bucket4j.com',
+        },
         {
           icon: '🔁',
           name: 'Idempotency',
@@ -486,51 +592,84 @@ export class AboutComponent {
           icon: '🔥',
           name: 'Prometheus',
           detail: 'Metrics store — scrapes /actuator/prometheus every 15s (180+ metrics)',
+          url: 'https://prometheus.io',
         },
         {
           icon: '📊',
           name: 'Grafana',
           detail: 'Dashboards — HTTP throughput, latency, JVM, pre-provisioned',
+          url: 'https://grafana.com',
         },
-        { icon: '🔗', name: 'Zipkin', detail: 'Distributed tracing — span waterfall, service map' },
+        {
+          icon: '🔗',
+          name: 'Zipkin',
+          detail: 'Distributed tracing — span waterfall, service map',
+          url: 'https://zipkin.io',
+        },
         {
           icon: '🔭',
           name: 'Jaeger',
           detail: 'Advanced tracing — trace comparison, dependency graph, critical path',
+          url: 'https://www.jaegertracing.io',
         },
         {
           icon: '🔍',
           name: 'Loki (LGTM)',
           detail: 'Log aggregation via OpenTelemetry Logback appender',
+          url: 'https://grafana.com/oss/loki',
         },
         {
           icon: '🧬',
           name: 'Pyroscope',
           detail: 'Continuous profiling — CPU, memory, lock flamegraphs',
+          url: 'https://grafana.com/oss/pyroscope',
         },
         {
           icon: '📈',
           name: 'Micrometer',
           detail: '180+ metrics: HTTP histograms, JVM, HikariCP, Kafka, Redis, custom',
+          url: 'https://micrometer.io',
         },
       ],
     },
     {
       category: 'Admin Tools',
       items: [
-        { icon: '🛢️', name: 'pgAdmin', detail: 'PostgreSQL web admin — schemas, SQL, ERD, backup' },
-        { icon: '🔬', name: 'pgweb', detail: 'Lightweight SQL client with REST API (read-only)' },
-        { icon: '🔎', name: 'RedisInsight', detail: 'Redis key browser, memory analysis, CLI' },
+        {
+          icon: '🛢️',
+          name: 'pgAdmin',
+          detail: 'PostgreSQL web admin — schemas, SQL, ERD, backup',
+          url: 'https://www.pgadmin.org',
+        },
+        {
+          icon: '🔬',
+          name: 'pgweb',
+          detail: 'Lightweight SQL client with REST API (read-only)',
+          url: 'https://sosedoff.github.io/pgweb',
+        },
+        {
+          icon: '🔎',
+          name: 'RedisInsight',
+          detail: 'Redis key browser, memory analysis, CLI',
+          url: 'https://redis.io/insight',
+        },
         {
           icon: '📟',
           name: 'Redis Commander',
           detail: 'Redis live command monitor, auto-connects',
+          url: 'https://github.com/joeferner/redis-commander',
         },
-        { icon: '📋', name: 'Kafka UI', detail: 'Topics, messages, consumer groups browser' },
+        {
+          icon: '📋',
+          name: 'Kafka UI',
+          detail: 'Topics, messages, consumer groups browser',
+          url: 'https://github.com/kafbat/kafka-ui',
+        },
         {
           icon: '🔬',
           name: 'AKHQ',
           detail: 'Advanced Kafka UI — live tail, schema registry, ACLs',
+          url: 'https://akhq.io',
         },
       ],
     },
@@ -541,16 +680,19 @@ export class AboutComponent {
           icon: '🐳',
           name: 'Docker Compose',
           detail: '20+ containers orchestrated across 2 compose files',
+          url: 'https://docs.docker.com/compose',
         },
         {
           icon: '🔒',
           name: 'docker-socket-proxy',
           detail: 'Filtered Docker API for the frontend (containers only)',
+          url: 'https://github.com/Tecnativa/docker-socket-proxy',
         },
         {
           icon: '🌐',
           name: 'Nginx CORS proxy',
           detail: 'Adds CORS headers for Loki and Docker API',
+          url: 'https://nginx.org',
         },
       ],
     },

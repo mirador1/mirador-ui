@@ -335,3 +335,69 @@ h4 {
   line-height: 1.5;
   margin: 0;
 }
+
+// ── Architecture overview table ───────────────────────────────────────────────
+.arch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+  th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 2px solid var(--border-default);
+    color: var(--text-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: top;
+  }
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+}
+.arch-col-layer {
+  width: 14%;
+}
+.arch-col-role {
+  width: 32%;
+}
+.arch-col-tech {
+  width: 54%;
+}
+.arch-layer {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.arch-role {
+  color: var(--text-secondary);
+}
+.arch-tech {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+// ── Stack links ───────────────────────────────────────────────────────────────
+.stack-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ── Port links ────────────────────────────────────────────────────────────────
+.port-link {
+  display: contents;
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover code,
+  &:hover strong {
+    text-decoration: underline;
+  }
+}
