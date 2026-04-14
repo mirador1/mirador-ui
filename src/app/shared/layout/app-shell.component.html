@@ -1,6 +1,14 @@
-<div class="shell">
+<div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   <header class="topbar">
     <div class="topbar-left">
+      <!-- Sidebar toggle: ☰ to expand, ‹ to collapse -->
+      <button
+        class="sidebar-toggle"
+        (click)="sidebarCollapsed.update((v) => !v)"
+        [title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
+        {{ sidebarCollapsed() ? '☰' : '‹' }}
+      </button>
       <!-- Mirador favicon icon -->
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -72,12 +80,14 @@
                     [routerLink]="section.path"
                     class="nav-link"
                     [class.active]="isActive(section.path)"
-                    [title]="section.tip"
+                    [title]="sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip"
                   >
                     <span class="nav-icon">{{ section.icon }}</span>
-                    <span class="nav-label">{{ section.label }}</span>
+                    @if (!sidebarCollapsed()) {
+                      <span class="nav-label">{{ section.label }}</span>
+                    }
                   </a>
-                  @if (section.children.length) {
+                  @if (section.children.length && !sidebarCollapsed()) {
                     <button
                       class="nav-expand"
                       (click)="toggleSection(section.id); $event.stopPropagation()"
@@ -86,7 +96,9 @@
                     </button>
                   }
                 </div>
-                @if (section.children.length && isSectionExpanded(section.id)) {
+                @if (
+                  section.children.length && isSectionExpanded(section.id) && !sidebarCollapsed()
+                ) {
                   <div class="nav-children">
                     @for (child of section.children; track child.label) {
                       @if ($any(child).path) {

@@ -27,6 +27,23 @@
   gap: 0.75rem;
 }
 
+// Sidebar toggle — ☰ (expand) / ‹ (collapse)
+.sidebar-toggle {
+  background: transparent;
+  border: 1px solid #4a6a8a;
+  border-radius: 4px;
+  color: #93b4d8;
+  font-size: 1.1rem;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+  line-height: 1;
+  flex-shrink: 0;
+  &:hover {
+    background: #15294a;
+    color: white;
+  }
+}
+
 // ⌘K shortcut button
 .search-btn {
   background: transparent;
@@ -75,6 +92,11 @@
   background: var(--bg-card);
   border-right: 1px solid var(--border-default);
   overflow-y: auto;
+  transition: width 0.2s;
+
+  .sidebar-collapsed & {
+    width: 48px;
+  }
 }
 
 .sidebar-nav {

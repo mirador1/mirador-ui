@@ -32,6 +32,7 @@ export class AppShellComponent {
 
   mobileMenuOpen = signal(false);
   showSearch = signal(false);
+  sidebarCollapsed = signal(false);
   expandedSections = signal<Set<string>>(new Set(['dashboard', 'customers']));
 
   @HostListener('document:keydown', ['$event'])
