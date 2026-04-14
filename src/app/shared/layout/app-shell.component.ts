@@ -41,7 +41,7 @@ export class AppShellComponent {
       icon: '🏠',
       label: 'Dashboard',
       path: '/',
-      tip: 'Health overview, live charts, architecture map with Docker controls',
+      tip: 'Stats cards, live throughput chart, before/after comparator, health probes, architecture map with 22 services, start/stop Docker containers',
       children: [
         {
           label: 'Stats & Comparator',
@@ -62,7 +62,7 @@ export class AppShellComponent {
       icon: '👤',
       label: 'Customers',
       path: '/customers',
-      tip: 'Full CRUD with search, sort, versioning, import/export',
+      tip: 'Full CRUD with search, sort, pagination, API versioning (v1/v2), import/export CSV/JSON, batch operations, per-customer tabs (Bio, Todos, Enrich)',
       children: [
         {
           label: 'List, Search, Sort',
@@ -84,7 +84,7 @@ export class AppShellComponent {
       icon: '🔍',
       label: 'Observability',
       path: '/observability',
-      tip: 'Distributed traces, structured logs + logger levels, latency distribution',
+      tip: 'Traces (Zipkin/Tempo/Jaeger), Logs (Loki/LogQL), Latency histogram, Live SSE feed — all with traffic generation buttons',
       children: [
         {
           label: 'Traces (Zipkin)',
@@ -111,7 +111,7 @@ export class AppShellComponent {
       icon: '📊',
       label: 'Metrics',
       path: '/visualizations',
-      tip: '78 metric cards, 55 JVM gauges, error timeline, Kafka lag, slow queries, bundle analysis',
+      tip: '78 configurable Prometheus metric cards (Golden Signals), 55 JVM gauges, Sankey flow, Waterfall, Error timeline, Kafka lag, Slow queries, Bundle analysis',
       children: [
         {
           label: 'Golden Signals (78)',
@@ -135,7 +135,7 @@ export class AppShellComponent {
       icon: '🐘',
       label: 'Database',
       path: '/database',
-      tip: '27 SQL presets via pgweb — diagnostics, performance, investigation',
+      tip: '27 SQL presets in 5 categories: Customer Data, PG Diagnostics, Schema & Flyway, Production Investigation, Performance — via pgweb REST API',
       children: [
         { label: 'SQL Explorer', tip: 'Custom SQL queries via pgweb REST API (read-only)' },
         { label: 'Customer Data (4)', tip: 'All customers, count, recent, duplicates' },
@@ -159,7 +159,7 @@ export class AppShellComponent {
       icon: '🧪',
       label: 'Diagnostic',
       path: '/diagnostic',
-      tip: '10 interactive scenarios: versioning, idempotency, rate limit, Kafka, virtual threads, waterfall, Sankey, stress',
+      tip: '7 interactive scenarios: API versioning, idempotency, rate limiting, Kafka enrich, virtual threads, version diff, stress test + Waterfall and Sankey visualisations',
       children: [
         {
           label: 'API Versioning',
@@ -201,7 +201,7 @@ export class AppShellComponent {
       icon: '💥',
       label: 'Chaos & Traffic',
       path: '/chaos',
-      tip: 'Failure injection, traffic generation, impact monitoring',
+      tip: '8 chaos actions (rate limit, Kafka timeout, circuit breaker, payload flood, concurrent writes, traffic gen, faker), impact monitor with live charts',
       children: [
         {
           label: 'Chaos Actions (8)',
@@ -222,7 +222,7 @@ export class AppShellComponent {
       icon: '🛠️',
       label: 'API Client',
       path: '/request-builder',
-      tip: 'Postman-like HTTP client with presets and history',
+      tip: 'Postman-like HTTP client: method, URL, headers, body, response viewer, 13 presets, last 20 requests history',
       children: [
         { label: 'Request Builder', tip: 'Method, URL, headers, body — with response viewer' },
         {
@@ -237,7 +237,7 @@ export class AppShellComponent {
       icon: '⚙️',
       label: 'Settings',
       path: '/settings',
-      tip: 'Actuator endpoints, loggers, application info',
+      tip: 'Actuator endpoint explorer (health, info, env, beans, metrics, loggers, Prometheus), live logger level changes, application info',
       children: [
         {
           label: 'Actuator Explorer',
@@ -255,7 +255,7 @@ export class AppShellComponent {
       icon: '🔐',
       label: 'Security',
       path: '/security',
-      tip: 'Security mechanisms, OWASP vulnerability demos, and audit trail',
+      tip: 'Interactive OWASP demos (SQL injection, XSS, CORS, IDOR, JWT), security headers, audit trail with 30s auto-refresh',
       children: [
         {
           id: 'security-demo',
@@ -270,14 +270,6 @@ export class AppShellComponent {
           tip: 'Paginated security and data mutation events with action filter and 30s auto-refresh',
         },
       ],
-    },
-    {
-      id: 'about',
-      icon: 'ℹ️',
-      label: 'About',
-      path: '/about',
-      tip: 'Architecture docs, tech stack, keyboard shortcuts, quick start',
-      children: [],
     },
   ];
 

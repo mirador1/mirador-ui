@@ -64,10 +64,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/chaos/chaos.component').then((m) => m.ChaosComponent),
   },
   {
-    path: 'about',
-    loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
-  },
-  {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },

@@ -616,23 +616,6 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- TAB: Pages                                                             -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  @if (activeTab() === 'pages') {
-    <div class="about-grid">
-      @for (p of pages; track p.name) {
-        <div class="about-item">
-          <span class="about-icon">{{ p.icon }}</span>
-          <div>
-            <strong>{{ p.name }}</strong>
-            <span>{{ p.detail }}</span>
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!-- TAB: Infrastructure                                                    -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (activeTab() === 'infra') {
@@ -728,6 +711,7 @@
           @for (t of technologies; track t.name) {
             <tr>
               <td class="tech-name">
+                {{ t.icon }}
                 @if (t.url) {
                   <a [href]="t.url" target="_blank" rel="noopener" class="tech-link">{{
                     t.name
