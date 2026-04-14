@@ -247,28 +247,32 @@
   @if (healthHistory().length > 1) {
     <div class="sparkline-container">
       <span class="sparkline-label">Health history ({{ healthHistory().length }} checks)</span>
-      <svg viewBox="0 0 200 30" class="sparkline" preserveAspectRatio="none">
-        <!-- fill area under the line -->
-        <path [attr.d]="sparklineAreaPath()" fill="var(--color-accent)" opacity="0.15" />
-        <!-- line -->
-        <path
-          [attr.d]="sparklinePath()"
-          fill="none"
-          stroke="var(--color-accent)"
-          stroke-width="1.5"
-          vector-effect="non-scaling-stroke"
-        />
-        <!-- dots — one per health snapshot, green = UP, red = DOWN -->
-        @for (snap of healthHistory(); track $index; let i = $index) {
-          <circle
-            [attr.cx]="i * (200 / (healthHistory().length - 1))"
-            [attr.cy]="snap.health === 'UP' ? 5 : 25"
-            r="2.5"
-            [attr.fill]="snap.health === 'UP' ? '#4ade80' : '#f87171'"
+      <div class="sparkline-wrapper">
+        <svg viewBox="0 0 200 30" class="sparkline" preserveAspectRatio="none">
+          <!-- fill area under the line -->
+          <path [attr.d]="sparklineAreaPath()" fill="var(--color-accent)" opacity="0.15" />
+          <!-- line -->
+          <path
+            [attr.d]="sparklinePath()"
+            fill="none"
+            stroke="var(--color-accent)"
+            stroke-width="1.5"
             vector-effect="non-scaling-stroke"
           />
+        </svg>
+        <!-- round dots overlaid as CSS spans so they stay circular (not squished by SVG stretch) -->
+        @for (snap of healthHistory(); track $index; let i = $index) {
+          <span
+            class="sparkline-dot"
+            [class.dot-up]="snap.health === 'UP'"
+            [class.dot-down]="snap.health !== 'UP'"
+            [style.left.%]="
+              healthHistory().length > 1 ? (i / (healthHistory().length - 1)) * 100 : 50
+            "
+            [style.top.%]="snap.health === 'UP' ? 16.7 : 83.3"
+          ></span>
         }
-      </svg>
+      </div>
       <!-- X-axis time labels (HH:MM) positioned proportionally -->
       <div class="sparkline-xaxis" aria-hidden="true">
         @for (lbl of sparklineXLabels(); track lbl.label) {

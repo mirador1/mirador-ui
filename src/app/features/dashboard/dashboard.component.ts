@@ -760,16 +760,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
     },
     // Col 5 — CI/CD
     {
+      id: 'gitlab-local',
+      label: 'GitLab (local)',
+      col: 5,
+      row: 0,
+      icon: '🦊',
+      port: '9080',
+      container: 'gitlab',
+      url: 'http://localhost:9080',
+      tip: 'GitLab CE — instance locale Docker',
+      detail:
+        'GitLab Community Edition — instance locale via docker-compose.gitlab.yml. Héberge les dépôts et pipelines CI/CD sans consommer de minutes sur gitlab.com. Accès : http://localhost:9080. Premier démarrage : ~2-3 min. Enregistrer le runner local : docker exec -it gitlab-runner gitlab-runner register --url http://host.docker.internal:9080 --token <token>.',
+      image: 'images/tools/gitlab.png',
+    },
+    {
+      id: 'gitlab-com',
+      label: 'gitlab.com',
+      col: 5,
+      row: 1,
+      icon: '🌍',
+      url: 'https://gitlab.com/benoit.besson/customer-service/-/pipelines',
+      tip: 'Dépôt distant — pipelines gitlab.com',
+      detail:
+        "Instance SaaS gitlab.com — dépôt distant du projet customer-service. Les pipelines s'exécutent soit sur les shared runners GitLab (minutes partagées), soit sur le runner local enregistré. URL : https://gitlab.com/benoit.besson/customer-service.",
+      image: 'images/tools/gitlab.png',
+    },
+    {
       id: 'gitlab-runner',
       label: 'GitLab Runner',
       col: 5,
-      row: 0,
+      row: 2,
       icon: '🔧',
       container: 'gitlab-runner',
-      url: 'https://gitlab.com/benoit.besson/customer-service/-/pipelines',
-      tip: 'CI/CD local runner',
+      tip: 'CI/CD runner local',
       detail:
-        'GitLab Runner (image gitlab/gitlab-runner) — exécute les pipelines CI/CD en local via docker-compose.runner.yml. Connecté à gitlab.com en HTTPS long-polling, aucun port à ouvrir. Enregistré via ./scripts/register-runner.sh. Consomme zéro minute CI GitLab.com partagées.',
+        'GitLab Runner (image gitlab/gitlab-runner) — exécute les jobs CI/CD en local via docker-compose.runner.yml. Se connecte en HTTPS long-polling à GitLab (local ou gitlab.com). Enregistrement : ./scripts/register-runner.sh. Consomme zéro minute CI partagée.',
       image: 'images/tools/gitlab.png',
     },
     {
@@ -851,6 +876,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'customerservice-lgtm': 'loki',
       'customerservice-pyroscope': 'pyroscope',
       'gitlab-runner': 'gitlab-runner',
+      gitlab: 'gitlab-local',
     };
     for (const [containerName, nodeId] of Object.entries(dockerMap)) {
       const c = containers.find((x) => x.name === containerName);
@@ -859,6 +885,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Consumer = same as Kafka
     const kafkaC = containers.find((x) => x.name === 'kafka-demo');
     update('consumer', kafkaC?.running ? 'up' : 'unknown');
+
+    // gitlab.com — probe with a no-cors HEAD request (network failure = DOWN, reachable = UP)
+    fetch('https://gitlab.com', { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+      .then(() => update('gitlab-com', 'up'))
+      .catch(() => update('gitlab-com', 'down'));
   }
 
   topoNodesInCol(col: number) {
@@ -913,6 +944,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     pyroscope: 'Docker container state via Docker Engine API (container running = UP).',
     jaeger: 'Docker container state via Docker Engine API (container running = UP).',
     'spring-app': 'Docker container state via Docker Engine API (container running = UP).',
+    'gitlab-local':
+      'Docker container state — "gitlab" container running = UP (docker-compose.gitlab.yml).',
+    'gitlab-com':
+      'HEAD https://gitlab.com (no-cors) — UP if reachable from the browser, DOWN if network error.',
+    'gitlab-runner':
+      'Docker container state — "gitlab-runner" container running = UP (docker-compose.runner.yml).',
   };
 
   topoStatusTooltip(nodeId: string): string {
