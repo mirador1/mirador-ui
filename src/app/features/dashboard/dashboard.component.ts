@@ -596,11 +596,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: '🍃',
       port: '8080',
       container: 'spring-app',
-      url: 'http://localhost:8080/swagger-ui.html',
       tip: 'Spring Boot REST API',
       detail:
         'Spring Boot 4 + Java 25 backend. Customer CRUD with pagination, search, sort, API versioning (v1/v2). Resilience: circuit breaker (Resilience4j), rate limiting (Bucket4j 100 req/min), idempotency keys (LRU cache). Virtual threads for /aggregate.',
-      image: 'images/tools/swagger.png',
     },
     {
       id: 'swagger',
