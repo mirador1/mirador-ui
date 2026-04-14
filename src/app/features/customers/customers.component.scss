@@ -668,25 +668,13 @@ blockquote {
     color: #1e293b;
   }
 
-  &.flow-client {
-    background: #f0f9ff;
-    border: 1px solid #7dd3fc;
-  }
-  &.flow-produce {
-    background: #eef2ff;
-    border: 1px solid #a5b4fc;
-  }
-  &.flow-consumer {
-    background: #f5f3ff;
-    border: 1px solid #c4b5fd;
-  }
-  &.flow-reply {
-    background: #eef2ff;
-    border: 1px solid #a5b4fc;
-  }
+  &.flow-client,
+  &.flow-produce,
+  &.flow-consumer,
+  &.flow-reply,
   &.flow-response {
-    background: #ecfdf5;
-    border: 1px solid #6ee7b7;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
   }
 }
 
