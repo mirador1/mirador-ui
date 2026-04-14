@@ -266,12 +266,8 @@ export class AppShellComponent {
           children: [],
         },
         {
-          id: 'audit',
-          icon: '🛡️',
           label: 'Audit Trail',
-          path: '/audit',
-          tip: 'Paginated audit events with action and user filters, auto-refresh every 30s',
-          children: [],
+          tip: 'Paginated security and data mutation events with action filter and 30s auto-refresh',
         },
       ],
     },

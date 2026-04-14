@@ -31,6 +31,9 @@
     <button class="tab-btn" [class.active]="activeTab() === 'headers'" (click)="setTab('headers')">
       🏷️ Headers
     </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'audit'" (click)="setTab('audit')">
+      🛡️ Audit Trail
+    </button>
   </div>
 
   <!-- ── Mechanisms Tab ─────────────────────────────────────────────────────── -->
@@ -511,6 +514,126 @@
           }
         </div>
       }
+    </div>
+  }
+  <!-- ── Audit Trail tab ──────────────────────────────────────────────────── -->
+  @if (activeTab() === 'audit') {
+    <div class="tab-pane">
+      <p class="tab-intro">
+        Trace de tous les événements de sécurité et mutations de données enregistrés côté backend.
+        Rafraîchissement automatique toutes les 30 s.
+      </p>
+
+      <!-- Legend -->
+      <div class="event-legend">
+        <span class="legend-item"
+          ><span class="badge badge-blue">LOGIN_SUCCESS</span
+          ><span class="legend-desc">JWT login réussi</span></span
+        >
+        <span class="legend-item"
+          ><span class="badge badge-blue">LOGIN_FAILED</span
+          ><span class="legend-desc">Identifiants incorrects</span></span
+        >
+        <span class="legend-item"
+          ><span class="badge badge-red">LOGIN_BLOCKED</span
+          ><span class="legend-desc">Compte bloqué</span></span
+        >
+        <span class="legend-item"
+          ><span class="badge badge-blue">TOKEN_REFRESH</span
+          ><span class="legend-desc">Renouvellement du token</span></span
+        >
+        <span class="legend-item"
+          ><span class="badge badge-green">CUSTOMER_*</span
+          ><span class="legend-desc">Mutation customer</span></span
+        >
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <select
+          class="filter-select"
+          [value]="auditFilterAction()"
+          (change)="auditFilterAction.set($any($event.target).value); applyAuditFilters()"
+        >
+          <option value="">All actions</option>
+          @for (a of auditActions; track a) {
+            <option [value]="a">{{ a }}</option>
+          }
+        </select>
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="Filter by user…"
+          [value]="auditFilterUser()"
+          (input)="auditFilterUser.set($any($event.target).value)"
+          (keydown.enter)="applyAuditFilters()"
+        />
+        <button class="run-btn" (click)="applyAuditFilters()">Apply</button>
+        <button
+          class="run-btn"
+          (click)="auditFilterAction.set(''); auditFilterUser.set(''); applyAuditFilters()"
+        >
+          Clear
+        </button>
+        @if (auditLoading()) {
+          <span class="muted">⟳ Loading…</span>
+        }
+        @if (auditTotalElements()) {
+          <span class="muted">{{ auditTotalElements() }} events</span>
+        }
+      </div>
+
+      @if (auditError()) {
+        <div class="alert-error">{{ auditError() }}</div>
+      }
+
+      <div class="table-wrapper">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Action</th>
+              <th>User</th>
+              <th>Detail</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (event of auditData()?.content ?? []; track event.id) {
+              <tr>
+                <td class="ts">{{ event.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+                <td>
+                  <span class="badge" [class]="auditBadgeClass(event.action)">{{
+                    event.action
+                  }}</span>
+                </td>
+                <td class="user">{{ event.userName }}</td>
+                <td class="detail">{{ event.detail }}</td>
+                <td class="ip">{{ event.ipAddress }}</td>
+              </tr>
+            }
+            @if (auditData() && auditData()!.content.length === 0) {
+              <tr>
+                <td colspan="5" class="muted">No audit events found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <button class="run-btn" [disabled]="auditPage() === 0" (click)="auditPrevPage()">
+          ← Prev
+        </button>
+        <span class="muted">Page {{ auditPage() + 1 }} / {{ auditTotalPages() }}</span>
+        <button
+          class="run-btn"
+          [disabled]="auditPage() >= auditTotalPages() - 1"
+          (click)="auditNextPage()"
+        >
+          Next →
+        </button>
+      </div>
     </div>
   }
 </section>

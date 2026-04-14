@@ -12,15 +12,43 @@
  *
  * Vulnerable endpoints are permit-all (no auth required).
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { JsonPipe, KeyValuePipe } from '@angular/common';
+import { JsonPipe, KeyValuePipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
-type SecurityTab = 'mechanisms' | 'sqli' | 'xss' | 'cors' | 'idor' | 'jwt' | 'headers';
+type SecurityTab = 'mechanisms' | 'sqli' | 'xss' | 'cors' | 'idor' | 'jwt' | 'headers' | 'audit';
+
+interface AuditEvent {
+  id: number;
+  userName: string;
+  action: string;
+  detail: string;
+  ipAddress: string;
+  createdAt: string;
+}
+
+interface AuditPage {
+  content: AuditEvent[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+const AUDIT_ACTIONS = [
+  'LOGIN_SUCCESS',
+  'LOGIN_FAILED',
+  'LOGIN_BLOCKED',
+  'CUSTOMER_CREATED',
+  'CUSTOMER_UPDATED',
+  'CUSTOMER_DELETED',
+  'TOKEN_REFRESH',
+  'API_KEY_AUTH',
+] as const;
 
 interface SqliResult {
   query?: string;
@@ -70,11 +98,11 @@ interface JwtClaims {
 @Component({
   selector: 'app-security',
   standalone: true,
-  imports: [FormsModule, JsonPipe, KeyValuePipe],
+  imports: [FormsModule, JsonPipe, KeyValuePipe, DatePipe],
   templateUrl: './security.component.html',
   styleUrl: './security.component.scss',
 })
-export class SecurityComponent {
+export class SecurityComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly env = inject(EnvService);
   private readonly sanitizer = inject(DomSanitizer);
@@ -121,12 +149,43 @@ export class SecurityComponent {
   headersLoading = signal(false);
   headersError = signal('');
 
+  // ── Audit Trail ───────────────────────────────────────────────────────────
+  readonly auditActions = AUDIT_ACTIONS;
+  auditFilterAction = signal('');
+  auditFilterUser = signal('');
+  auditPage = signal(0);
+  auditData = signal<AuditPage | null>(null);
+  auditLoading = signal(false);
+  auditError = signal('');
+  readonly auditTotalPages = computed(() => this.auditData()?.totalPages ?? 1);
+  readonly auditTotalElements = computed(() => this.auditData()?.totalElements ?? 0);
+  private _auditTimer: ReturnType<typeof setInterval> | null = null;
+
   // ── Tab switch ────────────────────────────────────────────────────────────
   setTab(tab: SecurityTab): void {
     this.activeTab.set(tab);
     if (tab === 'cors' && !this.corsInfo()) this.loadCors();
     if (tab === 'jwt') this.decodeJwt();
     if (tab === 'headers' && !this.headersResult().length) this.loadHeaders();
+    if (tab === 'audit' && !this._auditTimer) {
+      this.loadAudit();
+      this._auditTimer = setInterval(() => this.loadAudit(), 30_000);
+    }
+    if (tab !== 'audit' && this._auditTimer) {
+      clearInterval(this._auditTimer);
+      this._auditTimer = null;
+    }
+  }
+
+  ngOnInit(): void {
+    // auto-refresh starts on audit tab activation via setTab()
+  }
+
+  ngOnDestroy(): void {
+    if (this._auditTimer) {
+      clearInterval(this._auditTimer);
+      this._auditTimer = null;
+    }
   }
 
   // ── SQL Injection ──────────────────────────────────────────────────────────
@@ -349,6 +408,52 @@ export class SecurityComponent {
           this.headersLoading.set(false);
         },
       });
+  }
+
+  // ── Audit ─────────────────────────────────────────────────────────────────
+  loadAudit(): void {
+    this.auditLoading.set(true);
+    this.auditError.set('');
+    const token = this.auth.token();
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const params: Record<string, string> = { page: String(this.auditPage()), size: '20' };
+    if (this.auditFilterAction()) params['action'] = this.auditFilterAction();
+    if (this.auditFilterUser()) params['user'] = this.auditFilterUser();
+    this.http.get<AuditPage>(`${this.env.baseUrl()}/audit`, { headers, params }).subscribe({
+      next: (p: AuditPage) => {
+        this.auditData.set(p);
+        this.auditLoading.set(false);
+      },
+      error: (e) => {
+        this.auditError.set(`Error ${e.status}: ${e.message}`);
+        this.auditLoading.set(false);
+      },
+    });
+  }
+
+  applyAuditFilters(): void {
+    this.auditPage.set(0);
+    this.loadAudit();
+  }
+  auditPrevPage(): void {
+    if (this.auditPage() > 0) {
+      this.auditPage.update((p) => p - 1);
+      this.loadAudit();
+    }
+  }
+  auditNextPage(): void {
+    if (this.auditPage() < this.auditTotalPages() - 1) {
+      this.auditPage.update((p) => p + 1);
+      this.loadAudit();
+    }
+  }
+
+  auditBadgeClass(action: string): string {
+    if (action === 'LOGIN_BLOCKED') return 'badge-red';
+    if (action.startsWith('LOGIN') || action === 'TOKEN_REFRESH' || action === 'API_KEY_AUTH')
+      return 'badge-blue';
+    if (action.startsWith('CUSTOMER')) return 'badge-green';
+    return 'badge-gray';
   }
 
   readonly mechanisms = [
