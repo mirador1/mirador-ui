@@ -15,7 +15,7 @@
  */
 import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
@@ -107,7 +107,7 @@ interface KafkaLagPoint {
 @Component({
   selector: 'app-visualizations',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, InfoTipComponent],
+  imports: [FormsModule, DecimalPipe, RouterLink, InfoTipComponent],
   templateUrl: './visualizations.component.html',
   styleUrl: './visualizations.component.scss',
 })

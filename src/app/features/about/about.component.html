@@ -633,32 +633,6 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- TAB: Stack                                                             -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  @if (activeTab() === 'stack') {
-    @for (group of stack; track group.category) {
-      <h3>{{ group.category }}</h3>
-      <div class="about-grid">
-        @for (item of group.items; track item.name) {
-          <div class="about-item">
-            <span class="about-icon">{{ item.icon }}</span>
-            <div>
-              @if (item.url) {
-                <a [href]="item.url" target="_blank" rel="noopener" class="stack-link"
-                  ><strong>{{ item.name }}</strong></a
-                >
-              } @else {
-                <strong>{{ item.name }}</strong>
-              }
-              <span>{{ item.detail }}</span>
-            </div>
-          </div>
-        }
-      </div>
-    }
-  }
-
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!-- TAB: Infrastructure                                                    -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (activeTab() === 'infra') {
