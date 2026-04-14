@@ -1,18 +1,104 @@
 <section>
   <div class="page-header">
-    <div>
-      <h2>
-        Dashboard
-        <app-info-tip
-          title="Dashboard"
-          text="Real-time backend overview. Metrics come from /actuator/prometheus (Micrometer) and /actuator/health (Spring Boot Actuator)."
-          command="curl http://localhost:8080/actuator/health"
-          source="/actuator/health, /actuator/prometheus"
+    <div class="page-header-left">
+      <!-- Mirador logo -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 120 120"
+        class="mirador-logo"
+        aria-label="Mirador"
+      >
+        <defs>
+          <radialGradient id="dbsky" cx="50%" cy="60%" r="60%">
+            <stop offset="0%" stop-color="#1e3a5f" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#1e3a5f" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <circle
+          cx="60"
+          cy="60"
+          r="55"
+          fill="url(#dbsky)"
+          stroke="var(--color-accent)"
+          stroke-width="0.5"
+          opacity="0.3"
         />
-      </h2>
-      <p class="subtitle">
-        Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})
-      </p>
+        <rect
+          x="50"
+          y="65"
+          width="20"
+          height="38"
+          rx="2"
+          fill="var(--color-accent)"
+          opacity="0.8"
+        />
+        <rect x="44" y="58" width="32" height="7" rx="2" fill="var(--color-accent)" />
+        <rect x="44" y="53" width="6" height="5" rx="1" fill="var(--color-accent)" />
+        <rect x="53" y="53" width="6" height="5" rx="1" fill="var(--color-accent)" />
+        <rect x="62" y="53" width="6" height="5" rx="1" fill="var(--color-accent)" />
+        <rect x="71" y="53" width="5" height="5" rx="1" fill="var(--color-accent)" />
+        <ellipse
+          cx="60"
+          cy="75"
+          rx="5"
+          ry="4"
+          fill="var(--bg-main)"
+          stroke="var(--color-accent)"
+          stroke-width="1"
+        />
+        <circle cx="60" cy="75" r="2" fill="#60a5fa" opacity="0.8" />
+        <circle cx="55" cy="61" r="2.5" fill="none" stroke="#93c5fd" stroke-width="1.2" />
+        <circle cx="65" cy="61" r="2.5" fill="none" stroke="#93c5fd" stroke-width="1.2" />
+        <rect x="57" y="60.5" width="6" height="1" fill="#93c5fd" />
+        <path
+          d="M 82 45 A 12 12 0 0 1 94 57"
+          stroke="#34d399"
+          stroke-width="1.2"
+          fill="none"
+          opacity="0.7"
+        />
+        <path
+          d="M 82 38 A 19 19 0 0 1 101 57"
+          stroke="#34d399"
+          stroke-width="1"
+          fill="none"
+          opacity="0.5"
+        />
+        <path
+          d="M 82 31 A 26 26 0 0 1 108 57"
+          stroke="#34d399"
+          stroke-width="0.8"
+          fill="none"
+          opacity="0.3"
+        />
+        <circle cx="86" cy="48" r="2" fill="#34d399" opacity="0.9" />
+        <circle cx="25" cy="30" r="1" fill="#60a5fa" opacity="0.7" />
+        <circle cx="35" cy="22" r="1.5" fill="#60a5fa" opacity="0.5" />
+        <circle cx="15" cy="45" r="1" fill="#34d399" opacity="0.6" />
+        <rect
+          x="30"
+          y="103"
+          width="60"
+          height="3"
+          rx="1.5"
+          fill="var(--color-accent)"
+          opacity="0.3"
+        />
+      </svg>
+      <div>
+        <h2>
+          Dashboard
+          <app-info-tip
+            title="Dashboard"
+            text="Real-time backend overview. Metrics come from /actuator/prometheus (Micrometer) and /actuator/health (Spring Boot Actuator)."
+            command="curl http://localhost:8080/actuator/health"
+            source="/actuator/health, /actuator/prometheus"
+          />
+        </h2>
+        <p class="subtitle">
+          Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})
+        </p>
+      </div>
     </div>
     <div class="header-actions">
       <div class="auto-refresh">
