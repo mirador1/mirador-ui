@@ -211,15 +211,15 @@
                       <td>{{ c.createdAt | date: 'short' }}</td>
                     }
                     <td class="actions-cell">
-                      <button class="tag-btn bio" (click)="selectCustomer(c, 'bio')">Bio</button>
+                      <button class="tag-btn bio" (click)="selectCustomer(c, 'bio')">🤖 Bio</button>
                       <button class="tag-btn todos" (click)="selectCustomer(c, 'todos')">
-                        Todos
+                        ✅ Todos
                       </button>
                       <button class="tag-btn enrich" (click)="selectCustomer(c, 'enrich')">
-                        Enrich
+                        📨 Enrich
                       </button>
-                      <button class="tag-btn edit" (click)="openEdit(c)">Edit</button>
-                      <button class="tag-btn delete" (click)="openDelete(c)">Del</button>
+                      <button class="tag-btn edit" (click)="openEdit(c)">✏️ Edit</button>
+                      <button class="tag-btn delete" (click)="openDelete(c)">🗑️ Del</button>
                     </td>
                   </tr>
                 }
