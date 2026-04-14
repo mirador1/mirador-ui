@@ -698,8 +698,14 @@ pre {
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .banner-btn {
@@ -711,7 +717,9 @@ pre {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  &:hover { opacity: 0.85; }
+  &:hover {
+    opacity: 0.85;
+  }
 }
 
 .banner-close {
@@ -723,5 +731,7 @@ pre {
   font-size: 0.9rem;
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
-  &:hover { color: var(--text, #e5e7eb); }
+  &:hover {
+    color: var(--text, #e5e7eb);
+  }
 }

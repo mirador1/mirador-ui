@@ -87,8 +87,14 @@ export class SecurityComponent {
     this.http
       .get<SqliResult>(`${base}/demo/security/sqli-vulnerable`, { params: { name } })
       .subscribe({
-        next: (r) => { this.sqliVulnResult.set(r); this.sqliLoading.set(false); },
-        error: (e) => { this.sqliError.set(`Error ${e.status}: ${e.message}`); this.sqliLoading.set(false); },
+        next: (r) => {
+          this.sqliVulnResult.set(r);
+          this.sqliLoading.set(false);
+        },
+        error: (e) => {
+          this.sqliError.set(`Error ${e.status}: ${e.message}`);
+          this.sqliLoading.set(false);
+        },
       });
   }
 
@@ -99,12 +105,16 @@ export class SecurityComponent {
     this.sqliError.set('');
     this.sqliSafeResult.set(null);
 
-    this.http
-      .get<SqliResult>(`${base}/demo/security/sqli-safe`, { params: { name } })
-      .subscribe({
-        next: (r) => { this.sqliSafeResult.set(r); this.sqliLoading.set(false); },
-        error: (e) => { this.sqliError.set(`Error ${e.status}: ${e.message}`); this.sqliLoading.set(false); },
-      });
+    this.http.get<SqliResult>(`${base}/demo/security/sqli-safe`, { params: { name } }).subscribe({
+      next: (r) => {
+        this.sqliSafeResult.set(r);
+        this.sqliLoading.set(false);
+      },
+      error: (e) => {
+        this.sqliError.set(`Error ${e.status}: ${e.message}`);
+        this.sqliLoading.set(false);
+      },
+    });
   }
 
   sqliResultRows(result: SqliResult | null): unknown[] {
@@ -128,7 +138,10 @@ export class SecurityComponent {
           this.xssMode.set('vulnerable');
           this.xssLoading.set(false);
         },
-        error: (e) => { this.xssError.set(`Error ${e.status}: ${e.message}`); this.xssLoading.set(false); },
+        error: (e) => {
+          this.xssError.set(`Error ${e.status}: ${e.message}`);
+          this.xssLoading.set(false);
+        },
       });
   }
 
@@ -149,7 +162,10 @@ export class SecurityComponent {
           this.xssMode.set('safe');
           this.xssLoading.set(false);
         },
-        error: (e) => { this.xssError.set(`Error ${e.status}: ${e.message}`); this.xssLoading.set(false); },
+        error: (e) => {
+          this.xssError.set(`Error ${e.status}: ${e.message}`);
+          this.xssLoading.set(false);
+        },
       });
   }
 
@@ -160,8 +176,14 @@ export class SecurityComponent {
     this.corsError.set('');
 
     this.http.get<CorsInfo>(`${base}/demo/security/cors-info`).subscribe({
-      next: (r) => { this.corsInfo.set(r); this.corsLoading.set(false); },
-      error: (e) => { this.corsError.set(`Error ${e.status}: ${e.message}`); this.corsLoading.set(false); },
+      next: (r) => {
+        this.corsInfo.set(r);
+        this.corsLoading.set(false);
+      },
+      error: (e) => {
+        this.corsError.set(`Error ${e.status}: ${e.message}`);
+        this.corsLoading.set(false);
+      },
     });
   }
 }

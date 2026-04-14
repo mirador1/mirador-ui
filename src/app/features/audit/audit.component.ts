@@ -86,7 +86,9 @@ export class AuditComponent implements OnInit, OnDestroy {
 
     const base = this.env.baseUrl();
     const token = this.auth.token();
-    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    const headers = token
+      ? new HttpHeaders({ Authorization: `Bearer ${token}` })
+      : new HttpHeaders();
 
     const params: Record<string, string> = {
       page: String(this.currentPage()),
@@ -129,7 +131,8 @@ export class AuditComponent implements OnInit, OnDestroy {
   /** Badge CSS class by action category */
   badgeClass(action: string): string {
     if (action === 'LOGIN_BLOCKED') return 'badge-red';
-    if (action.startsWith('LOGIN') || action === 'TOKEN_REFRESH' || action === 'API_KEY_AUTH') return 'badge-blue';
+    if (action.startsWith('LOGIN') || action === 'TOKEN_REFRESH' || action === 'API_KEY_AUTH')
+      return 'badge-blue';
     if (action.startsWith('CUSTOMER')) return 'badge-green';
     return 'badge-gray';
   }

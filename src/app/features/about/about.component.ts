@@ -9,31 +9,76 @@ import { Component } from '@angular/core';
 export class AboutComponent {
   readonly portMap = [
     // Application
-    { port: 8080, name: 'Customer API', category: 'App', note: 'REST API + WebSocket + Swagger UI' },
+    {
+      port: 8080,
+      name: 'Customer API',
+      category: 'App',
+      note: 'REST API + WebSocket + Swagger UI',
+    },
     { port: 4200, name: 'Angular UI', category: 'App', note: 'This frontend (ng serve)' },
     // Databases
-    { port: 5432, name: 'PostgreSQL', category: 'Data', note: 'Primary database (via DB_PORT env)' },
+    {
+      port: 5432,
+      name: 'PostgreSQL',
+      category: 'Data',
+      note: 'Primary database (via DB_PORT env)',
+    },
     { port: 6379, name: 'Redis', category: 'Data', note: 'Cache, idempotency, ring buffer' },
     { port: 9092, name: 'Kafka', category: 'Data', note: 'KRaft mode, PLAINTEXT_HOST listener' },
     { port: 11434, name: 'Ollama', category: 'Data', note: 'Local LLM (llama3.2) for /bio' },
     { port: 9090, name: 'Keycloak', category: 'Data', note: 'OAuth2/OIDC — admin / admin' },
     // Admin Tools
-    { port: 5050, name: 'pgAdmin', category: 'Admin', note: 'PostgreSQL UI (desktop mode, no login)' },
+    {
+      port: 5050,
+      name: 'pgAdmin',
+      category: 'Admin',
+      note: 'PostgreSQL UI (desktop mode, no login)',
+    },
     { port: 8081, name: 'pgweb', category: 'Admin', note: 'Lightweight SQL client + REST API' },
     { port: 9080, name: 'Kafka UI', category: 'Admin', note: 'Topics, messages, consumer groups' },
-    { port: 5540, name: 'RedisInsight', category: 'Admin', note: 'Redis key browser, memory analysis' },
-    { port: 8082, name: 'Redis Commander', category: 'Admin', note: 'Live command monitor, auto-connects' },
+    {
+      port: 5540,
+      name: 'RedisInsight',
+      category: 'Admin',
+      note: 'Redis key browser, memory analysis',
+    },
+    {
+      port: 8082,
+      name: 'Redis Commander',
+      category: 'Admin',
+      note: 'Live command monitor, auto-connects',
+    },
     { port: 8083, name: 'AKHQ', category: 'Admin', note: 'Advanced Kafka UI — live tail, ACLs' },
     // Observability
     { port: 3000, name: 'Grafana', category: 'Obs', note: 'Pre-provisioned dashboards (no login)' },
     { port: 3001, name: 'Grafana (LGTM)', category: 'Obs', note: 'OTel traces, Loki logs, Tempo' },
-    { port: 9091, name: 'Prometheus', category: 'Obs', note: 'Metrics store (9090 used by Keycloak)' },
+    {
+      port: 9091,
+      name: 'Prometheus',
+      category: 'Obs',
+      note: 'Metrics store (9090 used by Keycloak)',
+    },
     { port: 9411, name: 'Zipkin', category: 'Obs', note: 'Distributed tracing (lightweight UI)' },
-    { port: 16686, name: 'Jaeger', category: 'Obs', note: 'Advanced tracing — comparison, flamegraph' },
+    {
+      port: 16686,
+      name: 'Jaeger',
+      category: 'Obs',
+      note: 'Advanced tracing — comparison, flamegraph',
+    },
     { port: 4040, name: 'Pyroscope', category: 'Obs', note: 'Continuous profiling — CPU, memory' },
-    { port: 3100, name: 'Loki (CORS proxy)', category: 'Obs', note: 'Log queries via Nginx CORS proxy' },
+    {
+      port: 3100,
+      name: 'Loki (CORS proxy)',
+      category: 'Obs',
+      note: 'Log queries via Nginx CORS proxy',
+    },
     { port: 4318, name: 'OTLP HTTP', category: 'Obs', note: 'Spring Boot sends traces/logs here' },
-    { port: 2375, name: 'Docker API proxy', category: 'Infra', note: 'Filtered, read-only Docker Engine API' },
+    {
+      port: 2375,
+      name: 'Docker API proxy',
+      category: 'Infra',
+      note: 'Filtered, read-only Docker Engine API',
+    },
   ];
 
   readonly portCategories = ['App', 'Data', 'Admin', 'Obs', 'Infra'];

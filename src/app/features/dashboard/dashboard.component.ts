@@ -124,9 +124,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
           const c = JSON.parse(e.data) as { name: string };
           this.liveSessionCount.update((n) => n + 1);
           this.liveRecentNames.update((names) => [c.name, ...names].slice(0, 5));
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       });
-    } catch { /* SSE not available */ }
+    } catch {
+      /* SSE not available */
+    }
   }
 
   private disconnectSse(): void {

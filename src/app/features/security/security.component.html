@@ -6,17 +6,24 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab-btn" [class.active]="activeTab() === 'sqli'" (click)="setTab('sqli')">💉 SQL Injection</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'xss'"  (click)="setTab('xss')">📜 XSS</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'cors'" (click)="setTab('cors')">🌐 CORS</button>
+    <button class="tab-btn" [class.active]="activeTab() === 'sqli'" (click)="setTab('sqli')">
+      💉 SQL Injection
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'xss'" (click)="setTab('xss')">
+      📜 XSS
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'cors'" (click)="setTab('cors')">
+      🌐 CORS
+    </button>
   </div>
 
   <!-- ── SQL Injection Tab ───────────────────────────────────────────────── -->
   @if (activeTab() === 'sqli') {
     <div class="tab-content">
       <div class="explanation-card warn">
-        <strong>⚠️ SQL Injection</strong> — Unsanitised user input is concatenated directly into a SQL query,
-        allowing an attacker to manipulate the query logic (e.g. bypass authentication or extract all rows).
+        <strong>⚠️ SQL Injection</strong> — Unsanitised user input is concatenated directly into a
+        SQL query, allowing an attacker to manipulate the query logic (e.g. bypass authentication or
+        extract all rows).
       </div>
 
       <div class="input-row">
@@ -49,10 +56,14 @@
             <h3>Vulnerable Query</h3>
             <pre class="code-block">{{ r.query }}</pre>
             @if (r.vulnerability) {
-              <div class="label-row"><span class="label label-red">Vulnerability</span> {{ r.vulnerability }}</div>
+              <div class="label-row">
+                <span class="label label-red">Vulnerability</span> {{ r.vulnerability }}
+              </div>
             }
             @if (r.exploit) {
-              <div class="label-row"><span class="label label-red">Exploit</span> {{ r.exploit }}</div>
+              <div class="label-row">
+                <span class="label label-red">Exploit</span> {{ r.exploit }}
+              </div>
             }
             <h4>Results ({{ sqliResultRows(sqliVulnResult()).length }} rows)</h4>
             <pre class="code-block small">{{ sqliResultRows(sqliVulnResult()) | json }}</pre>
@@ -77,10 +88,10 @@
   @if (activeTab() === 'xss') {
     <div class="tab-content">
       <div class="explanation-card warn">
-        <strong>⚠️ Cross-Site Scripting (XSS)</strong> — Unescaped user input is injected into HTML output,
-        allowing an attacker to execute arbitrary JavaScript in the victim's browser.
-        The vulnerable version loads the raw server response in a sandboxed iframe.
-        The safe version uses server-side HTML encoding.
+        <strong>⚠️ Cross-Site Scripting (XSS)</strong> — Unescaped user input is injected into HTML
+        output, allowing an attacker to execute arbitrary JavaScript in the victim's browser. The
+        vulnerable version loads the raw server response in a sandboxed iframe. The safe version
+        uses server-side HTML encoding.
       </div>
 
       <div class="input-row">
@@ -108,8 +119,15 @@
 
       @if (xssMode() === 'vulnerable' && xssVulnHtml()) {
         <div class="result-card danger">
-          <h3>Vulnerable output <span class="mode-badge mode-danger">RAW HTML in sandboxed iframe</span></h3>
-          <p class="hint">The iframe below renders the unescaped server response. Scripts are blocked by the <code>sandbox</code> attribute, but in a real browser without sandbox they would execute.</p>
+          <h3>
+            Vulnerable output
+            <span class="mode-badge mode-danger">RAW HTML in sandboxed iframe</span>
+          </h3>
+          <p class="hint">
+            The iframe below renders the unescaped server response. Scripts are blocked by the
+            <code>sandbox</code> attribute, but in a real browser without sandbox they would
+            execute.
+          </p>
           <iframe
             class="xss-frame"
             [srcdoc]="xssVulnHtml()!"
@@ -124,7 +142,10 @@
       @if (xssMode() === 'safe' && xssSafeHtml()) {
         <div class="result-card safe">
           <h3>Safe output <span class="mode-badge mode-safe">HTML-encoded</span></h3>
-          <p class="hint">The server returned HTML-encoded output. Angular also sanitises via DomSanitizer. Special characters are rendered as text, not executed.</p>
+          <p class="hint">
+            The server returned HTML-encoded output. Angular also sanitises via DomSanitizer.
+            Special characters are rendered as text, not executed.
+          </p>
           <div class="safe-preview" [innerHTML]="xssSafeHtml()"></div>
         </div>
       }
@@ -135,10 +156,10 @@
   @if (activeTab() === 'cors') {
     <div class="tab-content">
       <div class="explanation-card info">
-        <strong>ℹ️ Cross-Origin Resource Sharing (CORS)</strong> — Browsers enforce the same-origin policy.
-        CORS headers tell the browser which origins are allowed to make cross-origin requests.
-        A misconfigured CORS policy (e.g. <code>Access-Control-Allow-Origin: *</code> with credentials)
-        can let an attacker steal authenticated data.
+        <strong>ℹ️ Cross-Origin Resource Sharing (CORS)</strong> — Browsers enforce the same-origin
+        policy. CORS headers tell the browser which origins are allowed to make cross-origin
+        requests. A misconfigured CORS policy (e.g. <code>Access-Control-Allow-Origin: *</code> with
+        credentials) can let an attacker steal authenticated data.
       </div>
 
       @if (corsLoading()) {

@@ -156,7 +156,9 @@ export class CustomersComponent implements OnInit, OnDestroy {
       this._sseSource.addEventListener('customer', () => {
         this.newCustomerCount.update((n) => n + 1);
       });
-    } catch { /* SSE not available */ }
+    } catch {
+      /* SSE not available */
+    }
   }
 
   private disconnectSse(): void {

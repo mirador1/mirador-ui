@@ -349,9 +349,21 @@ export class AppShellComponent {
       keywords: 'settings config actuator loggers info beans',
     },
     { label: '📋 Activity', path: '/activity', keywords: 'activity timeline events log history' },
-    { label: '🛡️ Audit Trail', path: '/audit', keywords: 'audit trail security events login failed blocked customer created' },
-    { label: '⚡ Live Feed', path: '/timeline', keywords: 'live feed timeline sse stream customers realtime' },
-    { label: '🔐 Security Demo', path: '/security', keywords: 'security sql injection xss cors vulnerability demo' },
+    {
+      label: '🛡️ Audit Trail',
+      path: '/audit',
+      keywords: 'audit trail security events login failed blocked customer created',
+    },
+    {
+      label: '⚡ Live Feed',
+      path: '/timeline',
+      keywords: 'live feed timeline sse stream customers realtime',
+    },
+    {
+      label: '🔐 Security Demo',
+      path: '/security',
+      keywords: 'security sql injection xss cors vulnerability demo',
+    },
   ];
 
   get filteredSearchItems() {

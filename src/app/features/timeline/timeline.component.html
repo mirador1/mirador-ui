@@ -3,7 +3,9 @@
     <div class="header-row">
       <div>
         <h1>⚡ Live Feed</h1>
-        <p class="subtitle">Real-time customer creation stream via SSE — last {{ events().length }} of 50</p>
+        <p class="subtitle">
+          Real-time customer creation stream via SSE — last {{ events().length }} of 50
+        </p>
       </div>
       <div class="status-area">
         <span class="status-pill" [class]="statusClass(status())">{{ statusLabel(status()) }}</span>
@@ -18,7 +20,10 @@
     <div class="empty-state">
       <div class="empty-icon">📡</div>
       <p>Waiting for customer events…</p>
-      <p class="empty-hint">Create a customer via the Customers page or Chaos traffic generator to see events appear here.</p>
+      <p class="empty-hint">
+        Create a customer via the Customers page or Chaos traffic generator to see events appear
+        here.
+      </p>
     </div>
   }
 
@@ -36,7 +41,7 @@
           <div class="card-meta">
             <span class="email">{{ event.email }}</span>
             <span class="separator">·</span>
-            <span class="ts">{{ event.createdAt | date:'HH:mm:ss' }}</span>
+            <span class="ts">{{ event.createdAt | date: 'HH:mm:ss' }}</span>
             <span class="separator">·</span>
             <span class="id">ID #{{ event.id }}</span>
           </div>

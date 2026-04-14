@@ -118,19 +118,27 @@ export class TimelineComponent implements OnDestroy {
 
   statusLabel(s: ConnectionStatus): string {
     switch (s) {
-      case 'connected': return '● Connected';
-      case 'connecting': return '◌ Connecting…';
-      case 'reconnecting': return '⟳ Reconnecting…';
-      case 'disconnected': return '○ Disconnected';
+      case 'connected':
+        return '● Connected';
+      case 'connecting':
+        return '◌ Connecting…';
+      case 'reconnecting':
+        return '⟳ Reconnecting…';
+      case 'disconnected':
+        return '○ Disconnected';
     }
   }
 
   statusClass(s: ConnectionStatus): string {
     switch (s) {
-      case 'connected': return 'status-connected';
-      case 'connecting': return 'status-connecting';
-      case 'reconnecting': return 'status-reconnecting';
-      case 'disconnected': return 'status-disconnected';
+      case 'connected':
+        return 'status-connected';
+      case 'connecting':
+        return 'status-connecting';
+      case 'reconnecting':
+        return 'status-reconnecting';
+      case 'disconnected':
+        return 'status-disconnected';
     }
   }
 }

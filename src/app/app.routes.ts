@@ -73,8 +73,7 @@ export const routes: Routes = [
   },
   {
     path: 'audit',
-    loadComponent: () =>
-      import('./features/audit/audit.component').then((m) => m.AuditComponent),
+    loadComponent: () => import('./features/audit/audit.component').then((m) => m.AuditComponent),
   },
   {
     path: 'timeline',

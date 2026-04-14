@@ -578,8 +578,12 @@ pre {
 
   tbody tr {
     border-bottom: 1px solid var(--border-default, #2d3447);
-    &:last-child { border-bottom: none; }
-    &:hover td { background: var(--bg-card-hover, #252b3b); }
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover td {
+      background: var(--bg-card-hover, #252b3b);
+    }
   }
 
   td {
@@ -587,9 +591,19 @@ pre {
     vertical-align: middle;
   }
 
-  .job-name { font-weight: 600; font-family: monospace; }
-  .job-ts   { font-family: monospace; color: var(--text-label, #9ca3af); white-space: nowrap; }
-  .job-host { color: var(--text-label, #9ca3af); font-size: 0.78rem; }
+  .job-name {
+    font-weight: 600;
+    font-family: monospace;
+  }
+  .job-ts {
+    font-family: monospace;
+    color: var(--text-label, #9ca3af);
+    white-space: nowrap;
+  }
+  .job-host {
+    color: var(--text-label, #9ca3af);
+    font-size: 0.78rem;
+  }
 }
 
 .job-badge {
@@ -602,8 +616,16 @@ pre {
   letter-spacing: 0.04em;
 }
 
-.job-active { background: #14532d; color: #86efac; border: 1px solid #16a34a; }
-.job-idle   { background: #1f2937; color: #9ca3af; border: 1px solid #374151; }
+.job-active {
+  background: #14532d;
+  color: #86efac;
+  border: 1px solid #16a34a;
+}
+.job-idle {
+  background: #1f2937;
+  color: #9ca3af;
+  border: 1px solid #374151;
+}
 
 .error-note {
   margin-top: 0.5rem;

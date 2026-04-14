@@ -6,7 +6,11 @@
 
   <!-- Filter bar -->
   <div class="filter-bar">
-    <select class="filter-select" [value]="filterAction()" (change)="filterAction.set($any($event.target).value); applyFilters()">
+    <select
+      class="filter-select"
+      [value]="filterAction()"
+      (change)="filterAction.set($any($event.target).value); applyFilters()"
+    >
       <option value="">All actions</option>
       @for (a of actions; track a) {
         <option [value]="a">{{ a }}</option>
@@ -23,7 +27,12 @@
     />
 
     <button class="btn btn-primary" (click)="applyFilters()">Apply</button>
-    <button class="btn btn-ghost" (click)="filterAction.set(''); filterUser.set(''); applyFilters()">Clear</button>
+    <button
+      class="btn btn-ghost"
+      (click)="filterAction.set(''); filterUser.set(''); applyFilters()"
+    >
+      Clear
+    </button>
 
     @if (loading()) {
       <span class="loading-dot">⟳ Loading…</span>
@@ -51,7 +60,7 @@
       </thead>
       <tbody>
         @if (!data() && loading()) {
-          @for (i of [1,2,3,4,5]; track i) {
+          @for (i of [1, 2, 3, 4, 5]; track i) {
             <tr class="skeleton-row">
               <td colspan="5"><span class="skeleton"></span></td>
             </tr>
@@ -59,8 +68,10 @@
         }
         @for (event of data()?.content ?? []; track event.id) {
           <tr>
-            <td class="ts">{{ event.createdAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-            <td><span class="badge" [class]="badgeClass(event.action)">{{ event.action }}</span></td>
+            <td class="ts">{{ event.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td>
+              <span class="badge" [class]="badgeClass(event.action)">{{ event.action }}</span>
+            </td>
             <td class="user">{{ event.userName }}</td>
             <td class="detail">{{ event.detail }}</td>
             <td class="ip">{{ event.ipAddress }}</td>
@@ -77,8 +88,16 @@
 
   <!-- Pagination -->
   <div class="pagination">
-    <button class="btn btn-ghost" [disabled]="currentPage() === 0" (click)="prevPage()">← Prev</button>
+    <button class="btn btn-ghost" [disabled]="currentPage() === 0" (click)="prevPage()">
+      ← Prev
+    </button>
     <span class="page-info">Page {{ currentPage() + 1 }} / {{ totalPages() }}</span>
-    <button class="btn btn-ghost" [disabled]="currentPage() >= totalPages() - 1" (click)="nextPage()">Next →</button>
+    <button
+      class="btn btn-ghost"
+      [disabled]="currentPage() >= totalPages() - 1"
+      (click)="nextPage()"
+    >
+      Next →
+    </button>
   </div>
 </section>

@@ -973,7 +973,6 @@ pre {
   font-size: 0.9rem;
 }
 
-
 // ── Live Activity ─────────────────────────────────────────────────────────────
 .live-activity-row {
   display: grid;
@@ -984,7 +983,11 @@ pre {
 }
 
 .live-names-card {
-  .card-title { font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem; }
+  .card-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+  }
 }
 
 .live-names-list {
@@ -1011,6 +1014,12 @@ pre {
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

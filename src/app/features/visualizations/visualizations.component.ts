@@ -2757,7 +2757,9 @@ export class VisualizationsComponent implements OnDestroy {
         this.sankeyFlows.set(flows.slice(0, 20));
       },
       error: (err) => {
-        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
       },
     });
   }
@@ -2871,7 +2873,9 @@ export class VisualizationsComponent implements OnDestroy {
         this.gauges.set(result);
       },
       error: (err) => {
-        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
       },
     });
   }
@@ -2914,7 +2918,9 @@ export class VisualizationsComponent implements OnDestroy {
         this.goldenSignals.set(signals);
       },
       error: (err) => {
-        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
       },
     });
   }
@@ -2983,7 +2989,9 @@ export class VisualizationsComponent implements OnDestroy {
         this.vizError.set('');
       },
       error: (err) => {
-        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
       },
     });
   }
@@ -3046,7 +3054,9 @@ export class VisualizationsComponent implements OnDestroy {
         this.slowQueries.set(queries.slice(0, 10));
       },
       error: (err) => {
-        this.vizError.set(`Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`);
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
       },
     });
   }

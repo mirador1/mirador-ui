@@ -15,15 +15,17 @@
   </div>
 
   @if (!auth.isAuthenticated()) {
-    <div class="alert-warn">Please <a routerLink="/login">sign in</a> to access the database explorer.</div>
+    <div class="alert-warn">
+      Please <a routerLink="/login">sign in</a> to access the database explorer.
+    </div>
   } @else {
     <!-- SQL Explorer -->
     <article class="card">
       <h3>🐘 SQL Explorer</h3>
       <p class="card-desc">
         Execute read-only SQL queries via
-        <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a>.
-        For write operations (VACUUM, ANALYZE, REINDEX), use
+        <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a>. For write
+        operations (VACUUM, ANALYZE, REINDEX), use
         <a href="http://localhost:5050" target="_blank" rel="noopener">pgAdmin</a>.
       </p>
 
