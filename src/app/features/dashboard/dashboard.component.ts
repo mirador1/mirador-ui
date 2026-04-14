@@ -335,10 +335,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       label: 'Pyroscope',
       description: 'Continuous profiling',
       detail:
-        'Grafana Pyroscope — captures CPU and memory flamegraphs continuously. Attach the Pyroscope Java agent to Spring Boot (app-profiled mode) to push profiles. Useful for identifying hot methods and memory leaks.',
+        'Grafana Pyroscope — captures CPU and memory flamegraphs continuously. The Pyroscope Java agent is embedded in the app and pushes JFR profiles every 10s. Useful for identifying hot methods and memory leaks.',
       image: 'images/tools/pyroscope.png',
       port: '4040',
-      url: 'http://localhost:4040',
+      url: 'http://localhost:4040/explore?profileTypeId=process_cpu:cpu:nanoseconds:cpu:nanoseconds&labelSelector=%7Bservice_name%3D%22customer-service%22%7D',
     },
     pgweb: {
       icon: '🔬',
@@ -832,7 +832,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: '🧬',
       port: '4040',
       container: 'customerservice-pyroscope',
-      url: 'http://localhost:4040',
+      url: 'http://localhost:4040/explore?profileTypeId=process_cpu:cpu:nanoseconds:cpu:nanoseconds&labelSelector=%7Bservice_name%3D%22customer-service%22%7D',
       tip: 'Continuous profiling',
       detail:
         'Grafana Pyroscope — continuous profiling with CPU (itimer), memory allocation (alloc 512KB threshold), and lock contention (10ms threshold) flamegraphs. The Pyroscope Java agent attaches via -javaagent in app-profiled mode. Uploads profiles every 10s. Identifies hot methods and memory leaks.',

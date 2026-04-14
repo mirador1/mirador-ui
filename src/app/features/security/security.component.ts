@@ -19,6 +19,7 @@ import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/toast/toast.service';
 
 type SecurityTab = 'mechanisms' | 'sqli' | 'xss' | 'cors' | 'idor' | 'jwt' | 'headers' | 'audit';
 
@@ -107,6 +108,7 @@ export class SecurityComponent implements OnInit, OnDestroy {
   private readonly env = inject(EnvService);
   private readonly sanitizer = inject(DomSanitizer);
   readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   activeTab = signal<SecurityTab>('mechanisms');
 
@@ -357,7 +359,12 @@ export class SecurityComponent implements OnInit, OnDestroy {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) throw new Error('Not a valid JWT (expected 3 parts)');
-      const decode = (b64: string) => JSON.parse(atob(b64.replace(/-/g, '+').replace(/_/g, '/')));
+      // Add padding required by atob for base64url strings whose length is not a multiple of 4
+      const decode = (b64: string) => {
+        const padded = b64.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = padded.length % 4 ? '='.repeat(4 - (padded.length % 4)) : '';
+        return JSON.parse(atob(padded + pad));
+      };
       this.jwtHeader.set(decode(parts[0]));
       const payload = decode(parts[1]) as JwtClaims;
       this.jwtPayload.set(payload);
@@ -366,6 +373,10 @@ export class SecurityComponent implements OnInit, OnDestroy {
         this.jwtExpired.set(payload.exp < now);
         this.jwtSecondsLeft.set(Math.max(0, payload.exp - now));
       }
+      const sub = String(payload['sub'] ?? '?');
+      const role = String(payload['role'] ?? '?');
+      const expiredLabel = this.jwtExpired() ? ' (expired)' : '';
+      this.toast.show(`Token decoded — sub: ${sub}, role: ${role}${expiredLabel}`, 'success');
     } catch (e) {
       this.jwtError.set(`Failed to decode token: ${(e as Error).message}`);
     }
