@@ -349,30 +349,86 @@
           <p class="error-text">{{ detailError() }}</p>
         }
 
-        @if (activeTab() === 'bio' && bio()) {
+        @if (activeTab() === 'bio') {
           <div class="detail-body">
-            <p class="detail-label">
-              GET /customers/{{ selectedCustomer()!.id }}/bio → Ollama (llama3.2 with circuit
-              breaker)
+            <div class="enrich-flow">
+              <div class="flow-step flow-client">
+                <span class="flow-icon">🌐</span>
+                <span class="flow-label">HTTP</span>
+                <code>GET /customers/{{ selectedCustomer()!.id }}/bio</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-produce">
+                <span class="flow-icon">🛡️</span>
+                <span class="flow-label">Bulkhead + CB</span>
+                <code>Resilience4j</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-consumer">
+                <span class="flow-icon">🤖</span>
+                <span class="flow-label">LLM</span>
+                <code>Ollama llama3.2:1b</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-response">
+                <span class="flow-icon">✅</span>
+                <span class="flow-label">HTTP 200</span>
+                <code>bio text</code>
+              </div>
+            </div>
+            <p class="enrich-note">
+              <strong>Bulkhead</strong> — max concurrent LLM calls.
+              <strong>Circuit breaker</strong> — open after failures, fallback: "Bio temporarily
+              unavailable."
             </p>
-            <blockquote>{{ bio() }}</blockquote>
+            @if (bio()) {
+              <blockquote>{{ bio() }}</blockquote>
+            }
           </div>
         }
 
-        @if (activeTab() === 'todos' && todos()) {
+        @if (activeTab() === 'todos') {
           <div class="detail-body">
-            <p class="detail-label">
-              GET /customers/{{ selectedCustomer()!.id }}/todos → jsonplaceholder.typicode.com
-              (resilience4j fallback)
+            <div class="enrich-flow">
+              <div class="flow-step flow-client">
+                <span class="flow-icon">🌐</span>
+                <span class="flow-label">HTTP</span>
+                <code>GET /customers/{{ selectedCustomer()!.id }}/todos</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-produce">
+                <span class="flow-icon">🔁</span>
+                <span class="flow-label">Retry</span>
+                <code>Resilience4j</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-consumer">
+                <span class="flow-icon">🌍</span>
+                <span class="flow-label">@HttpExchange</span>
+                <code>jsonplaceholder</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-response">
+                <span class="flow-icon">✅</span>
+                <span class="flow-label">HTTP 200</span>
+                <code>Todo[]</code>
+              </div>
+            </div>
+            <p class="enrich-note">
+              <strong>@HttpExchange</strong> — client HTTP déclaratif Spring 6.
+              <strong>Retry</strong> — 3 tentatives avec backoff exponentiel si jsonplaceholder est
+              lent.
             </p>
-            <ul class="todos-list">
-              @for (t of todos()!.slice(0, 8); track t.id) {
-                <li [class.done]="t.completed">
-                  <span class="todo-check">{{ t.completed ? '✓' : '○' }}</span>
-                  {{ t.title }}
-                </li>
-              }
-            </ul>
+            @if (todos()) {
+              <ul class="todos-list">
+                @for (t of todos()!.slice(0, 8); track t.id) {
+                  <li [class.done]="t.completed">
+                    <span class="todo-check">{{ t.completed ? '✓' : '○' }}</span>
+                    {{ t.title }}
+                  </li>
+                }
+              </ul>
+            }
           </div>
         }
 
