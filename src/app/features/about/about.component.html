@@ -644,15 +644,15 @@
             }
           </strong>
           <div class="port-table">
-            @for (p of portsByCategory(cat); track p.port) {
+            @for (p of portsByCategory(cat); track p.name) {
               <div class="port-row">
                 @if (p.url) {
                   <a [href]="p.url" target="_blank" rel="noopener" class="port-link">
-                    <code class="port-num">:{{ p.port }}</code>
+                    <code class="port-num">{{ p.port ? ':' + p.port : '—' }}</code>
                     <strong class="port-name">{{ p.name }}</strong>
                   </a>
                 } @else {
-                  <code class="port-num">:{{ p.port }}</code>
+                  <code class="port-num">{{ p.port ? ':' + p.port : '—' }}</code>
                   <strong class="port-name">{{ p.name }}</strong>
                 }
                 <span class="port-note">{{ p.note }}</span>

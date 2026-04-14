@@ -85,6 +85,14 @@ export class AboutComponent {
         'Two compose files: `docker-compose.yml` (PostgreSQL, Redis, Kafka, Ollama, Keycloak, admin tools) and `docker-compose.observability.yml` (Grafana, Prometheus, Zipkin, Jaeger, Pyroscope, LGTM, Nginx proxies). The Dashboard Architecture view shows live status of all 22 containers.',
     },
     {
+      name: 'GitLab Runner',
+      icon: '🏃',
+      url: 'https://docs.gitlab.com/runner/',
+      description: 'Open-source agent that picks up GitLab CI jobs and executes them locally.',
+      usage:
+        'Runs via `docker-compose.runner.yml`. Connects to gitlab.com with outbound HTTPS long-polling — no port needs to be opened. Once registered (`./scripts/register-runner.sh <TOKEN>`), every push executes the full pipeline on this machine instead of gitlab.com shared runners, consuming zero CI minutes. Concurrency is auto-configured to (nproc - 1).',
+    },
+    {
       name: 'docker-socket-proxy',
       icon: '🔌',
       url: 'https://github.com/Tecnativa/docker-socket-proxy',
@@ -385,11 +393,11 @@ export class AboutComponent {
     },
   ];
   readonly portMap: Array<{
-    port: number;
+    port: number | null;
     name: string;
     category: string;
     note: string;
-    url?: string;
+    url?: string | null;
   }> = [
     // Application
     {
@@ -466,6 +474,14 @@ export class AboutComponent {
       note: 'Advanced Kafka UI — live tail, ACLs',
       url: 'http://localhost:8083',
     },
+    // CI/CD
+    {
+      port: null,
+      name: 'GitLab Runner',
+      category: 'CI',
+      note: 'Executes CI jobs locally — zero gitlab.com minutes consumed',
+      url: null,
+    },
     // Observability
     {
       port: 3000,
@@ -524,7 +540,7 @@ export class AboutComponent {
     },
   ];
 
-  readonly portCategories = ['App', 'Data', 'Admin', 'Obs', 'Infra'];
+  readonly portCategories = ['App', 'Data', 'Admin', 'CI', 'Obs', 'Infra'];
 
   readonly runCommands = [
     { cmd: './run.sh all', desc: 'Start everything (infra + observability + app)' },
