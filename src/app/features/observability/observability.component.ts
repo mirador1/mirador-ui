@@ -103,9 +103,9 @@ export class ObservabilityComponent implements OnDestroy {
   loadLoggers(): void {
     this.loggerLoading.set(true);
     this.http
-      .get<{ loggers: Record<string, { effectiveLevel: string }> }>(
-        `${this.env.baseUrl()}/actuator/loggers`,
-      )
+      .get<{
+        loggers: Record<string, { effectiveLevel: string }>;
+      }>(`${this.env.baseUrl()}/actuator/loggers`)
       .subscribe({
         next: (v) => {
           const entries = Object.entries(v.loggers ?? {})
