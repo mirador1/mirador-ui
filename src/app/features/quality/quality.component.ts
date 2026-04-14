@@ -206,6 +206,7 @@ export class QualityComponent implements OnInit {
   report = signal<QualityReport | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
+  selectedTab = signal<string>('overview');
 
   ngOnInit(): void {
     if (!this.auth.isAdmin()) return; // don't load if not admin
@@ -249,5 +250,9 @@ export class QualityComponent implements OnInit {
 
   priorityLabel(p: string): string {
     return p === '1' ? 'High' : p === '2' ? 'Medium' : 'Low';
+  }
+
+  nvdUrl(cve: string): string {
+    return `https://nvd.nist.gov/vuln/detail/${cve}`;
   }
 }
