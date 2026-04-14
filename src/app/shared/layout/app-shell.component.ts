@@ -87,7 +87,7 @@ export class AppShellComponent {
       tip: 'Traces (Zipkin/Tempo/Jaeger), Logs (Loki/LogQL), Latency histogram, Live SSE feed — all with traffic generation buttons',
       children: [
         {
-          label: 'Traces (Zipkin)',
+          label: 'Traces (Tempo)',
           tip: 'Search traces by service, expand span waterfall, flame graph view',
         },
         { label: 'Logs (Loki)', tip: 'LogQL queries, color-coded by level, live polling every 5s' },
@@ -269,6 +269,21 @@ export class AppShellComponent {
           label: 'Audit Trail',
           tip: 'Paginated security and data mutation events with action filter and 30s auto-refresh',
         },
+      ],
+    },
+    {
+      id: 'about',
+      icon: '📖',
+      label: 'About',
+      path: '/about',
+      tip: 'Architecture diagrams, tech stack, port reference, Kubernetes deployment, compatibility matrix',
+      children: [
+        { label: 'Overview', tip: 'Quick start, architecture summary, and run commands' },
+        { label: 'Infrastructure', tip: 'All services, ports, and Docker Compose setup' },
+        { label: 'Kubernetes', tip: 'kind cluster, deployment targets, ingress setup' },
+        { label: 'Technologies', tip: 'Full tech stack with usage notes' },
+        { label: 'Observability', tip: 'Tracing, metrics, logs, profiling architecture' },
+        { label: 'Resilience', tip: 'Circuit breaker, retry, bulkhead, rate limit patterns' },
       ],
     },
   ];

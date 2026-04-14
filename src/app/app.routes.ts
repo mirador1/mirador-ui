@@ -74,5 +74,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/security/security.component').then((m) => m.SecurityComponent),
   },
+  {
+    path: 'about',
+    loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

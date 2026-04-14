@@ -118,6 +118,23 @@ export class AboutComponent {
         'Default connection pool used by Spring Data JPA. Pool metrics (active connections, pending threads, pool size, timeouts) are exposed as Prometheus metrics and visible in the Metrics page under the JVM gauges section.',
     },
     {
+      name: 'Hibernate 6',
+      icon: '🔶',
+      url: 'https://hibernate.org/orm',
+      description: 'ORM framework and JPA provider for Java — maps objects to relational tables.',
+      usage:
+        'Used under Spring Data JPA as the JPA provider. Handles entity lifecycle, lazy/eager loading, JPQL query execution. Spring Boot 4 ships with Hibernate 6.x which requires the Jakarta EE 10 namespace (`jakarta.*` instead of `javax.*`).',
+    },
+    {
+      name: 'Jackson 3',
+      icon: '🔄',
+      url: 'https://github.com/FasterXML/jackson',
+      description:
+        'High-performance JSON processor for Java — serialisation, deserialisation, data binding.',
+      usage:
+        'Spring Boot 4 ships with Jackson 3 (Jakarta namespace). All REST request/response bodies are bound via `@RequestBody` / `@ResponseBody`. Custom serialisers handle `Page<T>` wrappers and API versioning (v1/v2 field projection). Tests use `JsonMapper.builder()` instead of the deprecated `ObjectMapper` constructor.',
+    },
+    {
       name: 'Java 25',
       icon: '☕',
       url: 'https://openjdk.org',
@@ -151,6 +168,15 @@ export class AboutComponent {
         'Optional SSO provider on port 9090. The Spring Boot backend is configured to accept both local JWT tokens and Keycloak-issued OIDC tokens. A realm and client are pre-configured. The login page supports both paths.',
     },
     {
+      name: 'kind',
+      icon: '☸️',
+      url: 'https://kind.sigs.k8s.io',
+      description:
+        'Kubernetes IN Docker — runs a full multi-node Kubernetes cluster inside Docker containers.',
+      usage:
+        'Used for local Kubernetes deployment. A single-node cluster exposes the full stack on port 8090 via nginx-ingress. Helm charts deploy the Spring Boot app, Angular frontend, PostgreSQL, Redis, Kafka, and the observability stack. Manifests live in `infra/k8s/`.',
+    },
+    {
       name: 'Lefthook',
       icon: '🪝',
       url: 'https://github.com/evilmartians/lefthook',
@@ -175,6 +201,15 @@ export class AboutComponent {
         'Horizontally-scalable log aggregation system by Grafana Labs, queryable with LogQL.',
       usage:
         'Runs inside the LGTM container. Spring Boot sends logs via the `opentelemetry-logback-appender` → OTLP → LGTM collector → Loki. The Observability Logs tab queries Loki directly via a Nginx CORS proxy on port 3100 using LogQL. Each log line carries the `traceId` for Grafana trace-to-log correlation.',
+    },
+    {
+      name: 'Maven',
+      icon: '📦',
+      url: 'https://maven.apache.org',
+      description:
+        'Build automation tool for Java projects with dependency management and lifecycle phases.',
+      usage:
+        'Builds the Spring Boot backend. Uses multi-profile configuration: default (Spring Boot 4 + Java 25), `-Dcompat` (SB4 + Java 21), `-Dsb3` (Spring Boot 3 + Java 21), `-Dsb3 -Djava17` (SB3 + Java 17). Each profile swaps BOM versions and compiler target via properties. Lefthook and CI run `mvn verify` before push/merge.',
     },
     {
       name: 'Micrometer',
@@ -331,6 +366,24 @@ export class AboutComponent {
         'All customer CRUD operations use `JpaRepository<Customer, Long>` with JPQL queries. Custom specifications for dynamic search/filter. Micrometer auto-instruments all repository method calls with timing metrics.',
     },
     {
+      name: 'Spring Data Redis',
+      icon: '🔴',
+      url: 'https://spring.io/projects/spring-data-redis',
+      description:
+        'Spring abstraction over Redis with templates, repositories, and serialisation support.',
+      usage:
+        'Used for three concurrent features: idempotency key storage (`StringRedisTemplate` with TTL), the recent-customers ring buffer (`LPUSH`/`LTRIM` via `RedisTemplate`), and as the storage backend for Bucket4j rate-limit counters. All operations go through the Lettuce connection pool.',
+    },
+    {
+      name: 'Spring Kafka',
+      icon: '📨',
+      url: 'https://spring.io/projects/spring-kafka',
+      description:
+        'Spring integration for Apache Kafka — producer templates, consumer annotations, and observation.',
+      usage:
+        'Two messaging patterns: `@KafkaListener` on `customer.created` for async event processing, and `ReplyingKafkaTemplate` for synchronous request-reply enrichment on `customer.request` / `customer.reply` with a 5 s timeout. Kafka observation is enabled so traceIds flow through message headers for distributed tracing.',
+    },
+    {
       name: 'Spring Security',
       icon: '🔐',
       url: 'https://spring.io/projects/spring-security',
@@ -340,6 +393,14 @@ export class AboutComponent {
         'Configured with JWT filter chain: every request is validated against the local JWT secret or Keycloak public key. `@PreAuthorize` annotations restrict endpoints by role. Login attempt throttling tracks failed attempts per username. The Security Demo page deliberately bypasses security on its vulnerable endpoints.',
     },
     {
+      name: 'SpringDoc OpenAPI',
+      icon: '📋',
+      url: 'https://springdoc.org',
+      description: 'Automatic OpenAPI 3.1 documentation generation for Spring Boot REST APIs.',
+      usage:
+        'Generates a live OpenAPI spec at `/v3/api-docs` and the Swagger UI at `/swagger-ui.html` (port 8080). Annotations on controllers add descriptions, examples, and response schemas. The API Client page in the UI links directly to the Swagger UI.',
+    },
+    {
       name: 'Tempo',
       icon: '⏱️',
       url: 'https://grafana.com/oss/tempo',
@@ -347,6 +408,14 @@ export class AboutComponent {
         "Grafana's scalable distributed tracing backend optimised for storage and query of trace data.",
       usage:
         'Runs inside the LGTM container (Grafana on port 3001). Spring Boot sends traces via OTLP → OTel collector → Tempo. Query with TraceQL in Grafana Explore or the Angular Observability Traces tab. Tempo HTTP API exposed on port 3200. Enables trace-to-log correlation: clicking a traceId in the Loki logs panel jumps straight to the matching trace.',
+    },
+    {
+      name: 'Testcontainers',
+      icon: '🐳',
+      url: 'https://testcontainers.com',
+      description: 'JVM library that spins up Docker containers for integration tests.',
+      usage:
+        'Integration tests start real PostgreSQL, Redis, and Kafka containers via `@SpringBootTest` with Testcontainers. No mocks for infrastructure — tests run against the actual databases and brokers. Executed by `./run.sh integration` or `mvn verify -Pintegration`. Containers are destroyed after each test class.',
     },
     {
       name: 'TypeScript 5.9',

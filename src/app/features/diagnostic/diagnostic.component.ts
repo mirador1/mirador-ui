@@ -51,18 +51,6 @@ interface SankeyFlow {
   color: string;
 }
 
-type DiagnosticTab =
-  | 'versioning'
-  | 'idempotency'
-  | 'rate-limit'
-  | 'kafka-enrich'
-  | 'virtual-threads'
-  | 'version-diff'
-  | 'waterfall'
-  | 'sankey'
-  | 'stress'
-  | 'scheduled';
-
 /** A single line in a JSON diff view */
 interface DiffLine {
   type: 'same' | 'add' | 'remove';
@@ -111,9 +99,6 @@ export class DiagnosticComponent {
   private readonly env = inject(EnvService);
 
   readonly Math = Math;
-
-  // ── Active sub-tab ────────────────────────────────────────────────────────
-  activeSubTab = signal<DiagnosticTab>('versioning');
 
   // ── Run history ────────────────────────────────────────────────────────────
   runHistory = signal<RunRecord[]>([]);
