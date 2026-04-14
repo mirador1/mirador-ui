@@ -121,6 +121,7 @@ export class SecurityComponent implements OnInit, OnDestroy {
   xssName = signal(`<img src=x onerror=alert('XSS')>`);
   xssVulnHtml = signal<string | null>(null);
   xssSafeHtml = signal<SafeHtml | null>(null);
+  xssSafeRaw = signal<string | null>(null); // raw server response (HTML-encoded entities)
   xssLoading = signal(false);
   xssError = signal('');
   xssMode = signal<'none' | 'vulnerable' | 'safe'>('none');
@@ -271,6 +272,7 @@ export class SecurityComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (html) => {
           this.xssVulnHtml.set(null);
+          this.xssSafeRaw.set(html);
           this.xssSafeHtml.set(this.sanitizer.bypassSecurityTrustHtml(html));
           this.xssMode.set('safe');
           this.xssLoading.set(false);

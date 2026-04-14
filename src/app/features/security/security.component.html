@@ -238,6 +238,8 @@
             Special characters are rendered as text, not executed.
           </p>
           <div class="safe-preview" [innerHTML]="xssSafeHtml()"></div>
+          <h4>Raw HTML from server</h4>
+          <pre class="code-block small">{{ xssSafeRaw() }}</pre>
         </div>
       }
     </div>
@@ -520,8 +522,8 @@
   @if (activeTab() === 'audit') {
     <div class="tab-pane">
       <p class="tab-intro">
-        Trace de tous les événements de sécurité et mutations de données enregistrés côté backend.
-        Rafraîchissement automatique toutes les 30 s.
+        Trace of all security events and data mutations recorded by the backend. Auto-refreshes
+        every 30 s.
       </p>
 
       <!-- Legend -->
