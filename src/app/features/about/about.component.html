@@ -106,6 +106,512 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Architecture diagram -->
+      <svg
+        viewBox="0 0 1000 520"
+        width="100%"
+        class="arch-diagram"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title>System Architecture</title>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ffffff80" />
+          </marker>
+          <marker id="arrow-left" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+            <polygon points="8 0, 0 3, 8 6" fill="#ffffff80" />
+          </marker>
+        </defs>
+
+        <!-- ── Col 1: CLIENT (x 10–175) ──────────────────────────────── -->
+        <rect
+          x="10"
+          y="10"
+          width="165"
+          height="440"
+          rx="8"
+          fill="#3b82f620"
+          stroke="#3b82f6"
+          stroke-width="1.5"
+        />
+        <text
+          x="92"
+          y="32"
+          text-anchor="middle"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="1"
+          fill="#3b82f6"
+        >
+          &#x1F310; CLIENT
+        </text>
+        <!-- Angular box -->
+        <rect
+          x="22"
+          y="42"
+          width="141"
+          height="52"
+          rx="4"
+          fill="#3b82f640"
+          stroke="#3b82f680"
+          stroke-width="1"
+        />
+        <text x="92" y="62" text-anchor="middle" font-size="12" fill="#f8fafc">Angular 21</text>
+        <text x="92" y="77" text-anchor="middle" font-size="10" fill="#94a3b8">:4200</text>
+        <!-- Sub-items -->
+        <rect
+          x="22"
+          y="103"
+          width="141"
+          height="32"
+          rx="4"
+          fill="#3b82f625"
+          stroke="#3b82f650"
+          stroke-width="1"
+        />
+        <text x="92" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">
+          TypeScript · SCSS
+        </text>
+        <text x="92" y="131" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Signals · Vitest
+        </text>
+
+        <!-- ── Col 2: APPLICATION (x 195–415) ────────────────────────── -->
+        <rect
+          x="195"
+          y="10"
+          width="220"
+          height="440"
+          rx="8"
+          fill="#22c55e20"
+          stroke="#22c55e"
+          stroke-width="1.5"
+        />
+        <text
+          x="305"
+          y="32"
+          text-anchor="middle"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="1"
+          fill="#22c55e"
+        >
+          &#x1F33F; APPLICATION
+        </text>
+        <!-- Spring Boot box -->
+        <rect
+          x="207"
+          y="42"
+          width="196"
+          height="52"
+          rx="4"
+          fill="#22c55e40"
+          stroke="#22c55e80"
+          stroke-width="1"
+        />
+        <text x="305" y="62" text-anchor="middle" font-size="12" fill="#f8fafc">
+          Spring Boot 4 / Java 25
+        </text>
+        <text x="305" y="77" text-anchor="middle" font-size="10" fill="#94a3b8">:8080</text>
+        <!-- Auth box -->
+        <rect
+          x="207"
+          y="103"
+          width="196"
+          height="32"
+          rx="4"
+          fill="#22c55e25"
+          stroke="#22c55e50"
+          stroke-width="1"
+        />
+        <text x="305" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">
+          JWT · Keycloak · API Key
+        </text>
+        <text x="305" y="131" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Virtual Threads (Loom)
+        </text>
+        <!-- OTEL box -->
+        <rect
+          x="207"
+          y="144"
+          width="196"
+          height="22"
+          rx="4"
+          fill="#22c55e25"
+          stroke="#22c55e50"
+          stroke-width="1"
+        />
+        <text x="305" y="159" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Micrometer · OTEL SDK
+        </text>
+        <!-- Resilience box -->
+        <rect
+          x="207"
+          y="178"
+          width="196"
+          height="58"
+          rx="4"
+          fill="#22c55e30"
+          stroke="#22c55e60"
+          stroke-width="1"
+        />
+        <text x="305" y="196" text-anchor="middle" font-size="11" font-weight="700" fill="#22c55e">
+          &#x1F6E1;&#xFE0F; Resilience
+        </text>
+        <text x="305" y="212" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Bucket4j · Resilience4j
+        </text>
+        <text x="305" y="224" text-anchor="middle" font-size="10" fill="#94a3b8">Idempotency</text>
+
+        <!-- ── Col 3: DATA STORES (x 435–615) ────────────────────────── -->
+        <rect
+          x="435"
+          y="10"
+          width="180"
+          height="440"
+          rx="8"
+          fill="#f9731620"
+          stroke="#f97316"
+          stroke-width="1.5"
+        />
+        <text
+          x="525"
+          y="32"
+          text-anchor="middle"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="1"
+          fill="#f97316"
+        >
+          &#x1F5C4;&#xFE0F; DATA STORES
+        </text>
+        <!-- PostgreSQL -->
+        <rect
+          x="447"
+          y="42"
+          width="156"
+          height="40"
+          rx="4"
+          fill="#f9731640"
+          stroke="#f9731680"
+          stroke-width="1"
+        />
+        <text x="525" y="58" text-anchor="middle" font-size="12" fill="#f8fafc">PostgreSQL 17</text>
+        <text x="525" y="73" text-anchor="middle" font-size="10" fill="#94a3b8">:5432</text>
+        <!-- Redis -->
+        <rect
+          x="447"
+          y="91"
+          width="156"
+          height="40"
+          rx="4"
+          fill="#f9731625"
+          stroke="#f9731650"
+          stroke-width="1"
+        />
+        <text x="525" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Redis 7</text>
+        <text x="525" y="122" text-anchor="middle" font-size="10" fill="#94a3b8">:6379</text>
+        <!-- Kafka -->
+        <rect
+          x="447"
+          y="140"
+          width="156"
+          height="40"
+          rx="4"
+          fill="#f9731625"
+          stroke="#f9731650"
+          stroke-width="1"
+        />
+        <text x="525" y="156" text-anchor="middle" font-size="12" fill="#f8fafc">Kafka KRaft</text>
+        <text x="525" y="171" text-anchor="middle" font-size="10" fill="#94a3b8">:9092</text>
+        <!-- Ollama -->
+        <rect
+          x="447"
+          y="189"
+          width="156"
+          height="40"
+          rx="4"
+          fill="#f9731625"
+          stroke="#f9731650"
+          stroke-width="1"
+        />
+        <text x="525" y="205" text-anchor="middle" font-size="12" fill="#f8fafc">
+          Ollama llama3.2
+        </text>
+        <text x="525" y="220" text-anchor="middle" font-size="10" fill="#94a3b8">:11434</text>
+
+        <!-- ── Col 4: OBS COLLECTORS (x 635–800) ──────────────────────── -->
+        <rect
+          x="635"
+          y="10"
+          width="165"
+          height="440"
+          rx="8"
+          fill="#06b6d420"
+          stroke="#06b6d4"
+          stroke-width="1.5"
+        />
+        <text
+          x="717"
+          y="32"
+          text-anchor="middle"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="1"
+          fill="#06b6d4"
+        >
+          &#x1F4E1; COLLECTORS
+        </text>
+        <!-- OTEL LGTM -->
+        <rect
+          x="647"
+          y="42"
+          width="141"
+          height="40"
+          rx="4"
+          fill="#06b6d440"
+          stroke="#06b6d480"
+          stroke-width="1"
+        />
+        <text x="717" y="58" text-anchor="middle" font-size="11" fill="#f8fafc">OTEL LGTM</text>
+        <text x="717" y="73" text-anchor="middle" font-size="10" fill="#94a3b8">Loki + Tempo</text>
+        <!-- Zipkin -->
+        <rect
+          x="647"
+          y="91"
+          width="141"
+          height="32"
+          rx="4"
+          fill="#06b6d425"
+          stroke="#06b6d450"
+          stroke-width="1"
+        />
+        <text x="717" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Zipkin</text>
+        <text x="717" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">:9411</text>
+        <!-- Jaeger -->
+        <rect
+          x="647"
+          y="132"
+          width="141"
+          height="32"
+          rx="4"
+          fill="#06b6d425"
+          stroke="#06b6d450"
+          stroke-width="1"
+        />
+        <text x="717" y="148" text-anchor="middle" font-size="12" fill="#f8fafc">Jaeger</text>
+        <text x="717" y="160" text-anchor="middle" font-size="10" fill="#94a3b8">:16686</text>
+        <!-- Pyroscope -->
+        <rect
+          x="647"
+          y="173"
+          width="141"
+          height="32"
+          rx="4"
+          fill="#06b6d425"
+          stroke="#06b6d450"
+          stroke-width="1"
+        />
+        <text x="717" y="189" text-anchor="middle" font-size="12" fill="#f8fafc">Pyroscope</text>
+        <text x="717" y="201" text-anchor="middle" font-size="10" fill="#94a3b8">:4040</text>
+        <!-- Prometheus -->
+        <rect
+          x="647"
+          y="214"
+          width="141"
+          height="32"
+          rx="4"
+          fill="#06b6d425"
+          stroke="#06b6d450"
+          stroke-width="1"
+        />
+        <text x="717" y="230" text-anchor="middle" font-size="12" fill="#f8fafc">Prometheus</text>
+        <text x="717" y="242" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
+
+        <!-- ── Col 5: OBS DASHBOARDS (x 820–990) ──────────────────────── -->
+        <rect
+          x="820"
+          y="10"
+          width="170"
+          height="440"
+          rx="8"
+          fill="#8b5cf620"
+          stroke="#8b5cf6"
+          stroke-width="1.5"
+        />
+        <text
+          x="905"
+          y="32"
+          text-anchor="middle"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="1"
+          fill="#8b5cf6"
+        >
+          &#x1F4CA; DASHBOARDS
+        </text>
+        <!-- Grafana -->
+        <rect
+          x="832"
+          y="42"
+          width="146"
+          height="32"
+          rx="4"
+          fill="#8b5cf640"
+          stroke="#8b5cf680"
+          stroke-width="1"
+        />
+        <text x="905" y="58" text-anchor="middle" font-size="12" fill="#f8fafc">Grafana</text>
+        <text x="905" y="70" text-anchor="middle" font-size="10" fill="#94a3b8">:3000</text>
+        <!-- Grafana LGTM -->
+        <rect
+          x="832"
+          y="83"
+          width="146"
+          height="32"
+          rx="4"
+          fill="#8b5cf625"
+          stroke="#8b5cf650"
+          stroke-width="1"
+        />
+        <text x="905" y="99" text-anchor="middle" font-size="12" fill="#f8fafc">Grafana LGTM</text>
+        <text x="905" y="111" text-anchor="middle" font-size="10" fill="#94a3b8">:3001</text>
+        <!-- Prometheus UI -->
+        <rect
+          x="832"
+          y="124"
+          width="146"
+          height="32"
+          rx="4"
+          fill="#8b5cf625"
+          stroke="#8b5cf650"
+          stroke-width="1"
+        />
+        <text x="905" y="140" text-anchor="middle" font-size="12" fill="#f8fafc">
+          Prometheus UI
+        </text>
+        <text x="905" y="152" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
+        <!-- Zipkin UI -->
+        <rect
+          x="832"
+          y="165"
+          width="146"
+          height="32"
+          rx="4"
+          fill="#8b5cf625"
+          stroke="#8b5cf650"
+          stroke-width="1"
+        />
+        <text x="905" y="181" text-anchor="middle" font-size="12" fill="#f8fafc">Zipkin UI</text>
+        <text x="905" y="193" text-anchor="middle" font-size="10" fill="#94a3b8">:9411</text>
+        <!-- Jaeger UI -->
+        <rect
+          x="832"
+          y="206"
+          width="146"
+          height="32"
+          rx="4"
+          fill="#8b5cf625"
+          stroke="#8b5cf650"
+          stroke-width="1"
+        />
+        <text x="905" y="222" text-anchor="middle" font-size="12" fill="#f8fafc">Jaeger UI</text>
+        <text x="905" y="234" text-anchor="middle" font-size="10" fill="#94a3b8">:16686</text>
+        <!-- Pyroscope UI -->
+        <rect
+          x="832"
+          y="247"
+          width="146"
+          height="32"
+          rx="4"
+          fill="#8b5cf625"
+          stroke="#8b5cf650"
+          stroke-width="1"
+        />
+        <text x="905" y="263" text-anchor="middle" font-size="12" fill="#f8fafc">Pyroscope UI</text>
+        <text x="905" y="275" text-anchor="middle" font-size="10" fill="#94a3b8">:4040</text>
+
+        <!-- ── Infrastructure footer ───────────────────────────────────── -->
+        <rect
+          x="10"
+          y="460"
+          width="980"
+          height="50"
+          rx="6"
+          fill="#47556930"
+          stroke="#47556960"
+          stroke-width="1"
+        />
+        <text x="500" y="480" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">
+          &#x1F3D7;&#xFE0F; INFRASTRUCTURE
+        </text>
+        <text x="500" y="497" text-anchor="middle" font-size="10" fill="#64748b">
+          Docker Compose (2 files · 22 containers) · Nginx CORS proxy · docker-socket-proxy
+        </text>
+
+        <!-- ── Arrows ─────────────────────────────────────────────────── -->
+        <!-- Col1 → Col2: HTTP (forward) -->
+        <line
+          x1="176"
+          y1="68"
+          x2="192"
+          y2="68"
+          stroke="#ffffff60"
+          stroke-width="1.5"
+          marker-end="url(#arrow)"
+        />
+        <!-- Col2 → Col1: SSE (backward) -->
+        <line
+          x1="196"
+          y1="78"
+          x2="180"
+          y2="78"
+          stroke="#ffffff60"
+          stroke-width="1.5"
+          marker-end="url(#arrow-left)"
+        />
+        <!-- Arrow labels HTTP/SSE -->
+        <text x="186" y="63" text-anchor="middle" font-size="9" fill="#94a3b8">HTTP</text>
+        <text x="186" y="90" text-anchor="middle" font-size="9" fill="#94a3b8">SSE</text>
+
+        <!-- Col2 → Col3: read/write -->
+        <line
+          x1="416"
+          y1="68"
+          x2="432"
+          y2="68"
+          stroke="#ffffff60"
+          stroke-width="1.5"
+          marker-end="url(#arrow)"
+        />
+        <text x="424" y="62" text-anchor="middle" font-size="9" fill="#94a3b8">r/w</text>
+
+        <!-- Col2 → Col4: OTEL (skip Col3, diagonal) -->
+        <line
+          x1="416"
+          y1="155"
+          x2="632"
+          y2="60"
+          stroke="#ffffff60"
+          stroke-width="1.5"
+          stroke-dasharray="4 2"
+          marker-end="url(#arrow)"
+        />
+        <text x="530" y="95" text-anchor="middle" font-size="9" fill="#94a3b8">OTEL</text>
+
+        <!-- Col4 → Col5: query -->
+        <line
+          x1="801"
+          y1="68"
+          x2="817"
+          y2="68"
+          stroke="#ffffff60"
+          stroke-width="1.5"
+          marker-end="url(#arrow)"
+        />
+        <text x="809" y="62" text-anchor="middle" font-size="9" fill="#94a3b8">query</text>
+      </svg>
     </article>
   }
 

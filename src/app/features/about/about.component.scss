@@ -354,6 +354,15 @@ h4 {
   font-size: 0.78rem;
 }
 
+// ── Architecture diagram ──────────────────────────────────────────────────────
+.arch-diagram {
+  display: block;
+  margin-top: 1rem;
+  border-radius: 8px;
+  background: var(--bg-terminal);
+  overflow: hidden;
+}
+
 // ── Stack links ───────────────────────────────────────────────────────────────
 .stack-link {
   color: var(--color-accent);
