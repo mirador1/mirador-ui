@@ -1,6 +1,6 @@
 # Customer Observability UI
 
-> Angular 21 frontend for the [`customer-service`](../workspace-modern/customer-service) Spring Boot backend.
+> Angular 21 frontend for the [`mirador-service`](../workspace-modern/mirador-service) Spring Boot backend.
 > Provides full observability, management, diagnostics, chaos testing, and advanced visualizations — all from the browser.
 
 ---
@@ -133,15 +133,15 @@ customer-observability-ui/
 
 ### Prerequisites
 
-| Tool | Min. version | Install |
+| Tool | Version | Install |
 |---|---|---|
 | **Node.js** | 22 LTS | [nodejs.org](https://nodejs.org) or `nvm install 22` |
 | **npm** | 10 | bundled with Node 22 |
 | **Docker Desktop** | 4.x | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) |
-| **Java** | 25 | [sdkman.io](https://sdkman.io) `sdk install java 25-open` |
+| **Java** | 17 / 21 / 25 (default: 25) | [sdkman.io](https://sdkman.io) `sdk install java 25-open` |
 | **Git** | any | pre-installed on most systems |
 
-> The backend ([mirador-service](https://gitlab.com/benoit.besson/mirador-service)) must be cloned as a **sibling directory** to this repo:
+> Both repos must live as siblings (the frontend's `run.sh` locates the backend by relative path):
 > ```
 > dev/
 >   workspace-modern/mirador-service/   ← backend
@@ -153,32 +153,21 @@ customer-observability-ui/
 ### First-time setup — complete stack
 
 ```bash
-# 1. Clone both repos side by side
-git clone https://gitlab.com/benoit.besson/mirador-service.git  workspace-modern/mirador-service
-git clone https://gitlab.com/benoit.besson/mirador-ui.git       js/mirador-ui
+# Clone both repos (run from your dev root)
+git clone https://gitlab.com/benoit.besson/mirador-service.git workspace-modern/mirador-service
+git clone https://gitlab.com/benoit.besson/mirador-ui.git js/mirador-ui
 
-# 2. Make scripts executable (once)
-chmod +x workspace-modern/mirador-service/run.sh workspace-modern/mirador-service/mvnw
-chmod +x js/mirador-ui/run.sh
-
-# 3. (Optional) configure environment — defaults work out of the box
-cd js/mirador-ui
-cp .env.example .env        # edit ports if needed
-
-# 4. Start everything from the frontend directory — one command
-./run.sh
+# Start everything — one command
+bash js/mirador-ui/run.sh
 ```
 
-The script starts Docker automatically and delegates infrastructure to the backend `run.sh`.
+Docker starts automatically. Sign in with **admin / admin** at http://localhost:4200.
 
-> **Backend only (no UI):**
+> **Backend only:**
 > ```bash
-> cd workspace-modern/mirador-service
-> ./run.sh all
+> bash workspace-modern/mirador-service/run.sh all
 > # → API at http://localhost:8080/swagger-ui.html  (admin/admin)
 > ```
-
-Sign in with **admin / admin** at http://localhost:4200.
 
 ---
 

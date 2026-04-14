@@ -17,7 +17,7 @@
  */
 import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DecimalPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
@@ -47,7 +47,7 @@ interface ImpactSample {
 @Component({
   selector: 'app-chaos',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, DatePipe, RouterLink],
+  imports: [FormsModule, DatePipe, RouterLink],
   templateUrl: './chaos.component.html',
   styleUrl: './chaos.component.scss',
 })

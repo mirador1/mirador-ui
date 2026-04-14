@@ -9,7 +9,6 @@
  * SQL Explorer has moved to DatabaseComponent (/database).
  */
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -37,7 +36,7 @@ interface ActuatorEnv {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [FormsModule, JsonPipe, RouterLink, DatePipe],
+  imports: [FormsModule, JsonPipe, RouterLink],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })
