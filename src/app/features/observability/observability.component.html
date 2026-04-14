@@ -106,7 +106,7 @@
         <div class="info-banner">
           <strong>⏱️ Traces via Grafana Tempo</strong> — Tempo is bundled inside the
           <strong>LGTM container on port 3001</strong>. There is no standalone Tempo UI: use
-          <a href="http://localhost:3001/explore" target="_blank" rel="noopener">Grafana Explore</a>
+          <a [href]="tempoExploreUrl()" target="_blank" rel="noopener">Grafana Explore</a>
           to query traces with TraceQL, or use the search below which queries the Tempo API through
           the Grafana datasource proxy. Click any trace row to expand the span waterfall. Click
           <em>🔍 Grafana</em> to open the full trace in Grafana Explore.
