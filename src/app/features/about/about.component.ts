@@ -384,12 +384,30 @@ export class AboutComponent {
     // Application
     {
       port: 8080,
-      name: 'Customer API',
+      name: 'Customer API (local)',
       category: 'App',
-      note: 'REST API + WebSocket + Swagger UI',
+      note: 'Spring Boot — direct process (ng serve connects here)',
       url: 'http://localhost:8080/swagger-ui.html',
     },
-    { port: 4200, name: 'Angular UI', category: 'App', note: 'This frontend (ng serve)' },
+    {
+      port: 4200,
+      name: 'Angular UI (ng serve)',
+      category: 'App',
+      note: 'Dev server → API on :8080 (not kind). Use :8090 for the kind cluster.',
+    },
+    {
+      port: 8090,
+      name: 'kind ingress (HTTP)',
+      category: 'App',
+      note: 'nginx-ingress: frontend + /api — full stack in Kubernetes',
+      url: 'http://localhost:8090',
+    },
+    {
+      port: 8443,
+      name: 'kind ingress (HTTPS)',
+      category: 'App',
+      note: 'TLS termination in kind (self-signed cert)',
+    },
     // Databases
     {
       port: 5432,
