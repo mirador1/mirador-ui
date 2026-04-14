@@ -456,13 +456,15 @@
 
   <!-- Live Feed (SSE) -->
   <div class="section-header" style="margin-top: 2rem">
-    <h2>
-      ⚡ Live Feed
-      @if (sseConnected()) {
-        <span class="sse-live-dot" title="SSE connection active"></span>
-      }
-    </h2>
-    <span class="section-sub">Real-time customer creation events (Server-Sent Events)</span>
+    <div>
+      <h2 style="margin: 0 0 0.1rem">
+        ⚡ Live Feed
+        @if (sseConnected()) {
+          <span class="sse-live-dot" title="SSE connection active"></span>
+        }
+      </h2>
+      <span class="section-sub">Real-time customer creation events (Server-Sent Events)</span>
+    </div>
   </div>
   <div class="live-activity-row">
     <article
