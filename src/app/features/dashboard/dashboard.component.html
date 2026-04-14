@@ -451,19 +451,30 @@
     }
   </div>
 
-  <!-- Live Activity (SSE) -->
+  <!-- Live Feed (SSE) -->
   <div class="section-header" style="margin-top: 2rem">
-    <h2>⚡ Live Activity</h2>
-    <span class="section-sub">Customer creation events via SSE /customers/stream</span>
+    <h2>
+      ⚡ Live Feed
+      @if (sseConnected()) {
+        <span class="sse-live-dot" title="SSE connection active"></span>
+      }
+    </h2>
+    <span class="section-sub">Real-time customer creation events (Server-Sent Events)</span>
   </div>
   <div class="live-activity-row">
-    <article class="stat-card">
-      <div class="stat-label">Created this session</div>
+    <article
+      class="stat-card"
+      title="Counts customer creation events received via Server-Sent Events (SSE) from /customers/stream — a persistent HTTP connection that pushes updates from the backend without polling."
+    >
+      <div class="stat-label">New customers</div>
       <div class="stat-value">{{ liveSessionCount() }}</div>
-      <div class="stat-sub">customers via SSE</div>
+      <div class="stat-sub">created since page load</div>
     </article>
-    <article class="card live-names-card">
-      <div class="card-title">Last 5 customers received live</div>
+    <article
+      class="card live-names-card"
+      title="The 5 most recent customers pushed live by the backend. Each entry appears within milliseconds of creation — no refresh needed."
+    >
+      <div class="card-title">Recent arrivals</div>
       @if (liveRecentNames().length === 0) {
         <p class="muted">Waiting for events… create a customer to see live updates.</p>
       } @else {

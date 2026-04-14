@@ -1023,3 +1023,27 @@ pre {
     transform: translateY(0);
   }
 }
+
+// ── SSE live indicator dot ────────────────────────────────────────────────────
+.sse-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  animation: ssePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ssePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
