@@ -170,6 +170,14 @@
   }
 }
 
+.nav-child-link {
+  cursor: pointer;
+  &.active {
+    color: var(--color-accent);
+    background: var(--bg-card-hover);
+  }
+}
+
 // ── Environment selector ────────────────────────────────────────────────────
 .env-selector {
   position: relative;

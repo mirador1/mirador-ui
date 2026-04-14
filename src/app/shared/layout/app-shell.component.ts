@@ -77,6 +77,11 @@ export class AppShellComponent {
           label: 'Bio, Todos, Enrich',
           tip: 'Per-customer tabs: Ollama LLM bio, JSONPlaceholder todos, Kafka request-reply enrich',
         },
+        {
+          label: '📡 Live Feeds',
+          path: '/timeline',
+          tip: 'SSE customer creation events (real-time push) + HTTP endpoint activity (Prometheus polling)',
+        },
       ],
     },
     {
@@ -241,14 +246,6 @@ export class AppShellComponent {
       ],
     },
     {
-      id: 'timeline',
-      icon: '📡',
-      label: 'Live Feeds',
-      path: '/timeline',
-      tip: 'Two live views: SSE customer creation events + HTTP endpoint activity (Prometheus polling)',
-      children: [],
-    },
-    {
       id: 'security',
       icon: '🔐',
       label: 'Security',
@@ -316,6 +313,11 @@ export class AppShellComponent {
       keywords: 'customers list create manage crud import export',
     },
     {
+      label: '📡 Live Feeds',
+      path: '/timeline',
+      keywords: 'live feed timeline sse stream customers realtime prometheus polling activity',
+    },
+    {
       label: '🧪 Diagnostic',
       path: '/diagnostic',
       keywords: 'diagnostic test scenarios versioning idempotency rate limit kafka stress',
@@ -355,11 +357,6 @@ export class AppShellComponent {
       label: '🛡️ Audit Trail',
       path: '/audit',
       keywords: 'audit trail security events login failed blocked customer created',
-    },
-    {
-      label: '📡 Live Feeds',
-      path: '/timeline',
-      keywords: 'live feed timeline sse stream customers realtime prometheus polling activity',
     },
     {
       label: '🔐 Security Demo',

@@ -69,7 +69,17 @@
               ) {
                 <div class="nav-children">
                   @for (child of section.children; track child.label) {
-                    <span class="nav-child" [title]="child.tip">{{ child.label }}</span>
+                    @if ($any(child).path) {
+                      <a
+                        class="nav-child nav-child-link"
+                        [routerLink]="$any(child).path"
+                        [class.active]="isActive($any(child).path)"
+                        [title]="child.tip"
+                        >{{ child.label }}</a
+                      >
+                    } @else {
+                      <span class="nav-child" [title]="child.tip">{{ child.label }}</span>
+                    }
                   }
                 </div>
               }
