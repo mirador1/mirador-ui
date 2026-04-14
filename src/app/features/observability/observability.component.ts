@@ -56,7 +56,21 @@ interface LatencyBucket {
   count: number;
 }
 
-type ObsTab = 'traces' | 'logs' | 'latency';
+interface LiveCustomer {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+  isNew: boolean;
+}
+
+type SseStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+
+const MAX_SSE_EVENTS = 50;
+const NEW_BADGE_MS = 5_000;
+const RECONNECT_DELAY_MS = 3_000;
+
+type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
 
 @Component({
   selector: 'app-observability',
@@ -94,6 +108,23 @@ export class ObservabilityComponent implements OnDestroy {
   // ── Latency histograms ────────────────────────────────────────────────────
   latencyBuckets = signal<LatencyBucket[]>([]);
   latencyLoading = signal(false);
+
+  // ── Live Feeds ────────────────────────────────────────────────────────────
+  liveSub = signal<'sse' | 'activity'>('sse');
+
+  // SSE
+  sseEvents = signal<LiveCustomer[]>([]);
+  sseStatus = signal<SseStatus>('disconnected');
+  sseTrafficRunning = signal(false);
+  private _es: EventSource | null = null;
+  private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private _badgeTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+  // Endpoint Activity (Prometheus polling)
+  activityFeed = signal<Array<{ time: string; method: string; uri: string; status: string }>>([]);
+  activityPolling = signal(false);
+  activityTrafficRunning = signal(false);
+  private _activityTimer: ReturnType<typeof setInterval> | null = null;
 
   // ── Loggers ───────────────────────────────────────────────────────────────
   loggersList = signal<Array<{ name: string; level: string }>>([]);
@@ -146,10 +177,15 @@ export class ObservabilityComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopLogsPolling();
+    this.cleanupSse();
+    this.stopActivityPolling();
   }
 
   switchTab(tab: ObsTab): void {
     this.activeTab.set(tab);
+    if (tab === 'live' && this._es === null && this.sseStatus() === 'disconnected') {
+      this.connectSse();
+    }
   }
 
   // ── Traces ────────────────────────────────────────────────────────────────
@@ -321,6 +357,183 @@ export class ObservabilityComponent implements OnDestroy {
         return 'log-debug';
       default:
         return 'log-default';
+    }
+  }
+
+  // ── Live Feeds — SSE ─────────────────────────────────────────────────────
+  private connectSse(): void {
+    this.cleanupSse();
+    this.sseStatus.set('connecting');
+    const url = `${this.env.baseUrl()}/customers/stream`;
+    try {
+      this._es = new EventSource(url);
+      this._es.addEventListener('customer', (e: MessageEvent) => {
+        this.sseStatus.set('connected');
+        try {
+          const c = JSON.parse(e.data) as LiveCustomer;
+          c.isNew = true;
+          this.sseEvents.update((prev) => [c, ...prev].slice(0, MAX_SSE_EVENTS));
+          const t = setTimeout(() => {
+            this.sseEvents.update((prev) =>
+              prev.map((ev) => (ev.id === c.id ? { ...ev, isNew: false } : ev)),
+            );
+            this._badgeTimers.delete(c.id);
+          }, NEW_BADGE_MS);
+          this._badgeTimers.set(c.id, t);
+        } catch {
+          /* ignore */
+        }
+      });
+      this._es.addEventListener('ping', () => this.sseStatus.set('connected'));
+      this._es.onopen = () => this.sseStatus.set('connected');
+      this._es.onerror = () => {
+        this.sseStatus.set('reconnecting');
+        this._es?.close();
+        this._es = null;
+        this._reconnectTimer = setTimeout(() => this.connectSse(), RECONNECT_DELAY_MS);
+      };
+    } catch {
+      this.sseStatus.set('disconnected');
+    }
+  }
+
+  reconnectSse(): void {
+    this.connectSse();
+  }
+
+  private cleanupSse(): void {
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this._badgeTimers.forEach((t) => clearTimeout(t));
+    this._badgeTimers.clear();
+    if (this._es) {
+      this._es.close();
+      this._es = null;
+    }
+  }
+
+  sseStatusLabel(s: SseStatus): string {
+    switch (s) {
+      case 'connected':
+        return '● Connected';
+      case 'connecting':
+        return '◌ Connecting…';
+      case 'reconnecting':
+        return '⟳ Reconnecting…';
+      case 'disconnected':
+        return '○ Disconnected';
+    }
+  }
+
+  sseStatusClass(s: SseStatus): string {
+    switch (s) {
+      case 'connected':
+        return 'sse-connected';
+      case 'connecting':
+        return 'sse-connecting';
+      case 'reconnecting':
+        return 'sse-reconnecting';
+      case 'disconnected':
+        return 'sse-disconnected';
+    }
+  }
+
+  generateSseTraffic(count = 3): void {
+    this.sseTrafficRunning.set(true);
+    const firstNames = ['Alice', 'Bob', 'Carlos', 'Diana', 'Eve', 'Frank', 'Grace', 'Hiro'];
+    const lastNames = ['Smith', 'Jones', 'Tanaka', 'Müller', 'Dupont', 'Kim', 'Rossi', 'Patel'];
+    const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+    const base = this.env.baseUrl();
+    let done = 0;
+    for (let i = 0; i < count; i++) {
+      const first = rand(firstNames);
+      const last = rand(lastNames);
+      const suffix = Math.floor(Math.random() * 9000 + 1000);
+      this.http
+        .post(`${base}/customers`, {
+          firstName: first,
+          lastName: last,
+          email: `${first.toLowerCase()}.${last.toLowerCase()}${suffix}@demo.dev`,
+        })
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === count) {
+            this.sseTrafficRunning.set(false);
+            this.toast.show(`${count} customer(s) created — SSE events incoming`, 'success');
+          }
+        });
+    }
+  }
+
+  // ── Live Feeds — Endpoint Activity ────────────────────────────────────────
+  toggleActivityPolling(): void {
+    if (this.activityPolling()) {
+      this.stopActivityPolling();
+    } else {
+      this.activityPolling.set(true);
+      this.pollActivity();
+      this._activityTimer = setInterval(() => this.pollActivity(), 2000);
+    }
+  }
+
+  private stopActivityPolling(): void {
+    this.activityPolling.set(false);
+    if (this._activityTimer) {
+      clearInterval(this._activityTimer);
+      this._activityTimer = null;
+    }
+  }
+
+  private pollActivity(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: (text) => {
+        const entries: Array<{ time: string; method: string; uri: string; status: string }> = [];
+        const regex =
+          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          entries.push({
+            time: new Date().toISOString().slice(11, 23),
+            method: m[1],
+            uri: m[3],
+            status: m[2],
+          });
+        }
+        if (entries.length > 0) {
+          this.activityFeed.update((f) => [...entries.slice(0, 5), ...f].slice(0, 100));
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  generateActivityTraffic(): void {
+    this.activityTrafficRunning.set(true);
+    const base = this.env.baseUrl();
+    const urls = [
+      `${base}/customers?page=0&size=10`,
+      `${base}/customers?page=0&size=10`,
+      `${base}/actuator/health`,
+      `${base}/customers/recent`,
+      `${base}/customers/summary?page=0&size=5`,
+      `${base}/customers/aggregate`,
+      `${base}/customers/1/todos`,
+      `${base}/customers/1/enrich`,
+      `${base}/customers?page=999&size=1`,
+      `${base}/actuator/info`,
+    ];
+    let done = 0;
+    for (const url of urls) {
+      this.http
+        .get(url)
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === urls.length) this.activityTrafficRunning.set(false);
+        });
     }
   }
 

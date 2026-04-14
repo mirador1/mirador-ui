@@ -467,29 +467,4 @@
       }
     }
   </div>
-
-  <!-- Live Feed (SSE) -->
-  <div class="section-header" style="margin-top: 2rem">
-    <div>
-      <h2 style="margin: 0 0 0.1rem">
-        ⚡ Live Feed
-        @if (sseConnected()) {
-          <span class="sse-live-dot" title="SSE connection active"></span>
-        }
-      </h2>
-      <span class="section-sub">Real-time customer creation events (Server-Sent Events)</span>
-    </div>
-  </div>
-  <div class="live-feed-preview">
-    @if (liveRecentNames().length === 0) {
-      <p class="muted">Waiting for events… create a customer to see live updates.</p>
-    } @else {
-      <ul class="live-names-list">
-        @for (name of liveRecentNames(); track name) {
-          <li class="live-name-item">{{ name }}</li>
-        }
-      </ul>
-    }
-    <a routerLink="/timeline" class="view-all-link">View full live feeds →</a>
-  </div>
 </section>

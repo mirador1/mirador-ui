@@ -75,11 +75,7 @@ export const routes: Routes = [
     path: 'audit',
     loadComponent: () => import('./features/audit/audit.component').then((m) => m.AuditComponent),
   },
-  {
-    path: 'timeline',
-    loadComponent: () =>
-      import('./features/timeline/timeline.component').then((m) => m.TimelineComponent),
-  },
+  { path: 'timeline', redirectTo: 'observability', pathMatch: 'full' },
   {
     path: 'security',
     loadComponent: () =>

@@ -79,12 +79,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Tracks previous health status to detect UP/DOWN transitions and trigger toasts */
   private _previousHealthStatus: string | null = null;
 
-  // ── Live Activity (SSE) ───────────────────────────────────────────────────
-  liveSessionCount = signal(0);
-  liveRecentNames = signal<string[]>([]);
-  sseConnected = signal(false);
-  private _sseSource: EventSource | null = null;
-
   /** Quick links — items that don't have a corresponding Docker container in Service Control */
   readonly quickLinks = [
     {
@@ -107,43 +101,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.refresh();
     this.setAutoRefresh(this.autoRefreshInterval());
     this.loadContainers();
-    this.connectSse();
     window.addEventListener('app:refresh', this._onRefresh);
   }
 
   ngOnDestroy(): void {
     this.stopTimer();
-    this.disconnectSse();
     window.removeEventListener('app:refresh', this._onRefresh);
-  }
-
-  private connectSse(): void {
-    const base = this.env.baseUrl();
-    try {
-      this._sseSource = new EventSource(`${base}/customers/stream`);
-      this._sseSource.onopen = () => this.sseConnected.set(true);
-      this._sseSource.onerror = () => this.sseConnected.set(false);
-      this._sseSource.addEventListener('customer', (e: MessageEvent) => {
-        try {
-          const c = JSON.parse(e.data) as { name: string };
-          this.sseConnected.set(true);
-          this.liveSessionCount.update((n) => n + 1);
-          this.liveRecentNames.update((names) => [c.name, ...names].slice(0, 5));
-        } catch {
-          /* ignore */
-        }
-      });
-    } catch {
-      /* SSE not available */
-    }
-  }
-
-  private disconnectSse(): void {
-    if (this._sseSource) {
-      this._sseSource.close();
-      this._sseSource = null;
-      this.sseConnected.set(false);
-    }
   }
 
   private _onRefresh = () => this.refresh();

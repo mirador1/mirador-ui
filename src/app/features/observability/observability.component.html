@@ -21,6 +21,9 @@
       <button [class.tab-active]="activeTab() === 'latency'" (click)="switchTab('latency')">
         <span class="tab-icon">📊</span> Latency <small>Prometheus</small>
       </button>
+      <button [class.tab-active]="activeTab() === 'live'" (click)="switchTab('live')">
+        <span class="tab-icon">📡</span> Live Feeds
+      </button>
     </div>
 
     <!-- Tab description + external links -->
@@ -60,6 +63,12 @@
               >🔍 Grafana Loki</a
             >
           </div>
+        }
+        @case ('live') {
+          <span class="tab-desc-text"
+            >SSE customer creation events (push) and HTTP endpoint activity (Prometheus
+            polling)</span
+          >
         }
         @case ('latency') {
           <span class="tab-desc-text"
@@ -290,6 +299,131 @@
           <p class="empty-text">
             Click "Fetch histogram" to load latency distribution from Prometheus metrics.
           </p>
+        }
+      </div>
+    }
+
+    <!-- ── Live Feeds tab ────────────────────────────────────────────────── -->
+    @if (activeTab() === 'live') {
+      <div class="tab-content">
+        <!-- Sub-tabs -->
+        <div class="live-subtabs">
+          <button
+            class="live-subtab"
+            [class.active]="liveSub() === 'sse'"
+            (click)="liveSub.set('sse')"
+          >
+            📡 SSE — Customer Events
+          </button>
+          <button
+            class="live-subtab"
+            [class.active]="liveSub() === 'activity'"
+            (click)="liveSub.set('activity')"
+          >
+            📊 Endpoint Activity
+          </button>
+        </div>
+
+        @if (liveSub() === 'sse') {
+          <div class="controls-row">
+            <div class="sse-status-row">
+              <span class="sse-pill" [class]="sseStatusClass(sseStatus())">{{
+                sseStatusLabel(sseStatus())
+              }}</span>
+              @if (sseStatus() === 'disconnected' || sseStatus() === 'reconnecting') {
+                <button class="run-btn" (click)="reconnectSse()">Reconnect</button>
+              }
+            </div>
+            <button
+              class="run-btn"
+              (click)="generateSseTraffic(3)"
+              [disabled]="sseTrafficRunning()"
+              title="POST /customers 3 times with random names to trigger SSE events"
+            >
+              {{ sseTrafficRunning() ? 'Creating...' : '⚡ Generate traffic (3 customers)' }}
+            </button>
+          </div>
+
+          @if (sseEvents().length === 0) {
+            <p class="empty-text">
+              Waiting for customer events… click "Generate traffic" or create a customer from the
+              Customers page.
+            </p>
+          } @else {
+            <div class="sse-list">
+              @for (ev of sseEvents(); track ev.id) {
+                <div class="sse-item" [class.sse-new]="ev.isNew">
+                  <div class="sse-dot"></div>
+                  <div class="sse-card">
+                    <div class="sse-card-header">
+                      <span class="sse-name">{{ ev.name }}</span>
+                      @if (ev.isNew) {
+                        <span class="sse-badge">NEW</span>
+                      }
+                    </div>
+                    <div class="sse-meta">
+                      <span>{{ ev.email }}</span>
+                      <span class="sse-sep">·</span>
+                      <span>{{ ev.createdAt | date: 'HH:mm:ss' }}</span>
+                      <span class="sse-sep">·</span>
+                      <span>ID #{{ ev.id }}</span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+
+        @if (liveSub() === 'activity') {
+          <div class="info-banner">
+            <strong>⚠️ This uses polling, not SSE.</strong> Every 2 s the UI calls
+            <code>GET /actuator/prometheus</code>, parses the Prometheus text format to extract HTTP
+            request counters per endpoint/method/status, then shows only endpoints with new traffic.
+            <br /><br />
+            <strong>Color coding:</strong> 🟢 2xx &nbsp; 🟠 4xx &nbsp; 🔴 5xx
+          </div>
+          <div class="controls-row">
+            <button
+              class="run-btn"
+              [class.active-poll]="activityPolling()"
+              (click)="toggleActivityPolling()"
+            >
+              {{ activityPolling() ? '⏹ Stop' : '▶ Start' }} live feed
+            </button>
+            <button
+              class="run-btn"
+              (click)="generateActivityTraffic()"
+              [disabled]="activityTrafficRunning()"
+              title="Send 10 varied GET requests to generate visible activity"
+            >
+              {{ activityTrafficRunning() ? 'Generating...' : '⚡ Generate traffic' }}
+            </button>
+            <span class="hint">Polls <code>/actuator/prometheus</code> every 2s</span>
+          </div>
+          @if (activityFeed().length) {
+            <div class="log-panel">
+              @for (entry of activityFeed(); track $index) {
+                <div
+                  class="log-entry"
+                  [class]="
+                    entry.status.startsWith('2')
+                      ? 'log-info'
+                      : entry.status.startsWith('4')
+                        ? 'log-warn'
+                        : 'log-error'
+                  "
+                >
+                  <span class="log-ts">{{ entry.time }}</span>
+                  <span class="feed-method">{{ entry.method }}</span>
+                  <span class="feed-uri">{{ entry.uri }}</span>
+                  <span class="feed-status">{{ entry.status }}</span>
+                </div>
+              }
+            </div>
+          } @else if (!activityPolling()) {
+            <p class="empty-text">Click "Start live feed" to monitor backend requests.</p>
+          }
         }
       </div>
     }

@@ -77,11 +77,6 @@ export class AppShellComponent {
           label: 'Bio, Todos, Enrich',
           tip: 'Per-customer tabs: Ollama LLM bio, JSONPlaceholder todos, Kafka request-reply enrich',
         },
-        {
-          label: '📡 Live Feeds',
-          path: '/timeline',
-          tip: 'SSE customer creation events (real-time push) + HTTP endpoint activity (Prometheus polling)',
-        },
       ],
     },
     {
@@ -104,6 +99,10 @@ export class AppShellComponent {
           label: 'Activity',
           path: '/activity',
           tip: 'Session event timeline — all client-side actions in this browser session',
+        },
+        {
+          label: 'Live Feeds',
+          tip: 'SSE customer creation events (real-time push) + HTTP endpoint activity (Prometheus polling)',
         },
       ],
     },
