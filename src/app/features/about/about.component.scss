@@ -308,6 +308,14 @@ h4 {
   color: var(--color-accent);
   white-space: nowrap;
 }
+.tech-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+  &:hover {
+    text-decoration: underline;
+  }
+}
 .tech-desc {
   color: var(--text-secondary);
 }

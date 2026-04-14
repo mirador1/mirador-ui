@@ -253,7 +253,15 @@
         <tbody>
           @for (t of technologies; track t.name) {
             <tr>
-              <td class="tech-name">{{ t.name }}</td>
+              <td class="tech-name">
+                @if (t.url) {
+                  <a [href]="t.url" target="_blank" rel="noopener" class="tech-link">{{
+                    t.name
+                  }}</a>
+                } @else {
+                  {{ t.name }}
+                }
+              </td>
               <td class="tech-desc">{{ t.description }}</td>
               <td class="tech-usage">{{ t.usage }}</td>
             </tr>
