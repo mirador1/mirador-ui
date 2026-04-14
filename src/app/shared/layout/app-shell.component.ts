@@ -84,7 +84,7 @@ export class AppShellComponent {
       icon: '🔍',
       label: 'Observability',
       path: '/observability',
-      tip: 'Distributed traces, structured logs, latency distribution, loggers',
+      tip: 'Distributed traces, structured logs + logger levels, latency distribution',
       children: [
         {
           label: 'Traces (Zipkin)',
@@ -94,10 +94,6 @@ export class AppShellComponent {
         {
           label: 'Latency Histogram',
           tip: 'HTTP response time distribution in 12 human-readable buckets',
-        },
-        {
-          label: 'Loggers',
-          tip: 'Browse and change Spring logger levels live via /actuator/loggers',
         },
         {
           label: 'Activity',

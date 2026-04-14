@@ -56,7 +56,7 @@ interface LatencyBucket {
   count: number;
 }
 
-type ObsTab = 'traces' | 'logs' | 'latency' | 'loggers';
+type ObsTab = 'traces' | 'logs' | 'latency';
 
 @Component({
   selector: 'app-observability',

@@ -21,9 +21,6 @@
       <button [class.tab-active]="activeTab() === 'latency'" (click)="switchTab('latency')">
         <span class="tab-icon">📊</span> Latency <small>Prometheus</small>
       </button>
-      <button [class.tab-active]="activeTab() === 'loggers'" (click)="switchTab('loggers')">
-        <span class="tab-icon">📝</span> Loggers <small>Actuator</small>
-      </button>
     </div>
 
     <!-- Tab description + external links -->
@@ -61,20 +58,6 @@
               rel="noopener"
               title="Grafana Explore with Loki datasource — run LogQL queries with autocomplete, filter by label, and correlate logs with traces via traceID."
               >🔍 Grafana Loki</a
-            >
-          </div>
-        }
-        @case ('loggers') {
-          <span class="tab-desc-text"
-            >Spring logger levels — change log verbosity live via Actuator</span
-          >
-          <div class="tab-links">
-            <a
-              href="http://localhost:8080/actuator/loggers"
-              target="_blank"
-              rel="noopener"
-              title="Raw /actuator/loggers JSON — all loggers and their current effective levels."
-              >📝 /actuator/loggers</a
             >
           </div>
         }
@@ -220,6 +203,55 @@
         } @else if (!logsLoading() && !logsError()) {
           <p class="empty-text">Click "Query" to fetch logs from Loki.</p>
         }
+
+        <!-- ── Logger levels ──────────────────────────────────────────────── -->
+        <div class="loggers-section">
+          <div class="loggers-heading">
+            <span class="loggers-title">📝 Spring Logger Levels</span>
+            <span class="loggers-desc"
+              >Logger levels control what gets emitted to Loki — raising a level to DEBUG will
+              immediately produce more entries in the log viewer above.</span
+            >
+          </div>
+          <div class="controls-row">
+            <button class="run-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
+              {{ loggerLoading() ? 'Loading...' : '↻ Load loggers' }}
+            </button>
+            @if (loggersList().length) {
+              <input
+                type="text"
+                placeholder="Filter loggers..."
+                [(ngModel)]="loggerFilter"
+                class="logger-filter"
+              />
+            }
+          </div>
+          @if (filteredLoggers.length) {
+            <div class="logger-list">
+              @for (l of filteredLoggers; track l.name) {
+                <div class="logger-row">
+                  <span class="logger-name">{{ l.name }}</span>
+                  <span class="logger-level">{{ l.level }}</span>
+                  <div class="logger-actions">
+                    @for (lv of ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']; track lv) {
+                      <button
+                        class="level-btn"
+                        [class.active]="l.level === lv"
+                        (click)="setLoggerLevel(l.name, lv)"
+                      >
+                        {{ lv }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (!loggerLoading() && loggersList().length === 0) {
+            <p class="empty-text" style="margin: 0.5rem 0 0">
+              Click "Load loggers" to list all Spring loggers and adjust their levels.
+            </p>
+          }
+        </div>
       </div>
     }
 
@@ -258,48 +290,6 @@
           <p class="empty-text">
             Click "Fetch histogram" to load latency distribution from Prometheus metrics.
           </p>
-        }
-      </div>
-    }
-
-    <!-- ── Loggers tab ───────────────────────────────────────────────────── -->
-    @if (activeTab() === 'loggers') {
-      <div class="tab-content">
-        <div class="controls-row">
-          <button class="run-btn" (click)="loadLoggers()" [disabled]="loggerLoading()">
-            {{ loggerLoading() ? 'Loading...' : '↻ Load loggers' }}
-          </button>
-          @if (loggersList().length) {
-            <input
-              type="text"
-              placeholder="Filter loggers..."
-              [(ngModel)]="loggerFilter"
-              class="logger-filter"
-            />
-          }
-        </div>
-        @if (filteredLoggers.length) {
-          <div class="logger-list">
-            @for (l of filteredLoggers; track l.name) {
-              <div class="logger-row">
-                <span class="logger-name">{{ l.name }}</span>
-                <span class="logger-level">{{ l.level }}</span>
-                <div class="logger-actions">
-                  @for (lv of ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']; track lv) {
-                    <button
-                      class="level-btn"
-                      [class.active]="l.level === lv"
-                      (click)="setLoggerLevel(l.name, lv)"
-                    >
-                      {{ lv }}
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        } @else if (!loggerLoading() && loggersList().length === 0) {
-          <p class="empty-text">Click "Load loggers" to list all Spring loggers.</p>
         }
       </div>
     }
