@@ -25,7 +25,7 @@
         <strong>Report not updated automatically.</strong>
         To regenerate, run one of the following commands on the backend, then restart the app:
         <span class="refresh-variant">
-          <span class="refresh-variant-label">Java 25 (SpotBugs + OWASP):</span>
+          <span class="refresh-variant-label">Java 25 — SpotBugs + OWASP + Pitest:</span>
           <code class="refresh-cmd">mvn verify -Preport -DskipITs -Djacoco.skip=true</code>
         </span>
         <span class="refresh-variant">
@@ -35,8 +35,9 @@
           >
         </span>
         <span class="refresh-hint">
-          Mutation tests (slow):
-          <code>mvn test-compile pitest:mutationCoverage -Preport</code>
+          ⚠️ PMD + Checkstyle require Java ≤21 (crash on Java 25 pattern matching). Pitest is
+          included in <code>-Preport</code> but takes ~10–30 min. 6 tests are skipped on Java 25+
+          (ArchUnit doesn't support class file version 69 yet).
         </span>
       </div>
     </div>
@@ -247,8 +248,10 @@
               }
               @if (r.tests.skipped! > 0) {
                 <span class="sep">·</span>
-                <span class="pct-warn"
-                  ><strong>{{ r.tests.skipped }}</strong> skipped</span
+                <span
+                  class="pct-warn"
+                  title="ArchUnit tests are disabled on Java 25+ (class file v69 not supported by ArchUnit 1.4.x)"
+                  ><strong>{{ r.tests.skipped }}</strong> skipped ⓘ</span
                 >
               }
               <span class="sep">·</span>
@@ -552,7 +555,10 @@
             </h3>
 
             @if (!r.pmd.available) {
-              <div class="info-card">ℹ Run <code>mvn verify</code> to generate PMD report.</div>
+              <div class="info-card">
+                ℹ PMD requires Java ≤21. Run:
+                <code>mvn verify -Preport,report-static -Dcompat -DskipITs -Djacoco.skip=true</code>
+              </div>
             } @else if (r.pmd.total === 0) {
               <div class="success-card">✅ No PMD violations found.</div>
             } @else {
@@ -624,7 +630,8 @@
 
             @if (!r.checkstyle.available) {
               <div class="info-card">
-                ℹ Run <code>mvn verify</code> to generate Checkstyle report.
+                ℹ Checkstyle requires Java ≤21. Run:
+                <code>mvn verify -Preport,report-static -Dcompat -DskipITs -Djacoco.skip=true</code>
               </div>
             } @else if (r.checkstyle.total === 0) {
               <div class="success-card">✅ No Checkstyle violations found.</div>
