@@ -62,6 +62,11 @@
           {{ testReportLoading() ? 'Loading…' : '▶ Load' }}
         </button>
       </div>
+      @if (testReportError()) {
+        <div class="scenario-output">
+          <span class="log-line log-err">⚠ {{ testReportError() }}</span>
+        </div>
+      }
       @if (testReport(); as r) {
         @if (r['available'] === true) {
           <div class="scenario-output" style="width: 100%">

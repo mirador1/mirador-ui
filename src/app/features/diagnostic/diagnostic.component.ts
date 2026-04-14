@@ -107,16 +107,28 @@ export class DiagnosticComponent implements OnInit {
   // ── Test report (Surefire) ─────────────────────────────────────────────────
   testReport = signal<Record<string, unknown> | null>(null);
   testReportLoading = signal(false);
+  testReportError = signal<string | null>(null);
 
   loadTestReport(): void {
     this.testReportLoading.set(true);
+    this.testReportError.set(null);
     this.http.get<Record<string, unknown>>(`${this.env.baseUrl()}/actuator/info`).subscribe({
       next: (info) => {
-        this.testReport.set((info['tests'] as Record<string, unknown>) ?? null);
+        const tests = info['tests'] as Record<string, unknown> | undefined;
+        if (!tests) {
+          this.testReport.set(null);
+          this.testReportError.set(
+            'No "tests" key in /actuator/info — restart the backend to pick up TestReportInfoContributor.',
+          );
+        } else {
+          this.testReport.set(tests);
+          this.testReportError.set(null);
+        }
         this.testReportLoading.set(false);
       },
-      error: () => {
+      error: (e) => {
         this.testReport.set(null);
+        this.testReportError.set(`Cannot reach /actuator/info (${e.status ?? 'network error'}).`);
         this.testReportLoading.set(false);
       },
     });
