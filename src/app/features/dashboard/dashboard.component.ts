@@ -745,31 +745,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       image: 'images/tools/prometheus.png',
     },
     {
-      id: 'tempo',
-      label: 'Tempo (LGTM)',
+      id: 'loki',
+      label: 'LGTM',
       col: 4,
       row: 1,
-      icon: '⏱️',
+      icon: '📦',
       port: '3001',
       container: 'customerservice-lgtm',
-      url: 'http://localhost:3001/explore?schemaVersion=1&panes=%7B%22df4%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceqlSearch%22%2C%22limit%22%3A20%2C%22tableType%22%3A%22traces%22%2C%22filters%22%3A%5B%7B%22id%22%3A%220153af9c%22%2C%22operator%22%3A%22%3D%22%2C%22scope%22%3A%22span%22%7D%5D%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1',
-      tip: 'Distributed traces',
+      url: 'http://localhost:3001/d/63d6a698-a196-4adb-9fd6-79ebc6cc8a63/customerservice-overview?orgId=1&from=now-15m&to=now&timezone=browser',
+      tip: 'Traces · Logs · Metrics',
       detail:
-        'Grafana Tempo — distributed trace backend bundled inside the LGTM container (Grafana on port 3001). Spring Boot sends traces via OTLP on port 4318 → OTel collector → Tempo. Query with TraceQL in Grafana Explore or the Angular Observability Traces tab. Tempo HTTP API exposed on port 3200. Enables trace-to-log correlation: traceId links in Loki logs jump to the matching Tempo trace.',
-      image: 'images/tools/grafana.png',
-    },
-    {
-      id: 'loki',
-      label: 'Loki (LGTM)',
-      col: 4,
-      row: 2,
-      icon: '🔍',
-      port: '3001',
-      container: 'customerservice-lgtm',
-      url: 'http://localhost:3001/explore',
-      tip: 'Log aggregation',
-      detail:
-        'Grafana Loki — log aggregation backend bundled inside the LGTM container. Spring Boot sends logs via OpenTelemetry Logback appender → OTLP collector → Loki. Query with LogQL in the Angular Observability Logs tab or Grafana Explore on port 3001. Each log line carries the traceId for Grafana trace-to-log correlation.',
+        'Grafana otel-lgtm — bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI) in a single container. Spring Boot sends traces and logs via OTLP on port 4318 → OTel Collector → Tempo / Loki. Open the CustomerService Overview dashboard for full correlation: click a metric spike to jump to the matching trace, click a trace to see its logs.',
       image: 'images/tools/grafana.png',
     },
     {
@@ -821,12 +807,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'kafka', to: 'kafka-ui' },
     // Col 1 → 4 (API pushes to obs collectors via OTLP on port 4318)
     { from: 'api', to: 'prometheus' },
-    { from: 'api', to: 'tempo' }, // OTLP traces → Tempo (inside LGTM)
-    { from: 'api', to: 'loki' }, // OTLP logs → Loki (inside LGTM)
+    { from: 'api', to: 'loki' }, // OTLP traces + logs → LGTM (Tempo + Loki inside)
     { from: 'api', to: 'pyroscope' },
     // Col 4 → 5 (collectors → dashboards)
     { from: 'prometheus', to: 'grafana' },
-    { from: 'tempo', to: 'grafana' },
     { from: 'loki', to: 'grafana' },
     { from: 'pyroscope', to: 'grafana' },
   ];
@@ -868,7 +852,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'kafka-ui': 'kafka-ui',
       redisinsight: 'redisinsight',
       'customerservice-prometheus': 'prometheus',
-      'customerservice-grafana': 'grafana',
       'customerservice-zipkin': 'zipkin',
       'customerservice-lgtm': 'loki',
       'customerservice-pyroscope': 'pyroscope',
@@ -880,6 +863,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Consumer = same as Kafka
     const kafkaC = containers.find((x) => x.name === 'kafka-demo');
     update('consumer', kafkaC?.running ? 'up' : 'unknown');
+    // Grafana UI = same container as LGTM backend
+    const lgtmC = containers.find((x) => x.name === 'customerservice-lgtm');
+    update('grafana', lgtmC ? (lgtmC.running ? 'up' : 'down') : 'unknown');
   }
 
   topoNodesInCol(col: number) {

@@ -188,7 +188,7 @@ export class VisualizationsComponent implements OnDestroy {
     { id: 'prometheus', label: 'Prometheus', x: 800, y: 40, status: 'unknown' },
     { id: 'grafana', label: 'Grafana', x: 800, y: 110, status: 'unknown' },
     { id: 'zipkin', label: 'Zipkin', x: 800, y: 180, status: 'unknown' },
-    { id: 'loki', label: 'Loki (LGTM)', x: 800, y: 250, status: 'unknown' },
+    { id: 'loki', label: 'LGTM', x: 800, y: 250, status: 'unknown' },
     // Col 6
     { id: 'pyroscope', label: 'Pyroscope', x: 950, y: 110, status: 'unknown' },
   ]);
