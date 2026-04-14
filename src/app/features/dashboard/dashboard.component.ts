@@ -772,21 +772,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Grafana Pyroscope — continuous profiling with CPU (itimer), memory allocation (alloc 512KB threshold), and lock contention (10ms threshold) flamegraphs. The Pyroscope Java agent attaches via -javaagent in app-profiled mode. Uploads profiles every 10s. Identifies hot methods and memory leaks.',
       image: 'images/tools/pyroscope.png',
     },
-    // Col 5 — Observability Dashboards
-    {
-      id: 'grafana',
-      label: 'Grafana',
-      col: 5,
-      row: 0,
-      icon: '📊',
-      port: '3001',
-      container: 'customerservice-lgtm',
-      url: 'http://localhost:3000/dashboards',
-      tip: 'Traces · Logs · Metrics',
-      detail:
-        'Grafana LGTM all-in-one on port 3001: bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI). Spring Boot sends traces and logs via OTLP on port 4318. Anonymous access enabled — opens directly on the Customer Service overview dashboard.',
-      image: 'images/tools/grafana.png',
-    },
   ];
 
   // All edges flow strictly left → right (lower col → higher col)
@@ -809,10 +794,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'api', to: 'prometheus' },
     { from: 'api', to: 'loki' }, // OTLP traces + logs → LGTM (Tempo + Loki inside)
     { from: 'api', to: 'pyroscope' },
-    // Col 4 → 5 (collectors → dashboards)
-    { from: 'prometheus', to: 'grafana' },
-    { from: 'loki', to: 'grafana' },
-    { from: 'pyroscope', to: 'grafana' },
   ];
   topoStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
 
@@ -863,9 +844,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Consumer = same as Kafka
     const kafkaC = containers.find((x) => x.name === 'kafka-demo');
     update('consumer', kafkaC?.running ? 'up' : 'unknown');
-    // Grafana UI = same container as LGTM backend
-    const lgtmC = containers.find((x) => x.name === 'customerservice-lgtm');
-    update('grafana', lgtmC ? (lgtmC.running ? 'up' : 'down') : 'unknown');
   }
 
   topoNodesInCol(col: number) {
