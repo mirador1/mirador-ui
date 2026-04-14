@@ -19,7 +19,7 @@
       Please <a routerLink="/login">sign in</a> to access the database explorer.
     </div>
   } @else {
-    <!-- SQL Explorer -->
+    <!-- SQL Explorer intro -->
     <article class="card">
       <h3>🐘 SQL Explorer</h3>
       <p class="card-desc">
@@ -28,25 +28,6 @@
         operations (VACUUM, ANALYZE, REINDEX), use
         <a href="http://localhost:5050" target="_blank" rel="noopener">pgAdmin</a>.
       </p>
-
-      <div class="sql-presets">
-        @for (cat of sqlPresetCategories; track cat.label) {
-          <div class="sql-cat">
-            <strong class="sql-cat-label">{{ cat.label }}</strong>
-            <div class="sql-cat-btns">
-              @for (p of cat.presets; track p.name) {
-                <button
-                  class="sql-preset-btn"
-                  (click)="sqlQuery = p.query; executeSql()"
-                  [title]="p.tip"
-                >
-                  {{ p.icon }} {{ p.name }}
-                </button>
-              }
-            </div>
-          </div>
-        }
-      </div>
 
       <div class="sql-editor">
         <textarea
@@ -87,5 +68,23 @@
         </div>
       }
     </article>
+
+    <!-- SQL preset categories — one card per category -->
+    @for (cat of sqlPresetCategories; track cat.label) {
+      <article class="card">
+        <h3>{{ cat.label }}</h3>
+        <div class="sql-cat-btns">
+          @for (p of cat.presets; track p.name) {
+            <button
+              class="sql-preset-btn"
+              (click)="sqlQuery = p.query; executeSql()"
+              [title]="p.tip"
+            >
+              {{ p.icon }} {{ p.name }}
+            </button>
+          }
+        </div>
+      </article>
+    }
   }
 </section>

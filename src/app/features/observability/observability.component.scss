@@ -2,6 +2,29 @@ h2 {
   margin: 0 0 0.25rem;
 }
 
+.info-banner {
+  background: var(--bg-info, #1e3a5f);
+  border: 1px solid var(--border-info, #2563eb);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+
+  strong {
+    color: var(--text-primary);
+  }
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.78rem;
+  }
+}
+
 .page-header {
   margin-bottom: 1.25rem;
 }

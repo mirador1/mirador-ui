@@ -20,6 +20,30 @@
   }
 }
 
+// ── Event type legend ────────────────────────────────────────────────────────
+.event-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--card-bg, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.legend-desc {
+  color: var(--text-muted, #6b7280);
+  font-size: 0.72rem;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;

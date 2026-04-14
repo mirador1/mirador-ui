@@ -4,6 +4,36 @@
     <p class="subtitle">Interactive demos of common web vulnerabilities — educational only</p>
   </header>
 
+  <!-- Context banner -->
+  <div class="context-banner">
+    <p>
+      <strong>🎓 Educational purpose only.</strong> The Spring Boot backend exposes three endpoints
+      that contain <em>intentional</em> security vulnerabilities alongside their safe counterparts:
+    </p>
+    <ul>
+      <li>
+        <strong>GET /security/sqli/vulnerable?name=…</strong> — builds the SQL query by string
+        concatenation. Input like <code>' OR '1'='1</code> returns all rows.
+        <strong>GET /security/sqli/safe?name=…</strong> uses a parameterised JPA query instead.
+      </li>
+      <li>
+        <strong>GET /security/xss/vulnerable?name=…</strong> — echoes the raw input into an HTML
+        response without encoding. Injecting <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>
+        would execute in a real browser.
+        <strong>GET /security/xss/safe?name=…</strong> uses Spring's
+        <code>HtmlUtils.htmlEscape()</code> before rendering.
+      </li>
+      <li>
+        <strong>GET /security/cors</strong> — shows the current CORS policy and explains what a
+        wildcard <code>Access-Control-Allow-Origin: *</code> combined with credentials would expose.
+      </li>
+    </ul>
+    <p class="context-note">
+      ⚠️ These vulnerable endpoints are deliberately <strong>not</strong> protected by Spring
+      Security so the attack is demonstrable. They should never exist in production code.
+    </p>
+  </div>
+
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn" [class.active]="activeTab() === 'sqli'" (click)="setTab('sqli')">

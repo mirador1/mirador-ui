@@ -19,6 +19,45 @@
   }
 }
 
+// ── Context banner ─────────────────────────────────────────────────────────────
+.context-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+
+  p,
+  ul {
+    margin: 0 0 0.4rem;
+  }
+  ul {
+    padding-left: 1.25rem;
+  }
+  li {
+    margin-bottom: 0.3rem;
+  }
+  strong {
+    color: var(--text-primary);
+  }
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.78rem;
+  }
+  .context-note {
+    margin-top: 0.5rem;
+    color: #f59e0b;
+    font-size: 0.78rem;
+  }
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 .tabs {
   display: flex;

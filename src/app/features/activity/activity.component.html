@@ -25,9 +25,26 @@
 
   <div class="quick-actions">
     <span class="quick-label">Generate activity:</span>
-    <button class="action-btn" (click)="quickCreate()">+ Create customer</button>
-    <button class="action-btn" (click)="quickHealth()">💚 Health check</button>
-    <button class="action-btn" (click)="quickTraffic()" [disabled]="generating()">
+    <button
+      class="action-btn"
+      (click)="quickCreate()"
+      title="POST /customers — creates a real customer via the API and logs a customer-create event"
+    >
+      + Create customer
+    </button>
+    <button
+      class="action-btn"
+      (click)="quickHealth()"
+      title="GET /actuator/health — checks backend status and logs a health-change event (UP / DOWN)"
+    >
+      💚 Health check
+    </button>
+    <button
+      class="action-btn"
+      (click)="quickTraffic()"
+      [disabled]="generating()"
+      title="Runs a full sequence: create, update, delete, health check, diagnostic call, env switch, import — produces all 7 activity event types in one pass"
+    >
       {{ generating() ? 'Generating...' : '⚡ Full cycle (all 7 event types)' }}
     </button>
   </div>

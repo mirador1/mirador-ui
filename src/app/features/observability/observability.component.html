@@ -297,9 +297,20 @@
       </div>
     }
 
-    <!-- ── Live feed tab ────────────────────────────────────────────���──── -->
+    <!-- ── Live feed tab ──────────────────────────────────────────────────── -->
     @if (activeTab() === 'live') {
       <div class="tab-content">
+        <div class="info-banner">
+          <strong>ℹ️ How it works</strong> — Every 2 seconds the UI calls
+          <code>/actuator/prometheus</code> and parses the raw Prometheus text format to extract HTTP
+          request counters per endpoint, method, and status code. It computes the delta since the
+          last poll and displays only endpoints that received at least one new request. This is
+          <em>polling</em>, not a push stream (SSE/WebSocket) — the backend does not push data
+          proactively.
+          <br />
+          <strong>Color coding:</strong> green = 2xx success, orange = 4xx client error, red = 5xx
+          server error.
+        </div>
         <div class="controls-row">
           <button class="run-btn" [class.active-poll]="livePolling()" (click)="toggleLiveFeed()">
             {{ livePolling() ? '⏹ Stop' : '▶ Start' }} live feed
