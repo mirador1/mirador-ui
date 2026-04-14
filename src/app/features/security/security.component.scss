@@ -399,3 +399,257 @@
 .mt-1 {
   margin-top: 0.5rem;
 }
+
+// ── Mechanisms Tab ─────────────────────────────────────────────────────────────
+.mech-group {
+  margin-bottom: 1.25rem;
+}
+
+.mech-category {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary, #e5e7eb);
+  margin: 0 0 0.5rem;
+}
+
+.mech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.5rem;
+}
+
+.mech-card {
+  background: var(--card-bg, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+
+  &.mech-optional {
+    border-style: dashed;
+    opacity: 0.85;
+  }
+}
+
+.mech-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.mech-name {
+  font-size: 0.85rem;
+  color: var(--text-primary, #e5e7eb);
+}
+
+.mech-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  background: #14532d;
+  color: #86efac;
+  letter-spacing: 0.04em;
+
+  &.mech-badge-optional {
+    background: #422006;
+    color: #fde68a;
+  }
+}
+
+.mech-desc {
+  font-size: 0.77rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.45;
+  margin: 0 0 0.4rem;
+}
+
+.mech-config {
+  font-size: 0.7rem;
+  color: var(--text-muted, #9ca3af);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  line-height: 1.4;
+}
+
+.mech-config-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #9ca3af);
+  margin-right: 0.35rem;
+}
+
+// ── Preset buttons ─────────────────────────────────────────────────────────────
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.preset-label {
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.preset-btn {
+  padding: 0.2rem 0.55rem;
+  background: transparent;
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 4px;
+  color: var(--text-muted, #9ca3af);
+  font-size: 0.72rem;
+  font-family: monospace;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: var(--accent, #6366f1);
+    color: var(--text, #e5e7eb);
+  }
+}
+
+// ── JWT Inspector ─────────────────────────────────────────────────────────────
+.jwt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.jwt-section {
+  background: var(--card-bg, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+
+  &.jwt-section-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.jwt-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 0.5rem;
+}
+
+.jwt-claims {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.jwt-claim {
+  display: grid;
+  grid-template-columns: 50px 1fr 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &.jwt-claim-expired {
+    background: rgba(185, 28, 28, 0.15);
+    border-radius: 4px;
+  }
+}
+
+.jwt-claim-key {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--accent, #6366f1);
+  font-weight: 600;
+}
+
+.jwt-claim-value {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  word-break: break-all;
+}
+
+.jwt-claim-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+// ── Security Headers Table ─────────────────────────────────────────────────────
+.headers-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.headers-header {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #9ca3af) !important;
+  border-bottom: 1px solid var(--border, #2d3447);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.1rem;
+}
+
+.headers-row {
+  display: grid;
+  grid-template-columns: 240px 200px 200px 40px 1fr;
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+
+  &.headers-ok {
+    background: rgba(21, 128, 61, 0.06);
+  }
+  &.headers-missing {
+    background: rgba(185, 28, 28, 0.06);
+  }
+}
+
+.header-name {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text, #e5e7eb);
+  word-break: break-all;
+}
+
+.header-expected {
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #86efac;
+  word-break: break-all;
+}
+
+.header-actual {
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #93c5fd;
+  word-break: break-all;
+}
+
+.header-status {
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.header-explanation {
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.4;
+}

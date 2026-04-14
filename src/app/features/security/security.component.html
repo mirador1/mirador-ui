@@ -1,41 +1,18 @@
 <section class="security-page">
   <header class="page-header">
     <h1>🔐 Security Demo</h1>
-    <p class="subtitle">Interactive demos of common web vulnerabilities — educational only</p>
+    <p class="subtitle">Production security mechanisms + interactive OWASP vulnerability demos</p>
   </header>
-
-  <!-- Context banner -->
-  <div class="context-banner">
-    <p>
-      <strong>🎓 Educational purpose only.</strong> The Spring Boot backend exposes three endpoints
-      that contain <em>intentional</em> security vulnerabilities alongside their safe counterparts:
-    </p>
-    <ul>
-      <li>
-        <strong>GET /security/sqli/vulnerable?name=…</strong> — builds the SQL query by string
-        concatenation. Input like <code>' OR '1'='1</code> returns all rows.
-        <strong>GET /security/sqli/safe?name=…</strong> uses a parameterised JPA query instead.
-      </li>
-      <li>
-        <strong>GET /security/xss/vulnerable?name=…</strong> — echoes the raw input into an HTML
-        response without encoding. Injecting <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>
-        would execute in a real browser.
-        <strong>GET /security/xss/safe?name=…</strong> uses Spring's
-        <code>HtmlUtils.htmlEscape()</code> before rendering.
-      </li>
-      <li>
-        <strong>GET /security/cors</strong> — shows the current CORS policy and explains what a
-        wildcard <code>Access-Control-Allow-Origin: *</code> combined with credentials would expose.
-      </li>
-    </ul>
-    <p class="context-note">
-      ⚠️ These vulnerable endpoints are deliberately <strong>not</strong> protected by Spring
-      Security so the attack is demonstrable. They should never exist in production code.
-    </p>
-  </div>
 
   <!-- Tabs -->
   <div class="tabs">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'mechanisms'"
+      (click)="setTab('mechanisms')"
+    >
+      🛡️ Mechanisms
+    </button>
     <button class="tab-btn" [class.active]="activeTab() === 'sqli'" (click)="setTab('sqli')">
       💉 SQL Injection
     </button>
@@ -45,15 +22,61 @@
     <button class="tab-btn" [class.active]="activeTab() === 'cors'" (click)="setTab('cors')">
       🌐 CORS
     </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'idor'" (click)="setTab('idor')">
+      🔓 IDOR
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'jwt'" (click)="setTab('jwt')">
+      🔑 JWT
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'headers'" (click)="setTab('headers')">
+      🏷️ Headers
+    </button>
   </div>
 
-  <!-- ── SQL Injection Tab ───────────────────────────────────────────────── -->
+  <!-- ── Mechanisms Tab ─────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'mechanisms') {
+    <div class="tab-content">
+      <div class="explanation-card info">
+        <strong>ℹ️ Production security</strong> — These mechanisms are active in the running
+        application and are <em>not</em> intentionally vulnerable. The other tabs demo OWASP
+        vulnerabilities for educational purposes.
+      </div>
+
+      @for (group of mechanisms; track group.category) {
+        <div class="mech-group">
+          <h3 class="mech-category">{{ group.category }}</h3>
+          <div class="mech-grid">
+            @for (item of group.items; track item.name) {
+              <div class="mech-card" [class.mech-optional]="item.status === 'optional'">
+                <div class="mech-header">
+                  <strong class="mech-name">{{ item.name }}</strong>
+                  <span class="mech-badge" [class.mech-badge-optional]="item.status === 'optional'">
+                    {{ item.status === 'optional' ? 'optional' : 'active' }}
+                  </span>
+                </div>
+                <p class="mech-desc">{{ item.description }}</p>
+                <div class="mech-config">
+                  <span class="mech-config-label">Config</span>
+                  {{ item.config }}
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── SQL Injection Tab ───────────────────────────────────────────────────── -->
   @if (activeTab() === 'sqli') {
     <div class="tab-content">
       <div class="explanation-card warn">
-        <strong>⚠️ SQL Injection</strong> — Unsanitised user input is concatenated directly into a
-        SQL query, allowing an attacker to manipulate the query logic (e.g. bypass authentication or
-        extract all rows).
+        <strong>⚠️ SQL Injection (OWASP A03)</strong> — Unsanitised user input is concatenated
+        directly into a SQL query, allowing an attacker to manipulate the query logic (e.g. bypass
+        authentication or extract all rows). The backend endpoint at
+        <code>/demo/security/sqli-vulnerable</code> builds the query as a string. The safe endpoint
+        uses a JDBC <code>?</code> placeholder — the driver sends value and query separately, making
+        injection structurally impossible.
       </div>
 
       <div class="input-row">
@@ -64,6 +87,16 @@
           [value]="sqliName()"
           (input)="sqliName.set($any($event.target).value)"
         />
+        <div class="preset-row">
+          <span class="preset-label">Presets:</span>
+          <button class="preset-btn" (click)="sqliName.set(`Alice' OR '1'='1`)">
+            Dump all rows
+          </button>
+          <button class="preset-btn" (click)="sqliName.set(`Alice'; DROP TABLE customer; --`)">
+            DROP TABLE (blocked by driver)
+          </button>
+          <button class="preset-btn" (click)="sqliName.set('Alice')">Normal name</button>
+        </div>
       </div>
 
       <div class="action-row">
@@ -79,7 +112,6 @@
         <div class="error-banner">{{ sqliError() }}</div>
       }
 
-      <!-- Results side by side -->
       <div class="results-grid">
         @if (sqliVulnResult(); as r) {
           <div class="result-card danger">
@@ -114,14 +146,15 @@
     </div>
   }
 
-  <!-- ── XSS Tab ────────────────────────────────────────────────────────── -->
+  <!-- ── XSS Tab ────────────────────────────────────────────────────────────── -->
   @if (activeTab() === 'xss') {
     <div class="tab-content">
       <div class="explanation-card warn">
-        <strong>⚠️ Cross-Site Scripting (XSS)</strong> — Unescaped user input is injected into HTML
-        output, allowing an attacker to execute arbitrary JavaScript in the victim's browser. The
-        vulnerable version loads the raw server response in a sandboxed iframe. The safe version
-        uses server-side HTML encoding.
+        <strong>⚠️ Cross-Site Scripting (OWASP A07)</strong> — Unescaped user input is injected into
+        HTML output, allowing an attacker to execute arbitrary JavaScript in the victim's browser.
+        The vulnerable endpoint echoes input raw. The safe endpoint uses
+        <code>HtmlUtils.htmlEscape()</code> — special characters become <code>&lt;</code>,
+        <code>&gt;</code>, etc. Angular also applies <code>DomSanitizer</code> on rendered HTML.
       </div>
 
       <div class="input-row">
@@ -132,6 +165,19 @@
           [value]="xssName()"
           (input)="xssName.set($any($event.target).value)"
         />
+        <div class="preset-row">
+          <span class="preset-label">Presets:</span>
+          <button class="preset-btn" (click)="xssName.set(`<img src=x onerror=alert('XSS')>`)">
+            img onerror
+          </button>
+          <button class="preset-btn" (click)="xssName.set(`<script>alert('XSS')</script>`)">
+            script tag
+          </button>
+          <button class="preset-btn" (click)="xssName.set(`<b>Bold</b> &amp; <i>italic</i>`)">
+            HTML formatting
+          </button>
+          <button class="preset-btn" (click)="xssName.set('Alice')">Normal name</button>
+        </div>
       </div>
 
       <div class="action-row">
@@ -182,7 +228,7 @@
     </div>
   }
 
-  <!-- ── CORS Tab ───────────────────────────────────────────────────────── -->
+  <!-- ── CORS Tab ───────────────────────────────────────────────────────────── -->
   @if (activeTab() === 'cors') {
     <div class="tab-content">
       <div class="explanation-card info">
@@ -190,6 +236,9 @@
         policy. CORS headers tell the browser which origins are allowed to make cross-origin
         requests. A misconfigured CORS policy (e.g. <code>Access-Control-Allow-Origin: *</code> with
         credentials) can let an attacker steal authenticated data.
+        <br />
+        This project's CORS is <strong>correctly restricted</strong> to
+        <code>http://localhost:4200</code> only.
       </div>
 
       @if (corsLoading()) {
@@ -229,6 +278,226 @@
         </div>
 
         <button class="btn btn-ghost mt-1" (click)="loadCors()">↻ Refresh</button>
+      }
+    </div>
+  }
+
+  <!-- ── IDOR Tab ───────────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'idor') {
+    <div class="tab-content">
+      <div class="explanation-card warn">
+        <strong>⚠️ IDOR / BOLA (OWASP A01)</strong> — Insecure Direct Object Reference. An endpoint
+        that retrieves a resource by ID without checking whether the caller owns or has permission
+        to access that specific object. An attacker simply increments the ID to enumerate all
+        records.
+        <br />
+        This is the <strong>#1 OWASP API vulnerability</strong> (Broken Object Level Authorization).
+        <br />
+        The vulnerable endpoint at <code>/demo/security/idor-vulnerable?id=N</code> returns any
+        customer record with no ownership check. The safe response shows the query pattern and
+        Spring annotation that would prevent this.
+      </div>
+
+      <div class="input-row">
+        <label class="input-label">Customer ID</label>
+        <input
+          type="number"
+          class="demo-input"
+          style="max-width: 140px"
+          [value]="idorId()"
+          (input)="idorId.set(+$any($event.target).value)"
+          min="1"
+        />
+        <div class="preset-row">
+          <span class="preset-label">Try enumerating:</span>
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <button class="preset-btn" (click)="idorId.set(n)">id={{ n }}</button>
+          }
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-danger" [disabled]="idorLoading()" (click)="runIdorVulnerable()">
+          🔓 Vulnerable — no auth check
+        </button>
+        <button class="btn btn-success" [disabled]="idorLoading()" (click)="runIdorSafe()">
+          🛡️ Safe — ownership pattern
+        </button>
+      </div>
+
+      @if (idorError()) {
+        <div class="error-banner">{{ idorError() }}</div>
+      }
+
+      <div class="results-grid">
+        @if (idorVulnResult(); as r) {
+          <div class="result-card danger">
+            <h3>Vulnerable — No ownership check</h3>
+            @if (r.owaspCategory) {
+              <div class="label-row">
+                <span class="label label-red">OWASP</span> {{ r.owaspCategory }}
+              </div>
+            }
+            @if (r.vulnerability) {
+              <div class="label-row">
+                <span class="label label-red">Issue</span> {{ r.vulnerability }}
+              </div>
+            }
+            @if (r.exploit) {
+              <div class="label-row">
+                <span class="label label-red">Exploit</span> {{ r.exploit }}
+              </div>
+            }
+            <h4>Data returned for id={{ r.requestedId }} ({{ (r.results ?? []).length }} rows)</h4>
+            <pre class="code-block small">{{ r.results | json }}</pre>
+          </div>
+        }
+        @if (idorSafeResult(); as r) {
+          <div class="result-card safe">
+            <h3>Safe — Ownership check pattern</h3>
+            @if (r.fix) {
+              <div class="label-row"><span class="label label-green">Fix</span> {{ r.fix }}</div>
+            }
+            @if (r.pattern) {
+              <div class="label-row">
+                <span class="label label-green">Pattern</span> {{ r.pattern }}
+              </div>
+            }
+            @if (r.safeQuery) {
+              <h4>Safe SQL query</h4>
+              <pre class="code-block">{{ r.safeQuery }}</pre>
+            }
+            @if (r.springAnnotation) {
+              <h4>Spring Security annotation</h4>
+              <pre class="code-block">{{ r.springAnnotation }}</pre>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── JWT Inspector Tab ─────────────────────────────────────────────────── -->
+  @if (activeTab() === 'jwt') {
+    <div class="tab-content">
+      <div class="explanation-card info">
+        <strong>ℹ️ JWT Structure</strong> — A JSON Web Token has three Base64URL-encoded parts
+        separated by dots: <code>header.payload.signature</code>. The header declares the algorithm.
+        The payload carries claims (sub, role, iat, exp). The signature is computed server-side —
+        only the backend can produce a valid signature, but anyone can decode the header and
+        payload.
+        <strong>Never put secrets in a JWT payload.</strong>
+      </div>
+
+      @if (!auth.isAuthenticated()) {
+        <div class="explanation-card warn">
+          ⚠️ You are not signed in. <a href="/login">Sign in</a> to inspect your JWT token.
+        </div>
+      } @else {
+        <div class="action-row">
+          <button class="btn btn-ghost" (click)="decodeJwt()">↻ Decode current token</button>
+        </div>
+
+        @if (jwtError()) {
+          <div class="error-banner">{{ jwtError() }}</div>
+        }
+
+        @if (jwtPayload(); as payload) {
+          <div class="jwt-grid">
+            <div class="jwt-section">
+              <div class="jwt-section-title">Header</div>
+              <pre class="code-block">{{ jwtHeader() | json }}</pre>
+            </div>
+
+            <div class="jwt-section">
+              <div class="jwt-section-title">Payload (Claims)</div>
+              <div class="jwt-claims">
+                <div class="jwt-claim">
+                  <span class="jwt-claim-key">sub</span>
+                  <span class="jwt-claim-value">{{ payload['sub'] ?? '—' }}</span>
+                  <span class="jwt-claim-desc">Subject — username of the authenticated user</span>
+                </div>
+                <div class="jwt-claim">
+                  <span class="jwt-claim-key">role</span>
+                  <span class="jwt-claim-value">{{ payload['role'] ?? '—' }}</span>
+                  <span class="jwt-claim-desc">Role — ROLE_USER or ROLE_ADMIN, used for RBAC</span>
+                </div>
+                <div class="jwt-claim">
+                  <span class="jwt-claim-key">iat</span>
+                  <span class="jwt-claim-value">{{ formatTs($any(payload['iat'])) }}</span>
+                  <span class="jwt-claim-desc">Issued At — when this token was created</span>
+                </div>
+                <div class="jwt-claim" [class.jwt-claim-expired]="jwtExpired()">
+                  <span class="jwt-claim-key">exp</span>
+                  <span class="jwt-claim-value">{{ formatTs($any(payload['exp'])) }}</span>
+                  <span class="jwt-claim-desc">{{ jwtExpiryLabel() }}</span>
+                </div>
+                @for (entry of payload | keyvalue; track entry.key) {
+                  @if (!['sub', 'role', 'iat', 'exp'].includes(entry.key)) {
+                    <div class="jwt-claim">
+                      <span class="jwt-claim-key">{{ entry.key }}</span>
+                      <span class="jwt-claim-value">{{ entry.value }}</span>
+                      <span class="jwt-claim-desc">Custom claim</span>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+
+            <div class="jwt-section jwt-section-full">
+              <div class="jwt-section-title">Signature</div>
+              <div class="explanation-card info" style="margin: 0">
+                The third part of the JWT is the HMAC-SHA256 signature computed over
+                <code>base64(header) + "." + base64(payload)</code> using the server's
+                <code>jwt.secret</code>. It cannot be decoded or verified client-side without the
+                secret. Any tampering with header or payload invalidates the signature → 401.
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ── Security Headers Tab ──────────────────────────────────────────────── -->
+  @if (activeTab() === 'headers') {
+    <div class="tab-content">
+      <div class="explanation-card info">
+        <strong>ℹ️ Security Headers</strong> — HTTP response headers that instruct the browser on
+        security policies. Set by <code>SecurityHeadersFilter</code> on every response from this
+        backend. The table below shows the expected value, the actual value from a live request, and
+        an explanation of what each header does.
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-ghost" [disabled]="headersLoading()" (click)="loadHeaders()">
+          {{ headersLoading() ? '⟳ Loading…' : '↻ Check live headers' }}
+        </button>
+      </div>
+
+      @if (headersError()) {
+        <div class="error-banner">{{ headersError() }}</div>
+      }
+
+      @if (headersResult().length) {
+        <div class="headers-table">
+          <div class="headers-row headers-header">
+            <span>Header</span>
+            <span>Expected</span>
+            <span>Actual (live)</span>
+            <span>Status</span>
+            <span>Purpose</span>
+          </div>
+          @for (h of headersResult(); track h.name) {
+            <div class="headers-row" [class.headers-ok]="h.ok" [class.headers-missing]="!h.ok">
+              <code class="header-name">{{ h.name }}</code>
+              <code class="header-expected">{{ h.expected }}</code>
+              <code class="header-actual">{{ h.actual }}</code>
+              <span class="header-status">{{ h.ok ? '✅' : '⚠️' }}</span>
+              <span class="header-explanation">{{ h.explanation }}</span>
+            </div>
+          }
+        </div>
       }
     </div>
   }
