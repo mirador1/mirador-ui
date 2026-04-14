@@ -15,6 +15,7 @@ import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { EnvService } from '../../core/env/env.service';
+import { ToastService } from '../../core/toast/toast.service';
 
 interface LiveCustomer {
   id: number;
@@ -40,12 +41,14 @@ const RECONNECT_DELAY_MS = 3_000;
 export class TimelineComponent implements OnDestroy {
   private readonly env = inject(EnvService);
   private readonly http = inject(HttpClient);
+  private readonly toast = inject(ToastService);
 
   activeTab = signal<'sse' | 'activity'>('sse');
 
   // ── SSE tab ───────────────────────────────────────────────────────────────
   events = signal<LiveCustomer[]>([]);
   status = signal<ConnectionStatus>('connecting');
+  sseTrafficRunning = signal(false);
 
   private _es: EventSource | null = null;
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -123,6 +126,36 @@ export class TimelineComponent implements OnDestroy {
 
   reconnect(): void {
     this.connect();
+  }
+
+  /** Create N random customers to trigger SSE events */
+  generateSseTraffic(count = 3): void {
+    this.sseTrafficRunning.set(true);
+    const firstNames = ['Alice', 'Bob', 'Carlos', 'Diana', 'Eve', 'Frank', 'Grace', 'Hiro'];
+    const lastNames = ['Smith', 'Jones', 'Tanaka', 'Müller', 'Dupont', 'Kim', 'Rossi', 'Patel'];
+    const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+    const base = this.env.baseUrl();
+    let done = 0;
+    for (let i = 0; i < count; i++) {
+      const first = rand(firstNames);
+      const last = rand(lastNames);
+      const suffix = Math.floor(Math.random() * 9000 + 1000);
+      const body = {
+        firstName: first,
+        lastName: last,
+        email: `${first.toLowerCase()}.${last.toLowerCase()}${suffix}@demo.dev`,
+      };
+      this.http
+        .post(`${base}/customers`, body)
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === count) {
+            this.sseTrafficRunning.set(false);
+            this.toast.show(`${count} customer(s) created — SSE event(s) incoming`, 'success');
+          }
+        });
+    }
   }
 
   private cleanup(): void {

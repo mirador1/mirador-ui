@@ -36,13 +36,25 @@
   </div>
 
   @if (activeTab() === 'sse') {
+    <div class="controls-row">
+      <button
+        class="run-btn"
+        (click)="generateSseTraffic(3)"
+        [disabled]="sseTrafficRunning()"
+        title="POST /customers 3 times with random names — each creation triggers an SSE event that appears below in real-time"
+      >
+        {{ sseTrafficRunning() ? 'Creating...' : '⚡ Generate traffic (3 customers)' }}
+      </button>
+      <span class="hint">Creates 3 random customers → SSE events arrive instantly</span>
+    </div>
+
     @if (events().length === 0) {
       <div class="empty-state">
         <div class="empty-icon">📡</div>
         <p>Waiting for customer events…</p>
         <p class="empty-hint">
-          Create a customer via the Customers page or Chaos traffic generator to see events appear
-          here.
+          Click "Generate traffic" above, or create a customer via the Customers page to see events
+          appear here.
         </p>
       </div>
     }
