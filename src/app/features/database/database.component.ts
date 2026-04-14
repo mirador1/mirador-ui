@@ -47,6 +47,31 @@ export class DatabaseComponent {
   >([]);
   healthRunning = signal(false);
 
+  // ── Maintenance actions (VACUUM via /actuator/maintenance) ──────────────
+  vacuumRunning = signal(false);
+  vacuumResult = signal<{ operation: string; durationMs: number; status: string } | null>(null);
+  vacuumError = signal('');
+
+  runVacuum(operation: 'vacuum' | 'vacuumFull' | 'vacuumVerbose'): void {
+    this.vacuumRunning.set(true);
+    this.vacuumResult.set(null);
+    this.vacuumError.set('');
+    // Calls the custom Spring Boot actuator endpoint (POST /actuator/maintenance)
+    this.http.post<any>('http://localhost:8080/actuator/maintenance', { operation }).subscribe({
+      next: (r) => {
+        this.vacuumResult.set(r);
+        this.vacuumRunning.set(false);
+      },
+      error: (e) => {
+        this.vacuumError.set(
+          e.error?.message ??
+            `Maintenance endpoint unreachable (${e.status || 'check Spring Boot'})`,
+        );
+        this.vacuumRunning.set(false);
+      },
+    });
+  }
+
   readonly healthChecks: HealthCheck[] = [
     {
       id: 'cache_hit',
@@ -478,12 +503,8 @@ export class DatabaseComponent {
           query:
             'SELECT relname, n_live_tup, n_dead_tup, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze FROM pg_stat_user_tables ORDER BY n_dead_tup DESC',
         },
-        {
-          icon: '🧹',
-          name: 'VACUUM ANALYZE (all tables)',
-          tip: 'Reclaims storage from dead tuples and refreshes planner statistics. Safe to run at any time. Results are empty on success — check autovacuum status above to confirm.',
-          query: 'VACUUM ANALYZE',
-        },
+        // VACUUM operations are exposed via /actuator/maintenance (not pgweb — pgweb is read-only)
+        // See the dedicated "🧹 Maintenance" section rendered in the Health tab above the SQL panel.
         {
           icon: '💿',
           name: 'WAL statistics',

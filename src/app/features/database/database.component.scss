@@ -373,3 +373,82 @@ h2 {
     }
   }
 }
+
+// ── Maintenance section ───────────────────────────────────────────────────────
+.maintenance-area {
+  border-top: 1px solid var(--border-default);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.maintenance-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.maintenance-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.maintenance-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  code {
+    font-size: 0.7rem;
+  }
+}
+
+.maintenance-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.maint-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: var(--bg-card-hover);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.maint-btn-warn:hover:not(:disabled) {
+    border-color: #fbbf24;
+    color: #fbbf24;
+  }
+}
+
+.maint-status {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  font-family: monospace;
+
+  &.maint-running {
+    color: var(--text-muted);
+  }
+  &.maint-ok {
+    color: #4ade80;
+  }
+  &.maint-err {
+    color: #f87171;
+  }
+}
