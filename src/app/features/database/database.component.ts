@@ -14,6 +14,23 @@ import { RouterLink } from '@angular/router';
 
 type DbTab = 'health' | 'customer' | 'diagnostics' | 'schema' | 'investigation' | 'performance';
 
+/**
+ * Shape returned by the docker-api.mjs Node.js proxy for SQL queries.
+ * Rows contain mixed primitive types (number, string, boolean, null) from PostgreSQL.
+ */
+interface SqlQueryResult {
+  columns?: string[];
+  rows?: unknown[][];
+  error?: string;
+}
+
+/** Shape returned by the Spring Boot /actuator/maintenance custom endpoint */
+interface MaintenanceResult {
+  operation: string;
+  durationMs: number;
+  status: string;
+}
+
 interface HealthCheck {
   id: string;
   label: string;
@@ -57,19 +74,21 @@ export class DatabaseComponent {
     this.vacuumResult.set(null);
     this.vacuumError.set('');
     // Calls the custom Spring Boot actuator endpoint (POST /actuator/maintenance)
-    this.http.post<any>('http://localhost:8080/actuator/maintenance', { operation }).subscribe({
-      next: (r) => {
-        this.vacuumResult.set(r);
-        this.vacuumRunning.set(false);
-      },
-      error: (e) => {
-        this.vacuumError.set(
-          e.error?.message ??
-            `Maintenance endpoint unreachable (${e.status || 'check Spring Boot'})`,
-        );
-        this.vacuumRunning.set(false);
-      },
-    });
+    this.http
+      .post<MaintenanceResult>('http://localhost:8080/actuator/maintenance', { operation })
+      .subscribe({
+        next: (r) => {
+          this.vacuumResult.set(r);
+          this.vacuumRunning.set(false);
+        },
+        error: (e) => {
+          this.vacuumError.set(
+            e.error?.message ??
+              `Maintenance endpoint unreachable (${e.status || 'check Spring Boot'})`,
+          );
+          this.vacuumRunning.set(false);
+        },
+      });
   }
 
   readonly healthChecks: HealthCheck[] = [
@@ -211,11 +230,11 @@ export class DatabaseComponent {
     let done = 0;
     for (const check of this.healthChecks) {
       this.http
-        .get<any>('http://localhost:8081/api/query', { params: { query: check.query } })
+        .get<SqlQueryResult>('http://localhost:8081/api/query', { params: { query: check.query } })
         .subscribe({
           next: (res) => {
-            const rows: string[][] = (res.rows ?? []).map((r: any[]) =>
-              r.map((c) => String(c ?? '')),
+            const rows: string[][] = (res.rows ?? []).map((r) =>
+              (r as unknown[]).map((c) => String(c ?? '')),
             );
             const evaluation = check.evaluate(rows);
             this.healthResults.update((prev) =>
@@ -529,7 +548,7 @@ export class DatabaseComponent {
     this.sqlResult.set(null);
 
     this.http
-      .get<any>('http://localhost:8081/api/query', {
+      .get<SqlQueryResult>('http://localhost:8081/api/query', {
         params: { query: this.sqlQuery },
       })
       .subscribe({
@@ -539,7 +558,7 @@ export class DatabaseComponent {
           if (columns.length > 0) {
             this.sqlResult.set({
               columns,
-              rows: rows.map((r: any[]) => r.map((c) => String(c ?? ''))),
+              rows: rows.map((r) => (r as unknown[]).map((c) => String(c ?? ''))),
             });
           } else if (res.error) {
             this.sqlError.set(res.error);

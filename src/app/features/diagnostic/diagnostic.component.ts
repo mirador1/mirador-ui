@@ -155,9 +155,15 @@ export class DiagnosticComponent implements OnInit {
       const logs: LogLine[] = [
         ...this.versionLog(),
         { kind: 'req', text: `[${ts()}] GET /customers  X-API-Version: 1.0` },
-        { kind: 'res', text: `v1 content[0]: ${JSON.stringify((v1 as any).content?.[0])}` },
+        {
+          kind: 'res',
+          text: `v1 content[0]: ${JSON.stringify((v1 as { content?: unknown[] }).content?.[0])}`,
+        },
         { kind: 'req', text: `[${ts()}] GET /customers  X-API-Version: 2.0` },
-        { kind: 'res', text: `v2 content[0]: ${JSON.stringify((v2 as any).content?.[0])}` },
+        {
+          kind: 'res',
+          text: `v2 content[0]: ${JSON.stringify((v2 as { content?: unknown[] }).content?.[0])}`,
+        },
         { kind: 'info', text: 'v2 adds "createdAt" field — controlled by X-API-Version header.' },
       ];
       this.versionLog.set(logs);
@@ -253,7 +259,7 @@ export class DiagnosticComponent implements OnInit {
 
     forkJoin(requests).subscribe((results) => {
       const lines: LogLine[] = results.map((r, i) => {
-        const err = (r as any).__error;
+        const err = (r as { __error?: number }).__error;
         if (err === 429) {
           return {
             kind: 'err' as const,
@@ -395,8 +401,8 @@ export class DiagnosticComponent implements OnInit {
       v1: this.api.getCustomers(0, 1, '1.0').pipe(catchError((e) => of({ error: e.status }))),
       v2: this.api.getCustomers(0, 1, '2.0').pipe(catchError((e) => of({ error: e.status }))),
     }).subscribe(({ v1, v2 }) => {
-      const c1 = (v1 as any).content?.[0] ?? v1;
-      const c2 = (v2 as any).content?.[0] ?? v2;
+      const c1 = (v1 as { content?: unknown[] }).content?.[0] ?? v1;
+      const c2 = (v2 as { content?: unknown[] }).content?.[0] ?? v2;
       this.computeDiff(c1, c2);
       this.versionRunning.set(false);
     });
@@ -620,11 +626,11 @@ export class DiagnosticComponent implements OnInit {
           startMs: start,
           durationMs: performance.now() - t0,
         };
-      } catch (e: any) {
+      } catch (e) {
         return {
           method: ep.method,
           uri: ep.uri,
-          status: e.status || 0,
+          status: (e as { status?: number })?.status ?? 0,
           startMs: start,
           durationMs: performance.now() - globalStart - start,
         };

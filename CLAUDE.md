@@ -1,5 +1,15 @@
 # Mirador UI — Claude Instructions
 
+## Claude workflow rules (apply to every session)
+
+- **Do not stop** between tasks — chain all pending work without asking "shall I continue?".
+- **Act directly** — read only what is strictly necessary, then make the change.
+- **One commit per logical change** — do not batch unrelated fixes.
+- **Run the build after every change** (`npm run build -- --configuration production`) and fix errors before committing. Build must have zero warnings.
+- **Comments explain why**, not what. Write comments that a future Claude session with no conversation history can understand.
+- After significant feature work, **do a code review pass**: unused imports (`NG8113`), `any` types, silent error handlers, missing types on HTTP calls.
+- **Never modify files outside this project** unless explicitly asked.
+
 ## Project overview
 
 Angular 21 frontend for the `mirador-service` Spring Boot backend.
