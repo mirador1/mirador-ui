@@ -77,12 +77,14 @@ export class ApiService {
     password: string,
   ): Observable<{ accessToken: string; refreshToken: string }> {
     // Accept both new format {accessToken, refreshToken} and legacy format {token}
-    return this.http.post<Record<string, string>>(`${this.url}/auth/login`, { username, password }).pipe(
-      map((res) => ({
-        accessToken: res['accessToken'] ?? res['token'],
-        refreshToken: res['refreshToken'] ?? '',
-      })),
-    );
+    return this.http
+      .post<Record<string, string>>(`${this.url}/auth/login`, { username, password })
+      .pipe(
+        map((res) => ({
+          accessToken: res['accessToken'] ?? res['token'],
+          refreshToken: res['refreshToken'] ?? '',
+        })),
+      );
   }
 
   refreshToken(refreshToken: string): Observable<{ accessToken: string; refreshToken: string }> {
