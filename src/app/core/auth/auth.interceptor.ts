@@ -19,7 +19,7 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, EMPTY, Observable, throwError } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ApiService } from '../api/api.service';
@@ -79,7 +79,9 @@ function handleRefresh(
       isRefreshing = false;
       auth.logout();
       router.navigateByUrl('/login');
-      return throwError(() => new Error('No refresh token'));
+      // Return EMPTY so the component doesn't receive a spurious error —
+      // the /login redirect handles the user flow.
+      return EMPTY;
     }
 
     return api.refreshToken(currentRefreshToken).pipe(
@@ -89,11 +91,12 @@ function handleRefresh(
         refreshTokenSubject.next(accessToken);
         return next(req.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } }));
       }),
-      catchError((err) => {
+      catchError(() => {
         isRefreshing = false;
         auth.logout();
         router.navigateByUrl('/login');
-        return throwError(() => err);
+        // Return EMPTY so components don't display a stale error on logout redirect.
+        return EMPTY;
       }),
     );
   }
