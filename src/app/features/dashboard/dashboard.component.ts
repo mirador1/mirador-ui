@@ -35,6 +35,20 @@ interface HealthSnapshot {
   liveness: string;
 }
 
+/** Minimal shape of Spring Boot /actuator/health response */
+interface ActuatorHealth {
+  status?: string;
+  components?: Record<string, { status?: string }>;
+}
+
+/** Docker Engine container list item (fields we actually use) */
+interface DockerContainer {
+  Names?: string[];
+  Status?: string;
+  Image?: string;
+  State?: string;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -396,7 +410,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }
         // Filter to known project containers only, enrich with description
         const mapped = containers
-          .map((c: any) => {
+          .map((c: DockerContainer) => {
             const name = (c.Names?.[0] || '').replace(/^\//, '');
             const known = this.knownContainers[name];
             if (!known) return null; // skip unknown/orphan containers
@@ -428,7 +442,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dockerActionLoading.set(`${name}:${action}`);
     // Docker Engine API: POST /containers/{name}/{action}
     this.http
-      .post<any>(`${this.dockerApiUrl}/containers/${name}/${action}`, null)
+      .post<void>(`${this.dockerApiUrl}/containers/${name}/${action}`, null)
       .pipe(catchError(() => of(null)))
       .subscribe(() => {
         this.dockerActionLoading.set(null);
@@ -835,7 +849,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // API + db + redis from actuator/health
     this.http
-      .get<any>(`${base}/actuator/health`)
+      .get<ActuatorHealth>(`${base}/actuator/health`)
       .pipe(catchError(() => of(null)))
       .subscribe((h) => {
         const c = h?.components ?? {};

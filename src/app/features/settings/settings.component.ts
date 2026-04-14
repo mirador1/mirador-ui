@@ -33,6 +33,11 @@ interface ActuatorEnv {
   }>;
 }
 
+/** Shape of /actuator/beans response — only the fields we access */
+interface ActuatorBeans {
+  contexts?: Record<string, { beans?: Record<string, unknown> }>;
+}
+
 @Component({
   selector: 'app-settings',
   standalone: true,
@@ -102,11 +107,11 @@ export class SettingsComponent {
       error: () => {},
     });
 
-    this.http.get<{ contexts: unknown }>(`${base}/actuator/beans`).subscribe({
+    this.http.get<ActuatorBeans>(`${base}/actuator/beans`).subscribe({
       next: (v) => {
         const ctx = Object.values(v.contexts ?? {});
         let count = 0;
-        for (const c of ctx as any[]) {
+        for (const c of ctx) {
           count += Object.keys(c.beans ?? {}).length;
         }
         this.actuatorBeans.set(count);
@@ -138,7 +143,7 @@ export class SettingsComponent {
     }
 
     this.http.get(`${this.env.baseUrl()}${path}`).subscribe({
-      next: (v: any) => {
+      next: (v) => {
         this.endpointResult.set(JSON.stringify(v, null, 2));
         this.endpointLoading.set(false);
       },

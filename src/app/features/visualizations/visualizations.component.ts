@@ -104,6 +104,12 @@ interface KafkaLagPoint {
   lag: number;
 }
 
+/** Minimal Spring Boot /actuator/health response shape */
+interface ActuatorHealth {
+  status?: string;
+  components?: Record<string, { status?: string }>;
+}
+
 @Component({
   selector: 'app-visualizations',
   standalone: true,
@@ -2468,7 +2474,7 @@ export class VisualizationsComponent implements OnDestroy {
 
     // API + db + redis from actuator/health
     this.http
-      .get<any>(`${base}/actuator/health`)
+      .get<ActuatorHealth>(`${base}/actuator/health`)
       .pipe(catchError(() => of(null)))
       .subscribe((h) => {
         const c = h?.components ?? {};
@@ -2819,7 +2825,7 @@ export class VisualizationsComponent implements OnDestroy {
           email: `kafka${i}@test.com`,
         })
         .pipe(catchError(() => of(null)))
-        .subscribe((c: any) => {
+        .subscribe((c: { id?: number } | null) => {
           // Enrich → Kafka request-reply (customer.request → customer.reply)
           if (c?.id) {
             this.http

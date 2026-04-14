@@ -287,7 +287,7 @@ export class ChaosComponent implements OnDestroy {
       this.http
         .get(`${base}/customers/${id}/enrich`)
         .pipe(catchError((e) => of({ error: true, status: e.status })))
-        .subscribe((res: any) => {
+        .subscribe((res: { error?: boolean; status?: number }) => {
           const elapsed = Date.now() - t0;
           if (res.error) {
             this.logImpact(`Kafka timeout: ${res.status} after ${elapsed} ms`);
