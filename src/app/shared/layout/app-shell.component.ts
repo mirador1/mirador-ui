@@ -82,7 +82,7 @@ export class AppShellComponent {
     {
       id: 'telemetry',
       icon: '🔍',
-      label: 'Telemetry',
+      label: 'Observability',
       path: '/observability',
       tip: 'Distributed traces, structured logs, latency distribution',
       children: [
@@ -319,7 +319,7 @@ export class AppShellComponent {
       keywords: 'diagnostic test scenarios versioning idempotency rate limit kafka stress',
     },
     {
-      label: '🔍 Telemetry',
+      label: '🔍 Observability',
       path: '/observability',
       keywords: 'telemetry observability traces logs latency zipkin loki tempo flame histogram',
     },
