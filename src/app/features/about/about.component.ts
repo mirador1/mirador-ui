@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 
 @Component({
   selector: 'app-about',
@@ -7,6 +7,15 @@ import { Component } from '@angular/core';
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
+  readonly activeTab = signal<'overview' | 'pages' | 'stack' | 'infra' | 'shortcuts'>('overview');
+
+  readonly tabs = [
+    { id: 'overview', label: '📖 Overview' },
+    { id: 'pages', label: '🗂️ Pages' },
+    { id: 'stack', label: '🔧 Stack' },
+    { id: 'infra', label: '🏗️ Infrastructure' },
+    { id: 'shortcuts', label: '⌨️ Shortcuts' },
+  ] as const;
   readonly portMap = [
     // Application
     {
