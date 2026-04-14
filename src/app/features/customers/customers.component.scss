@@ -450,25 +450,13 @@ table {
   font-weight: 600;
   margin-right: 3px;
 
-  &.bio {
-    background: #f3e8ff;
-    color: #7c3aed;
-    border-color: #e9d5ff;
-  }
-  &.todos {
-    background: #e0f2fe;
-    color: #0369a1;
-    border-color: #bae6fd;
-  }
-  &.enrich {
-    background: #fef3c7;
-    color: #92400e;
-    border-color: #fde68a;
-  }
+  &.bio,
+  &.todos,
+  &.enrich,
   &.edit {
-    background: #e0f2fe;
-    color: #1e40af;
-    border-color: #bfdbfe;
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #e2e8f0;
   }
   &.delete {
     background: #fee2e2;
