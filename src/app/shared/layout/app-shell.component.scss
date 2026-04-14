@@ -44,6 +44,12 @@
   }
 }
 
+.topbar-logo {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
 .topbar h1 {
   margin: 0;
   font-size: 1rem;
