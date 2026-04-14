@@ -338,12 +338,7 @@
             />
           </button>
           <button [class.tab-active]="activeTab() === 'enrich'" (click)="switchTab('enrich')">
-            📨 Enrich <small>Kafka</small>
-            <app-info-tip
-              text="Publishes to Kafka topic customer.request and waits for a reply on customer.reply (synchronous request-reply pattern). 5s timeout returns 504 if Kafka or consumer is down."
-              command="GET /customers/{id}/enrich"
-              source="Kafka ReplyingTemplate"
-            />
+            📨 Enrich <small>Kafka sync</small>
           </button>
         </div>
 
@@ -381,13 +376,46 @@
           </div>
         }
 
-        @if (activeTab() === 'enrich' && enriched()) {
+        @if (activeTab() === 'enrich') {
           <div class="detail-body">
-            <p class="detail-label">
-              GET /customers/{{ selectedCustomer()!.id }}/enrich → Kafka customer.request →
-              customer.reply (5 s timeout)
+            <div class="enrich-flow">
+              <div class="flow-step flow-client">
+                <span class="flow-icon">🌐</span>
+                <span class="flow-label">HTTP</span>
+                <code>GET /customers/{{ selectedCustomer()!.id }}/enrich</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-produce">
+                <span class="flow-icon">📤</span>
+                <span class="flow-label">Kafka PRODUCE</span>
+                <code>customer.request</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-consumer">
+                <span class="flow-icon">⚙️</span>
+                <span class="flow-label">@KafkaListener</span>
+                <code>CustomerEnrichHandler</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-reply">
+                <span class="flow-icon">📥</span>
+                <span class="flow-label">Kafka REPLY</span>
+                <code>customer.reply</code>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step flow-response">
+                <span class="flow-icon">✅</span>
+                <span class="flow-label">HTTP 200</span>
+                <code>EnrichedCustomer</code>
+              </div>
+            </div>
+            <p class="enrich-note">
+              <strong>ReplyingKafkaTemplate</strong> — appel bloquant avec corrélation automatique.
+              Timeout 5 s → 504 si le consumer ne répond pas.
             </p>
-            <pre>{{ enriched() | json }}</pre>
+            @if (enriched()) {
+              <pre>{{ enriched() | json }}</pre>
+            }
           </div>
         }
       </article>
