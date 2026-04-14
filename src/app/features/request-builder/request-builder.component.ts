@@ -158,19 +158,19 @@ export class RequestBuilderComponent {
         this.loading.set(false);
         this.recordHistory(this.method, this.url, res.status, elapsed);
       },
-      error: (err: any) => {
+      error: (err: { status?: number; error?: string; message?: string }) => {
         const elapsed = Math.round(performance.now() - t0);
-        this.responseStatus.set(err.status || 0);
+        this.responseStatus.set(err.status ?? 0);
         this.responseTime.set(elapsed);
-        this.responseBody.set(err.error || err.message || 'Request failed');
+        this.responseBody.set(err.error ?? err.message ?? 'Request failed');
         this.responseHeaders.set(null);
         this.loading.set(false);
-        this.recordHistory(this.method, this.url, err.status || 0, elapsed);
+        this.recordHistory(this.method, this.url, err.status ?? 0, elapsed);
       },
     });
   }
 
-  private formatHeaders(headers: any): string {
+  private formatHeaders(headers: HttpHeaders): string {
     const lines: string[] = [];
     headers.keys().forEach((key: string) => {
       lines.push(`${key}: ${headers.get(key)}`);
