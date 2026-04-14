@@ -299,7 +299,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Grafana LGTM all-in-one (port 3001): bundles Loki (logs), Tempo (distributed traces), Mimir (long-term metrics), and Grafana (UI) in a single container. Spring Boot sends traces and logs via OpenTelemetry OTLP on port 4318 → OTel Collector → Tempo / Loki. There is no standalone Tempo UI — use Grafana Explore (port 3001) to search traces with TraceQL. Tempo HTTP API also exposed on port 3200 for direct lookups.',
       image: 'images/tools/grafana.png',
       port: '3001',
-      url: 'http://localhost:3001/dashboards',
+      url: 'http://localhost:3000/dashboards',
     },
     'customerservice-pyroscope': {
       icon: '🧬',
@@ -746,13 +746,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     },
     {
       id: 'loki',
-      label: 'LGTM',
+      label: 'Grafana',
       col: 4,
       row: 1,
       icon: '📦',
       port: '3001',
       container: 'customerservice-lgtm',
-      url: 'http://localhost:3001/d/63d6a698-a196-4adb-9fd6-79ebc6cc8a63/customerservice-overview?orgId=1&from=now-15m&to=now&timezone=browser',
+      url: 'http://localhost:3000/',
       tip: 'Traces · Logs · Metrics',
       detail:
         'Grafana otel-lgtm — bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI) in a single container. Spring Boot sends traces and logs via OTLP on port 4318 → OTel Collector → Tempo / Loki. Open the CustomerService Overview dashboard for full correlation: click a metric spike to jump to the matching trace, click a trace to see its logs.',
@@ -781,7 +781,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: '📊',
       port: '3001',
       container: 'customerservice-lgtm',
-      url: 'http://localhost:3001/dashboards',
+      url: 'http://localhost:3000/dashboards',
       tip: 'Traces · Logs · Metrics',
       detail:
         'Grafana LGTM all-in-one on port 3001: bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI). Spring Boot sends traces and logs via OTLP on port 4318. Anonymous access enabled — opens directly on the Customer Service overview dashboard.',

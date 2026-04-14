@@ -1,7 +1,7 @@
 /**
  * ObservabilityComponent — Live backend telemetry with 4 tabs.
  *
- * Traces: Queries Tempo via the Grafana datasource proxy (http://localhost:3001).
+ * Traces: Queries Tempo via the Grafana datasource proxy (http://localhost:3000).
  *   Supports TraceQL and tag-based search. Each trace links to Grafana Explore.
  *   Displays expandable span waterfall on row click.
  *
@@ -101,7 +101,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
   activeTab = signal<ObsTab>('traces');
 
   // ── Traces (Tempo API via Grafana proxy) ──────────────────────────────────
-  private readonly TEMPO_BASE = 'http://localhost:3001/api/datasources/proxy/uid/tempo';
+  private readonly TEMPO_BASE = 'http://localhost:3000/api/datasources/proxy/uid/tempo';
 
   tempoSummaries = signal<TempoTraceSummary[]>([]);
   tempoLoading = signal(false);
@@ -234,7 +234,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
    * immediately without any manual input from the user.
    */
   private readonly TEMPO_SEARCH_URL =
-    'http://localhost:3001/explore?schemaVersion=1&panes=' +
+    'http://localhost:3000/explore?schemaVersion=1&panes=' +
     encodeURIComponent(
       JSON.stringify({
         t: {
@@ -284,7 +284,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
           },
         }),
       );
-      return `http://localhost:3001/explore?schemaVersion=1&panes=${panes}&orgId=1`;
+      return `http://localhost:3000/explore?schemaVersion=1&panes=${panes}&orgId=1`;
     }
     return this.TEMPO_SEARCH_URL;
   }
@@ -331,7 +331,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
         },
         error: (e) => {
           this.tempoError.set(
-            `Tempo unreachable (Grafana proxy http://localhost:3001) — ${e.status || 'check that LGTM is running'}.`,
+            `Tempo unreachable (Grafana proxy http://localhost:3000) — ${e.status || 'check that LGTM is running'}.`,
           );
           this.tempoLoading.set(false);
         },

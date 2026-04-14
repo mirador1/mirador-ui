@@ -107,7 +107,7 @@ export class AboutComponent {
       description:
         'Open-source analytics and monitoring platform with pre-built and custom dashboards.',
       usage:
-        'Grafana LGTM all-in-one on port 3001 (inside the otel-lgtm container). Bundles Tempo (traces), Loki (logs), and Mimir (metrics) with pre-provisioned dashboards for full correlation — click a metric spike to jump to the matching trace, click a trace to jump to its logs.',
+        'Grafana LGTM all-in-one on port 3000 (inside the otel-lgtm container). Bundles Tempo (traces), Loki (logs), and Mimir (metrics) with pre-provisioned dashboards for full correlation — click a metric spike to jump to the matching trace, click a trace to jump to its logs.',
     },
     {
       name: 'HikariCP',
@@ -407,7 +407,7 @@ export class AboutComponent {
       description:
         "Grafana's scalable distributed tracing backend optimised for storage and query of trace data.",
       usage:
-        'Runs inside the LGTM container (Grafana on port 3001). Spring Boot sends traces via OTLP → OTel collector → Tempo. Query with TraceQL in Grafana Explore or the Angular Observability Traces tab. Tempo HTTP API exposed on port 3200. Enables trace-to-log correlation: clicking a traceId in the Loki logs panel jumps straight to the matching trace.',
+        'Runs inside the LGTM container (Grafana on port 3000). Spring Boot sends traces via OTLP → OTel collector → Tempo. Query with TraceQL in Grafana Explore or the Angular Observability Traces tab. Tempo HTTP API exposed on port 3200. Enables trace-to-log correlation: clicking a traceId in the Loki logs panel jumps straight to the matching trace.',
     },
     {
       name: 'Testcontainers',
@@ -537,18 +537,18 @@ export class AboutComponent {
     },
     // Observability
     {
-      port: 3001,
+      port: 3000,
       name: 'Grafana LGTM',
       category: 'Obs',
       note: 'Traces · Logs · Metrics (no login)',
-      url: 'http://localhost:3001',
+      url: 'http://localhost:3000',
     },
     {
-      port: 3001,
+      port: 3000,
       name: 'Grafana (LGTM)',
       category: 'Obs',
       note: 'Tempo traces + Loki logs — use Explore for TraceQL',
-      url: 'http://localhost:3001/explore',
+      url: 'http://localhost:3000/explore',
     },
     {
       port: 9091,
@@ -562,7 +562,7 @@ export class AboutComponent {
       name: 'Tempo API',
       category: 'Obs',
       note: 'Trace query API — use Grafana Explore for the UI',
-      url: 'http://localhost:3001/explore?schemaVersion=1&panes=%7B%22df4%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceqlSearch%22%2C%22limit%22%3A20%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1',
+      url: 'http://localhost:3000/explore?schemaVersion=1&panes=%7B%22df4%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceqlSearch%22%2C%22limit%22%3A20%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1',
     },
     {
       port: 4040,
