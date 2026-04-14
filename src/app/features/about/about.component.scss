@@ -112,34 +112,6 @@ h4 {
   margin-top: 0.1rem;
 }
 
-.shortcuts-table {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-}
-
-.shortcut-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
-
-  code {
-    background: var(--bg-code);
-    padding: 0.15em 0.4em;
-    border-radius: 3px;
-    font-size: 0.75rem;
-    font-family: monospace;
-    min-width: 70px;
-    text-align: center;
-  }
-  span {
-    color: var(--text-secondary);
-  }
-}
-
 .card-desc {
   font-size: 0.82rem;
   color: var(--text-secondary);

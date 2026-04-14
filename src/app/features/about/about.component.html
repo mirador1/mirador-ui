@@ -264,18 +264,4 @@
       </table>
     </article>
   }
-
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- TAB: Shortcuts                                                         -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  @if (activeTab() === 'shortcuts') {
-    <div class="shortcuts-table">
-      @for (s of shortcuts; track s.keys) {
-        <div class="shortcut-row">
-          <code>{{ s.keys }}</code>
-          <span>{{ s.action }}</span>
-        </div>
-      }
-    </div>
-  }
 </section>

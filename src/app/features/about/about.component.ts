@@ -7,16 +7,13 @@ import { Component, signal } from '@angular/core';
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
-  readonly activeTab = signal<'overview' | 'pages' | 'stack' | 'infra' | 'shortcuts' | 'tech'>(
-    'overview',
-  );
+  readonly activeTab = signal<'overview' | 'pages' | 'stack' | 'infra' | 'tech'>('overview');
 
   readonly tabs = [
     { id: 'overview', label: '📖 Overview' },
     { id: 'pages', label: '🗂️ Pages' },
     { id: 'stack', label: '🔧 Stack' },
     { id: 'infra', label: '🏗️ Infrastructure' },
-    { id: 'shortcuts', label: '⌨️ Shortcuts' },
     { id: 'tech', label: '📚 Technologies' },
   ] as const;
 
@@ -759,19 +756,6 @@ export class AboutComponent {
       detail:
         'Session event timeline with 7 event types, type-based filtering, quick action buttons to generate all event types',
     },
-  ];
-
-  readonly shortcuts = [
-    { keys: 'Ctrl+K', action: 'Open global search' },
-    { keys: '?', action: 'Show keyboard shortcuts' },
-    { keys: 'G → D', action: 'Go to Dashboard' },
-    { keys: 'G → C', action: 'Go to Customers' },
-    { keys: 'G → T', action: 'Go to Diagnostic' },
-    { keys: 'G → S', action: 'Go to Settings' },
-    { keys: 'G → A', action: 'Go to Activity' },
-    { keys: 'R', action: 'Refresh current page' },
-    { keys: 'D', action: 'Toggle dark/light mode' },
-    { keys: 'Escape', action: 'Close modal / search' },
   ];
 
   readonly quickStart = `# Start everything (backend + frontend)
