@@ -44,8 +44,13 @@
   <!-- Stats cards -->
   <div class="stats-grid">
     <article class="stat-card">
-      <span class="stat-label">Total Customers</span>
-      <span class="stat-desc">GET /customers — totalElements field from paginated response</span>
+      <div class="stat-label-row">
+        <span class="stat-label">Total Customers</span>
+        <app-info-tip
+          text="GET /customers — totalElements field from paginated response."
+          source="/customers?page=0&size=1"
+        />
+      </div>
       <span class="stat-value">{{ customerCount() ?? '—' }}</span>
       <div class="stat-links">
         <a routerLink="/customers">📋 Customers</a>
@@ -54,10 +59,13 @@
     </article>
     @if (metrics()) {
       <article class="stat-card">
-        <span class="stat-label">HTTP Requests (total)</span>
-        <span class="stat-desc"
-          >Cumulative counter since startup — http_server_requests_seconds_count</span
-        >
+        <div class="stat-label-row">
+          <span class="stat-label">HTTP Requests (total)</span>
+          <app-info-tip
+            text="Cumulative counter since startup."
+            source="http_server_requests_seconds_count"
+          />
+        </div>
         <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
@@ -70,8 +78,13 @@
         </div>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Latency p50</span>
-        <span class="stat-desc">Median — 50% of requests are faster. Sliding window quantile.</span>
+        <div class="stat-label-row">
+          <span class="stat-label">Latency p50</span>
+          <app-info-tip
+            text="Median — 50% of requests are faster than this value. Computed from a sliding window quantile."
+            source='http_server_requests_seconds{quantile="0.5"}'
+          />
+        </div>
         <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
@@ -84,10 +97,13 @@
         </div>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Latency p95</span>
-        <span class="stat-desc"
-          >95th percentile — only 5% of requests are slower. Key SLO indicator.</span
-        >
+        <div class="stat-label-row">
+          <span class="stat-label">Latency p95</span>
+          <app-info-tip
+            text="95th percentile — only 5% of requests are slower. Key indicator for SLOs."
+            source='http_server_requests_seconds{quantile="0.95"}'
+          />
+        </div>
         <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
@@ -100,10 +116,13 @@
         </div>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Latency p99</span>
-        <span class="stat-desc"
-          >Worst 1% of requests — detects outliers (Kafka timeouts, Ollama cold starts).</span
-        >
+        <div class="stat-label-row">
+          <span class="stat-label">Latency p99</span>
+          <app-info-tip
+            text="Worst 1% of requests — detects outliers like Kafka timeouts or Ollama cold starts."
+            source='http_server_requests_seconds{quantile="0.99"}'
+          />
+        </div>
         <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
@@ -239,6 +258,16 @@
           stroke-width="1.5"
           vector-effect="non-scaling-stroke"
         />
+        <!-- dots — one per health snapshot, green = UP, red = DOWN -->
+        @for (snap of healthHistory(); track $index; let i = $index) {
+          <circle
+            [attr.cx]="i * (200 / (healthHistory().length - 1))"
+            [attr.cy]="snap.health === 'UP' ? 5 : 25"
+            r="2.5"
+            [attr.fill]="snap.health === 'UP' ? '#4ade80' : '#f87171'"
+            vector-effect="non-scaling-stroke"
+          />
+        }
       </svg>
       <!-- X-axis time labels (HH:MM) positioned proportionally -->
       <div class="sparkline-xaxis" aria-hidden="true">

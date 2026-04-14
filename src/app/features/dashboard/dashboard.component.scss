@@ -135,11 +135,10 @@ h2 {
   letter-spacing: 0.03em;
 }
 
-.stat-desc {
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  line-height: 1.35;
-  margin-bottom: 0.1rem;
+.stat-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .stat-links {
