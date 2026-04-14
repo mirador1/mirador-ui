@@ -659,34 +659,34 @@ blockquote {
     font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #334155;
+    letter-spacing: 0.04em;
+    color: #475569;
   }
   code {
     font-size: 0.68rem;
     font-weight: 600;
-    color: #0f172a;
+    color: #1e293b;
   }
 
   &.flow-client {
-    background: #dbeafe;
-    border: 1px solid #93c5fd;
+    background: #f0f9ff;
+    border: 1px solid #7dd3fc;
   }
   &.flow-produce {
-    background: #fef08a;
-    border: 1px solid #facc15;
+    background: #eef2ff;
+    border: 1px solid #a5b4fc;
   }
   &.flow-consumer {
-    background: #fed7aa;
-    border: 1px solid #fb923c;
+    background: #f5f3ff;
+    border: 1px solid #c4b5fd;
   }
   &.flow-reply {
-    background: #fef08a;
-    border: 1px solid #facc15;
+    background: #eef2ff;
+    border: 1px solid #a5b4fc;
   }
   &.flow-response {
-    background: #bbf7d0;
-    border: 1px solid #4ade80;
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
   }
 }
 
