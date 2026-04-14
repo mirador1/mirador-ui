@@ -746,14 +746,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     },
     {
       id: 'loki',
-      label: 'Grafana',
+      label: 'Grafana (otel-lgtm)',
       col: 4,
       row: 1,
       icon: '📦',
-      port: '3001',
+      port: '3000',
       container: 'customerservice-lgtm',
       url: 'http://localhost:3000/',
-      tip: 'Traces · Logs · Metrics',
+      tip: 'Loki, Grafana, Tempo, Mimir',
       detail:
         'Grafana customisé — image Docker grafana/otel-lgtm (LGTM = Loki, Grafana, Tempo, Mimir). Bundles Loki (logs), Tempo (traces), Mimir (metrics) et Grafana (UI) dans un seul container. Spring Boot envoie traces et logs via OTLP port 4318 → OTel Collector → Tempo / Loki. Ouvrir le dashboard CustomerService Overview pour la corrélation complète.',
       image: 'images/tools/grafana.png',
