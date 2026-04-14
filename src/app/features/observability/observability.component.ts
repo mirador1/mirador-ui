@@ -56,7 +56,7 @@ interface LatencyBucket {
   count: number;
 }
 
-type ObsTab = 'traces' | 'logs' | 'latency';
+type ObsTab = 'traces' | 'logs' | 'latency' | 'loggers';
 
 @Component({
   selector: 'app-observability',
@@ -94,6 +94,52 @@ export class ObservabilityComponent implements OnDestroy {
   // ── Latency histograms ────────────────────────────────────────────────────
   latencyBuckets = signal<LatencyBucket[]>([]);
   latencyLoading = signal(false);
+
+  // ── Loggers ───────────────────────────────────────────────────────────────
+  loggersList = signal<Array<{ name: string; level: string }>>([]);
+  loggerFilter = '';
+  loggerLoading = signal(false);
+
+  loadLoggers(): void {
+    this.loggerLoading.set(true);
+    this.http
+      .get<{ loggers: Record<string, { effectiveLevel: string }> }>(
+        `${this.env.baseUrl()}/actuator/loggers`,
+      )
+      .subscribe({
+        next: (v) => {
+          const entries = Object.entries(v.loggers ?? {})
+            .map(([name, val]) => ({ name, level: val.effectiveLevel }))
+            .filter((l) => l.level !== 'OFF');
+          this.loggersList.set(entries);
+          this.loggerLoading.set(false);
+        },
+        error: () => {
+          this.toast.show('Could not load loggers', 'error');
+          this.loggerLoading.set(false);
+        },
+      });
+  }
+
+  setLoggerLevel(name: string, level: string): void {
+    this.http
+      .post(`${this.env.baseUrl()}/actuator/loggers/${name}`, { configuredLevel: level })
+      .subscribe({
+        next: () => {
+          this.toast.show(`Logger "${name}" set to ${level}`, 'success');
+          this.loadLoggers();
+        },
+        error: () => this.toast.show('Failed to set logger level', 'error'),
+      });
+  }
+
+  get filteredLoggers() {
+    if (!this.loggerFilter) return this.loggersList().slice(0, 50);
+    const q = this.loggerFilter.toLowerCase();
+    return this.loggersList()
+      .filter((l) => l.name.toLowerCase().includes(q))
+      .slice(0, 50);
+  }
 
   // ── Flame graph ───────────────────────────────────────────────────────────
   flameViewTrace = signal<Trace | null>(null);

@@ -84,7 +84,7 @@ export class AppShellComponent {
       icon: '🔍',
       label: 'Observability',
       path: '/observability',
-      tip: 'Distributed traces, structured logs, latency distribution',
+      tip: 'Distributed traces, structured logs, latency distribution, loggers',
       children: [
         {
           label: 'Traces (Zipkin)',
@@ -94,6 +94,15 @@ export class AppShellComponent {
         {
           label: 'Latency Histogram',
           tip: 'HTTP response time distribution in 12 human-readable buckets',
+        },
+        {
+          label: 'Loggers',
+          tip: 'Browse and change Spring logger levels live via /actuator/loggers',
+        },
+        {
+          label: 'Activity',
+          path: '/activity',
+          tip: 'Session event timeline — all client-side actions in this browser session',
         },
       ],
     },
@@ -234,14 +243,6 @@ export class AppShellComponent {
           tip: 'App name, version, stack, features from /actuator/info',
         },
       ],
-    },
-    {
-      id: 'activity',
-      icon: '📋',
-      label: 'Activity',
-      path: '/activity',
-      tip: 'Session event timeline with 7 event types and quick actions',
-      children: [],
     },
     {
       id: 'timeline',

@@ -561,3 +561,66 @@ h2 {
   min-width: 30px;
   color: #86efac;
 }
+
+// ── Loggers ──────────────────────────────────────────────────────────────────
+.logger-filter {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  width: 250px;
+}
+.logger-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+.logger-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 0.78rem;
+  &:last-child {
+    border-bottom: none;
+  }
+}
+.logger-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+.logger-level {
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  width: 50px;
+}
+.logger-actions {
+  display: flex;
+  gap: 0.2rem;
+}
+.level-btn {
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.6rem;
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  &.active {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+  }
+}
