@@ -4,7 +4,23 @@
     <p class="hint">Default credentials: <code>admin / admin</code></p>
 
     @if (error()) {
-      <p class="error">{{ error() }}</p>
+      <div class="error error--{{ errorType() }}">
+        @switch (errorType()) {
+          @case ('backend') {
+            <span class="error-icon">🔌</span>
+          }
+          @case ('blocked') {
+            <span class="error-icon">🔒</span>
+          }
+          @case ('credentials') {
+            <span class="error-icon">❌</span>
+          }
+          @default {
+            <span class="error-icon">⚠️</span>
+          }
+        }
+        <span>{{ error() }}</span>
+      </div>
     }
 
     <label>
