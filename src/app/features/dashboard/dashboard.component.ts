@@ -1064,13 +1064,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   sparklineXLabels(): { pct: number; label: string }[] {
     const history = this.healthHistory();
     if (history.length < 2) return [];
-    const lastTime = history[history.length - 1].time.getTime();
     const count = Math.min(5, history.length);
     const step = (history.length - 1) / (count - 1);
     return Array.from({ length: count }, (_, i) => {
       const idx = Math.round(i * step);
-      const diffSec = Math.round((history[idx].time.getTime() - lastTime) / 1000);
-      const label = diffSec === 0 ? '0s' : `${diffSec}s`;
+      const t = history[idx].time;
+      const label = t.toTimeString().slice(0, 8); // HH:MM:SS
       const pct = (idx / (history.length - 1)) * 100;
       return { pct, label };
     });
