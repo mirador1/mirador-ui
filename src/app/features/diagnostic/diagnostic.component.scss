@@ -571,3 +571,46 @@ h2 {
   color: #9ca3af;
   border: 1px solid #374151;
 }
+
+// ── Test report ──────────────────────────────────────────────────────────────
+.test-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.test-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.test-pass {
+    background: #14532d;
+    color: #86efac;
+    border: 1px solid #16a34a;
+  }
+  &.test-fail {
+    background: #450a0a;
+    color: #fca5a5;
+    border: 1px solid #991b1b;
+  }
+}
+
+.test-stat {
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  font-family: monospace;
+
+  &.muted {
+    color: var(--text-muted);
+  }
+}
+
+.test-fail-text {
+  color: #f87171;
+}

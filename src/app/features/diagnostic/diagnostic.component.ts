@@ -100,6 +100,24 @@ export class DiagnosticComponent {
 
   readonly Math = Math;
 
+  // ── Test report (Surefire) ─────────────────────────────────────────────────
+  testReport = signal<Record<string, unknown> | null>(null);
+  testReportLoading = signal(false);
+
+  loadTestReport(): void {
+    this.testReportLoading.set(true);
+    this.http.get<Record<string, unknown>>(`${this.env.baseUrl()}/actuator/info`).subscribe({
+      next: (info) => {
+        this.testReport.set((info['tests'] as Record<string, unknown>) ?? null);
+        this.testReportLoading.set(false);
+      },
+      error: () => {
+        this.testReport.set(null);
+        this.testReportLoading.set(false);
+      },
+    });
+  }
+
   // ── Run history ────────────────────────────────────────────────────────────
   runHistory = signal<RunRecord[]>([]);
   showHistory = signal(false);

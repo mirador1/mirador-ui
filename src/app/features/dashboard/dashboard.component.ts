@@ -765,12 +765,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       col: 5,
       row: 0,
       icon: '🦊',
-      port: '9080',
+      port: '9081',
       container: 'gitlab',
-      url: 'http://localhost:9080',
+      url: 'http://localhost:9081',
       tip: 'GitLab CE — instance locale Docker',
       detail:
-        'GitLab Community Edition — instance locale via docker-compose.gitlab.yml. Héberge les dépôts et pipelines CI/CD sans consommer de minutes sur gitlab.com. Accès : http://localhost:9080. Premier démarrage : ~2-3 min. Enregistrer le runner local : docker exec -it gitlab-runner gitlab-runner register --url http://host.docker.internal:9080 --token <token>.',
+        'GitLab Community Edition — instance locale via docker-compose.gitlab.yml. Héberge les dépôts et pipelines CI/CD sans consommer de minutes sur gitlab.com. Accès : http://localhost:9081. Premier démarrage : ~2-3 min. Enregistrer le runner local : docker exec -it gitlab-runner gitlab-runner register --url http://host.docker.internal:9081 --token <token>.',
       image: 'images/tools/gitlab.png',
     },
     {
@@ -783,18 +783,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       tip: 'Dépôt distant — pipelines gitlab.com',
       detail:
         "Instance SaaS gitlab.com — dépôt distant du projet customer-service. Les pipelines s'exécutent soit sur les shared runners GitLab (minutes partagées), soit sur le runner local enregistré. URL : https://gitlab.com/benoit.besson/customer-service.",
-      image: 'images/tools/gitlab.png',
-    },
-    {
-      id: 'gitlab-runner',
-      label: 'GitLab Runner',
-      col: 5,
-      row: 2,
-      icon: '🔧',
-      container: 'gitlab-runner',
-      tip: 'CI/CD runner local',
-      detail:
-        'GitLab Runner (image gitlab/gitlab-runner) — exécute les jobs CI/CD en local via docker-compose.runner.yml. Se connecte en HTTPS long-polling à GitLab (local ou gitlab.com). Enregistrement : ./scripts/register-runner.sh. Consomme zéro minute CI partagée.',
       image: 'images/tools/gitlab.png',
     },
     {
@@ -875,7 +863,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'customerservice-zipkin': 'zipkin',
       'customerservice-lgtm': 'loki',
       'customerservice-pyroscope': 'pyroscope',
-      'gitlab-runner': 'gitlab-runner',
       gitlab: 'gitlab-local',
     };
     for (const [containerName, nodeId] of Object.entries(dockerMap)) {
@@ -948,8 +935,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'Docker container state — "gitlab" container running = UP (docker-compose.gitlab.yml).',
     'gitlab-com':
       'HEAD https://gitlab.com (no-cors) — UP if reachable from the browser, DOWN if network error.',
-    'gitlab-runner':
-      'Docker container state — "gitlab-runner" container running = UP (docker-compose.runner.yml).',
   };
 
   topoStatusTooltip(nodeId: string): string {
