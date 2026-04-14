@@ -407,6 +407,11 @@ export class ObservabilityComponent implements OnDestroy {
     this.connectSse();
   }
 
+  stopSse(): void {
+    this.cleanupSse();
+    this.sseStatus.set('disconnected');
+  }
+
   private cleanupSse(): void {
     if (this._reconnectTimer) {
       clearTimeout(this._reconnectTimer);

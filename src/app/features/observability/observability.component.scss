@@ -721,6 +721,14 @@ h2 {
     opacity: 0.5;
   }
 }
+.sse-btn-stop {
+  background: #450a0a;
+  color: #fca5a5;
+  border-color: #b91c1c;
+  &:hover {
+    background: #7f1d1d;
+  }
+}
 
 .sse-list {
   display: flex;

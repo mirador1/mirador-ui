@@ -3,9 +3,8 @@
     <div>
       <h2>Observability</h2>
       <p class="subtitle">
-        Télémétrie passive — observe ce que le backend fait en temps réel, sans rien déclencher
-        toi-même : traces distribuées, logs structurés, distribution de latence, flux d'événements
-        SSE.
+        Passive telemetry — observe what the backend does in real time without triggering anything:
+        distributed traces, structured logs, latency distribution, SSE event stream.
       </p>
     </div>
   </div>
@@ -334,8 +333,14 @@
               <span class="sse-pill" [class]="sseStatusClass(sseStatus())">{{
                 sseStatusLabel(sseStatus())
               }}</span>
-              @if (sseStatus() === 'disconnected' || sseStatus() === 'reconnecting') {
-                <button class="run-btn" (click)="reconnectSse()">Reconnect</button>
+              @if (sseStatus() === 'disconnected') {
+                <button class="run-btn" (click)="reconnectSse()">Connect</button>
+              }
+              @if (sseStatus() === 'reconnecting') {
+                <button class="run-btn sse-btn-stop" (click)="stopSse()">Stop</button>
+              }
+              @if (sseStatus() === 'connected') {
+                <button class="run-btn sse-btn-stop" (click)="stopSse()">Disconnect</button>
               }
             </div>
             <button
