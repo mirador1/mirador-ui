@@ -46,60 +46,60 @@
       <table class="arch-table">
         <thead>
           <tr>
-            <th class="arch-col-layer">Couche</th>
-            <th class="arch-col-role">Rôle</th>
-            <th class="arch-col-tech">Technologies clés</th>
+            <th class="arch-col-layer">Layer</th>
+            <th class="arch-col-role">Role</th>
+            <th class="arch-col-tech">Key Technologies</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td class="arch-layer">🌐 Client</td>
-            <td class="arch-role">SPA Angular servie par <code>ng serve</code> sur :4200</td>
+            <td class="arch-role">Angular SPA served by <code>ng serve</code> on :4200</td>
             <td class="arch-tech">Angular 21 · TypeScript · SCSS · Raw SVG · Vitest</td>
           </tr>
           <tr>
             <td class="arch-layer">🍃 Application</td>
-            <td class="arch-role">API REST Spring Boot 4 sur :8080 — JWT + Keycloak</td>
+            <td class="arch-role">REST API on :8080 — JWT + Keycloak</td>
             <td class="arch-tech">
               Spring Boot 4 · Java 25 · Virtual Threads · Micrometer · Swagger
             </td>
           </tr>
           <tr>
             <td class="arch-layer">🗄️ Data Stores</td>
-            <td class="arch-role">Persistance, cache, messaging, IA</td>
+            <td class="arch-role">Persistence, cache, messaging, AI</td>
             <td class="arch-tech">PostgreSQL 17 · Redis 7 · Kafka (KRaft) · Ollama llama3.2</td>
           </tr>
           <tr>
             <td class="arch-layer">🛡️ Resilience</td>
-            <td class="arch-role">Patterns de tolérance aux pannes</td>
+            <td class="arch-role">Fault tolerance patterns</td>
             <td class="arch-tech">
               Bucket4j (rate limit) · Resilience4j (circuit breaker, retry) · Idempotency keys
             </td>
           </tr>
           <tr>
             <td class="arch-layer">🛠️ Data Tools</td>
-            <td class="arch-role">UI admin pour chaque store</td>
+            <td class="arch-role">Admin UI for each data store</td>
             <td class="arch-tech">
               pgAdmin · pgweb · RedisInsight · Redis Commander · Kafka UI · AKHQ
             </td>
           </tr>
           <tr>
             <td class="arch-layer">📡 Obs Collectors</td>
-            <td class="arch-role">Collecte de traces, logs et métriques</td>
+            <td class="arch-role">Trace, log &amp; metric collection</td>
             <td class="arch-tech">
               OpenTelemetry OTLP → LGTM (Loki + Tempo) · Zipkin · Jaeger · Pyroscope
             </td>
           </tr>
           <tr>
             <td class="arch-layer">📊 Obs Dashboards</td>
-            <td class="arch-role">Visualisation de la télémétrie</td>
+            <td class="arch-role">Telemetry visualization</td>
             <td class="arch-tech">
               Grafana × 2 · Prometheus UI · Zipkin UI · Jaeger UI · Pyroscope
             </td>
           </tr>
           <tr>
             <td class="arch-layer">🏗️ Infrastructure</td>
-            <td class="arch-role">Orchestration et proxies</td>
+            <td class="arch-role">Orchestration &amp; proxies</td>
             <td class="arch-tech">
               Docker Compose (2 files, 22 containers) · docker-socket-proxy · Nginx CORS proxy
             </td>

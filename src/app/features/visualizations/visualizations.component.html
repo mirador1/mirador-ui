@@ -2,9 +2,8 @@
   <div class="page-header">
     <h2>Metrics</h2>
     <p class="subtitle">
-      Dashboards quantitatifs — chiffres agrégés sur le temps : 78 métriques HTTP/JVM/DB/Kafka, 55
-      jauges circulaires, timeline d'erreurs, lag consommateur, temps de requêtes SQL, taille des
-      chunks Angular.
+      Quantitative dashboards — aggregated numbers over time: 78 HTTP/JVM/DB/Kafka metrics, 55
+      circular gauges, error timeline, consumer lag, SQL query durations, Angular chunk sizes.
     </p>
   </div>
 
@@ -13,15 +12,12 @@
   } @else {
     <div class="tabs">
       @for (tab of vizTabs; track tab.id) {
-        <button
-          [class.tab-active]="activeTab() === tab.id"
-          (click)="switchTab(tab.id)"
-          [title]="tab.tip"
-        >
+        <button [class.tab-active]="activeTab() === tab.id" (click)="switchTab(tab.id)">
           <span class="tab-icon">{{ tab.icon }}</span> {{ tab.label }}
         </button>
       }
     </div>
+    <p class="tab-tip-line">{{ activeTabTip() }}</p>
 
     @if (vizError()) {
       <div class="viz-error-banner">

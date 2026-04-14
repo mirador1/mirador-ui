@@ -13,7 +13,7 @@
  * - Slow Queries: Spring Data repository invocation metrics from Prometheus
  * - Bundle: treemap of Angular lazy chunks with 3D CSS transforms
  */
-import { Component, inject, signal, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -119,6 +119,7 @@ export class VisualizationsComponent implements OnDestroy {
 
   readonly Math = Math;
   activeTab = signal<VizTab>('golden');
+  activeTabTip = computed(() => this.vizTabs.find((t) => t.id === this.activeTab())?.tip ?? '');
 
   readonly vizTabs: Array<{ id: VizTab; label: string; icon: string; tip: string }> = [
     {
