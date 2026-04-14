@@ -240,16 +240,12 @@
           <tr>
             <td class="arch-layer">📡 Obs Collectors</td>
             <td class="arch-role">Trace, log &amp; metric collection</td>
-            <td class="arch-tech">
-              OpenTelemetry OTLP → LGTM (Loki + Tempo) · Zipkin · Jaeger · Pyroscope
-            </td>
+            <td class="arch-tech">OpenTelemetry OTLP → LGTM (Loki + Tempo) · Zipkin</td>
           </tr>
           <tr>
             <td class="arch-layer">📊 Obs Dashboards</td>
             <td class="arch-role">Telemetry visualization</td>
-            <td class="arch-tech">
-              Grafana × 2 · Prometheus UI · Zipkin UI · Jaeger UI · Pyroscope
-            </td>
+            <td class="arch-tech">Grafana (incl. Pyroscope) · Prometheus UI · Zipkin UI</td>
           </tr>
           <tr>
             <td class="arch-layer">🏗️ Infrastructure</td>
@@ -543,7 +539,7 @@
         />
         <text x="717" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Zipkin</text>
         <text x="717" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">:9411</text>
-        <!-- Jaeger -->
+        <!-- Prometheus -->
         <rect
           x="647"
           y="132"
@@ -554,34 +550,8 @@
           stroke="#06b6d450"
           stroke-width="1"
         />
-        <text x="717" y="148" text-anchor="middle" font-size="12" fill="#f8fafc">Jaeger</text>
-        <text x="717" y="160" text-anchor="middle" font-size="10" fill="#94a3b8">:16686</text>
-        <!-- Pyroscope -->
-        <rect
-          x="647"
-          y="173"
-          width="141"
-          height="32"
-          rx="4"
-          fill="#06b6d425"
-          stroke="#06b6d450"
-          stroke-width="1"
-        />
-        <text x="717" y="189" text-anchor="middle" font-size="12" fill="#f8fafc">Pyroscope</text>
-        <text x="717" y="201" text-anchor="middle" font-size="10" fill="#94a3b8">:4040</text>
-        <!-- Prometheus -->
-        <rect
-          x="647"
-          y="214"
-          width="141"
-          height="32"
-          rx="4"
-          fill="#06b6d425"
-          stroke="#06b6d450"
-          stroke-width="1"
-        />
-        <text x="717" y="230" text-anchor="middle" font-size="12" fill="#f8fafc">Prometheus</text>
-        <text x="717" y="242" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
+        <text x="717" y="148" text-anchor="middle" font-size="12" fill="#f8fafc">Prometheus</text>
+        <text x="717" y="160" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
 
         <!-- ── Col 5: OBS DASHBOARDS (x 820–990) ──────────────────────── -->
         <rect
@@ -616,8 +586,10 @@
           stroke="#8b5cf680"
           stroke-width="1"
         />
-        <text x="905" y="58" text-anchor="middle" font-size="12" fill="#f8fafc">Grafana LGTM</text>
-        <text x="905" y="70" text-anchor="middle" font-size="10" fill="#94a3b8">:3000</text>
+        <text x="905" y="55" text-anchor="middle" font-size="12" fill="#f8fafc">Grafana LGTM</text>
+        <text x="905" y="67" text-anchor="middle" font-size="10" fill="#94a3b8">
+          :3000 · incl. Pyroscope
+        </text>
         <!-- Prometheus UI -->
         <rect
           x="832"
@@ -646,32 +618,6 @@
         />
         <text x="905" y="181" text-anchor="middle" font-size="12" fill="#f8fafc">Zipkin UI</text>
         <text x="905" y="193" text-anchor="middle" font-size="10" fill="#94a3b8">:9411</text>
-        <!-- Jaeger UI -->
-        <rect
-          x="832"
-          y="206"
-          width="146"
-          height="32"
-          rx="4"
-          fill="#8b5cf625"
-          stroke="#8b5cf650"
-          stroke-width="1"
-        />
-        <text x="905" y="222" text-anchor="middle" font-size="12" fill="#f8fafc">Jaeger UI</text>
-        <text x="905" y="234" text-anchor="middle" font-size="10" fill="#94a3b8">:16686</text>
-        <!-- Pyroscope UI -->
-        <rect
-          x="832"
-          y="247"
-          width="146"
-          height="32"
-          rx="4"
-          fill="#8b5cf625"
-          stroke="#8b5cf650"
-          stroke-width="1"
-        />
-        <text x="905" y="263" text-anchor="middle" font-size="12" fill="#f8fafc">Pyroscope UI</text>
-        <text x="905" y="275" text-anchor="middle" font-size="10" fill="#94a3b8">:4040</text>
 
         <!-- ── Infrastructure footer ───────────────────────────────────── -->
         <rect
@@ -1430,7 +1376,7 @@ docker compose -f docker-compose.runner.yml up -d
             <td><strong>Traces</strong></td>
             <td>Spring Boot auto-instrumentation</td>
             <td>OTEL OTLP (:4318)</td>
-            <td>Tempo (Grafana :3000) · Zipkin (:9411) · Jaeger (:16686)</td>
+            <td>Tempo · Zipkin (:9411) — both in Grafana LGTM (:3000)</td>
           </tr>
           <tr>
             <td><strong>Logs</strong></td>
@@ -1446,9 +1392,9 @@ docker compose -f docker-compose.runner.yml up -d
           </tr>
           <tr>
             <td><strong>Profiles</strong></td>
-            <td>Pyroscope Java agent (JVM)</td>
-            <td>Push to Pyroscope server</td>
-            <td>Pyroscope UI (:4040) — CPU, alloc, lock flamegraphs</td>
+            <td>Grafana Pyroscope (built into LGTM)</td>
+            <td>OTLP push (:4040 via LGTM)</td>
+            <td>Grafana Explore Profiles (:3000) — CPU, alloc, lock flamegraphs</td>
           </tr>
         </tbody>
       </table>
@@ -1482,8 +1428,9 @@ docker compose -f docker-compose.runner.yml up -d
           <div>
             <strong>Continuous profiling</strong>
             <span>
-              Pyroscope agent samples the JVM at runtime. No code changes needed — attach
-              <code>./run.sh app-profiled</code> and flamegraphs appear at :4040.
+              Grafana Pyroscope is bundled inside the LGTM container — no separate service needed.
+              Flamegraphs (CPU, alloc, lock) are available directly in
+              <strong>Grafana → Explore Profiles</strong> at :3000.
             </span>
           </div>
         </div>
