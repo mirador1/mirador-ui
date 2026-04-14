@@ -479,6 +479,12 @@ export class DatabaseComponent {
             'SELECT relname, n_live_tup, n_dead_tup, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze FROM pg_stat_user_tables ORDER BY n_dead_tup DESC',
         },
         {
+          icon: '🧹',
+          name: 'VACUUM ANALYZE (all tables)',
+          tip: 'Reclaims storage from dead tuples and refreshes planner statistics. Safe to run at any time. Results are empty on success — check autovacuum status above to confirm.',
+          query: 'VACUUM ANALYZE',
+        },
+        {
           icon: '💿',
           name: 'WAL statistics',
           tip: 'Write-Ahead Log stats: how many WAL records are generated. High WAL volume = write-heavy workload.',

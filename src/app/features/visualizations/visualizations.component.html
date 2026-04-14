@@ -113,8 +113,8 @@
                 <div class="golden-header">
                   <span class="golden-icon">{{ s.icon }}</span>
                   <span class="golden-name">{{ s.name }}</span>
-                  <app-info-tip [title]="s.name" [text]="s.tip" source="Prometheus" />
                 </div>
+                <span class="golden-tip">{{ s.tip }}</span>
                 <span class="golden-value">{{ s.value }}</span>
                 <span class="golden-detail">{{ s.detail }}</span>
               </div>
@@ -228,8 +228,8 @@
                 <div class="gauge-footer">
                   <span class="gauge-icon">{{ g.icon }}</span>
                   <span class="gauge-label">{{ g.label }}</span>
-                  <app-info-tip [title]="g.label" [text]="g.tip" source="Prometheus" />
                 </div>
+                <span class="gauge-tip">{{ g.tip }}</span>
                 <span class="gauge-range">0 — {{ g.max }} {{ g.unit }}</span>
               </div>
             }

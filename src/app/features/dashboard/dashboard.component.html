@@ -44,15 +44,9 @@
   <!-- Stats cards -->
   <div class="stats-grid">
     <article class="stat-card">
+      <span class="stat-label">Total Customers</span>
+      <span class="stat-desc">GET /customers — totalElements field from paginated response</span>
       <span class="stat-value">{{ customerCount() ?? '—' }}</span>
-      <span class="stat-label"
-        >Total Customers
-        <app-info-tip
-          text="Total customers in database. Fetched via GET /customers?page=0&size=1, reading the totalElements field from the paginated response."
-          command="GET /customers?page=0&size=1"
-          source="Page.totalElements"
-        />
-      </span>
       <div class="stat-links">
         <a routerLink="/customers">📋 Customers</a>
         <a href="http://localhost:5050" target="_blank" rel="noopener">🐘 pgAdmin</a>
@@ -60,15 +54,11 @@
     </article>
     @if (metrics()) {
       <article class="stat-card">
+        <span class="stat-label">HTTP Requests (total)</span>
+        <span class="stat-desc"
+          >Cumulative counter since startup — http_server_requests_seconds_count</span
+        >
         <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
-        <span class="stat-label"
-          >HTTP Requests (total)
-          <app-info-tip
-            text="Cumulative counter of all HTTP requests handled by the backend since startup. Micrometer metric exposed via Prometheus."
-            command="http_server_requests_seconds_count"
-            source="/actuator/prometheus"
-          />
-        </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -80,15 +70,9 @@
         </div>
       </article>
       <article class="stat-card">
+        <span class="stat-label">Latency p50</span>
+        <span class="stat-desc">Median — 50% of requests are faster. Sliding window quantile.</span>
         <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
-        <span class="stat-label"
-          >Latency p50
-          <app-info-tip
-            text="Median response time: 50% of requests are faster than this. Micrometer quantile computed over a sliding window. Changes slowly — generate traffic to see it move."
-            command='http_server_requests_seconds{quantile="0.5"}'
-            source="/actuator/prometheus"
-          />
-        </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -100,15 +84,11 @@
         </div>
       </article>
       <article class="stat-card">
+        <span class="stat-label">Latency p95</span>
+        <span class="stat-desc"
+          >95th percentile — only 5% of requests are slower. Key SLO indicator.</span
+        >
         <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
-        <span class="stat-label"
-          >Latency p95
-          <app-info-tip
-            text="95th percentile: only 5% of requests are slower than this value. Key indicator for SLOs."
-            command='http_server_requests_seconds{quantile="0.95"}'
-            source="/actuator/prometheus"
-          />
-        </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -120,15 +100,11 @@
         </div>
       </article>
       <article class="stat-card">
+        <span class="stat-label">Latency p99</span>
+        <span class="stat-desc"
+          >Worst 1% of requests — detects outliers (Kafka timeouts, Ollama cold starts).</span
+        >
         <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
-        <span class="stat-label"
-          >Latency p99
-          <app-info-tip
-            text="99th percentile: the worst 1% of requests. Useful for detecting outliers (Kafka timeouts, Ollama cold starts, etc.)."
-            command='http_server_requests_seconds{quantile="0.99"}'
-            source="/actuator/prometheus"
-          />
-        </span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
