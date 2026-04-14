@@ -2,13 +2,13 @@
  * AppShellComponent — Main application layout.
  *
  * Provides:
- * - Top navigation bar with app title, nav links, env selector, theme toggle, logout
- * - Responsive sidebar menu (mobile hamburger toggle)
+ * - Top navigation bar with app title, theme toggle, logout
+ * - Fixed sidebar navigation (always visible, no collapse)
  * - Global search overlay (Ctrl+K) with keyword-based page matching
  * - Toast notification container
  * - Router outlet for feature page content
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -32,8 +32,16 @@ export class AppShellComponent {
 
   mobileMenuOpen = signal(false);
   showSearch = signal(false);
-  sidebarCollapsed = signal(false);
   expandedSections = signal<Set<string>>(new Set(['dashboard', 'customers']));
+
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(e: KeyboardEvent): void {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      this.showSearch.update((v) => !v);
+    }
+    if (e.key === 'Escape') this.showSearch.set(false);
+  }
 
   readonly navTree = [
     {
@@ -198,10 +206,10 @@ export class AppShellComponent {
     },
     {
       id: 'quality',
-      label: 'Quality',
+      label: 'Backend Report',
       icon: '🎯',
       path: '/quality',
-      tip: 'Build quality report — tests, coverage, static analysis',
+      tip: 'Build quality report — tests, coverage, SpotBugs, OWASP, PMD, Checkstyle, Pitest',
       children: [],
       adminOnly: true,
     },
@@ -323,6 +331,11 @@ export class AppShellComponent {
       label: '🏠 Dashboard',
       path: '/',
       keywords: 'dashboard home health metrics architecture services',
+    },
+    {
+      label: '🎯 Backend Report',
+      path: '/quality',
+      keywords: 'quality report maven spotbugs owasp pmd checkstyle pitest coverage tests',
     },
     {
       label: '👤 Customers',

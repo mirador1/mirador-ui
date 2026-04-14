@@ -80,6 +80,20 @@
   user-select: all;
 }
 
+.refresh-variant {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.refresh-variant-label {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
 .refresh-hint {
   font-size: 0.8rem;
   opacity: 0.8;
@@ -87,6 +101,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+  margin-top: 0.2rem;
 }
 
 .btn-refresh {

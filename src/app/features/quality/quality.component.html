@@ -3,7 +3,7 @@
   <div class="page-header">
     <div class="header-title">
       <span class="header-icon">🎯</span>
-      <h2>Quality Report</h2>
+      <h2>Backend Report</h2>
       @if (report()) {
         <span class="generated-at">Generated: {{ report()!.generatedAt }}</span>
       }
@@ -23,11 +23,20 @@
       <span class="refresh-info-icon">ℹ️</span>
       <div class="refresh-info-body">
         <strong>Report not updated automatically.</strong>
-        To regenerate, run the following command on the backend, then restart the app:
-        <code class="refresh-cmd">mvn verify -Preport -DskipITs</code>
+        To regenerate, run one of the following commands on the backend, then restart the app:
+        <span class="refresh-variant">
+          <span class="refresh-variant-label">Java 25 (SpotBugs + OWASP):</span>
+          <code class="refresh-cmd">mvn verify -Preport -DskipITs -Djacoco.skip=true</code>
+        </span>
+        <span class="refresh-variant">
+          <span class="refresh-variant-label">Java 21 (+ PMD + Checkstyle):</span>
+          <code class="refresh-cmd"
+            >mvn verify -Preport,report-static -Dcompat -DskipITs -Djacoco.skip=true</code
+          >
+        </span>
         <span class="refresh-hint">
-          This enables SpotBugs, OWASP, PMD, Checkstyle and embeds the reports in the JAR. For
-          mutation tests: <code>mvn test-compile pitest:mutationCoverage -Preport</code>
+          Mutation tests (slow):
+          <code>mvn test-compile pitest:mutationCoverage -Preport</code>
         </span>
       </div>
     </div>
