@@ -17,6 +17,18 @@ export class AuthService {
   readonly refreshToken = this._refreshToken.asReadonly();
   readonly isAuthenticated = computed(() => !!this._accessToken());
 
+  readonly isAdmin = computed(() => {
+    const token = this._accessToken();
+    if (!token) return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const role = (payload['role'] as string) ?? '';
+      return role === 'ROLE_ADMIN' || role === 'ADMIN';
+    } catch {
+      return false;
+    }
+  });
+
   setTokens(accessToken: string, refreshToken: string): void {
     localStorage.setItem('jwt', accessToken);
     localStorage.setItem('refreshToken', refreshToken);

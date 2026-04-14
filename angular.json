@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "customer-observability-ui": {
+    "mirador-ui": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -63,10 +63,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "customer-observability-ui:build:production"
+              "buildTarget": "mirador-ui:build:production"
             },
             "development": {
-              "buildTarget": "customer-observability-ui:build:development"
+              "buildTarget": "mirador-ui:build:development"
             }
           },
           "defaultConfiguration": "development"

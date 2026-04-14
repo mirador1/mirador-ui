@@ -75,6 +75,11 @@ export const routes: Routes = [
       import('./features/security/security.component').then((m) => m.SecurityComponent),
   },
   {
+    path: 'quality',
+    loadComponent: () =>
+      import('./features/quality/quality.component').then((m) => m.QualityComponent),
+  },
+  {
     path: 'about',
     loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
   },

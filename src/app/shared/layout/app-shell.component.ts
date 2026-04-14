@@ -197,6 +197,15 @@ export class AppShellComponent {
       ],
     },
     {
+      id: 'quality',
+      label: 'Quality',
+      icon: '🎯',
+      path: '/quality',
+      tip: 'Build quality report — tests, coverage, static analysis',
+      children: [],
+      adminOnly: true,
+    },
+    {
       id: 'chaos',
       icon: '💥',
       label: 'Chaos & Traffic',

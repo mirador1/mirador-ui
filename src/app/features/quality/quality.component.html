@@ -1,0 +1,577 @@
+<div class="quality-page">
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="header-title">
+      <span class="header-icon">🎯</span>
+      <h2>Quality Report</h2>
+      @if (report()) {
+        <span class="generated-at">Generated: {{ report()!.generatedAt }}</span>
+      }
+    </div>
+    <button class="btn-refresh" (click)="loadReport()" [disabled]="loading()">
+      <span class="refresh-icon" [class.spinning]="loading()">↻</span>
+      Refresh
+    </button>
+  </div>
+
+  @if (!auth.isAdmin()) {
+    <div class="access-denied">🔒 This page is restricted to administrators.</div>
+  }
+  @if (auth.isAdmin()) {
+    <!-- Loading state -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="spinner">↻</span>
+        <span>Loading quality report…</span>
+      </div>
+    }
+
+    <!-- Error state -->
+    @if (error()) {
+      <div class="error-banner">
+        <span>⚠ {{ error() }}</span>
+      </div>
+    }
+
+    @if (report(); as r) {
+      <!-- Summary row: 4 cards -->
+      <div class="summary-row">
+        <!-- Tests card -->
+        <div
+          class="summary-card"
+          [class.card-pass]="r.tests.status === 'PASSED'"
+          [class.card-fail]="r.tests.status === 'FAILED'"
+        >
+          <div class="card-label">Tests</div>
+          @if (r.tests.available) {
+            <div class="card-value">
+              <span
+                class="badge"
+                [class.badge-pass]="r.tests.status === 'PASSED'"
+                [class.badge-fail]="r.tests.status === 'FAILED'"
+              >
+                {{ r.tests.status }}
+              </span>
+            </div>
+            <div class="card-sub">{{ r.tests.passed }} / {{ r.tests.total }} passed</div>
+            @if (r.tests.skipped && r.tests.skipped > 0) {
+              <div class="card-hint">{{ r.tests.skipped }} skipped</div>
+            }
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No test reports found</div>
+          }
+        </div>
+
+        <!-- Coverage card -->
+        <div class="summary-card">
+          <div class="card-label">Coverage</div>
+          @if (r.coverage.available) {
+            <div class="card-value" [class]="'pct-' + coverageColor(r.coverage.instructions!.pct)">
+              {{ r.coverage.instructions!.pct | number: '1.1-1' }}%
+            </div>
+            <div class="card-sub">instructions</div>
+            <div class="coverage-bar-wrap">
+              <svg class="coverage-bar" viewBox="0 0 100 6" preserveAspectRatio="none">
+                <rect x="0" y="0" width="100" height="6" fill="#e5e7eb" rx="3" />
+                <rect
+                  x="0"
+                  y="0"
+                  [attr.width]="r.coverage.instructions!.pct"
+                  height="6"
+                  [attr.fill]="
+                    r.coverage.instructions!.pct >= 70
+                      ? '#22c55e'
+                      : r.coverage.instructions!.pct >= 50
+                        ? '#f59e0b'
+                        : '#ef4444'
+                  "
+                  rx="3"
+                />
+              </svg>
+            </div>
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No coverage data</div>
+          }
+        </div>
+
+        <!-- Bugs card -->
+        <div
+          class="summary-card"
+          [class.card-pass]="r.bugs.available && r.bugs.total === 0"
+          [class.card-fail]="r.bugs.available && r.bugs.total! > 0"
+        >
+          <div class="card-label">SpotBugs</div>
+          @if (r.bugs.available) {
+            <div
+              class="card-value"
+              [class.pct-good]="r.bugs.total === 0"
+              [class.pct-bad]="r.bugs.total! > 0"
+            >
+              {{ r.bugs.total }}
+            </div>
+            <div class="card-sub">{{ r.bugs.total === 0 ? 'No bugs found' : 'bugs found' }}</div>
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No SpotBugs report</div>
+          }
+        </div>
+
+        <!-- Build card -->
+        <div class="summary-card">
+          <div class="card-label">Build</div>
+          @if (r.build.available) {
+            <div class="card-value build-version">{{ r.build.version }}</div>
+            <div class="card-sub">{{ r.build.artifact }}</div>
+            <div class="card-hint">{{ r.build.time }}</div>
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No build info</div>
+          }
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- TESTS SECTION -->
+      <!-- ================================================================== -->
+      @if (r.tests.available) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">🧪</span>
+            Test Results
+            <span
+              class="section-badge"
+              [class.badge-pass]="r.tests.status === 'PASSED'"
+              [class.badge-fail]="r.tests.status === 'FAILED'"
+            >
+              {{ r.tests.status }}
+            </span>
+          </h3>
+
+          <div class="test-summary-line">
+            <span
+              ><strong>{{ r.tests.total }}</strong> tests</span
+            >
+            <span class="sep">·</span>
+            <span class="pct-good"
+              ><strong>{{ r.tests.passed }}</strong> passed</span
+            >
+            @if (r.tests.failures! > 0) {
+              <span class="sep">·</span>
+              <span class="pct-bad"
+                ><strong>{{ r.tests.failures }}</strong> failed</span
+              >
+            }
+            @if (r.tests.errors! > 0) {
+              <span class="sep">·</span>
+              <span class="pct-bad"
+                ><strong>{{ r.tests.errors }}</strong> errors</span
+              >
+            }
+            @if (r.tests.skipped! > 0) {
+              <span class="sep">·</span>
+              <span class="pct-warn"
+                ><strong>{{ r.tests.skipped }}</strong> skipped</span
+              >
+            }
+            <span class="sep">·</span>
+            <span>⏱ {{ r.tests.time }}</span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="quality-table">
+              <thead>
+                <tr>
+                  <th>Suite</th>
+                  <th class="num-col">Tests</th>
+                  <th class="num-col">Passed</th>
+                  <th class="num-col">Failed</th>
+                  <th class="num-col">Skipped</th>
+                  <th class="num-col">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (suite of r.tests.suites; track suite.name) {
+                  <tr [class.row-fail]="suite.failures > 0 || suite.errors > 0">
+                    <td class="suite-name">{{ suite.name }}</td>
+                    <td class="num-col">{{ suite.tests }}</td>
+                    <td class="num-col pct-good">
+                      {{ suite.tests - suite.failures - suite.errors - suite.skipped }}
+                    </td>
+                    <td class="num-col" [class.pct-bad]="suite.failures > 0 || suite.errors > 0">
+                      {{ suite.failures + suite.errors }}
+                    </td>
+                    <td class="num-col" [class.pct-warn]="suite.skipped > 0">
+                      {{ suite.skipped }}
+                    </td>
+                    <td class="num-col muted">{{ suite.time }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- COVERAGE SECTION -->
+      <!-- ================================================================== -->
+      @if (r.coverage.available) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">📊</span>
+            Code Coverage
+          </h3>
+
+          <!-- Global counters row -->
+          <div class="coverage-counters">
+            @for (
+              counter of [
+                { label: 'Instructions', data: r.coverage.instructions! },
+                { label: 'Branches', data: r.coverage.branches! },
+                { label: 'Lines', data: r.coverage.lines! },
+                { label: 'Methods', data: r.coverage.methods! },
+              ];
+              track counter.label
+            ) {
+              <div class="counter-card">
+                <div class="counter-label">{{ counter.label }}</div>
+                <div class="counter-pct" [class]="'pct-' + coverageColor(counter.data.pct)">
+                  {{ counter.data.pct | number: '1.1-1' }}%
+                </div>
+                <div class="counter-abs">{{ counter.data.covered }} / {{ counter.data.total }}</div>
+                <svg class="coverage-bar" viewBox="0 0 100 5" preserveAspectRatio="none">
+                  <rect x="0" y="0" width="100" height="5" fill="#e5e7eb" rx="2" />
+                  <rect
+                    x="0"
+                    y="0"
+                    [attr.width]="counter.data.pct"
+                    height="5"
+                    [attr.fill]="
+                      counter.data.pct >= 70
+                        ? '#22c55e'
+                        : counter.data.pct >= 50
+                          ? '#f59e0b'
+                          : '#ef4444'
+                    "
+                    rx="2"
+                  />
+                </svg>
+              </div>
+            }
+          </div>
+
+          <!-- Per-package table -->
+          @if (r.coverage.packages && r.coverage.packages.length > 0) {
+            <div class="table-wrap">
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th>Package</th>
+                    <th class="num-col">Instructions %</th>
+                    <th class="pct-col">Line Coverage</th>
+                    <th class="num-col">Lines %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (pkg of r.coverage.packages; track pkg.name) {
+                    <tr class="pkg-row">
+                      <td class="pkg-name">{{ pkg.name }}</td>
+                      <td class="num-col" [class]="'pct-' + coverageColor(pkg.instructionPct)">
+                        {{ pkg.instructionPct | number: '1.1-1' }}%
+                      </td>
+                      <td class="pct-col">
+                        <svg viewBox="0 0 100 8" class="pkg-bar" preserveAspectRatio="none">
+                          <rect x="0" y="0" width="100" height="8" fill="#e5e7eb" rx="3" />
+                          <rect
+                            x="0"
+                            y="0"
+                            [attr.width]="pkg.linePct"
+                            height="8"
+                            [attr.fill]="
+                              pkg.linePct >= 70
+                                ? '#22c55e'
+                                : pkg.linePct >= 50
+                                  ? '#f59e0b'
+                                  : '#ef4444'
+                            "
+                            rx="3"
+                          />
+                        </svg>
+                      </td>
+                      <td class="num-col" [class]="'pct-' + coverageColor(pkg.linePct)">
+                        {{ pkg.linePct | number: '1.1-1' }}%
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- SPOTBUGS SECTION -->
+      <!-- ================================================================== -->
+      <section class="quality-section">
+        <h3>
+          <span class="section-icon">🐛</span>
+          SpotBugs Analysis
+        </h3>
+
+        @if (!r.bugs.available) {
+          <div class="info-card">
+            <span
+              >ℹ No SpotBugs report available. Run <code>mvn verify</code> to generate one.</span
+            >
+          </div>
+        } @else if (r.bugs.total === 0) {
+          <div class="success-card">
+            <span>✅ No bugs found — SpotBugs analysis passed cleanly.</span>
+          </div>
+        } @else {
+          <div class="bug-summary">
+            <strong>{{ r.bugs.total }}</strong> bug{{ r.bugs.total! > 1 ? 's' : '' }} found
+
+            @if (entries(r.bugs.byPriority).length > 0) {
+              <span class="sep">—</span>
+              @for (entry of entries(r.bugs.byPriority); track entry[0]) {
+                <span class="badge badge-warn">{{ entry[0] }}: {{ entry[1] }}</span>
+              }
+            }
+          </div>
+
+          <div class="table-wrap">
+            <table class="quality-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Priority</th>
+                  <th>Type</th>
+                  <th>Class</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (bug of r.bugs.items; track $index) {
+                  <tr>
+                    <td>
+                      <span class="badge badge-warn">{{ bug.category }}</span>
+                    </td>
+                    <td
+                      [class.pct-bad]="bug.priority === '1'"
+                      [class.pct-warn]="bug.priority === '2'"
+                    >
+                      {{ bug.priority === '1' ? 'High' : bug.priority === '2' ? 'Normal' : 'Low' }}
+                    </td>
+                    <td class="bug-type">{{ bug.type }}</td>
+                    <td class="muted">{{ bug.className }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- BUILD SECTION -->
+      <!-- ================================================================== -->
+      <section class="quality-section">
+        <h3>
+          <span class="section-icon">🔨</span>
+          Build Information
+        </h3>
+
+        @if (!r.build.available) {
+          <div class="info-card">
+            <span
+              >ℹ No build info available. Run <code>mvn package</code> with spring-boot-maven-plugin
+              build-info goal.</span
+            >
+          </div>
+        } @else {
+          <div class="build-grid">
+            <div class="build-item">
+              <span class="build-key">Artifact</span>
+              <span class="build-val">{{ r.build.artifact }}</span>
+            </div>
+            <div class="build-item">
+              <span class="build-key">Version</span>
+              <span class="build-val">{{ r.build.version }}</span>
+            </div>
+            <div class="build-item">
+              <span class="build-key">Build time</span>
+              <span class="build-val">{{ r.build.time }}</span>
+            </div>
+            <div class="build-item">
+              <span class="build-key">Java version</span>
+              <span class="build-val">{{ r.build.javaVersion }}</span>
+            </div>
+            <div class="build-item">
+              <span class="build-key">Spring Boot</span>
+              <span class="build-val">{{ r.build.springBootVersion }}</span>
+            </div>
+          </div>
+        }
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- GIT SECTION -->
+      <!-- ================================================================== -->
+      @if (r.git?.available) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">🔀</span> Git History
+            <span class="section-count">{{ r.git!.commits?.length }} commits</span>
+          </h3>
+          <div class="table-wrap">
+            <table class="quality-table">
+              <thead>
+                <tr>
+                  <th style="width: 6em">Hash</th>
+                  <th style="width: 10em">Date</th>
+                  <th style="width: 10em">Author</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (commit of r.git!.commits; track commit.hash) {
+                  <tr>
+                    <td>
+                      <code class="hash">{{ commit.hash }}</code>
+                    </td>
+                    <td class="muted">{{ commit.date }}</td>
+                    <td>{{ commit.author }}</td>
+                    <td>{{ commit.message }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- API SECTION -->
+      <!-- ================================================================== -->
+      @if (r.api?.available) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">🌐</span> API Surface
+            <span class="section-count">{{ r.api!.total }} endpoints</span>
+          </h3>
+          <div class="table-wrap">
+            <table class="quality-table">
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th style="width: 8em">Methods</th>
+                  <th>Handler</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ep of r.api!.endpoints; track ep.path) {
+                  <tr>
+                    <td class="ep-path">{{ ep.path }}</td>
+                    <td>
+                      @for (m of ep.methods; track m) {
+                        <span class="method-badge method-{{ m.toLowerCase() }}">{{ m }}</span>
+                      }
+                    </td>
+                    <td class="muted">{{ ep.handler }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- DEPENDENCIES SECTION -->
+      <!-- ================================================================== -->
+      @if (r.dependencies?.available) {
+        <section class="quality-section">
+          <h3>
+            <span class="section-icon">📦</span> Dependencies
+            <span class="section-count">{{ r.dependencies!.total }} direct</span>
+          </h3>
+          <div class="table-wrap">
+            <table class="quality-table">
+              <thead>
+                <tr>
+                  <th>Group</th>
+                  <th>Artifact</th>
+                  <th>Version</th>
+                  <th style="width: 7em">Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (dep of r.dependencies!.dependencies; track dep.artifactId) {
+                  <tr>
+                    <td class="muted">{{ dep.groupId }}</td>
+                    <td>
+                      <strong>{{ dep.artifactId }}</strong>
+                    </td>
+                    <td>{{ dep.version }}</td>
+                    <td>
+                      <span class="scope-badge scope-{{ dep.scope }}">{{ dep.scope }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- METRICS SECTION -->
+      <!-- ================================================================== -->
+      @if (r.metrics?.available) {
+        <section class="quality-section">
+          <h3><span class="section-icon">📏</span> Code Metrics</h3>
+          <div class="metrics-summary">
+            <div class="metric-card">
+              <div class="metric-val">{{ r.metrics!.totalClasses }}</div>
+              <div class="metric-lbl">Classes</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val">{{ r.metrics!.totalMethods }}</div>
+              <div class="metric-lbl">Methods</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val">{{ r.metrics!.totalLines }}</div>
+              <div class="metric-lbl">Lines (source)</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="quality-table">
+              <thead>
+                <tr>
+                  <th>Package</th>
+                  <th class="num-col">Classes</th>
+                  <th class="num-col">Methods</th>
+                  <th class="num-col">Lines</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pkg of r.metrics!.packages; track pkg.name) {
+                  <tr>
+                    <td>{{ pkg.name }}</td>
+                    <td class="num-col">{{ pkg.classes }}</td>
+                    <td class="num-col">{{ pkg.methods }}</td>
+                    <td class="num-col">{{ pkg.lines }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    }
+  }
+  <!-- end @if (auth.isAdmin()) -->
+</div>
