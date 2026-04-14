@@ -131,28 +131,54 @@ customer-observability-ui/
 
 ## Quick Start
 
+### Prerequisites
+
+| Tool | Min. version | Install |
+|---|---|---|
+| **Node.js** | 22 LTS | [nodejs.org](https://nodejs.org) or `nvm install 22` |
+| **npm** | 10 | bundled with Node 22 |
+| **Docker Desktop** | 4.x | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) |
+| **Java** | 25 | [sdkman.io](https://sdkman.io) `sdk install java 25-open` |
+| **Git** | any | pre-installed on most systems |
+
+> The backend ([mirador-service](https://gitlab.com/benoit.besson/mirador-service)) must be cloned as a **sibling directory** to this repo:
+> ```
+> dev/
+>   workspace-modern/mirador-service/   ← backend
+>   js/mirador-ui/                       ← this repo (frontend)
+> ```
+
+---
+
+### First-time setup — complete stack
+
 ```bash
-# 0. Create your local .env (customize ports if needed)
-cp .env.example .env
+# 1. Clone both repos side by side
+git clone https://gitlab.com/benoit.besson/mirador-service.git  workspace-modern/mirador-service
+git clone https://gitlab.com/benoit.besson/mirador-ui.git       js/mirador-ui
 
-# 1. Start everything (backend + frontend) with a single command
+# 2. Make scripts executable (once)
+chmod +x workspace-modern/mirador-service/run.sh workspace-modern/mirador-service/mvnw
+chmod +x js/mirador-ui/run.sh
+
+# 3. (Optional) configure environment — defaults work out of the box
+cd js/mirador-ui
+cp .env.example .env        # edit ports if needed
+
+# 4. Start everything from the frontend directory — one command
 ./run.sh
-
-# — OR start components individually —
-
-# 2a. Start the backend
-cd ../workspace-modern/customer-service
-docker compose up -d
-docker compose -f docker-compose.observability.yml up -d
-./mvnw spring-boot:run
-
-# 2b. Start the UI
-cd ../customer-observability-ui
-npm install
-npm start          # http://localhost:4200
 ```
 
-Sign in with **admin / admin**.
+The script starts Docker automatically and delegates infrastructure to the backend `run.sh`.
+
+> **Backend only (no UI):**
+> ```bash
+> cd workspace-modern/mirador-service
+> ./run.sh all
+> # → API at http://localhost:8080/swagger-ui.html  (admin/admin)
+> ```
+
+Sign in with **admin / admin** at http://localhost:4200.
 
 ---
 
@@ -168,7 +194,6 @@ The `run.sh` script at the project root orchestrates the full stack. It delegate
 | `./run.sh infra` | Infrastructure containers only (PostgreSQL, Kafka, Redis) |
 | `./run.sh obs` | Observability stack (Prometheus, Grafana, Zipkin, Loki...) |
 | `./run.sh app` | Spring Boot application only |
-| `./run.sh app-profiled` | Spring Boot with Pyroscope profiling agent |
 | `./run.sh simulate` | Run backend traffic simulation scripts |
 | `./run.sh restart` | Stop + restart everything |
 | `./run.sh stop` | Stop all services (frontend + backend) |

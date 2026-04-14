@@ -31,7 +31,7 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
-BACKEND_DIR="$(cd "$SCRIPT_DIR/../workspace-modern/customer-service" 2>/dev/null && pwd)"
+BACKEND_DIR="$(cd "$SCRIPT_DIR/../workspace-modern/mirador-service" 2>/dev/null && pwd)"
 BACKEND_RUN="$BACKEND_DIR/run.sh"
 FRONTEND_DIR="$SCRIPT_DIR"
 MODE="${1:-all}"
@@ -51,7 +51,7 @@ fail()  { echo -e "${RED}[FAIL]${NC} $1"; }
 check_backend() {
   if [ ! -f "$BACKEND_RUN" ]; then
     fail "Backend run.sh not found at $BACKEND_RUN"
-    echo "  Expected: ../workspace-modern/customer-service/run.sh"
+    echo "  Expected: ../workspace-modern/mirador-service/run.sh"
     exit 1
   fi
 }
