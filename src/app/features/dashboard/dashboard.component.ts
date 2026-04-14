@@ -520,6 +520,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     '🗄️ Data Stores',
     '🛠️ Data Tools',
     '📡 Obs Collectors',
+    '🔧 CI/CD',
   ];
 
   readonly topoNodes: Array<{
@@ -757,6 +758,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Grafana customisé — image Docker grafana/otel-lgtm (LGTM = Loki, Grafana, Tempo, Mimir). Bundles Loki (logs), Tempo (traces), Mimir (metrics) et Grafana (UI) dans un seul container. Spring Boot envoie traces et logs via OTLP port 4318 → OTel Collector → Tempo / Loki. Ouvrir le dashboard CustomerService Overview pour la corrélation complète.',
       image: 'images/tools/grafana.png',
     },
+    // Col 5 — CI/CD
+    {
+      id: 'gitlab-runner',
+      label: 'GitLab Runner',
+      col: 5,
+      row: 0,
+      icon: '🔧',
+      container: 'gitlab-runner',
+      url: 'https://gitlab.com/benoit.besson/customer-service/-/pipelines',
+      tip: 'CI/CD local runner',
+      detail:
+        'GitLab Runner (image gitlab/gitlab-runner) — exécute les pipelines CI/CD en local via docker-compose.runner.yml. Connecté à gitlab.com en HTTPS long-polling, aucun port à ouvrir. Enregistré via ./scripts/register-runner.sh. Consomme zéro minute CI GitLab.com partagées.',
+      image: 'images/tools/gitlab.png',
+    },
     {
       id: 'pyroscope',
       label: 'Pyroscope',
@@ -835,6 +850,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'customerservice-zipkin': 'zipkin',
       'customerservice-lgtm': 'loki',
       'customerservice-pyroscope': 'pyroscope',
+      'gitlab-runner': 'gitlab-runner',
     };
     for (const [containerName, nodeId] of Object.entries(dockerMap)) {
       const c = containers.find((x) => x.name === containerName);
