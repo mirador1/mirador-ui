@@ -291,16 +291,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '9091',
       url: 'http://localhost:9091',
     },
-    'customerservice-grafana': {
-      icon: '📊',
-      label: 'Grafana',
-      description: 'Metrics dashboards',
-      detail:
-        'Standalone Grafana instance pre-provisioned with Prometheus datasource and custom dashboards. Shows HTTP throughput, latency percentiles, JVM metrics, and error rates.',
-      image: 'images/tools/grafana.png',
-      port: '3000',
-      url: 'http://localhost:3000',
-    },
     'customerservice-lgtm': {
       icon: '🔍',
       label: 'LGTM Stack',
@@ -803,12 +793,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       col: 5,
       row: 0,
       icon: '📊',
-      port: '3000',
-      container: 'customerservice-grafana',
-      url: 'http://localhost:3000',
-      tip: 'Unified dashboards',
+      port: '3001',
+      container: 'customerservice-lgtm',
+      url: 'http://localhost:3001/dashboards',
+      tip: 'Traces · Logs · Metrics',
       detail:
-        'Standalone Grafana instance pre-provisioned with Prometheus datasource and custom Customer Service dashboard (HTTP throughput, latency percentiles, error rates, JVM metrics). Anonymous access enabled (no login). Opens directly on the overview dashboard. Also available: Grafana inside LGTM on port 3001 with Loki+Tempo datasources.',
+        'Grafana LGTM all-in-one on port 3001: bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI). Spring Boot sends traces and logs via OTLP on port 4318. Anonymous access enabled — opens directly on the Customer Service overview dashboard.',
       image: 'images/tools/grafana.png',
     },
   ];

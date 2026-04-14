@@ -2529,7 +2529,7 @@ export class VisualizationsComponent implements OnDestroy {
 
     // Grafana
     this.http
-      .get('http://localhost:3000/api/health')
+      .get('http://localhost:3001/api/health')
       .pipe(catchError(() => of(null)))
       .subscribe((r) => {
         updateNode('grafana', r ? 'up' : 'down');

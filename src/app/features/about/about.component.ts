@@ -107,7 +107,7 @@ export class AboutComponent {
       description:
         'Open-source analytics and monitoring platform with pre-built and custom dashboards.',
       usage:
-        'Two Grafana instances: port 3000 (standalone, Prometheus datasource) with pre-provisioned HTTP throughput/latency/JVM dashboards, and port 3001 (inside the LGTM container) with Tempo traces, Loki logs, and Prometheus metrics for full correlation.',
+        'Grafana LGTM all-in-one on port 3001 (inside the otel-lgtm container). Bundles Tempo (traces), Loki (logs), and Mimir (metrics) with pre-provisioned dashboards for full correlation — click a metric spike to jump to the matching trace, click a trace to jump to its logs.',
     },
     {
       name: 'HikariCP',
@@ -281,7 +281,7 @@ export class AboutComponent {
       url: 'https://prometheus.io',
       description: 'Time-series metrics database with PromQL query language.',
       usage:
-        'Scrapes `/actuator/prometheus` every 15 seconds. Stores 180+ metrics. Powers the Grafana dashboards on port 3000. Also queried directly by the Angular Metrics page and Observability Latency tab to parse the raw text exposition format.',
+        'Scrapes `/actuator/prometheus` every 15 seconds. Stores 180+ metrics. Also queried directly by the Angular Metrics page and Observability Latency tab to parse the raw text exposition format.',
     },
     {
       name: 'Pyroscope',
@@ -537,11 +537,11 @@ export class AboutComponent {
     },
     // Observability
     {
-      port: 3000,
-      name: 'Grafana',
+      port: 3001,
+      name: 'Grafana LGTM',
       category: 'Obs',
-      note: 'Pre-provisioned dashboards (no login)',
-      url: 'http://localhost:3000',
+      note: 'Traces · Logs · Metrics (no login)',
+      url: 'http://localhost:3001',
     },
     {
       port: 3001,
