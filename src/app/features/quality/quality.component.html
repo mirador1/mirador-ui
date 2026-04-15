@@ -346,7 +346,9 @@
           <div class="maven-raw-grid">
             @for (rep of mavenSiteReports; track rep.file) {
               <div class="maven-raw-item">
-                <span class="maven-raw-label">{{ rep.label }}</span>
+                <span class="maven-raw-label"
+                  ><span class="maven-raw-icon">{{ rep.icon }}</span> {{ rep.label }}</span
+                >
                 @if (mavenSiteAvailable()) {
                   <a
                     class="maven-raw-btn"
