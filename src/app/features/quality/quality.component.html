@@ -1275,6 +1275,9 @@
             <h3>
               <span class="section-icon">📦</span> Dependencies
               <span class="section-count">{{ r.dependencies!.total }} direct</span>
+              @if (r.dependencies!.outdatedCount) {
+                <span class="badge badge-warn">{{ r.dependencies!.outdatedCount }} outdated</span>
+              }
             </h3>
             <div class="table-wrap">
               <table class="quality-table">
@@ -1283,17 +1286,30 @@
                     <th>Group</th>
                     <th>Artifact</th>
                     <th>Version</th>
+                    <th>Latest</th>
                     <th style="width: 7em">Scope</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (dep of r.dependencies!.dependencies; track dep.artifactId) {
-                    <tr>
+                    <tr [class.row-outdated]="dep.outdated">
                       <td class="muted">{{ dep.groupId }}</td>
                       <td>
                         <strong>{{ dep.artifactId }}</strong>
                       </td>
-                      <td>{{ dep.version }}</td>
+                      <td>
+                        {{ dep.version }}
+                        @if (dep.outdated) {
+                          <span class="badge badge-warn" title="Newer version available">⬆</span>
+                        }
+                      </td>
+                      <td class="muted">
+                        @if (dep.latestVersion && dep.outdated) {
+                          <span class="latest-version">{{ dep.latestVersion }}</span>
+                        } @else if (dep.latestVersion) {
+                          <span class="muted">✓</span>
+                        }
+                      </td>
                       <td>
                         <span class="scope-badge scope-{{ dep.scope }}">{{ dep.scope }}</span>
                       </td>
@@ -1302,6 +1318,130 @@
                 </tbody>
               </table>
             </div>
+
+            @if (r.dependencies!.dependencyTree?.available) {
+              <h4>
+                Dependency Tree
+                @if (r.dependencies!.dependencyTree!.totalTransitive) {
+                  <span class="section-count"
+                    >{{ r.dependencies!.dependencyTree!.totalTransitive }} transitive</span
+                  >
+                }
+              </h4>
+              <pre class="dep-tree">{{ r.dependencies!.dependencyTree!.tree }}</pre>
+            }
+
+            @if (r.dependencies!.dependencyAnalysis?.available) {
+              <h4>
+                Dependency Analysis
+                @if (r.dependencies!.dependencyAnalysis!.usedUndeclaredCount) {
+                  <span class="badge badge-warn"
+                    >{{
+                      r.dependencies!.dependencyAnalysis!.usedUndeclaredCount
+                    }}
+                    used-undeclared</span
+                  >
+                }
+                @if (r.dependencies!.dependencyAnalysis!.unusedDeclaredCount) {
+                  <span class="badge badge-info"
+                    >{{
+                      r.dependencies!.dependencyAnalysis!.unusedDeclaredCount
+                    }}
+                    unused-declared</span
+                  >
+                }
+              </h4>
+              @if (r.dependencies!.dependencyAnalysis!.usedUndeclaredCount) {
+                <p class="analyze-label warn">
+                  ⚠ Used but not declared — these are pulled in transitively and may break if the
+                  providing dependency is removed:
+                </p>
+                <ul class="dep-analyze-list">
+                  @for (dep of r.dependencies!.dependencyAnalysis!.usedUndeclared; track dep) {
+                    <li class="dep-coord warn">{{ dep }}</li>
+                  }
+                </ul>
+              }
+              @if (r.dependencies!.dependencyAnalysis!.unusedDeclaredCount) {
+                <p class="analyze-label info">
+                  ℹ Declared but not used — candidates for removal from pom.xml:
+                </p>
+                <ul class="dep-analyze-list">
+                  @for (dep of r.dependencies!.dependencyAnalysis!.unusedDeclared; track dep) {
+                    <li class="dep-coord info">{{ dep }}</li>
+                  }
+                </ul>
+              }
+              @if (
+                !r.dependencies!.dependencyAnalysis!.usedUndeclaredCount &&
+                !r.dependencies!.dependencyAnalysis!.unusedDeclaredCount
+              ) {
+                <p class="analyze-clean">✅ No dependency issues detected.</p>
+              }
+            }
+          </section>
+        }
+
+        <!-- ================================================================== -->
+        <!-- LICENSES SECTION -->
+        <!-- ================================================================== -->
+        @if (r.licenses?.available) {
+          <section class="quality-section">
+            <h3>
+              <span class="section-icon">⚖️</span> License Compliance
+              @if (r.licenses!.total) {
+                <span class="section-count">{{ r.licenses!.total }} deps</span>
+              }
+              @if (r.licenses!.incompatibleCount) {
+                <span class="badge badge-error"
+                  >{{ r.licenses!.incompatibleCount }} incompatible</span
+                >
+              }
+            </h3>
+
+            @if (r.licenses!.licenses?.length) {
+              <h4>License Distribution</h4>
+              <div class="license-grid">
+                @for (lic of r.licenses!.licenses; track lic.license) {
+                  <div class="license-card" [class.license-incompatible]="lic.incompatible">
+                    <div class="license-name">{{ lic.license }}</div>
+                    <div class="license-count">{{ lic.count }}</div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (r.licenses!.incompatibleCount) {
+              <h4>⚠ Potentially Incompatible Dependencies</h4>
+              <p class="analyze-label warn">
+                These licenses (GPL, AGPL, LGPL, CDDL, EPL) may require open-sourcing your code or
+                be incompatible with commercial distribution. Review with your legal team.
+              </p>
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th>Group</th>
+                    <th>Artifact</th>
+                    <th>Version</th>
+                    <th>License</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (dep of r.licenses!.dependencies; track dep.artifact) {
+                    @if (dep.incompatible) {
+                      <tr class="row-outdated">
+                        <td class="class-name">{{ dep.group }}</td>
+                        <td class="class-name">{{ dep.artifact }}</td>
+                        <td>{{ dep.version }}</td>
+                        <td>
+                          <span class="latest-version">{{ dep.license }}</span>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            }
           </section>
         }
 
@@ -1361,6 +1501,57 @@
                 </tbody>
               </table>
             </div>
+
+            @if (r.metrics!.topComplexClasses && r.metrics!.topComplexClasses!.length > 0) {
+              <h4>Top 10 Most Complex Classes</h4>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th class="num-col">Cyclomatic Complexity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cls of r.metrics!.topComplexClasses; track cls.class) {
+                      <tr>
+                        <td class="class-name">{{ cls.class }}</td>
+                        <td
+                          class="num-col"
+                          [class.pct-warn]="cls.complexity > 15"
+                          [class.pct-bad]="cls.complexity > 30"
+                        >
+                          {{ cls.complexity }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            @if (r.metrics!.untestedClasses && r.metrics!.untestedClasses!.length > 0) {
+              <h4>
+                Classes with 0% Coverage
+                <span class="section-count">{{ r.metrics!.untestedCount }}</span>
+              </h4>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cls of r.metrics!.untestedClasses; track cls) {
+                      <tr>
+                        <td class="class-name">{{ cls }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
           </section>
         }
       }
@@ -1388,6 +1579,14 @@
                 <span class="info-label">Started At</span>
                 <span class="info-value">{{ r.runtime!.startedAt }}</span>
               </div>
+              @if (r.runtime!.startupDurationMs) {
+                <div class="info-row">
+                  <span class="info-label">Startup Time</span>
+                  <span class="info-value"
+                    >{{ r.runtime!.startupDurationSeconds!.toFixed(2) }}s</span
+                  >
+                </div>
+              }
             </div>
 
             @if (r.runtime!.jarLayers && r.runtime!.jarLayers!.length > 0) {

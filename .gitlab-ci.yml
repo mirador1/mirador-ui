@@ -236,6 +236,17 @@ docker-build:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+  before_script:
+    # Wait up to 60 s for the DinD daemon to become ready.
+    # DinD service may take a few seconds to start after the runner allocates it —
+    # the Docker client fails immediately with "no such host" if it tries too early.
+    - |
+      echo "Waiting for Docker daemon..."
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && echo "Docker ready." && break
+        echo "  attempt $i/30 — sleeping 2s..."
+        sleep 2
+      done
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - |
@@ -252,6 +263,47 @@ docker-build:
         .
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+
+trivy:scan:
+  # Scans the freshly built frontend Docker image for OS + CVEs using Trivy.
+  # allow_failure:true — CVEs are tracked informationally, not build-blocking.
+  stage: docker
+  image: aquasec/trivy:latest
+  needs:
+    - job: docker-build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  allow_failure: true
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+  services:
+    - name: docker:28-dind
+      alias: docker
+  script:
+    - |
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && break
+        sleep 2
+      done
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - |
+      trivy image \
+        --exit-code 0 \
+        --severity HIGH,CRITICAL \
+        --format json \
+        --output trivy-report.json \
+        "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - |
+      trivy image \
+        --exit-code 0 \
+        --severity HIGH,CRITICAL \
+        "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - trivy-report.json
 
 # ── Stage: deploy ─────────────────────────────────────────────────────────────
 #
