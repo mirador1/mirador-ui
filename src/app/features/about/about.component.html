@@ -778,15 +778,16 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- TAB: Kubernetes deployment                                             -->
+  <!-- TAB: Deployment overview                                               -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (activeTab() === 'deploy') {
     <article class="card deploy-card">
-      <h2>☸️ Production Architecture — Kubernetes</h2>
+      <h2>🚀 Deployment — Architecture Overview</h2>
       <p class="card-intro">
         When deployed to a Kubernetes cluster the two Docker images sit behind a single
         <strong>Nginx Ingress</strong> on one hostname — the browser never makes a cross-origin
-        request, eliminating CORS entirely.
+        request, eliminating CORS entirely. See the dedicated tabs for <strong>Local</strong> (kind)
+        and <strong>Google Cloud</strong> (GKE Autopilot) deployments.
       </p>
 
       <!-- K8s architecture SVG diagram -->
@@ -1178,25 +1179,7 @@
         </tbody>
       </table>
 
-      <!-- Local kind -->
-      <h3>Local testing with kind</h3>
-      <p>
-        A <strong>kind</strong> (Kubernetes IN Docker) cluster mirrors the production setup on your
-        laptop. One command deploys the full stack including Postgres, Redis, Kafka, backend and
-        frontend.
-      </p>
-      <div class="code-block">
-        <pre>
-./scripts/deploy-local.sh          # build + deploy
-./scripts/deploy-local.sh --skip-build  # redeploy (keep images)
-./scripts/deploy-local.sh --delete     # tear down</pre
-        >
-      </div>
-      <p>
-        Access at <code>http://localhost:8090</code> after the script completes (~3 min first run).
-      </p>
-
-      <!-- Local GitLab Runner -->
+      <!-- Local CI runner -->
       <h3>Local CI runner (zero gitlab.com minutes)</h3>
       <p>
         A local <strong>GitLab Runner</strong> connects to gitlab.com and executes pipeline jobs on
@@ -1205,14 +1188,348 @@
       <div class="code-block">
         <pre>
 docker compose -f docker-compose.runner.yml up -d
-./scripts/register-runner.sh &lt;TOKEN&gt;</pre
+# Get the token: gitlab.com → Project → Settings → CI/CD → Runners → New project runner
+./run.sh register-runner &lt;TOKEN&gt;</pre
         >
       </div>
       <p>
-        Get the token from
-        <strong>gitlab.com → Project → Settings → CI/CD → Runners → New project runner</strong>.
-        Every subsequent push runs the pipeline locally.
+        Every subsequent push runs the pipeline locally. See the <strong>🏠 Local</strong> tab for
+        kind cluster setup, and the <strong>☁️ Google Cloud</strong> tab for GKE Autopilot.
       </p>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Local deployment (kind)                                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'deploy-local') {
+    <article class="card deploy-card">
+      <h2>🏠 Local Deployment — kind (Kubernetes IN Docker)</h2>
+      <p class="card-intro">
+        A <strong>kind</strong> cluster mirrors the production Kubernetes setup on your laptop in
+        minutes. The full stack — backend, frontend, PostgreSQL, Redis, Kafka — runs behind an
+        nginx-ingress on a nip.io wildcard DNS name (no <code>/etc/hosts</code> edits needed).
+      </p>
+
+      <!-- Prerequisites -->
+      <h3>Prerequisites</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Install</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>kind</code></td>
+            <td><code>brew install kind</code></td>
+            <td>Creates a local K8s cluster inside Docker</td>
+          </tr>
+          <tr>
+            <td><code>kubectl</code></td>
+            <td><code>brew install kubectl</code></td>
+            <td>Applies manifests, checks rollout status</td>
+          </tr>
+          <tr>
+            <td>Docker Desktop</td>
+            <td>docker.com</td>
+            <td>Hosts the kind node container</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Quick start -->
+      <h3>Quick start</h3>
+      <div class="code-block">
+        <pre>
+./run.sh k8s-local          # create cluster + build images + deploy (~3 min first run)
+./run.sh k8s-local-delete   # tear everything down</pre
+        >
+      </div>
+      <p>
+        The script creates a single-node kind cluster, installs nginx-ingress, builds
+        <code>mirador/backend:local</code> and <code>mirador/frontend:local</code>, loads them into
+        kind (no registry push needed), applies all manifests, and waits for rollouts.
+      </p>
+      <p>
+        Access the app at
+        <strong><code>http://mirador.127.0.0.1.nip.io:8090</code></strong> — nip.io resolves
+        <code>*.127.0.0.1.nip.io</code> to <code>127.0.0.1</code>, so the cluster is reachable from
+        the host without any system configuration.
+      </p>
+
+      <!-- What the script does -->
+      <h3>What <code>./run.sh k8s-local</code> does</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>Command</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1 — Cluster</td>
+            <td><code>kind create cluster --config k8s/kind-config.yaml</code></td>
+            <td>Port 80→8090, 443→8443 on host</td>
+          </tr>
+          <tr>
+            <td>2 — Ingress</td>
+            <td><code>kubectl apply -f nginx-ingress</code></td>
+            <td>nginx-ingress with IngressClass <code>nginx</code></td>
+          </tr>
+          <tr>
+            <td>3 — Backend image</td>
+            <td><code>docker build → kind load</code></td>
+            <td>Bypasses registry, <code>imagePullPolicy: IfNotPresent</code></td>
+          </tr>
+          <tr>
+            <td>4 — Frontend image</td>
+            <td><code>docker build → kind load</code></td>
+            <td>Angular prod build with nginx</td>
+          </tr>
+          <tr>
+            <td>5 — Secrets</td>
+            <td><code>kubectl create secret generic app-secrets</code></td>
+            <td>DB_PASSWORD, JWT_SECRET, API_KEY</td>
+          </tr>
+          <tr>
+            <td>6 — Manifests</td>
+            <td><code>envsubst | kubectl apply -f</code></td>
+            <td>All <code>k8s/</code> YAMLs with variables substituted</td>
+          </tr>
+          <tr>
+            <td>7 — Wait</td>
+            <td><code>kubectl rollout status</code></td>
+            <td>Waits for backend + frontend pods to be Ready</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Manifests layout -->
+      <h3>Kubernetes manifests layout</h3>
+      <div class="code-block">
+        <pre>
+k8s/
+├── kind-config.yaml          # kind cluster: port mappings, ingress-ready label
+├── local/
+│   └── ingress.yaml          # HTTP-only ingress for local testing
+├── gke/
+│   ├── ingress.yaml          # HTTPS ingress with cert-manager (production)
+│   └── cloud-sql-proxy.yaml  # Workload Identity + Cloud SQL Auth Proxy sidecar
+├── backend/
+│   ├── deployment.yaml       # Spring Boot pod (2 replicas in prod)
+│   ├── service.yaml          # ClusterIP on port 8080
+│   └── configmap.yaml        # ENV vars: DB_URL, REDIS_HOST, KAFKA_BROKERS …
+├── frontend/
+│   ├── deployment.yaml       # Angular + nginx pod
+│   └── service.yaml
+└── infra/
+    ├── postgres.yaml         # PostgreSQL (local only — Cloud SQL on GKE)
+    ├── redis.yaml            # Redis (local only — Memorystore on GKE)
+    └── kafka.yaml            # Kafka KRaft (local only — Managed Kafka on GKE)</pre
+        >
+      </div>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Google Cloud deployment (GKE Autopilot)                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'deploy-gcp') {
+    <article class="card deploy-card">
+      <h2>☁️ Google Cloud — GKE Autopilot</h2>
+      <p class="card-intro">
+        The production environment runs on <strong>GKE Autopilot</strong> — Google's fully managed
+        Kubernetes offering where node provisioning, scaling, and patching are handled by GCP. All
+        stateful infrastructure (database, cache, message broker) is
+        <strong>managed by Google</strong>, eliminating operational overhead for maintenance and
+        failover.
+      </p>
+
+      <!-- Managed services overview -->
+      <h3>Managed services</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>GCP Product</th>
+            <th>Local equivalent</th>
+            <th>Cost reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🐘 PostgreSQL 17</td>
+            <td>Cloud SQL</td>
+            <td>postgres container</td>
+            <td>~$7/month (db-f1-micro), ~$1.70/month storage only when stopped</td>
+          </tr>
+          <tr>
+            <td>⚡ Redis 7</td>
+            <td>Memorystore</td>
+            <td>redis container</td>
+            <td>~$16/month (BASIC 1 GB)</td>
+          </tr>
+          <tr>
+            <td>📨 Kafka 3.x</td>
+            <td>Google Managed Kafka</td>
+            <td>kafka container (KRaft)</td>
+            <td>~$35/day (3 brokers × 3 vCPU) — use 1 vCPU in dev</td>
+          </tr>
+          <tr>
+            <td>☸️ Kubernetes</td>
+            <td>GKE Autopilot</td>
+            <td>kind cluster</td>
+            <td>~$0.10/hour cluster management fee</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Why managed -->
+      <h3>Why managed services?</h3>
+      <p>
+        Managed services delegate scaling, patching, backups, and failover to the cloud provider.
+        Cloud SQL enables <strong>PITR</strong> (point-in-time recovery), Memorystore provides
+        <strong>automatic failover replicas</strong>, and Google Managed Kafka is
+        <strong>100% Kafka-compatible</strong> — no code changes needed vs a self-hosted broker.
+        Pub/Sub was not chosen because it requires rewriting all Spring Kafka consumers and
+        producers.
+      </p>
+
+      <!-- Cloud SQL security model -->
+      <h3>Database authentication — Cloud SQL Auth Proxy</h3>
+      <p>
+        The backend pod connects to PostgreSQL via a <strong>Cloud SQL Auth Proxy sidecar</strong>.
+        The proxy uses <strong>Workload Identity</strong> to authenticate with GCP (<code
+          >mirador-sql-proxy</code
+        >
+        GCP service account) — no passwords are stored in the pod.
+      </p>
+      <div class="code-block">
+        <pre>
+Backend pod:
+  containers:
+    - name: backend           # Spring Boot — DB_HOST=127.0.0.1
+    - name: cloud-sql-proxy   # cloud-sql-proxy listens on :5432, forwards to Cloud SQL over mTLS</pre
+        >
+      </div>
+
+      <!-- Infrastructure as Code -->
+      <h3>Infrastructure as Code — Terraform</h3>
+      <p>
+        All GCP resources are defined in <code>terraform/gcp/</code>. State is stored in a GCS
+        bucket (private, versioning enabled). Applying the Terraform plan provisions the full
+        environment in about 15 minutes.
+      </p>
+      <div class="code-block">
+        <pre>
+# One-time setup
+./run.sh gcp-enable-apis     # enable container, sqladmin, redis, managedkafka APIs
+./run.sh gcp-tf-bucket       # create GCS bucket for Terraform state
+
+# Infrastructure lifecycle
+./run.sh tf-plan             # preview changes (safe, no modifications)
+./run.sh tf-apply            # create/update all GCP resources
+./run.sh tf-destroy          # delete everything (requires confirmation)</pre
+        >
+      </div>
+
+      <!-- Terraform files -->
+      <h3>Terraform file layout</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Contents</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>main.tf</code></td>
+            <td>VPC, GKE Autopilot cluster, Cloud SQL, Memorystore Redis, Workload Identity</td>
+          </tr>
+          <tr>
+            <td><code>kafka.tf</code></td>
+            <td>Google Managed Kafka (activate with <code>kafka_enabled = true</code>)</td>
+          </tr>
+          <tr>
+            <td><code>variables.tf</code></td>
+            <td>project_id, region, environment, kafka_enabled, instance sizes</td>
+          </tr>
+          <tr>
+            <td><code>outputs.tf</code></td>
+            <td>GKE endpoint, Cloud SQL connection name, Redis host, Kafka bootstrap</td>
+          </tr>
+          <tr>
+            <td><code>backend.tf</code></td>
+            <td>GCS remote state backend configuration</td>
+          </tr>
+          <tr>
+            <td><code>terraform.tfvars.example</code></td>
+            <td>Template — copy to <code>terraform.tfvars</code> and fill in project ID</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- CI/CD deploy pipeline -->
+      <h3>CI/CD — GitLab pipeline</h3>
+      <p>
+        Pushing to <code>main</code> triggers the <code>deploy:gke</code> job automatically. The
+        <code>terraform-apply</code> job is manual (requires explicit pipeline trigger) to prevent
+        accidental infrastructure changes.
+      </p>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>Job</th>
+            <th>Trigger</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>build</td>
+            <td><code>docker-build</code></td>
+            <td>
+              Every push — pushes <code>registry/backend:sha</code> and <code>frontend:sha</code>
+            </td>
+          </tr>
+          <tr>
+            <td>infra</td>
+            <td><code>terraform-plan</code></td>
+            <td>Auto on <code>main</code> + MRs — preview infra changes</td>
+          </tr>
+          <tr>
+            <td>infra</td>
+            <td><code>terraform-apply</code></td>
+            <td>Manual ▶ — applies Terraform plan to GCP</td>
+          </tr>
+          <tr>
+            <td>deploy</td>
+            <td><code>deploy:gke</code></td>
+            <td>Auto on <code>main</code> — <code>envsubst | kubectl apply</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Next steps -->
+      <h3>Deployment checklist</h3>
+      <ol class="checklist">
+        <li>Install prerequisites: <code>brew install google-cloud-sdk terraform</code></li>
+        <li>
+          Create GCP project and authenticate: <code>gcloud auth application-default login</code>
+        </li>
+        <li>Enable APIs: <code>./run.sh gcp-enable-apis</code></li>
+        <li>Create Terraform state bucket: <code>./run.sh gcp-tf-bucket</code></li>
+        <li>Fill <code>terraform/gcp/terraform.tfvars</code> (copy from <code>.example</code>)</li>
+        <li>Preview infrastructure: <code>./run.sh tf-plan</code></li>
+        <li>Apply infrastructure: <code>./run.sh tf-apply</code> (~15 min)</li>
+        <li>Push to <code>main</code> → CI <code>deploy:gke</code> triggers automatically</li>
+      </ol>
     </article>
   }
 

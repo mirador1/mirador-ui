@@ -12,7 +12,7 @@
  *
  * Vulnerable endpoints are permit-all (no auth required).
  */
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, KeyValuePipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -173,7 +173,7 @@ interface JwtClaims {
   templateUrl: './security.component.html',
   styleUrl: './security.component.scss',
 })
-export class SecurityComponent implements OnInit, OnDestroy {
+export class SecurityComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly env = inject(EnvService);
   private readonly sanitizer = inject(DomSanitizer);
@@ -250,12 +250,7 @@ export class SecurityComponent implements OnInit, OnDestroy {
     }
   }
 
-  // NOTE FOR SONARQUBE: ngOnInit is intentionally empty here.
-  // Auto-refresh starts on tab activation via setTab(), not on init.
-  // This is intentional for the Security Demo — mark as "Won't Fix" in SonarQube.
-  ngOnInit(): void {
-    // auto-refresh starts on audit tab activation via setTab()
-  }
+  // ngOnInit removed — audit auto-refresh starts on tab activation via setTab(), not on init.
 
   ngOnDestroy(): void {
     if (this._auditTimer) {

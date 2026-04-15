@@ -324,11 +324,19 @@ export class AppShellComponent {
       icon: '📖',
       label: 'About',
       path: '/about',
-      tip: 'Architecture diagrams, tech stack, port reference, Kubernetes deployment, compatibility matrix',
+      tip: 'Architecture diagrams, tech stack, deployment targets (Local, GCP), compatibility matrix',
       children: [
         { label: 'Overview', tip: 'Quick start, architecture summary, and run commands' },
         { label: 'Infrastructure', tip: 'All services, ports, and Docker Compose setup' },
-        { label: 'Kubernetes', tip: 'kind cluster, deployment targets, ingress setup' },
+        { label: 'Deployment', tip: 'Kubernetes architecture diagram and target comparison' },
+        {
+          label: 'Local (kind)',
+          tip: 'kind cluster setup — ./run.sh k8s-local, nip.io DNS, manifests layout',
+        },
+        {
+          label: 'Google Cloud',
+          tip: 'GKE Autopilot + Terraform + Cloud SQL, Memorystore, Managed Kafka',
+        },
         { label: 'Technologies', tip: 'Full tech stack with usage notes' },
         { label: 'Observability', tip: 'Tracing, metrics, logs, profiling architecture' },
         { label: 'Resilience', tip: 'Circuit breaker, retry, bulkhead, rate limit patterns' },
