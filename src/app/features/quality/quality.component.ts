@@ -227,19 +227,17 @@ export class QualityComponent implements OnInit {
   selectedTab = signal<string>('overview');
   mavenSiteAvailable = signal(false);
 
-  // Absolute backend URL for the Maven site iframe.
-  // A relative /maven-site/... URL would resolve to the Angular dev server (port 4200),
-  // not the Spring Boot backend (port 8080) — showing the Angular UI inside the iframe.
+  // Resolved base URL for the Maven site — prefers the dedicated nginx server (port 8083)
+  // over the backend's /maven-site/ fallback. The dedicated server has an independent
+  // lifecycle (regenerated daily by CI) and avoids serving reports through the app server.
   // SafeResourceUrl is required by Angular to allow iframes pointing to external origins.
   get mavenSiteIframeSrc(): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(
-      `${this.env.baseUrl()}/maven-site/index.html`,
-    );
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`${this.mavenSiteBase}/index.html`);
   }
 
-  /** Absolute backend base URL for Maven site navigation links. */
+  /** Base URL of the Maven site: dedicated nginx server if configured, backend fallback. */
   get mavenSiteBase(): string {
-    return `${this.env.baseUrl()}/maven-site`;
+    return this.env.mavenSiteUrl() ?? `${this.env.baseUrl()}/maven-site`;
   }
 
   ngOnInit(): void {
@@ -292,9 +290,9 @@ export class QualityComponent implements OnInit {
   }
 
   checkMavenSite(): void {
-    // Check if Maven site is available (served from target/site/ or classpath)
+    // Probe the Maven site server (dedicated nginx at mavenSiteUrl, or backend fallback).
     this.http
-      .get(`${this.env.baseUrl()}/maven-site/index.html`, {
+      .get(`${this.mavenSiteBase}/index.html`, {
         responseType: 'text',
         observe: 'response',
       })

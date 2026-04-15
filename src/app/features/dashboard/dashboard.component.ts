@@ -120,6 +120,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    if (this._dockerRetryTimer) {
+      clearInterval(this._dockerRetryTimer);
+      this._dockerRetryTimer = null;
+    }
     window.removeEventListener('app:refresh', this._onRefresh);
   }
 
@@ -402,6 +406,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   dockerLoading = signal(false);
   dockerActionLoading = signal<string | null>(null);
   dockerError = signal('');
+  // Retry timer: when the Docker API is unreachable, probe again every 10 s so the
+  // services panel recovers automatically once the docker-socket-proxy starts up,
+  // without requiring a manual page reload.
+  private _dockerRetryTimer: ReturnType<typeof setInterval> | null = null;
 
   loadContainers(): void {
     this.dockerLoading.set(true);
@@ -415,7 +423,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.dockerError.set(
             'Cannot reach Docker API (localhost:2375). Run: docker compose -f docker-compose.observability.yml up -d',
           );
+          // Retry every 10 s — recovers automatically when the proxy starts up.
+          if (!this._dockerRetryTimer) {
+            this._dockerRetryTimer = setInterval(() => this.loadContainers(), 10_000);
+          }
           return;
+        }
+        // Docker API is reachable — cancel any pending retry timer.
+        if (this._dockerRetryTimer) {
+          clearInterval(this._dockerRetryTimer);
+          this._dockerRetryTimer = null;
         }
         // Filter to known project containers only, enrich with description
         const mapped = containers
