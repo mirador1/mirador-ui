@@ -373,6 +373,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '5540',
       url: 'http://localhost:5540',
     },
+    'maven-site': {
+      icon: '📊',
+      label: 'Maven Site',
+      description: 'Quality reports (static)',
+      detail:
+        'Nginx serving the Maven-generated quality report site (Surefire, Failsafe, JaCoCo, SpotBugs, Javadoc). Regenerated daily by the CI report schedule (REPORT_PIPELINE=true). Run `mvn verify && mvn site` locally to populate target/site/ before starting this container.',
+      port: '8083',
+      url: 'http://localhost:8083',
+    },
   };
 
   dockerContainers = signal<
