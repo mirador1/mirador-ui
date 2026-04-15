@@ -15,7 +15,7 @@
  * "Run All" executes scenarios 1-5 sequentially (polls `running` signal).
  * History is kept in-memory (last 50 runs) and exportable as JSON.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -140,7 +140,7 @@ function ts(): string {
   templateUrl: './diagnostic.component.html',
   styleUrl: './diagnostic.component.scss',
 })
-export class DiagnosticComponent implements OnInit {
+export class DiagnosticComponent {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
   readonly auth = inject(AuthService);
@@ -149,8 +149,6 @@ export class DiagnosticComponent implements OnInit {
   private readonly env = inject(EnvService);
 
   readonly Math = Math;
-
-  ngOnInit(): void {}
 
   // ── Run history ────────────────────────────────────────────────────────────
   runHistory = signal<RunRecord[]>([]);

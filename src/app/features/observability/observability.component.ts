@@ -434,40 +434,12 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
 
   /** Parse OTLP ResourceSpans format into our internal Trace/Span model. */
   private parseOtlpTrace(traceId: string, otlp: OtlpTrace): Trace {
-    const spans: Span[] = [];
-    for (const batch of otlp.batches ?? []) {
-      const svcAttr = (batch.resource?.attributes ?? []).find((a) => a.key === 'service.name');
-      const svcName: string = svcAttr?.value?.stringValue ?? 'unknown';
-      for (const scope of batch.scopeSpans ?? []) {
-        for (const s of scope.spans ?? []) {
-          // traceId and spanId are base64-encoded bytes in OTLP
-          const spanId: string = this.b64toHex(s.spanId ?? '');
-          const parentId: string | undefined = s.parentSpanId
-            ? this.b64toHex(s.parentSpanId)
-            : undefined;
-          const start = Number(s.startTimeUnixNano ?? 0);
-          const end = Number(s.endTimeUnixNano ?? 0);
-          const durUs = Math.round((end - start) / 1000); // ns → µs
-          const tags: Record<string, string> = {};
-          for (const attr of s.attributes ?? []) {
-            const v = attr.value;
-            tags[attr.key] =
-              v?.stringValue ?? v?.intValue?.toString() ?? v?.boolValue?.toString() ?? '';
-          }
-          spans.push({
-            traceId,
-            spanId,
-            parentSpanId: parentId,
-            operationName: s.name ?? '?',
-            serviceName: svcName,
-            startTimeUnixNano: start,
-            duration: durUs,
-            tags,
-            status: s.status?.code === 2 ? 'error' : 'ok',
-          });
-        }
-      }
-    }
+    const spans: Span[] = (otlp.batches ?? []).flatMap((batch) => {
+      const svcName = this.extractServiceName(batch);
+      return (batch.scopeSpans ?? []).flatMap((scope) =>
+        (scope.spans ?? []).map((s) => this.parseOtlpSpan(s, traceId, svcName)),
+      );
+    });
     spans.sort((a, b) => a.startTimeUnixNano - b.startTimeUnixNano);
     const root = spans[0];
     const traceStartNs = root?.startTimeUnixNano ?? 0;
@@ -480,6 +452,37 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
       serviceName: root?.serviceName ?? 'unknown',
       operationName: root?.operationName ?? '?',
       timestamp: new Date(Math.round((traceStartNs ?? 0) / 1e6)),
+    };
+  }
+
+  /** Extract service.name from an OTLP ResourceSpans batch. */
+  private extractServiceName(batch: { resource?: { attributes?: OtlpAttribute[] } }): string {
+    const attr = (batch.resource?.attributes ?? []).find((a) => a.key === 'service.name');
+    return attr?.value?.stringValue ?? 'unknown';
+  }
+
+  /** Convert a single OTLP span proto to our internal Span model. */
+  private parseOtlpSpan(s: OtlpSpan, traceId: string, serviceName: string): Span {
+    const spanId = this.b64toHex(s.spanId ?? '');
+    const parentSpanId = s.parentSpanId ? this.b64toHex(s.parentSpanId) : undefined;
+    const start = Number(s.startTimeUnixNano ?? 0);
+    const end = Number(s.endTimeUnixNano ?? 0);
+    const durUs = Math.round((end - start) / 1000); // ns → µs
+    const tags: Record<string, string> = {};
+    for (const attr of s.attributes ?? []) {
+      const v = attr.value;
+      tags[attr.key] = v?.stringValue ?? v?.intValue?.toString() ?? v?.boolValue?.toString() ?? '';
+    }
+    return {
+      traceId,
+      spanId,
+      parentSpanId,
+      operationName: s.name ?? '?',
+      serviceName,
+      startTimeUnixNano: start,
+      duration: durUs,
+      tags,
+      status: s.status?.code === 2 ? 'error' : 'ok',
     };
   }
 

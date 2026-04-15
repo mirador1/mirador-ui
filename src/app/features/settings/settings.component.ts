@@ -8,7 +8,7 @@
  *
  * SQL Explorer has moved to DatabaseComponent (/database).
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -62,7 +62,7 @@ interface ActuatorBeans {
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit {
   private readonly http = inject(HttpClient);
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
