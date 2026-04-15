@@ -1388,6 +1388,14 @@
                 <span class="info-label">Started At</span>
                 <span class="info-value">{{ r.runtime!.startedAt }}</span>
               </div>
+              @if (r.runtime!.startupDurationMs) {
+                <div class="info-row">
+                  <span class="info-label">Startup Time</span>
+                  <span class="info-value"
+                    >{{ r.runtime!.startupDurationSeconds!.toFixed(2) }}s</span
+                  >
+                </div>
+              }
             </div>
 
             @if (r.runtime!.jarLayers && r.runtime!.jarLayers!.length > 0) {

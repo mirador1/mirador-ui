@@ -278,6 +278,10 @@ export interface RuntimeReport {
   uptimeHuman?: string;
   /** ISO-8601 timestamp when the application started. */
   startedAt?: string;
+  /** Spring Boot startup duration in milliseconds (JVM launch → ApplicationReady). */
+  startupDurationMs?: number;
+  /** Spring Boot startup duration in seconds (convenience field). */
+  startupDurationSeconds?: number;
   /** JAR layer breakdown (from Spring Boot layered JAR tooling). */
   jarLayers?: JarLayer[];
 }
