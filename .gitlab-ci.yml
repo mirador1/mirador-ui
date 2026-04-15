@@ -182,6 +182,34 @@ sonarcloud:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+# ── TypeDoc API documentation ─────────────────────────────────────────────────
+#
+# Generates TypeScript API docs from JSDoc comments in Angular services, components,
+# and interfaces. Output is published as a pipeline artifact (browsable in GitLab).
+#
+# The backend's generate-reports job can also invoke `npm run typedoc` as part
+# of a combined site that includes Maven site + Compodoc + TypeDoc.
+#
+# typedoc.json at the repo root controls entry points, output dir, and theme.
+typedoc:
+  stage: quality
+  extends: .install
+  needs: ["build:production"]
+  script:
+    # Run TypeDoc — warns are informational; docs still generate cleanly
+    - npm run typedoc 2>&1 | tee typedoc-output.txt
+    - echo "TypeDoc docs generated at docs/typedoc/"
+  artifacts:
+    name: "typedoc-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - docs/typedoc/
+    expire_in: 30 days
+    when: always
+  allow_failure: true   # documentation failure must not block deployments
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # ── Stage: docker ─────────────────────────────────────────────────────────────
 #
 # Build the Angular Docker image (Nginx + compiled SPA) and push it to the

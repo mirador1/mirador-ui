@@ -9,17 +9,18 @@
 
 ## Pending
 
-- [ ] **TypeDoc** — add `typedoc` to `package.json` and a `typedoc.json` config.
-      Generate TypeScript API docs from JSDoc comments in Angular services (ApiService,
-      AuthService, MetricsService, etc.). The CI `generate-reports` job in the backend
-      repo will eventually call this and publish the output alongside the Maven site.
-      Config: `--entryPointStrategy expand src/app --out ../target/site/typedoc`
+- [x] **TypeDoc** — typedoc@0.28 installed, typedoc.json config at repo root.
+      npm run typedoc generates docs/typedoc/ (0 errors, ~44 warnings about internal types).
+      CI: typedoc quality job publishes docs/typedoc/ as a 30-day pipeline artifact.
+      docs/typedoc/ added to .gitignore (generated content). backend generate-reports
+      job can also invoke npm run typedoc to publish alongside Maven site.
 - [ ] **Maven Site tab** — the current Maven Site tab in the quality component uses an
       iframe pointing to `/maven-site/`. Consider an alternative route `/quality/site`
       that fills the full viewport (no tab chrome) for better usability of large reports.
-- [ ] **Pipeline history widget** — call GitLab API (`GET /projects/:id/pipelines`) and
-      display the last 10 pipelines (status + duration) in the quality page or a new
-      tab. Requires `GITLAB_TOKEN` to be passed as a config value (env var or actuator).
+- [x] **Pipeline history widget** — 🚀 Pipelines tab added to quality page. Backend: /actuator/quality
+      now includes pipeline section (buildPipelineSection() calls GitLab API, returns last 10 pipelines).
+      Angular: PipelineReport interface, colored status badges, date via .substring(0,10), link to GitLab.
+      K8s: GITLAB_API_TOKEN in secrets, GITLAB_PROJECT_ID + GITLAB_HOST_URL in ConfigMap.
 - [ ] **Active branches widget** — display git branches with last-commit date in the
       About page or quality page. Data from the backend: add a `/actuator/git-info` or
       `/actuator/quality` sub-section that calls `git branch -r --sort=-committerdate`.
