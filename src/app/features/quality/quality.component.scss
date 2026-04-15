@@ -1098,3 +1098,42 @@
   line-height: 1.4;
   white-space: pre;
 }
+
+// Dependency analysis (used-undeclared / unused-declared lists)
+.analyze-label {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.82rem;
+  &.warn {
+    color: #e8a000;
+  }
+  &.info {
+    color: var(--text-secondary);
+  }
+}
+
+.dep-analyze-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.dep-coord {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.78rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  &.warn {
+    color: #e8a000;
+    background: rgba(232, 160, 0, 0.08);
+  }
+  &.info {
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+  }
+}
+
+.analyze-clean {
+  font-size: 0.85rem;
+  color: #4caf50;
+  margin: 0.5rem 0;
+}

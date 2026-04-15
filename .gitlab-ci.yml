@@ -236,6 +236,17 @@ docker-build:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+  before_script:
+    # Wait up to 60 s for the DinD daemon to become ready.
+    # DinD service may take a few seconds to start after the runner allocates it —
+    # the Docker client fails immediately with "no such host" if it tries too early.
+    - |
+      echo "Waiting for Docker daemon..."
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && echo "Docker ready." && break
+        echo "  attempt $i/30 — sleeping 2s..."
+        sleep 2
+      done
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - |

@@ -368,6 +368,16 @@ export interface QualityReport {
       /** Total transitive dependency count (lines with indentation in tree). */
       totalTransitive?: number;
     };
+    /** Output of maven-dependency-plugin:analyze-only — dependency hygiene issues. */
+    dependencyAnalysis?: {
+      available: boolean;
+      /** Dependencies used at compile time but not declared in pom.xml (transitive leakage). */
+      usedUndeclared?: string[];
+      usedUndeclaredCount?: number;
+      /** Dependencies declared in pom.xml but not detected in compiled bytecode. */
+      unusedDeclared?: string[];
+      unusedDeclaredCount?: number;
+    };
     dependencies?: Array<{
       groupId: string;
       artifactId: string;

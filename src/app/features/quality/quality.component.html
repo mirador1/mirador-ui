@@ -1330,6 +1330,55 @@
               </h4>
               <pre class="dep-tree">{{ r.dependencies!.dependencyTree!.tree }}</pre>
             }
+
+            @if (r.dependencies!.dependencyAnalysis?.available) {
+              <h4>
+                Dependency Analysis
+                @if (r.dependencies!.dependencyAnalysis!.usedUndeclaredCount) {
+                  <span class="badge badge-warn"
+                    >{{
+                      r.dependencies!.dependencyAnalysis!.usedUndeclaredCount
+                    }}
+                    used-undeclared</span
+                  >
+                }
+                @if (r.dependencies!.dependencyAnalysis!.unusedDeclaredCount) {
+                  <span class="badge badge-info"
+                    >{{
+                      r.dependencies!.dependencyAnalysis!.unusedDeclaredCount
+                    }}
+                    unused-declared</span
+                  >
+                }
+              </h4>
+              @if (r.dependencies!.dependencyAnalysis!.usedUndeclaredCount) {
+                <p class="analyze-label warn">
+                  ⚠ Used but not declared — these are pulled in transitively and may break if the
+                  providing dependency is removed:
+                </p>
+                <ul class="dep-analyze-list">
+                  @for (dep of r.dependencies!.dependencyAnalysis!.usedUndeclared; track dep) {
+                    <li class="dep-coord warn">{{ dep }}</li>
+                  }
+                </ul>
+              }
+              @if (r.dependencies!.dependencyAnalysis!.unusedDeclaredCount) {
+                <p class="analyze-label info">
+                  ℹ Declared but not used — candidates for removal from pom.xml:
+                </p>
+                <ul class="dep-analyze-list">
+                  @for (dep of r.dependencies!.dependencyAnalysis!.unusedDeclared; track dep) {
+                    <li class="dep-coord info">{{ dep }}</li>
+                  }
+                </ul>
+              }
+              @if (
+                !r.dependencies!.dependencyAnalysis!.usedUndeclaredCount &&
+                !r.dependencies!.dependencyAnalysis!.unusedDeclaredCount
+              ) {
+                <p class="analyze-clean">✅ No dependency issues detected.</p>
+              }
+            }
           </section>
         }
 
