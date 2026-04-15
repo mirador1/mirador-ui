@@ -1,0 +1,34 @@
+<div class="maven-site-page">
+  <!-- Minimal top bar — back link + title -->
+  <div class="topbar">
+    <a routerLink="/quality" class="back-link">← Back to Quality</a>
+    <span class="title">Maven Site — API Reports</span>
+    @if (available() === true) {
+      <a [href]="siteUrl" target="_blank" class="open-new-tab">↗ Open in new tab</a>
+    }
+  </div>
+
+  <!-- Loading state -->
+  @if (available() === null) {
+    <div class="state-message">Checking Maven site availability…</div>
+  }
+
+  <!-- Unavailable state -->
+  @if (available() === false) {
+    <div class="state-message error">
+      <p>Maven site is not available.</p>
+      <p>Start the backend and run <code>mvn site post-site</code> to generate reports.</p>
+      <a routerLink="/quality" class="back-btn">← Back to Quality</a>
+    </div>
+  }
+
+  <!-- Full-page iframe -->
+  @if (available() === true) {
+    <iframe
+      [src]="safeSiteUrl()"
+      title="Maven Site — API Reports"
+      class="site-frame"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+    ></iframe>
+  }
+</div>

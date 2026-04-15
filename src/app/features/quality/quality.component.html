@@ -73,6 +73,8 @@
         <span class="maven-raw-title">📋 Raw reports (Maven Site)</span>
         @if (mavenSiteAvailable()) {
           <span class="maven-status maven-status-up">● Available</span>
+          <!-- Full-page viewer: hides tab chrome so large Javadoc/JaCoCo reports are usable -->
+          <a routerLink="/quality/site" class="maven-fullpage-link">⛶ Full-page view</a>
         } @else {
           <span class="maven-status maven-status-down">● Not deployed</span>
           <span class="maven-raw-hint">Run <code>./run.sh site</code> to generate and serve</span>

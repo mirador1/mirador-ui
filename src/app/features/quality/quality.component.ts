@@ -10,6 +10,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -450,7 +451,7 @@ export interface MavenSiteReport {
 @Component({
   selector: 'app-quality',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, RouterLink],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })

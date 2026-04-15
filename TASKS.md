@@ -14,9 +14,11 @@
       CI: typedoc quality job publishes docs/typedoc/ as a 30-day pipeline artifact.
       docs/typedoc/ added to .gitignore (generated content). backend generate-reports
       job can also invoke npm run typedoc to publish alongside Maven site.
-- [ ] **Maven Site tab** — the current Maven Site tab in the quality component uses an
-      iframe pointing to `/maven-site/`. Consider an alternative route `/quality/site`
-      that fills the full viewport (no tab chrome) for better usability of large reports.
+- [x] **Maven Site full-page view** — new route /quality/site renders the maven site in
+      a full-viewport iframe with a minimal topbar (back link + title + open-in-new-tab).
+      MavenSiteFullComponent probes availability before showing iframe; shows a helpful error
+      with run instructions when the backend is unreachable. Link added to quality page
+      raw reports header ("⛶ Full-page view") — only shown when maven site is available.
 - [x] **Pipeline history widget** — 🚀 Pipelines tab added to quality page. Backend: /actuator/quality
       now includes pipeline section (buildPipelineSection() calls GitLab API, returns last 10 pipelines).
       Angular: PipelineReport interface, colored status badges, date via .substring(0,10), link to GitLab.

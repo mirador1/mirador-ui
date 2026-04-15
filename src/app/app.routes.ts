@@ -86,6 +86,15 @@ export const routes: Routes = [
       import('./features/quality/quality.component').then((m) => m.QualityComponent),
   },
   {
+    // Full-viewport Maven site viewer — use this instead of the quality page tab
+    // when you need more vertical space for Javadoc, JaCoCo, or Pitest reports.
+    path: 'quality/site',
+    loadComponent: () =>
+      import('./features/maven-site/maven-site-full.component').then(
+        (m) => m.MavenSiteFullComponent,
+      ),
+  },
+  {
     path: 'about',
     loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
   },
