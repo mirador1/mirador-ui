@@ -220,30 +220,53 @@ export class MetricsService {
     // ── JVM heap memory ────────────────────────────────────────────────────────
     // jvm_memory_used_bytes and jvm_memory_max_bytes are emitted per region (Eden,
     // Survivor, Old Gen…). Sum only area="heap" entries to get total heap usage.
+    //
+    // IMPORTANT: Prometheus values may use scientific notation (e.g. 4.294967296E9 for
+    // 4 GiB). The number pattern must capture the exponent part too — plain \d+\.?\d*
+    // would parse 4.294967296E9 as 4.3 bytes instead of 4.3 GB.
+    // With G1GC, Eden and Survivor regions report max=-1.0 (unlimited); these must be
+    // excluded so they don't corrupt the sum. Only positive values contribute to heapMax.
+    const FLOAT = '(-?[\\d.]+(?:[Ee][+-]?\\d+)?)'; // handles both 12345 and 1.23E9
     let heapUsed = 0;
     let heapMax = 0;
-    const heapUsedRegex = /^jvm_memory_used_bytes\{[^}]*area="heap"[^}]*\}\s+(\d+\.?\d*)/gm;
-    const heapMaxRegex = /^jvm_memory_max_bytes\{[^}]*area="heap"[^}]*\}\s+(\d+\.?\d*)/gm;
+    const heapUsedRegex = new RegExp(
+      `^jvm_memory_used_bytes\\{[^}]*area="heap"[^}]*\\}\\s+${FLOAT}`,
+      'gm',
+    );
+    const heapMaxRegex = new RegExp(
+      `^jvm_memory_max_bytes\\{[^}]*area="heap"[^}]*\\}\\s+${FLOAT}`,
+      'gm',
+    );
     let hm;
     while ((hm = heapUsedRegex.exec(raw)) !== null) heapUsed += parseFloat(hm[1]);
-    while ((hm = heapMaxRegex.exec(raw)) !== null) heapMax += parseFloat(hm[1]);
+    while ((hm = heapMaxRegex.exec(raw)) !== null) {
+      const v = parseFloat(hm[1]);
+      if (v > 0) heapMax += v; // skip -1.0 entries (G1 regions with no fixed max)
+    }
 
     // ── CPU usage ──────────────────────────────────────────────────────────────
     // process_cpu_usage is a gauge in range [0, 1] representing the fraction of CPU
     // time used by the JVM process. Published by ProcessorMetrics (Micrometer default).
-    const cpuMatch = raw.match(/^process_cpu_usage\s+([\d.]+)/m);
+    // Value may be in scientific notation when CPU is very low (e.g. 4.23E-4).
+    const cpuMatch = raw.match(new RegExp(`^process_cpu_usage\\s+${FLOAT}`, 'm'));
     const cpuProcess = cpuMatch ? parseFloat(cpuMatch[1]) : 0;
 
     // ── JVM threads ───────────────────────────────────────────────────────────
-    const threadsMatch = raw.match(/^jvm_threads_live_threads\s+([\d.]+)/m);
+    const threadsMatch = raw.match(new RegExp(`^jvm_threads_live_threads\\s+${FLOAT}`, 'm'));
     const threads = threadsMatch ? Math.round(parseFloat(threadsMatch[1])) : 0;
 
     // ── HikariCP connection pool ───────────────────────────────────────────────
     // hikaricp_connections_{active,idle,pending} are gauges published by HikariCP's
     // Micrometer integration. They reflect the real-time state of the JDBC pool.
-    const hikariActiveM = raw.match(/^hikaricp_connections_active\{[^}]*\}\s+([\d.]+)/m);
-    const hikariIdleM = raw.match(/^hikaricp_connections_idle\{[^}]*\}\s+([\d.]+)/m);
-    const hikariPendingM = raw.match(/^hikaricp_connections_pending\{[^}]*\}\s+([\d.]+)/m);
+    const hikariActiveM = raw.match(
+      new RegExp(`^hikaricp_connections_active\\{[^}]*\\}\\s+${FLOAT}`, 'm'),
+    );
+    const hikariIdleM = raw.match(
+      new RegExp(`^hikaricp_connections_idle\\{[^}]*\\}\\s+${FLOAT}`, 'm'),
+    );
+    const hikariPendingM = raw.match(
+      new RegExp(`^hikaricp_connections_pending\\{[^}]*\\}\\s+${FLOAT}`, 'm'),
+    );
 
     return {
       httpRequestsTotal: totalCount,
