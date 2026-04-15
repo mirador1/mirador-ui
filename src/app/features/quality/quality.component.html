@@ -93,13 +93,6 @@
       >
         ⚙️ Runtime
       </button>
-      <button
-        class="tab-btn"
-        [class.tab-active]="selectedTab() === 'maven-site'"
-        (click)="selectedTab.set('maven-site')"
-      >
-        📋 Maven Site
-      </button>
     </div>
 
     <!-- Loading state -->
@@ -337,32 +330,39 @@
           </div>
         }
 
-        <!-- Quick links to Maven Site — always visible, links enabled only when site is up -->
-        <div class="overview-maven-links">
-          <span class="overview-maven-label">📋 Maven Site:</span>
-          @if (mavenSiteAvailable()) {
-            <span class="maven-status maven-status-up">● Available</span>
-            @for (
-              page of [
-                { label: 'Project Summary', file: 'index.html' },
-                { label: 'Surefire Tests', file: 'surefire.html' },
-                { label: 'JaCoCo Coverage', file: 'jacoco/index.html' },
-                { label: 'SpotBugs', file: 'spotbugs.html' },
-                { label: 'CVE Scan', file: 'dependency-check-report.html' },
-                { label: 'Javadoc', file: 'apidocs/index.html' },
-              ];
-              track page.file
-            ) {
-              <button class="overview-maven-btn" (click)="openMavenSitePage(page.file)">
-                {{ page.label }} ↗
-              </button>
+        <!-- Raw reports from Maven Site — always shown, linked when server is up -->
+        <div class="maven-raw-section">
+          <div class="maven-raw-header">
+            <span class="maven-raw-title">📋 Raw reports (Maven Site)</span>
+            @if (mavenSiteAvailable()) {
+              <span class="maven-status maven-status-up">● Available</span>
+            } @else {
+              <span class="maven-status maven-status-down">● Not deployed</span>
+              <span class="maven-raw-hint"
+                >Run <code>./run.sh site</code> to generate and serve</span
+              >
             }
-          } @else {
-            <span class="maven-status maven-status-down">● Not deployed</span>
-            <span class="overview-maven-hint"
-              >Run <code>./run.sh site</code> to generate and serve it</span
-            >
-          }
+          </div>
+          <div class="maven-raw-grid">
+            @for (rep of mavenSiteReports; track rep.file) {
+              <div class="maven-raw-item">
+                <span class="maven-raw-label">{{ rep.label }}</span>
+                @if (mavenSiteAvailable()) {
+                  <a
+                    class="maven-raw-btn"
+                    [href]="mavenSiteBase + '/' + rep.file"
+                    target="_blank"
+                    rel="noopener"
+                    >Detail ↗</a
+                  >
+                } @else {
+                  <span class="maven-raw-btn maven-raw-disabled" title="Maven Site not deployed"
+                    >Not deployed</span
+                  >
+                }
+              </div>
+            }
+          </div>
         </div>
       }
       <!-- end overview tab -->
@@ -371,17 +371,6 @@
         <!-- ================================================================== -->
         <!-- TESTS SECTION -->
         <!-- ================================================================== -->
-        @if (mavenSiteAvailable()) {
-          <div class="tab-maven-links">
-            <span class="tab-maven-label">Full reports in Maven Site:</span>
-            <button class="overview-maven-btn" (click)="openMavenSitePage('surefire.html')">
-              Surefire Tests ↗
-            </button>
-            <button class="overview-maven-btn" (click)="openMavenSitePage('jacoco/index.html')">
-              JaCoCo Coverage ↗
-            </button>
-          </div>
-        }
         @if (r.tests.available) {
           <section class="quality-section">
             <h3>
@@ -597,14 +586,6 @@
         <!-- ================================================================== -->
         <!-- SPOTBUGS SECTION -->
         <!-- ================================================================== -->
-        @if (mavenSiteAvailable()) {
-          <div class="tab-maven-links">
-            <span class="tab-maven-label">Full reports in Maven Site:</span>
-            <button class="overview-maven-btn" (click)="openMavenSitePage('spotbugs.html')">
-              SpotBugs ↗
-            </button>
-          </div>
-        }
         <section class="quality-section">
           <h3>
             <span class="section-icon">🐛</span>
@@ -851,17 +832,6 @@
         <!-- ================================================================== -->
         <!-- OWASP CVE SECTION -->
         <!-- ================================================================== -->
-        @if (mavenSiteAvailable()) {
-          <div class="tab-maven-links">
-            <span class="tab-maven-label">Full reports in Maven Site:</span>
-            <button
-              class="overview-maven-btn"
-              (click)="openMavenSitePage('dependency-check-report.html')"
-            >
-              CVE Scan ↗
-            </button>
-          </div>
-        }
         @if (r.owasp) {
           <section class="quality-section">
             <h3>
@@ -1268,63 +1238,6 @@
         </section>
       }
       <!-- end runtime tab -->
-
-      @if (selectedTab() === 'maven-site') {
-        <!-- Maven Site tab: iframe + navigation links -->
-        <section class="report-section">
-          <h3>Maven Site</h3>
-          @if (mavenSiteAvailable()) {
-            <div class="maven-site-container">
-              <div class="maven-site-nav">
-                @for (
-                  page of [
-                    { label: '📋 Project Summary', file: 'index.html' },
-                    { label: '✅ Surefire Tests', file: 'surefire.html' },
-                    { label: '📊 JaCoCo Coverage', file: 'jacoco/index.html' },
-                    { label: '🔬 SpotBugs', file: 'spotbugs.html' },
-                    { label: '🛡️ CVE Scan', file: 'dependency-check-report.html' },
-                    { label: '📚 Javadoc', file: 'apidocs/index.html' },
-                  ];
-                  track page.file
-                ) {
-                  <button
-                    class="maven-nav-btn"
-                    [class.maven-nav-active]="mavenSitePage() === page.file"
-                    (click)="navigateMavenSite(page.file)"
-                  >
-                    {{ page.label }}
-                  </button>
-                  <a
-                    class="maven-nav-external"
-                    [href]="mavenSiteBase + '/' + page.file"
-                    target="_blank"
-                    title="Open in new tab"
-                    >↗</a
-                  >
-                }
-              </div>
-              <!-- [src] with SafeResourceUrl — absolute backend URL required.
-                   A relative /maven-site/... would resolve to the Angular dev server (port 4200)
-                   and show the Angular UI inside the iframe instead of the Maven reports. -->
-              <iframe
-                [src]="mavenSiteIframeSrc"
-                class="maven-site-frame"
-                title="Maven Site"
-              ></iframe>
-            </div>
-          } @else {
-            <div class="maven-site-unavailable">
-              <p>
-                ⚠️ Maven site not available. Run <code>./run.sh site</code> to generate and serve
-                it.
-              </p>
-              <p class="maven-site-retry-note">Retrying automatically every 10 s…</p>
-              <button class="refresh-btn" (click)="checkMavenSite()">↻ Retry now</button>
-            </div>
-          }
-        </section>
-      }
-      <!-- end maven-site tab -->
     }
   }
   <!-- end @if (auth.isAdmin()) -->

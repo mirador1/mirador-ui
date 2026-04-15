@@ -799,27 +799,8 @@
   margin-right: 0.3rem;
 }
 
-// Overview → Maven Site quick-links bar
+// Maven Site availability badge
 // ---------------------------------------------------------------------------
-.overview-maven-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding: 0.6rem 0.9rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 0.5rem;
-  font-size: 0.82rem;
-}
-
-.overview-maven-label {
-  color: var(--text-muted);
-  font-weight: 600;
-  margin-right: 0.25rem;
-}
-
 .maven-status {
   font-size: 0.78rem;
   font-weight: 600;
@@ -837,128 +818,97 @@
   }
 }
 
-.overview-maven-hint {
+// Raw reports section at the bottom of the Overview tab
+// ---------------------------------------------------------------------------
+.maven-raw-section {
+  margin-top: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.maven-raw-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+  flex-wrap: wrap;
+}
+
+.maven-raw-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.maven-raw-hint {
   font-size: 0.78rem;
   color: var(--text-muted);
   font-style: italic;
-}
-
-.overview-maven-btn {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
-  border: 1px solid var(--border-default);
-  border-radius: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.8rem;
-  color: var(--color-accent, #3b82f6);
-  cursor: pointer;
-  transition: background 0.15s;
-
-  &:hover {
-    background: var(--bg-card-hover, rgba(59, 130, 246, 0.08));
-  }
-}
-
-// Per-tab Maven Site link bar (shown at top of Tests, Analysis, Security tabs)
-.tab-maven-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding: 0.5rem 0.9rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-left: 3px solid var(--color-accent, #3b82f6);
-  border-radius: 0.4rem;
-  font-size: 0.82rem;
-}
-
-.tab-maven-label {
-  color: var(--text-muted);
-  font-weight: 600;
-  margin-right: 0.25rem;
-}
-
-.maven-site-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-
-  .maven-site-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    align-items: center;
-
-    // Group each button + its external ↗ link visually
-    button.maven-nav-btn {
-      padding: 0.4rem 0.75rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 6px 0 0 6px;
-      color: var(--text-primary);
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: background 0.15s;
-
-      &:hover {
-        background: var(--accent);
-        color: white;
-      }
-
-      &.maven-nav-active {
-        background: var(--accent);
-        color: white;
-        border-color: var(--accent);
-      }
-    }
-
-    a.maven-nav-external {
-      padding: 0.4rem 0.45rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-left: none;
-      border-radius: 0 6px 6px 0;
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 0.75rem;
-      margin-right: 0.4rem; // gap between pairs
-
-      &:hover {
-        color: var(--accent);
-      }
-    }
-  }
-
-  .maven-site-frame {
-    width: 100%;
-    height: 70vh;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    // The Maven site ships with a light-background theme (white/blue).
-    // invert(1) hue-rotate(180deg) flips it to dark-on-light → light-on-dark
-    // without distorting hue. Images and SVGs are re-inverted by the browser
-    // heuristic but remain readable. Only applied in dark mode.
-    :host-context([data-theme='dark']) & {
-      filter: invert(1) hue-rotate(180deg);
-    }
-  }
-}
-
-.maven-site-unavailable {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-muted);
 
   code {
-    background: var(--bg-card);
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
+    background: var(--bg-code, rgba(0, 0, 0, 0.08));
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    font-style: normal;
+    font-size: 0.78rem;
+  }
+}
+
+.maven-raw-grid {
+  display: grid;
+  // Fit as many columns as possible — each at least 180px wide
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.maven-raw-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+
+  // Last column: no right border (tricky with auto-fill — suppress with nth-child logic omitted;
+  // the slight double-border on edges is acceptable)
+}
+
+.maven-raw-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.maven-raw-btn {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.15s;
+  border: 1px solid var(--border-default);
+
+  // When available: styled as a link-button
+  &:not(.maven-raw-disabled) {
+    color: var(--color-accent, #3b82f6);
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
   }
 
-  .maven-site-retry-note {
-    font-size: 0.8rem;
+  // When not deployed: greyed out, no pointer
+  &.maven-raw-disabled {
+    color: var(--text-muted);
+    background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+    cursor: default;
     opacity: 0.7;
-    margin-bottom: 0.75rem;
   }
 }
