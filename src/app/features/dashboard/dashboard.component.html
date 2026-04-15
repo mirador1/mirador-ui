@@ -155,12 +155,6 @@
         <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a
-            href="http://localhost:9091/graph?g0.expr=rate(http_server_requests_seconds_count[5m])&g0.tab=0"
-            target="_blank"
-            rel="noopener"
-            >🔥 Prometheus</a
-          >
         </div>
       </article>
       <article class="stat-card">
@@ -174,12 +168,6 @@
         <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a
-            href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.5,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
-            target="_blank"
-            rel="noopener"
-            >🔥 Prometheus</a
-          >
         </div>
       </article>
       <article class="stat-card">
@@ -193,12 +181,6 @@
         <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a
-            href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.95,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
-            target="_blank"
-            rel="noopener"
-            >🔥 Prometheus</a
-          >
         </div>
       </article>
       <article class="stat-card">
@@ -212,12 +194,6 @@
         <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
-          <a
-            href="http://localhost:9091/graph?g0.expr=histogram_quantile(0.99,rate(http_server_requests_seconds_bucket[5m]))&g0.tab=0"
-            target="_blank"
-            rel="noopener"
-            >🔥 Prometheus</a
-          >
         </div>
       </article>
     }
