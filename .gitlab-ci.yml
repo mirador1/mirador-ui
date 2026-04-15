@@ -11,6 +11,12 @@ variables:
 
 default:
   image: node:${NODE_VERSION}-alpine
+  # Force all jobs to run on GitLab SaaS Linux runners.
+  # Without this, a locally-registered runner (Mac Docker Desktop) may pick up jobs,
+  # causing DinD failures: 'docker' hostname not DNS-resolvable on Mac Docker Desktop
+  # (uses 192.168.65.7 internal DNS which doesn't resolve service aliases).
+  tags:
+    - saas-linux-medium-amd64
   cache:
     key:
       files:
