@@ -791,20 +791,45 @@
   .maven-site-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    align-items: center;
 
-    a {
-      padding: 0.4rem 0.8rem;
+    // Group each button + its external ↗ link visually
+    button.maven-nav-btn {
+      padding: 0.4rem 0.75rem;
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 6px 0 0 6px;
       color: var(--text-primary);
-      text-decoration: none;
       font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
 
       &:hover {
         background: var(--accent);
         color: white;
+      }
+
+      &.maven-nav-active {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+    }
+
+    a.maven-nav-external {
+      padding: 0.4rem 0.45rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: none;
+      border-radius: 0 6px 6px 0;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+      margin-right: 0.4rem; // gap between pairs
+
+      &:hover {
+        color: var(--accent);
       }
     }
   }
@@ -814,6 +839,13 @@
     height: 70vh;
     border: 1px solid var(--border);
     border-radius: 8px;
+    // The Maven site ships with a light-background theme (white/blue).
+    // invert(1) hue-rotate(180deg) flips it to dark-on-light → light-on-dark
+    // without distorting hue. Images and SVGs are re-inverted by the browser
+    // heuristic but remain readable. Only applied in dark mode.
+    :host-context([data-theme='dark']) & {
+      filter: invert(1) hue-rotate(180deg);
+    }
   }
 }
 

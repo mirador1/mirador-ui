@@ -230,12 +230,22 @@ export class QualityComponent implements OnInit, OnDestroy {
   // Polls every 10s until the nginx server responds — cleared once available or on destroy.
   private _mavenSiteRetryTimer: ReturnType<typeof setInterval> | null = null;
 
-  // Resolved base URL for the Maven site — prefers the dedicated nginx server (port 8083)
+  // Tracks which page is currently loaded in the Maven Site iframe.
+  // Updated by navigateMavenSite() when the user clicks a nav link.
+  mavenSitePage = signal('index.html');
+
+  // Resolved base URL for the Maven site — prefers the dedicated nginx server (port 8084)
   // over the backend's /maven-site/ fallback. The dedicated server has an independent
   // lifecycle (regenerated daily by CI) and avoids serving reports through the app server.
   // SafeResourceUrl is required by Angular to allow iframes pointing to external origins.
   get mavenSiteIframeSrc(): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(`${this.mavenSiteBase}/index.html`);
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `${this.mavenSiteBase}/${this.mavenSitePage()}`,
+    );
+  }
+
+  navigateMavenSite(page: string): void {
+    this.mavenSitePage.set(page);
   }
 
   /** Base URL of the Maven site: dedicated nginx server if configured, backend fallback. */
