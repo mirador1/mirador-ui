@@ -23,9 +23,10 @@
       now includes pipeline section (buildPipelineSection() calls GitLab API, returns last 10 pipelines).
       Angular: PipelineReport interface, colored status badges, date via .substring(0,10), link to GitLab.
       K8s: GITLAB_API_TOKEN in secrets, GITLAB_PROJECT_ID + GITLAB_HOST_URL in ConfigMap.
-- [ ] **Active branches widget** — display git branches with last-commit date in the
-      About page or quality page. Data from the backend: add a `/actuator/git-info` or
-      `/actuator/quality` sub-section that calls `git branch -r --sort=-committerdate`.
+- [x] **Active branches widget** — 🌿 Branches tab added to quality page. Backend:
+      buildBranchesSection() uses git for-each-ref refs/remotes --sort=-committerdate
+      (up to 20 branches, filters HEAD pointer). Frontend: BranchesReport interface,
+      table with branch name (monospace green), last commit date, author.
 
 ## Recently Completed
 
