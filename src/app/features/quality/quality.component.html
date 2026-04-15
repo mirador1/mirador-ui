@@ -99,6 +99,23 @@
             }
           </div>
         }
+        <!-- Compodoc Angular API docs — separate nginx server at port 8085 -->
+        @if (env.compodocUrl()) {
+          <div class="maven-raw-item">
+            <span class="maven-raw-label"
+              ><span class="maven-raw-icon">📐</span> Angular API Docs</span
+            >
+            @if (compodocAvailable()) {
+              <a class="maven-raw-btn" [href]="env.compodocUrl()!" target="_blank" rel="noopener"
+                >Detail ↗</a
+              >
+            } @else {
+              <span class="maven-raw-btn maven-raw-disabled" title="Compodoc not deployed"
+                >Not deployed</span
+              >
+            }
+          </div>
+        }
       </div>
     </div>
 
