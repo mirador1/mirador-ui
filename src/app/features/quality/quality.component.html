@@ -42,15 +42,108 @@
       </div>
     </div>
 
+    <!-- Summary cards — always visible above the tab bar as a persistent status strip -->
+    @if (report(); as r) {
+      <div class="summary-row">
+        <!-- Tests card -->
+        <div
+          class="summary-card"
+          [class.card-pass]="r.tests.status === 'PASSED'"
+          [class.card-fail]="r.tests.status === 'FAILED'"
+        >
+          <div class="card-label">Tests</div>
+          @if (r.tests.available) {
+            <div class="card-value">
+              <span
+                class="badge"
+                [class.badge-pass]="r.tests.status === 'PASSED'"
+                [class.badge-fail]="r.tests.status === 'FAILED'"
+              >
+                {{ r.tests.status }}
+              </span>
+            </div>
+            <div class="card-sub">{{ r.tests.passed }} / {{ r.tests.total }} passed</div>
+            @if (r.tests.skipped && r.tests.skipped > 0) {
+              <div class="card-hint">{{ r.tests.skipped }} skipped</div>
+            }
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No test reports found</div>
+          }
+        </div>
+
+        <!-- Coverage card -->
+        <div class="summary-card">
+          <div class="card-label">Coverage</div>
+          @if (r.coverage.available) {
+            <div class="card-value" [class]="'pct-' + coverageColor(r.coverage.instructions!.pct)">
+              {{ r.coverage.instructions!.pct | number: '1.1-1' }}%
+            </div>
+            <div class="card-sub">instructions</div>
+            <div class="coverage-bar-wrap">
+              <svg class="coverage-bar" viewBox="0 0 100 6" preserveAspectRatio="none">
+                <rect x="0" y="0" width="100" height="6" fill="#e5e7eb" rx="3" />
+                <rect
+                  x="0"
+                  y="0"
+                  [attr.width]="r.coverage.instructions!.pct"
+                  height="6"
+                  [attr.fill]="
+                    r.coverage.instructions!.pct >= 70
+                      ? '#22c55e'
+                      : r.coverage.instructions!.pct >= 50
+                        ? '#f59e0b'
+                        : '#ef4444'
+                  "
+                  rx="3"
+                />
+              </svg>
+            </div>
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No coverage data</div>
+          }
+        </div>
+
+        <!-- Bugs card -->
+        <div
+          class="summary-card"
+          [class.card-pass]="r.bugs.available && r.bugs.total === 0"
+          [class.card-fail]="r.bugs.available && r.bugs.total! > 0"
+        >
+          <div class="card-label">SpotBugs</div>
+          @if (r.bugs.available) {
+            <div
+              class="card-value"
+              [class.pct-good]="r.bugs.total === 0"
+              [class.pct-bad]="r.bugs.total! > 0"
+            >
+              {{ r.bugs.total }}
+            </div>
+            <div class="card-sub">{{ r.bugs.total === 0 ? 'No bugs found' : 'bugs found' }}</div>
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No SpotBugs report</div>
+          }
+        </div>
+
+        <!-- Build card -->
+        <div class="summary-card">
+          <div class="card-label">Build</div>
+          @if (r.build.available) {
+            <div class="card-value build-version">{{ r.build.version }}</div>
+            <div class="card-sub">{{ r.build.artifact }}</div>
+            <div class="card-hint">{{ r.build.time }}</div>
+          } @else {
+            <div class="card-value card-na">N/A</div>
+            <div class="card-hint">No build info</div>
+          }
+        </div>
+      </div>
+    }
+
     <!-- Tab navigation -->
     <div class="tab-bar">
-      <button
-        class="tab-btn"
-        [class.tab-active]="selectedTab() === 'overview'"
-        (click)="selectedTab.set('overview')"
-      >
-        📊 Overview
-      </button>
       <button
         class="tab-btn"
         [class.tab-active]="selectedTab() === 'tests'"
@@ -118,110 +211,6 @@
     }
 
     @if (report(); as r) {
-      @if (selectedTab() === 'overview') {
-        <!-- Summary row: 4 cards -->
-        <div class="summary-row">
-          <!-- Tests card -->
-          <div
-            class="summary-card"
-            [class.card-pass]="r.tests.status === 'PASSED'"
-            [class.card-fail]="r.tests.status === 'FAILED'"
-          >
-            <div class="card-label">Tests</div>
-            @if (r.tests.available) {
-              <div class="card-value">
-                <span
-                  class="badge"
-                  [class.badge-pass]="r.tests.status === 'PASSED'"
-                  [class.badge-fail]="r.tests.status === 'FAILED'"
-                >
-                  {{ r.tests.status }}
-                </span>
-              </div>
-              <div class="card-sub">{{ r.tests.passed }} / {{ r.tests.total }} passed</div>
-              @if (r.tests.skipped && r.tests.skipped > 0) {
-                <div class="card-hint">{{ r.tests.skipped }} skipped</div>
-              }
-            } @else {
-              <div class="card-value card-na">N/A</div>
-              <div class="card-hint">No test reports found</div>
-            }
-          </div>
-
-          <!-- Coverage card -->
-          <div class="summary-card">
-            <div class="card-label">Coverage</div>
-            @if (r.coverage.available) {
-              <div
-                class="card-value"
-                [class]="'pct-' + coverageColor(r.coverage.instructions!.pct)"
-              >
-                {{ r.coverage.instructions!.pct | number: '1.1-1' }}%
-              </div>
-              <div class="card-sub">instructions</div>
-              <div class="coverage-bar-wrap">
-                <svg class="coverage-bar" viewBox="0 0 100 6" preserveAspectRatio="none">
-                  <rect x="0" y="0" width="100" height="6" fill="#e5e7eb" rx="3" />
-                  <rect
-                    x="0"
-                    y="0"
-                    [attr.width]="r.coverage.instructions!.pct"
-                    height="6"
-                    [attr.fill]="
-                      r.coverage.instructions!.pct >= 70
-                        ? '#22c55e'
-                        : r.coverage.instructions!.pct >= 50
-                          ? '#f59e0b'
-                          : '#ef4444'
-                    "
-                    rx="3"
-                  />
-                </svg>
-              </div>
-            } @else {
-              <div class="card-value card-na">N/A</div>
-              <div class="card-hint">No coverage data</div>
-            }
-          </div>
-
-          <!-- Bugs card -->
-          <div
-            class="summary-card"
-            [class.card-pass]="r.bugs.available && r.bugs.total === 0"
-            [class.card-fail]="r.bugs.available && r.bugs.total! > 0"
-          >
-            <div class="card-label">SpotBugs</div>
-            @if (r.bugs.available) {
-              <div
-                class="card-value"
-                [class.pct-good]="r.bugs.total === 0"
-                [class.pct-bad]="r.bugs.total! > 0"
-              >
-                {{ r.bugs.total }}
-              </div>
-              <div class="card-sub">{{ r.bugs.total === 0 ? 'No bugs found' : 'bugs found' }}</div>
-            } @else {
-              <div class="card-value card-na">N/A</div>
-              <div class="card-hint">No SpotBugs report</div>
-            }
-          </div>
-
-          <!-- Build card -->
-          <div class="summary-card">
-            <div class="card-label">Build</div>
-            @if (r.build.available) {
-              <div class="card-value build-version">{{ r.build.version }}</div>
-              <div class="card-sub">{{ r.build.artifact }}</div>
-              <div class="card-hint">{{ r.build.time }}</div>
-            } @else {
-              <div class="card-value card-na">N/A</div>
-              <div class="card-hint">No build info</div>
-            }
-          </div>
-        </div>
-      }
-      <!-- end overview tab -->
-
       @if (selectedTab() === 'tests') {
         <!-- ================================================================== -->
         <!-- TESTS SECTION -->

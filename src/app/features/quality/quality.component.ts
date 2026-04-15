@@ -224,7 +224,7 @@ export class QualityComponent implements OnInit, OnDestroy {
   report = signal<QualityReport | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
-  selectedTab = signal<string>('overview');
+  selectedTab = signal<string>('tests');
   mavenSiteAvailable = signal(false);
 
   // Polls every 10s until the nginx server responds — cleared once available or on destroy.
