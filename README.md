@@ -1,6 +1,6 @@
-# Customer Observability UI
+![Mirador UI](public/banner.svg)
 
-> Angular 21 frontend for the [`mirador-service`](../workspace-modern/mirador-service) Spring Boot backend.
+> Angular 21 frontend for the [`mirador-service`](https://gitlab.com/mirador1/mirador-service) Spring Boot backend.
 > Provides full observability, management, diagnostics, chaos testing, and advanced visualizations — all from the browser.
 
 ---
