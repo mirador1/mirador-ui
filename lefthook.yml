@@ -1,0 +1,17 @@
+# lefthook.yml — Git hooks for customer-observability-ui
+# Run `npx lefthook install` once to register the hooks.
+# Docs: https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: false
+  commands:
+    prettier:
+      glob: "src/**/*.{ts,html,scss,json}"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  commands:
+    checks:
+      run: bash scripts/pre-push-checks.sh --standard

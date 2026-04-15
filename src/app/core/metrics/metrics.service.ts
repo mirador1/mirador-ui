@@ -17,18 +17,34 @@ import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { EnvService } from '../env/env.service';
 
-/** Single polling sample with timestamp, cumulative total, and computed RPS */
+/**
+ * A single data point collected during Prometheus polling.
+ * Stored in the `samples` signal array (capped at 40 entries = ~2 minutes of data).
+ */
 export interface MetricsSample {
+  /** Wall-clock time when this sample was collected. */
   time: Date;
+  /** Cumulative total HTTP request count across all URIs at this sample time. */
   requestsTotal: number;
+  /**
+   * Requests per second computed as the delta in `requestsTotal` since the previous sample
+   * divided by the 3-second polling interval.
+   */
   rps: number;
 }
 
-/** Parsed metrics extracted from Prometheus text exposition format */
+/**
+ * Structured metrics derived from a single Prometheus text scrape.
+ * Used by the Dashboard stats cards and the Metrics page.
+ */
 export interface ParsedMetrics {
+  /** Total cumulative HTTP request count (sum across all URIs, methods, and statuses). */
   httpRequestsTotal: number;
+  /** Median HTTP response latency in milliseconds, computed from histogram buckets. */
   httpLatencyP50: number;
+  /** 95th percentile HTTP response latency in milliseconds. */
   httpLatencyP95: number;
+  /** 99th percentile HTTP response latency in milliseconds. */
   httpLatencyP99: number;
 }
 
@@ -37,10 +53,26 @@ export class MetricsService {
   private readonly http = inject(HttpClient);
   private readonly env = inject(EnvService);
 
+  /**
+   * Signal array of the last 40 polling samples (~2 minutes of throughput history).
+   * The Dashboard live throughput chart renders these as a bar chart.
+   * Because this is a singleton service, the array accumulates across page navigations.
+   */
   readonly samples = signal<MetricsSample[]>([]);
+
+  /**
+   * Signal: true when the polling interval is active.
+   * Used by the Dashboard to render start/stop toggle state.
+   */
   readonly running = signal(false);
+
+  /** Handle for the `setInterval` polling timer. Null when polling is stopped. */
   private _timer: ReturnType<typeof setInterval> | null = null;
 
+  /**
+   * Start Prometheus polling every 3 seconds.
+   * No-op if already running. Immediately fires one poll before the first interval fires.
+   */
   start(): void {
     if (this.running()) return;
     this.running.set(true);
@@ -48,6 +80,10 @@ export class MetricsService {
     this._timer = setInterval(() => this.poll(), 3000);
   }
 
+  /**
+   * Stop the polling interval and clear the timer.
+   * Does not clear the `samples` array — history remains visible after stopping.
+   */
   stop(): void {
     this.running.set(false);
     if (this._timer) {
@@ -56,6 +92,10 @@ export class MetricsService {
     }
   }
 
+  /**
+   * Toggle polling on/off.
+   * Called by the Dashboard "Start/Stop Chart" button.
+   */
   toggle(): void {
     if (this.running()) this.stop();
     else this.start();

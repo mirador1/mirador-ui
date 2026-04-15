@@ -20,41 +20,115 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { forkJoin, catchError, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { EnvService } from '../../core/env/env.service';
 
-/** A single line in a JSON diff view */
-interface DiffLine {
-  type: 'same' | 'add' | 'remove';
-  text: string;
+/**
+ * A ShedLock scheduled job entry from `GET /scheduled/jobs`.
+ * Shows which jobs are currently locked (i.e., running on another node).
+ */
+interface ScheduledJob {
+  /** Spring `@Scheduled` method name used as the ShedLock name. */
+  name: string;
+  /** ISO-8601 timestamp until which the lock is held. Null when unlocked. */
+  lockUntil: string | null;
+  /** ISO-8601 timestamp when the lock was acquired. */
+  lockedAt: string | null;
+  /** Hostname of the node that acquired the lock. */
+  lockedBy: string | null;
 }
 
-/** Per-second throughput sample during a stress test */
-interface StressSample {
-  second: number;
-  ok: number;
-  err: number;
-}
-
-/** Terminal-style log line with type-based coloring */
-interface LogLine {
-  kind: 'req' | 'res' | 'err' | 'info';
-  text: string;
-}
-
-/** Persisted record of a completed diagnostic run */
-interface RunRecord {
-  scenario: string;
-  timestamp: Date;
-  logs: LogLine[];
+/**
+ * A single HTTP request in the waterfall visualization.
+ * Timings are relative to the first request's start so bars can be positioned on the same timeline.
+ */
+interface WaterfallEntry {
+  /** HTTP method (e.g., `'GET'`, `'POST'`). */
+  method: string;
+  /** Request URI path. */
+  uri: string;
+  /** HTTP response status code. */
+  status: number;
+  /** Start time offset in milliseconds from the waterfall reference point. */
+  startMs: number;
+  /** Duration of the request in milliseconds. */
   durationMs: number;
 }
 
-/** Current time as HH:MM:SS.mmm for log prefixing */
+/**
+ * One flow in the Sankey diagram: an endpoint path leading to an HTTP status.
+ * Flows are built from Prometheus `http_server_requests_seconds_count` counters.
+ */
+interface SankeyFlow {
+  /** Source node label (e.g., `'/customers'`). */
+  from: string;
+  /** Destination node label (e.g., `'200'`, `'429'`). */
+  to: string;
+  /** Request count for this endpoint/status combination. */
+  value: number;
+  /** CSS color string for the flow ribbon — derived from the HTTP status family. */
+  color: string;
+}
+
+/**
+ * A single line in the JSON version-diff view comparing v1 vs v2 API responses.
+ * Lines are colored green (add), red (remove), or neutral (same).
+ */
+interface DiffLine {
+  /** Diff type: `'same'` = unchanged, `'add'` = in v2 only, `'remove'` = in v1 only. */
+  type: 'same' | 'add' | 'remove';
+  /** The formatted JSON text for this line (indented). */
+  text: string;
+}
+
+/**
+ * Per-second throughput sample collected during a stress test run.
+ * Used to render the live SVG bar chart in the stress test section.
+ */
+interface StressSample {
+  /** Second number within the stress test (1-based). */
+  second: number;
+  /** Number of 2xx responses received in this second. */
+  ok: number;
+  /** Number of non-2xx or error responses in this second. */
+  err: number;
+}
+
+/**
+ * A single line in the terminal-style diagnostic output panel.
+ * Kind determines the color: req=blue, res=green, err=red, info=gray.
+ */
+interface LogLine {
+  /** Log line type used for CSS class selection in the template. */
+  kind: 'req' | 'res' | 'err' | 'info';
+  /** Text content of the log line, including the `[HH:MM:SS.mmm]` timestamp prefix. */
+  text: string;
+}
+
+/**
+ * A persisted record of a completed diagnostic scenario run.
+ * Kept in the in-memory history list (last 50 entries) and exportable as JSON.
+ */
+interface RunRecord {
+  /** Human-readable scenario name (e.g., `'API Versioning'`). */
+  scenario: string;
+  /** Wall-clock time when the run completed. */
+  timestamp: Date;
+  /** Full log output from the run. */
+  logs: LogLine[];
+  /** Total elapsed time in milliseconds. */
+  durationMs: number;
+}
+
+/**
+ * Format the current time as `HH:MM:SS.mmm` for use as a log line timestamp prefix.
+ *
+ * @returns Current time formatted as `HH:MM:SS.mmm`.
+ */
 function ts(): string {
   return new Date().toISOString().slice(11, 23);
 }
@@ -73,6 +147,8 @@ export class DiagnosticComponent {
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
   private readonly env = inject(EnvService);
+
+  readonly Math = Math;
 
   // ── Run history ────────────────────────────────────────────────────────────
   runHistory = signal<RunRecord[]>([]);
@@ -95,9 +171,15 @@ export class DiagnosticComponent {
       const logs: LogLine[] = [
         ...this.versionLog(),
         { kind: 'req', text: `[${ts()}] GET /customers  X-API-Version: 1.0` },
-        { kind: 'res', text: `v1 content[0]: ${JSON.stringify((v1 as any).content?.[0])}` },
+        {
+          kind: 'res',
+          text: `v1 content[0]: ${JSON.stringify((v1 as { content?: unknown[] }).content?.[0])}`,
+        },
         { kind: 'req', text: `[${ts()}] GET /customers  X-API-Version: 2.0` },
-        { kind: 'res', text: `v2 content[0]: ${JSON.stringify((v2 as any).content?.[0])}` },
+        {
+          kind: 'res',
+          text: `v2 content[0]: ${JSON.stringify((v2 as { content?: unknown[] }).content?.[0])}`,
+        },
         { kind: 'info', text: 'v2 adds "createdAt" field — controlled by X-API-Version header.' },
       ];
       this.versionLog.set(logs);
@@ -193,7 +275,7 @@ export class DiagnosticComponent {
 
     forkJoin(requests).subscribe((results) => {
       const lines: LogLine[] = results.map((r, i) => {
-        const err = (r as any).__error;
+        const err = (r as { __error?: number }).__error;
         if (err === 429) {
           return {
             kind: 'err' as const,
@@ -335,8 +417,8 @@ export class DiagnosticComponent {
       v1: this.api.getCustomers(0, 1, '1.0').pipe(catchError((e) => of({ error: e.status }))),
       v2: this.api.getCustomers(0, 1, '2.0').pipe(catchError((e) => of({ error: e.status }))),
     }).subscribe(({ v1, v2 }) => {
-      const c1 = (v1 as any).content?.[0] ?? v1;
-      const c2 = (v2 as any).content?.[0] ?? v2;
+      const c1 = (v1 as { content?: unknown[] }).content?.[0] ?? v1;
+      const c2 = (v2 as { content?: unknown[] }).content?.[0] ?? v2;
       this.computeDiff(c1, c2);
       this.versionRunning.set(false);
     });
@@ -500,5 +582,130 @@ export class DiagnosticComponent {
     a.download = `diagnostic-runs-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Scheduled Jobs ─────────────────────────────────────────────────────────
+  scheduledJobs = signal<ScheduledJob[]>([]);
+  scheduledJobsLoading = signal(false);
+  scheduledJobsError = signal('');
+
+  loadScheduledJobs(): void {
+    this.scheduledJobsLoading.set(true);
+    this.scheduledJobsError.set('');
+    const base = this.env.baseUrl();
+    const token = this.auth.token();
+    const headers = new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
+    this.http.get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers }).subscribe({
+      next: (jobs) => {
+        this.scheduledJobs.set(jobs);
+        this.scheduledJobsLoading.set(false);
+      },
+      error: (e) => {
+        this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
+        this.scheduledJobsLoading.set(false);
+      },
+    });
+  }
+
+  isJobActive(job: ScheduledJob): boolean {
+    if (!job.lockUntil) return false;
+    return new Date(job.lockUntil) > new Date();
+  }
+
+  // ── Waterfall ─────────────────────────────────────────────────────────────
+  waterfallEntries = signal<WaterfallEntry[]>([]);
+  waterfallRunning = signal(false);
+
+  async runWaterfall(): Promise<void> {
+    this.waterfallRunning.set(true);
+    this.waterfallEntries.set([]);
+    const base = this.env.baseUrl();
+    const endpoints = [
+      { method: 'GET', uri: '/actuator/health' },
+      { method: 'GET', uri: '/customers?page=0&size=5' },
+      { method: 'GET', uri: '/customers/summary?page=0&size=5' },
+      { method: 'GET', uri: '/customers/recent' },
+      { method: 'GET', uri: '/actuator/info' },
+      { method: 'GET', uri: '/customers/aggregate' },
+    ];
+    const globalStart = performance.now();
+
+    const promises = endpoints.map(async (ep) => {
+      const start = performance.now() - globalStart;
+      try {
+        const t0 = performance.now();
+        await this.http.get(`${base}${ep.uri}`).toPromise();
+        return {
+          method: ep.method,
+          uri: ep.uri,
+          status: 200,
+          startMs: start,
+          durationMs: performance.now() - t0,
+        };
+      } catch (e) {
+        return {
+          method: ep.method,
+          uri: ep.uri,
+          status: (e as { status?: number })?.status ?? 0,
+          startMs: start,
+          durationMs: performance.now() - globalStart - start,
+        };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    this.waterfallEntries.set(results);
+    this.waterfallRunning.set(false);
+  }
+
+  waterfallMaxMs(): number {
+    const entries = this.waterfallEntries();
+    return Math.max(1, ...entries.map((e) => e.startMs + e.durationMs));
+  }
+
+  // ── Sankey ────────────────────────────────────────────────────────────────
+  sankeyFlows = signal<SankeyFlow[]>([]);
+
+  fetchSankeyData(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: (text) => {
+        const flows: SankeyFlow[] = [];
+        const regex =
+          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        let m;
+        const byEndpoint: Record<string, Record<string, number>> = {};
+        while ((m = regex.exec(text)) !== null) {
+          const uri = m[3];
+          const status = m[2][0] + 'xx';
+          const count = parseFloat(m[4]);
+          if (!byEndpoint[uri]) byEndpoint[uri] = {};
+          byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
+        }
+        const colors: Record<string, string> = {
+          '2xx': '#4ade80',
+          '3xx': '#60a5fa',
+          '4xx': '#fbbf24',
+          '5xx': '#f87171',
+        };
+        for (const [uri, statuses] of Object.entries(byEndpoint)) {
+          for (const [status, count] of Object.entries(statuses)) {
+            if (count > 0) {
+              flows.push({
+                from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
+                to: status,
+                value: count,
+                color: colors[status] || '#94a3b8',
+              });
+            }
+          }
+        }
+        flows.sort((a, b) => b.value - a.value);
+        this.sankeyFlows.set(flows.slice(0, 20));
+      },
+    });
+  }
+
+  sankeyMaxValue(): number {
+    return Math.max(1, ...this.sankeyFlows().map((f) => f.value));
   }
 }

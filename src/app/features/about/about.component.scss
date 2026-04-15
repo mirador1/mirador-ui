@@ -1,3 +1,39 @@
+// ── Tab navigation ──────────────────────────────────────────────────────────
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  margin-bottom: -1px;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+  }
+
+  &.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+    font-weight: 600;
+  }
+}
+
 h2 {
   margin: 0 0 0.25rem;
 }
@@ -42,6 +78,51 @@ h4 {
   margin-bottom: 0;
 }
 
+// ── Hero card (About overview) ────────────────────────────────────────────────
+.hero-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+}
+
+.hero-illustration {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 600px) {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.hero-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-text {
+  flex: 1;
+
+  h3 {
+    margin-top: 0;
+  }
+}
+
+.hero-tagline {
+  font-size: 0.82rem;
+  color: var(--color-accent);
+  opacity: 0.85;
+  margin-top: 0.5rem;
+}
+
 .about-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -76,32 +157,187 @@ h4 {
   margin-top: 0.1rem;
 }
 
-.shortcuts-table {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-}
-
-.shortcut-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
-
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
   code {
     background: var(--bg-code);
-    padding: 0.15em 0.4em;
+    padding: 0.1em 0.35em;
     border-radius: 3px;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-family: monospace;
-    min-width: 70px;
-    text-align: center;
   }
-  span {
-    color: var(--text-secondary);
+}
+
+// ── Port Map ────────────────────────────────────────────────────────────────
+.port-group {
+  margin-bottom: 0.75rem;
+}
+
+.port-cat-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.port-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.port-row {
+  display: grid;
+  grid-template-columns: 60px 160px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  &:hover {
+    background: var(--bg-card-hover);
   }
+}
+
+.port-num {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  background: var(--bg-code);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  text-align: right;
+}
+
+.port-name {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.port-note {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.port-auth {
+  margin-top: 0.5rem;
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: monospace;
+  }
+}
+
+// ── run.sh Commands ─────────────────────────────────────────────────────────
+.run-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.run-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.run-cmd {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #86efac;
+  background: var(--bg-terminal);
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.run-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+// ── Technologies table ───────────────────────────────────────────────────────
+.tech-card {
+  overflow-x: auto;
+}
+
+.tech-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+
+  thead tr {
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-default);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: var(--bg-card-hover);
+    }
+  }
+
+  td {
+    padding: 0.45rem 0.6rem;
+    vertical-align: top;
+    line-height: 1.45;
+  }
+}
+
+.tech-col-name {
+  width: 140px;
+}
+.tech-col-desc {
+  width: 35%;
+}
+.tech-col-usage {
+  // fills remainder
+}
+
+.tech-name {
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+.tech-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+.tech-desc {
+  color: var(--text-secondary);
+}
+.tech-usage {
+  color: var(--text-secondary);
 }
 
 .quickstart-code {
@@ -115,4 +351,299 @@ h4 {
   white-space: pre;
   line-height: 1.5;
   margin: 0;
+}
+
+// ── Architecture overview table ───────────────────────────────────────────────
+.arch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+  th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 2px solid var(--border-default);
+    color: var(--text-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: top;
+  }
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+}
+.arch-col-layer {
+  width: 14%;
+}
+.arch-col-role {
+  width: 32%;
+}
+.arch-col-tech {
+  width: 54%;
+}
+.arch-layer {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.arch-role {
+  color: var(--text-secondary);
+}
+.arch-tech {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+// ── Architecture diagram ──────────────────────────────────────────────────────
+.arch-diagram {
+  display: block;
+  margin-top: 1rem;
+  border-radius: 8px;
+  background: var(--bg-terminal);
+  overflow: hidden;
+}
+
+// ── Stack links ───────────────────────────────────────────────────────────────
+.stack-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ── Port links ────────────────────────────────────────────────────────────────
+.port-link {
+  display: contents;
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover code,
+  &:hover strong {
+    text-decoration: underline;
+  }
+}
+
+// ── Compatibility / shared detail table ──────────────────────────────────────
+.compat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-top: 0.5rem;
+
+  thead tr {
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-default);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: var(--bg-card-hover);
+    }
+  }
+
+  td {
+    padding: 0.45rem 0.6rem;
+    vertical-align: top;
+    line-height: 1.45;
+    color: var(--text-secondary);
+
+    strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 0.1rem;
+    }
+
+    code {
+      background: var(--bg-code);
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--color-accent);
+    }
+  }
+}
+
+// ── Resilience grid (wider items) ────────────────────────────────────────────
+.resilience-grid {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+
+.resilience-item span {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+// ── Messaging pipeline steps ─────────────────────────────────────────────────
+.pipeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.pipeline-step {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+
+  strong {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    display: block;
+  }
+
+  span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+}
+
+.pipeline-num {
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+
+// ── Kubernetes deploy tab ──────────────────────────────────────────────────
+.deploy-card {
+  h3 {
+    margin: 1.5rem 0 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+}
+
+// Ordered checklist used in the Google Cloud deployment tab
+ol.checklist {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  padding-left: 1.4rem;
+  margin-bottom: 1.5rem;
+
+  li {
+    margin-bottom: 0.3rem;
+
+    code {
+      font-size: 0.78rem;
+      background: var(--bg-elevated);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      color: var(--color-accent);
+    }
+  }
+}
+
+.k8s-diagram {
+  width: 100%;
+  max-width: 780px;
+  height: auto;
+  margin: 1rem 0 1.5rem;
+  display: block;
+}
+
+.deploy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 1.5rem;
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  tr:first-child td {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  code {
+    font-size: 0.78rem;
+    background: var(--bg-elevated);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    color: var(--color-accent);
+  }
+}
+
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+
+  pre {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+}
+
+// ── Tech stack badge banner ──────────────────────────────────────────────────
+.tech-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  align-items: center;
+
+  img {
+    height: 20px;
+    border-radius: 3px;
+  }
 }

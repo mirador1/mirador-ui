@@ -3,6 +3,8 @@ stages:
   - test
   - build
   - quality
+  - docker    # Build + push Docker image (main branch + tags only)
+  - deploy    # Deploy to Kubernetes / PaaS (6 targets — see bottom of file)
 
 variables:
   NODE_VERSION: "22"
@@ -74,9 +76,9 @@ build:production:
       echo "$BUILD_OUT" > dist/build-warnings.txt
     - |
       echo "── Bundle analysis ──"
-      du -sh dist/customer-observability-ui/browser/*.js 2>/dev/null | sort -rh | head -10
+      du -sh dist/mirador-ui/browser/*.js 2>/dev/null | sort -rh | head -10 || true
       echo ""
-      TOTAL=$(du -sh dist/customer-observability-ui/browser/ 2>/dev/null | cut -f1)
+      TOTAL=$(du -sh dist/mirador-ui/browser/ 2>/dev/null | cut -f1 || echo "n/a")
       echo "Total bundle size: $TOTAL"
   artifacts:
     paths:
@@ -109,7 +111,7 @@ bundle-size-check:
   script:
     - |
       MAX_SIZE_KB=500
-      MAIN_JS=$(ls dist/customer-observability-ui/browser/main-*.js 2>/dev/null | head -1)
+      MAIN_JS=$(ls dist/mirador-ui/browser/main-*.js 2>/dev/null | head -1)
       if [ -z "$MAIN_JS" ]; then
         echo "WARN: No main-*.js found in dist, skipping bundle size check"
         exit 0
@@ -146,15 +148,16 @@ security:audit:
 
 # ── SonarQube ───────────────────────────────────────────────────────────────
 # Static code analysis: code smells, bugs, vulnerabilities, duplications,
-# cognitive complexity, and test coverage.
+# cognitive complexity for the Angular/TypeScript frontend.
 #
 # Prerequisites:
-#   1. A SonarQube server reachable from the CI runner (SONAR_HOST_URL)
-#   2. A project token (SONAR_TOKEN) stored in GitLab CI/CD variables
-#   3. The project must be created in SonarQube (key: customer-observability-ui)
+#   1. SONAR_HOST_URL CI variable pointing to the SonarQube server
+#   2. SONAR_TOKEN CI variable (generate at http://localhost:9000/account/security)
+#   Both variables are defined in the backend repo (mirador-service) and shared
+#   at the group level so this job picks them up automatically.
 #
-# The sonar-scanner CLI analyses TypeScript, HTML, and SCSS files.
-# Test coverage from Vitest is uploaded if the coverage report exists.
+# Project config is in sonar-project.properties at the repo root.
+# Run locally: npm run sonar (with SONAR_TOKEN set in env)
 sonarqube:
   stage: quality
   image:
@@ -163,25 +166,228 @@ sonarqube:
   needs: ["unit-tests", "build:production"]
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-    GIT_DEPTH: "0"    # full clone for blame info
+    GIT_DEPTH: "0"    # full clone for accurate blame information
   cache:
     key: sonar-${CI_COMMIT_REF_SLUG}
     paths:
       - .sonar/cache
   script:
-    - |
-      sonar-scanner \
-        -Dsonar.projectKey=customer-observability-ui \
-        -Dsonar.projectName="Customer Observability UI" \
-        -Dsonar.sources=src \
-        -Dsonar.exclusions="**/*.spec.ts,**/node_modules/**,**/dist/**" \
-        -Dsonar.tests=src \
-        -Dsonar.test.inclusions="**/*.spec.ts" \
-        -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
-        -Dsonar.host.url="${SONAR_HOST_URL}" \
-        -Dsonar.token="${SONAR_TOKEN}" \
-        -Dsonar.qualitygate.wait=true
-  allow_failure: true    # Don't block the pipeline if SonarQube is unavailable
+    # sonar-project.properties provides projectKey=mirador-ui and all source config.
+    # Only the server URL and token are injected from CI variables here.
+    - sonar-scanner
+        -Dsonar.host.url="${SONAR_HOST_URL:-http://localhost:9000}"
+        -Dsonar.token="${SONAR_TOKEN}"
+  allow_failure: true    # SonarQube outage must not block deployments
   rules:
+    - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: docker ─────────────────────────────────────────────────────────────
+#
+# Build the Angular Docker image (Nginx + compiled SPA) and push it to the
+# GitLab Container Registry. Runs only on main and version tags — not on MRs
+# to avoid flooding the registry with images that are never deployed.
+#
+# Two tags pushed:
+#   $CI_COMMIT_SHA          — immutable (used by deploy jobs)
+#   $CI_COMMIT_REF_SLUG     — moving pointer (e.g. "main")
+docker-build:
+  stage: docker
+  image: docker:28
+  services:
+    - name: docker:28-dind
+      alias: docker
+  needs:
+    - job: build:production    # Angular bundle must pass before building the image
+      artifacts: false
+    - job: unit-tests
+      artifacts: false
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - |
+      # Pull previous main image to seed the layer cache.
+      # Reuses the node_modules install layer and the Nginx base — saves ~2 min.
+      docker pull "$CI_REGISTRY_IMAGE:main" || true
+    - |
+      docker build \
+        --cache-from "$CI_REGISTRY_IMAGE:main" \
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
+        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
+        .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+
+# ── Stage: deploy ─────────────────────────────────────────────────────────────
+#
+# Six deployment targets — one auto (GKE Autopilot, default) + five manual.
+# Mirrors the backend deploy stage. All targets deploy the image from the
+# GitLab Container Registry built in the docker stage above.
+#
+# Provider         Required variables (same as backend, shared across projects)
+# ──────────────── ─────────────────────────────────────────────────────────────
+# GKE Autopilot ✓  GCP_SA_KEY, GCP_PROJECT, GKE_CLUSTER, GKE_REGION, K8S_HOST
+# AWS EKS          AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, EKS_CLUSTER, K8S_HOST
+# Azure AKS        AZURE_APP_ID, AZURE_PASSWORD, AZURE_TENANT, AKS_RG, AKS_CLUSTER, K8S_HOST
+# Google Cloud Run GCP_SA_KEY, GCP_PROJECT, GCP_REGION
+# Fly.io           FLY_API_TOKEN
+# k3s / bare metal K8S_SERVER, K8S_TOKEN, K8S_CA_CERT, K8S_HOST
+
+# Common kubectl apply fragment — applies the frontend k8s manifests.
+.kubectl-apply-ui:
+  script:
+    - export IMAGE_REGISTRY="$CI_REGISTRY_IMAGE"
+    - export UI_IMAGE_TAG="$CI_COMMIT_SHA"
+    - |
+      kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      # GitLab registry pull secret (idempotent)
+      kubectl create secret docker-registry gitlab-registry \
+        --docker-server="$CI_REGISTRY" \
+        --docker-username="$CI_REGISTRY_USER" \
+        --docker-password="$CI_REGISTRY_PASSWORD" \
+        --namespace=app --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      # Apply frontend manifests — envsubst replaces ${IMAGE_REGISTRY}, ${UI_IMAGE_TAG}
+      for f in k8s/frontend/deployment.yaml k8s/frontend/service.yaml; do
+        [ -f "$f" ] && envsubst < "$f" | kubectl apply -f -
+      done
+    - kubectl rollout status deployment/customer-ui -n app --timeout=120s
+
+# ── GKE Autopilot — DEFAULT production (auto on main) ────────────────────────
+deploy:gke:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  environment:
+    name: production/gke
+    url: "https://$K8S_HOST"
+  script:
+    - echo "$GCP_SA_KEY" | base64 -d > /tmp/sa.json
+    - gcloud auth activate-service-account --key-file=/tmp/sa.json
+    - gcloud container clusters get-credentials "$GKE_CLUSTER"
+        --region "$GKE_REGION" --project "$GCP_PROJECT"
+    - !reference [.kubectl-apply-ui, script]
+
+# ── AWS EKS — manual ──────────────────────────────────────────────────────────
+deploy:eks:
+  stage: deploy
+  image: alpine/k8s:1.30.2
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/eks
+    url: "https://$K8S_HOST"
+  script:
+    - aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+    - !reference [.kubectl-apply-ui, script]
+
+# ── Azure AKS — manual ────────────────────────────────────────────────────────
+deploy:aks:
+  stage: deploy
+  image: mcr.microsoft.com/azure-cli:latest
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/aks
+    url: "https://$K8S_HOST"
+  before_script:
+    - az aks install-cli --only-show-errors
+  script:
+    - az login --service-principal -u "$AZURE_APP_ID" -p "$AZURE_PASSWORD"
+        --tenant "$AZURE_TENANT" --output none
+    - az aks get-credentials --resource-group "$AKS_RG" --name "$AKS_CLUSTER"
+    - !reference [.kubectl-apply-ui, script]
+
+# ── Google Cloud Run — manual ─────────────────────────────────────────────────
+# Serves the pre-built Nginx image on Cloud Run. No k8s needed.
+# Note: Cloud Run serves port 80 from the container directly.
+deploy:cloud-run:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/cloud-run
+  script:
+    - echo "$GCP_SA_KEY" | base64 -d > /tmp/sa.json
+    - gcloud auth activate-service-account --key-file=/tmp/sa.json
+    - gcloud config set project "$GCP_PROJECT"
+    - |
+      gcloud run deploy customer-ui \
+        --image "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+        --region "${GCP_REGION:-europe-west1}" \
+        --platform managed \
+        --allow-unauthenticated \
+        --port 80 \
+        --cpu 1 --memory 256Mi \
+        --quiet
+
+# ── Fly.io — manual ───────────────────────────────────────────────────────────
+deploy:fly:
+  stage: deploy
+  image: flyio/flyctl:latest
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/fly
+  script:
+    - flyctl auth token "$FLY_API_TOKEN"
+    - flyctl deploy --image "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" --remote-only
+
+# ── k3s / self-hosted — manual ─────────────────────────────────────────────────
+deploy:k3s:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/k3s
+    url: "https://$K8S_HOST"
+  script:
+    - |
+      kubectl config set-cluster self-hosted \
+        --server="$K8S_SERVER" \
+        --certificate-authority=<(echo "$K8S_CA_CERT" | base64 -d)
+      kubectl config set-credentials ci-runner --token="$K8S_TOKEN"
+      kubectl config set-context default --cluster=self-hosted --user=ci-runner
+      kubectl config use-context default
+    - !reference [.kubectl-apply-ui, script]

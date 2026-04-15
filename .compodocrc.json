@@ -1,0 +1,9 @@
+{
+  "tsconfig": "./tsconfig.app.json",
+  "output": "docs/compodoc",
+  "theme": "material",
+  "hideGenerator": true,
+  "disableCoverage": false,
+  "disableGraph": false,
+  "name": "Mirador UI — Angular Reference"
+}

@@ -27,33 +27,44 @@
   gap: 0.75rem;
 }
 
+// Sidebar toggle — ☰ (expand) / ‹ (collapse)
 .sidebar-toggle {
   background: transparent;
   border: 1px solid #4a6a8a;
   border-radius: 4px;
   color: #93b4d8;
-  font-size: 1rem;
-  padding: 0.2rem 0.5rem;
+  font-size: 1.1rem;
+  padding: 0.15rem 0.45rem;
   cursor: pointer;
   line-height: 1;
+  flex-shrink: 0;
   &:hover {
     background: #15294a;
     color: white;
   }
 }
 
+// ⌘K shortcut button
 .search-btn {
   background: transparent;
   border: 1px solid #4a6a8a;
   border-radius: 4px;
   padding: 0.2rem 0.5rem;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  font-family: monospace;
   color: #93b4d8;
+  letter-spacing: 0.02em;
   &:hover {
     background: #15294a;
     color: white;
   }
+}
+
+.topbar-logo {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
 }
 
 .topbar h1 {
@@ -167,6 +178,14 @@
   &:hover {
     background: var(--bg-card-hover);
     color: var(--text-primary);
+  }
+}
+
+.nav-child-link {
+  cursor: pointer;
+  &.active {
+    color: var(--color-accent);
+    background: var(--bg-card-hover);
   }
 }
 

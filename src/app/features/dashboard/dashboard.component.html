@@ -1,18 +1,104 @@
 <section>
   <div class="page-header">
-    <div>
-      <h2>
-        Dashboard
-        <app-info-tip
-          title="Dashboard"
-          text="Real-time backend overview. Metrics come from /actuator/prometheus (Micrometer) and /actuator/health (Spring Boot Actuator)."
-          command="curl http://localhost:8080/actuator/health"
-          source="/actuator/health, /actuator/prometheus"
+    <div class="page-header-left">
+      <!-- Mirador logo -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 120 120"
+        class="mirador-logo"
+        aria-label="Mirador"
+      >
+        <defs>
+          <radialGradient id="dbsky" cx="50%" cy="60%" r="60%">
+            <stop offset="0%" stop-color="#1e3a5f" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#1e3a5f" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <circle
+          cx="60"
+          cy="60"
+          r="55"
+          fill="url(#dbsky)"
+          stroke="var(--color-accent)"
+          stroke-width="0.5"
+          opacity="0.3"
         />
-      </h2>
-      <p class="subtitle">
-        Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})
-      </p>
+        <rect
+          x="50"
+          y="65"
+          width="20"
+          height="38"
+          rx="2"
+          fill="var(--color-accent)"
+          opacity="0.8"
+        />
+        <rect x="44" y="58" width="32" height="7" rx="2" fill="var(--color-accent)" />
+        <rect x="44" y="53" width="6" height="5" rx="1" fill="var(--color-accent)" />
+        <rect x="53" y="53" width="6" height="5" rx="1" fill="var(--color-accent)" />
+        <rect x="62" y="53" width="6" height="5" rx="1" fill="var(--color-accent)" />
+        <rect x="71" y="53" width="5" height="5" rx="1" fill="var(--color-accent)" />
+        <ellipse
+          cx="60"
+          cy="75"
+          rx="5"
+          ry="4"
+          fill="var(--bg-main)"
+          stroke="var(--color-accent)"
+          stroke-width="1"
+        />
+        <circle cx="60" cy="75" r="2" fill="#60a5fa" opacity="0.8" />
+        <circle cx="55" cy="61" r="2.5" fill="none" stroke="#93c5fd" stroke-width="1.2" />
+        <circle cx="65" cy="61" r="2.5" fill="none" stroke="#93c5fd" stroke-width="1.2" />
+        <rect x="57" y="60.5" width="6" height="1" fill="#93c5fd" />
+        <path
+          d="M 82 45 A 12 12 0 0 1 94 57"
+          stroke="#34d399"
+          stroke-width="1.2"
+          fill="none"
+          opacity="0.7"
+        />
+        <path
+          d="M 82 38 A 19 19 0 0 1 101 57"
+          stroke="#34d399"
+          stroke-width="1"
+          fill="none"
+          opacity="0.5"
+        />
+        <path
+          d="M 82 31 A 26 26 0 0 1 108 57"
+          stroke="#34d399"
+          stroke-width="0.8"
+          fill="none"
+          opacity="0.3"
+        />
+        <circle cx="86" cy="48" r="2" fill="#34d399" opacity="0.9" />
+        <circle cx="25" cy="30" r="1" fill="#60a5fa" opacity="0.7" />
+        <circle cx="35" cy="22" r="1.5" fill="#60a5fa" opacity="0.5" />
+        <circle cx="15" cy="45" r="1" fill="#34d399" opacity="0.6" />
+        <rect
+          x="30"
+          y="103"
+          width="60"
+          height="3"
+          rx="1.5"
+          fill="var(--color-accent)"
+          opacity="0.3"
+        />
+      </svg>
+      <div>
+        <h2>
+          Dashboard
+          <app-info-tip
+            title="Dashboard"
+            text="Real-time backend overview. Metrics come from /actuator/prometheus (Micrometer) and /actuator/health (Spring Boot Actuator)."
+            command="curl http://localhost:8080/actuator/health"
+            source="/actuator/health, /actuator/prometheus"
+          />
+        </h2>
+        <p class="subtitle">
+          Backend health overview — <strong>{{ env.current().name }}</strong> ({{ env.baseUrl() }})
+        </p>
+      </div>
     </div>
     <div class="header-actions">
       <div class="auto-refresh">
@@ -44,15 +130,14 @@
   <!-- Stats cards -->
   <div class="stats-grid">
     <article class="stat-card">
-      <span class="stat-value">{{ customerCount() ?? '—' }}</span>
-      <span class="stat-label"
-        >Total Customers
+      <div class="stat-label-row">
+        <span class="stat-label">Total Customers</span>
         <app-info-tip
-          text="Total customers in database. Fetched via GET /customers?page=0&size=1, reading the totalElements field from the paginated response."
-          command="GET /customers?page=0&size=1"
-          source="Page.totalElements"
+          text="GET /customers — totalElements field from paginated response."
+          source="/customers?page=0&size=1"
         />
-      </span>
+      </div>
+      <span class="stat-value">{{ customerCount() ?? '—' }}</span>
       <div class="stat-links">
         <a routerLink="/customers">📋 Customers</a>
         <a href="http://localhost:5050" target="_blank" rel="noopener">🐘 pgAdmin</a>
@@ -60,15 +145,14 @@
     </article>
     @if (metrics()) {
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
-        <span class="stat-label"
-          >HTTP Requests (total)
+        <div class="stat-label-row">
+          <span class="stat-label">HTTP Requests (total)</span>
           <app-info-tip
-            text="Cumulative counter of all HTTP requests handled by the backend since startup. Micrometer metric exposed via Prometheus."
-            command="http_server_requests_seconds_count"
-            source="/actuator/prometheus"
+            text="Cumulative counter since startup."
+            source="http_server_requests_seconds_count"
           />
-        </span>
+        </div>
+        <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -80,15 +164,14 @@
         </div>
       </article>
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
-        <span class="stat-label"
-          >Latency p50
+        <div class="stat-label-row">
+          <span class="stat-label">Latency p50</span>
           <app-info-tip
-            text="Median response time: 50% of requests are faster than this. Micrometer quantile computed over a sliding window. Changes slowly — generate traffic to see it move."
-            command='http_server_requests_seconds{quantile="0.5"}'
-            source="/actuator/prometheus"
+            text="Median — 50% of requests are faster than this value. Computed from a sliding window quantile."
+            source='http_server_requests_seconds{quantile="0.5"}'
           />
-        </span>
+        </div>
+        <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -100,15 +183,14 @@
         </div>
       </article>
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
-        <span class="stat-label"
-          >Latency p95
+        <div class="stat-label-row">
+          <span class="stat-label">Latency p95</span>
           <app-info-tip
-            text="95th percentile: only 5% of requests are slower than this value. Key indicator for SLOs."
-            command='http_server_requests_seconds{quantile="0.95"}'
-            source="/actuator/prometheus"
+            text="95th percentile — only 5% of requests are slower. Key indicator for SLOs."
+            source='http_server_requests_seconds{quantile="0.95"}'
           />
-        </span>
+        </div>
+        <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -120,15 +202,14 @@
         </div>
       </article>
       <article class="stat-card">
-        <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
-        <span class="stat-label"
-          >Latency p99
+        <div class="stat-label-row">
+          <span class="stat-label">Latency p99</span>
           <app-info-tip
-            text="99th percentile: the worst 1% of requests. Useful for detecting outliers (Kafka timeouts, Ollama cold starts, etc.)."
-            command='http_server_requests_seconds{quantile="0.99"}'
-            source="/actuator/prometheus"
+            text="Worst 1% of requests — detects outliers like Kafka timeouts or Ollama cold starts."
+            source='http_server_requests_seconds{quantile="0.99"}'
           />
-        </span>
+        </div>
+        <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
         <div class="stat-links">
           <a href="http://localhost:3000" target="_blank" rel="noopener">📊 Grafana</a>
           <a
@@ -252,22 +333,38 @@
   @if (healthHistory().length > 1) {
     <div class="sparkline-container">
       <span class="sparkline-label">Health history ({{ healthHistory().length }} checks)</span>
-      <svg viewBox="0 0 200 30" class="sparkline">
-        <path
-          [attr.d]="sparklinePath()"
-          fill="none"
-          stroke="var(--color-accent)"
-          stroke-width="2"
-        />
-        @for (snap of healthHistory(); track $index; let i = $index) {
-          <circle
-            [attr.cx]="i * (200 / (healthHistory().length - 1))"
-            [attr.cy]="snap.health === 'UP' ? 5 : 25"
-            r="3"
-            [attr.fill]="snap.health === 'UP' ? '#4ade80' : '#f87171'"
+      <div class="sparkline-wrapper">
+        <svg viewBox="0 0 200 30" class="sparkline" preserveAspectRatio="none">
+          <!-- fill area under the line -->
+          <path [attr.d]="sparklineAreaPath()" fill="var(--color-accent)" opacity="0.15" />
+          <!-- line -->
+          <path
+            [attr.d]="sparklinePath()"
+            fill="none"
+            stroke="var(--color-accent)"
+            stroke-width="1.5"
+            vector-effect="non-scaling-stroke"
           />
+        </svg>
+        <!-- round dots overlaid as CSS spans so they stay circular (not squished by SVG stretch) -->
+        @for (snap of healthHistory(); track $index; let i = $index) {
+          <span
+            class="sparkline-dot"
+            [class.dot-up]="snap.health === 'UP'"
+            [class.dot-down]="snap.health !== 'UP'"
+            [style.left.%]="
+              healthHistory().length > 1 ? (i / (healthHistory().length - 1)) * 100 : 50
+            "
+            [style.top.%]="snap.health === 'UP' ? 16.7 : 83.3"
+          ></span>
         }
-      </svg>
+      </div>
+      <!-- X-axis time labels (HH:MM) positioned proportionally -->
+      <div class="sparkline-xaxis" aria-hidden="true">
+        @for (lbl of sparklineXLabels(); track lbl.label) {
+          <span class="sparkline-xaxis-label" [style.left.%]="lbl.pct">{{ lbl.label }}</span>
+        }
+      </div>
       <div class="sparkline-legend">
         <span class="legend-up">UP</span>
         <span class="legend-down">DOWN</span>
@@ -365,6 +462,14 @@
     <div class="alert-error">{{ dockerError() }}</div>
   }
 
+  <p class="archi-legend">
+    Status sources vary by service — <strong>API, DB, Redis</strong>: live
+    <code>/actuator/health</code> probe · <strong>most containers</strong>: Docker daemon via
+    <code>localhost:2375</code> · <strong>gitlab.com</strong>: HEAD request ·
+    <strong>Browser, Consumer, Swagger, Actuator</strong>: derived from their parent service.
+    Start/Stop buttons control Docker containers directly.
+  </p>
+
   <div class="archi-columns">
     @for (colLabel of topoColumns; track colLabel; let colIdx = $index) {
       <div class="archi-col">
@@ -401,7 +506,11 @@
                 <span class="archi-conn">→ {{ topoConnections(node.id).to.join(', ') }}</span>
               }
               <div class="archi-footer">
-                <span class="archi-status" [style.color]="topoNodeColor(node.id)">
+                <span
+                  class="archi-status"
+                  [style.color]="topoNodeColor(node.id)"
+                  [title]="topoStatusTooltip(node.id)"
+                >
                   {{
                     topoStatus()[node.id] === 'up'
                       ? 'UP'
@@ -417,6 +526,9 @@
                       [href]="node.url"
                       target="_blank"
                       rel="noopener"
+                      [title]="
+                        'Open ' + node.label + ' in a new browser tab (localhost:' + node.port + ')'
+                      "
                       >Open ↗</a
                     >
                   }
@@ -426,6 +538,13 @@
                         class="docker-btn docker-down"
                         (click)="dockerAction(c.name, 'stop')"
                         [disabled]="isDockerActionLoading(c.name, 'stop')"
+                        [title]="
+                          'Stop the ' +
+                          c.name +
+                          ' Docker container (docker stop ' +
+                          c.name +
+                          '). The service will show as DOWN until restarted.'
+                        "
                       >
                         {{ isDockerActionLoading(c.name, 'stop') ? '...' : '↓ Down' }}
                       </button>
@@ -434,6 +553,13 @@
                         class="docker-btn docker-up"
                         (click)="dockerAction(c.name, 'start')"
                         [disabled]="isDockerActionLoading(c.name, 'start')"
+                        [title]="
+                          'Start the ' +
+                          c.name +
+                          ' Docker container (docker start ' +
+                          c.name +
+                          '). The service will show as UP once healthy.'
+                        "
                       >
                         {{ isDockerActionLoading(c.name, 'start') ? '...' : '↑ Up' }}
                       </button>
