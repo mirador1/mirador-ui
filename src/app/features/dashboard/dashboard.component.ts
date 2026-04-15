@@ -15,6 +15,7 @@ import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
@@ -86,7 +87,7 @@ interface DockerContainer {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent],
+  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -122,6 +123,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   /** Signal: total customer count from the database. Null until first successful API call. */
   customerCount = signal<number | null>(null);
+
+  // ── Code Quality Summary ────────────────────────────────────────────────────
+
+  /**
+   * Minimal quality snapshot fetched once on init from /actuator/quality.
+   * Shows tests/coverage/bugs/sonar at a glance — links to the full /quality page.
+   * Not refreshed on every auto-refresh cycle (quality data only changes after a rebuild).
+   */
+  qualitySummary = signal<{
+    testsTotal: number | null;
+    testsPassed: boolean | null;
+    coveragePct: number | null;
+    bugsTotal: number | null;
+    sonarRating: string | null;
+    sonarUrl: string | null;
+    available: boolean;
+  } | null>(null);
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
 
@@ -171,7 +189,47 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Auto-start Prometheus polling so JVM/latency/throughput sections are immediately
     // populated without requiring the user to click "Start live chart" first.
     this.metricsService.start();
+    this.loadQualitySummary();
     window.addEventListener('app:refresh', this._onRefresh);
+  }
+
+  /**
+   * Fetch the quality summary from /actuator/quality and populate qualitySummary.
+   * Called once on init — quality data only changes after mvn verify + restart.
+   * Gracefully handles unavailable endpoint (backend running without reports).
+   */
+  loadQualitySummary(): void {
+    this.http
+      .get<Record<string, unknown>>(`${this.env.baseUrl()}/actuator/quality`)
+      .pipe(catchError(() => of(null)))
+      .subscribe((data) => {
+        if (!data) {
+          this.qualitySummary.set({
+            available: false,
+            testsTotal: null,
+            testsPassed: null,
+            coveragePct: null,
+            bugsTotal: null,
+            sonarRating: null,
+            sonarUrl: null,
+          });
+          return;
+        }
+        const tests = data['tests'] as Record<string, unknown> | undefined;
+        const cov = data['coverage'] as Record<string, unknown> | undefined;
+        const bugs = data['bugs'] as Record<string, unknown> | undefined;
+        const sonar = data['sonar'] as Record<string, unknown> | undefined;
+        const instr = cov?.['instructions'] as Record<string, unknown> | undefined;
+        this.qualitySummary.set({
+          available: true,
+          testsTotal: (tests?.['total'] as number) ?? null,
+          testsPassed: tests?.['status'] === 'PASSED',
+          coveragePct: (instr?.['pct'] as number) ?? null,
+          bugsTotal: (bugs?.['total'] as number) ?? null,
+          sonarRating: (sonar?.['reliabilityRating'] as string) ?? null,
+          sonarUrl: (sonar?.['url'] as string) ?? null,
+        });
+      });
   }
 
   ngOnDestroy(): void {

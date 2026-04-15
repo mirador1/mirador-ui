@@ -1195,3 +1195,150 @@ pre {
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
+
+// ── Code Quality Summary ──────────────────────────────────────────────────────
+
+.quality-full-link {
+  font-size: 0.8rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.quality-loading,
+.quality-unavailable {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+
+  code {
+    background: var(--bg-input);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+  }
+}
+
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.quality-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: center;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+.quality-icon {
+  font-size: 1.4rem;
+}
+
+.quality-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.quality-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quality-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  margin-top: 0.1rem;
+
+  &.quality-badge-pass {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+  }
+
+  &.quality-badge-fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+
+  &.quality-badge-warn {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+  }
+}
+
+.quality-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-input);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.2rem;
+}
+
+.quality-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+
+  &.quality-bar-low {
+    background: #ef4444;
+  }
+  &.quality-bar-mid {
+    background: #f59e0b;
+  }
+  &.quality-bar-high {
+    background: #4ade80;
+  }
+}
+
+.quality-sonar-rating {
+  // Sonar reliability rating A-E color coding
+  &.rating-a {
+    color: #4ade80;
+  }
+  &.rating-b {
+    color: #a3e635;
+  }
+  &.rating-c {
+    color: #f59e0b;
+  }
+  &.rating-d {
+    color: #f97316;
+  }
+  &.rating-e {
+    color: #ef4444;
+  }
+}
+
+.quality-sonar-link {
+  font-size: 0.65rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  margin-top: 0.1rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
