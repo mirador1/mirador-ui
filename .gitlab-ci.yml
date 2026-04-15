@@ -146,19 +146,18 @@ security:audit:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
-# ── SonarQube ───────────────────────────────────────────────────────────────
-# Static code analysis: code smells, bugs, vulnerabilities, duplications,
-# cognitive complexity for the Angular/TypeScript frontend.
+# ── SonarCloud ───────────────────────────────────────────────────────────────
+# Static code analysis via SonarCloud (SaaS, free for public repos).
+# sonar-project.properties at the repo root sets the org/project key.
 #
-# Prerequisites:
-#   1. SONAR_HOST_URL CI variable pointing to the SonarQube server
-#   2. SONAR_TOKEN CI variable (generate at http://localhost:9000/account/security)
-#   Both variables are defined in the backend repo (mirador-service) and shared
-#   at the group level so this job picks them up automatically.
+# Prerequisites (one-time setup):
+#   1. Create org at https://sonarcloud.io (log in with GitLab)
+#   2. Import the mirador-ui project (auto-detected from GitLab)
+#   3. Generate a token at https://sonarcloud.io/account/security
+#   4. Set SONAR_TOKEN in GitLab group CI/CD variables (mirador1 → Settings → CI/CD)
 #
-# Project config is in sonar-project.properties at the repo root.
-# Run locally: npm run sonar (with SONAR_TOKEN set in env)
-sonarqube:
+# No SONAR_HOST_URL needed — hardcoded to sonarcloud.io.
+sonarcloud:
   stage: quality
   image:
     name: sonarsource/sonar-scanner-cli:11
@@ -166,18 +165,17 @@ sonarqube:
   needs: ["unit-tests", "build:production"]
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-    GIT_DEPTH: "0"    # full clone for accurate blame information
+    GIT_DEPTH: "0"    # full clone for accurate blame/line info
   cache:
     key: sonar-${CI_COMMIT_REF_SLUG}
     paths:
       - .sonar/cache
   script:
-    # sonar-project.properties provides projectKey=mirador-ui and all source config.
-    # Only the server URL and token are injected from CI variables here.
+    # sonar-project.properties provides org/projectKey; token from CI variable.
     - sonar-scanner
-        -Dsonar.host.url="${SONAR_HOST_URL:-http://localhost:9000}"
+        -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
-  allow_failure: true    # SonarQube outage must not block deployments
+  allow_failure: true    # SonarCloud outage must not block deployments
   rules:
     - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
       when: never
