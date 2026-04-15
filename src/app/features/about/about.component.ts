@@ -110,7 +110,7 @@ export class AboutComponent {
       url: 'https://docs.gitlab.com/runner/',
       description: 'Open-source agent that picks up GitLab CI jobs and executes them locally.',
       usage:
-        'Runs via `docker-compose.runner.yml`. Connects to gitlab.com with outbound HTTPS long-polling — no port needs to be opened. Once registered (`./scripts/register-runner.sh <TOKEN>`), every push executes the full pipeline on this machine instead of gitlab.com shared runners, consuming zero CI minutes. Concurrency is auto-configured to (nproc - 1).',
+        'Runs via `docker-compose.runner.yml`. Connects to gitlab.com with outbound HTTPS long-polling — no port needs to be opened. Register with `./run.sh register-cloud <TOKEN>` (token from gitlab.com → Project → Settings → CI/CD → Runners). Every push runs the full pipeline on this machine, consuming zero shared-runner minutes. Concurrency is auto-configured to (nproc - 1).',
     },
     {
       name: 'docker-socket-proxy',

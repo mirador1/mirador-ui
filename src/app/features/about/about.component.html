@@ -1340,9 +1340,9 @@
       </p>
       <div class="code-block">
         <pre>
-docker compose -f docker-compose.runner.yml up -d
-# Get the token: gitlab.com → Project → Settings → CI/CD → Runners → New project runner
-./run.sh register-runner &lt;TOKEN&gt;</pre
+./run.sh runner                    # start the runner container
+./run.sh register-cloud &lt;TOKEN&gt;   # link to gitlab.com project
+# Get the token: gitlab.com → Project → Settings → CI/CD → Runners → New project runner</pre
         >
       </div>
       <p>
