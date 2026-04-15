@@ -1798,6 +1798,24 @@ k8s/
             <td>kind cluster</td>
             <td>~$0.10/hour cluster management fee</td>
           </tr>
+          <tr>
+            <td>📊 Observability (traces, metrics, logs)</td>
+            <td>
+              <a href="https://grafana.com/products/cloud/" target="_blank" rel="noopener"
+                >Grafana Cloud</a
+              >
+            </td>
+            <td>LGTM all-in-one container (Grafana + Tempo + Loki + Mimir)</td>
+            <td>Free tier — 50 GB logs, 10 k metrics, 50 GB traces / month</td>
+          </tr>
+          <tr>
+            <td>🔐 Authentication (OAuth2/OIDC)</td>
+            <td>
+              <a href="https://auth0.com" target="_blank" rel="noopener">Auth0</a>
+            </td>
+            <td>Keycloak container</td>
+            <td>Free tier — 7 500 MAU, unlimited social logins</td>
+          </tr>
         </tbody>
       </table>
 
@@ -1810,6 +1828,13 @@ k8s/
         <strong>100% Kafka-compatible</strong> — no code changes needed vs a self-hosted broker.
         Pub/Sub was not chosen because it requires rewriting all Spring Kafka consumers and
         producers.
+      </p>
+      <p>
+        <strong>Grafana Cloud</strong> replaces the local LGTM container — same dashboards, same
+        OTLP protocol, no self-hosted storage to manage. The free tier covers development and
+        low-traffic production workloads. <strong>Auth0</strong> replaces the local Keycloak
+        container — fully managed OAuth2/OIDC with a generous free tier (7 500 MAU), social login,
+        and MFA out of the box.
       </p>
 
       <!-- Cloud SQL security model -->
@@ -1829,6 +1854,92 @@ Backend pod:
     - name: cloud-sql-proxy   # cloud-sql-proxy listens on :5432, forwards to Cloud SQL over mTLS</pre
         >
       </div>
+
+      <!-- Grafana Cloud integration -->
+      <h3>Observability — Grafana Cloud (OTLP)</h3>
+      <p>
+        Traces, metrics, and logs are pushed from the Spring Boot backend to
+        <strong>Grafana Cloud</strong> via the OpenTelemetry OTLP/HTTP protocol. The free tier
+        covers 50 GB of logs, 10 k active Prometheus metrics series, and 50 GB of traces per month —
+        sufficient for a dev/staging workload.
+      </p>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th>Protocol</th>
+            <th>Grafana Cloud product</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Traces</td>
+            <td>OTLP/HTTP → /v1/traces</td>
+            <td>Grafana Tempo</td>
+          </tr>
+          <tr>
+            <td>Metrics</td>
+            <td>Prometheus remote_write</td>
+            <td>Grafana Mimir</td>
+          </tr>
+          <tr>
+            <td>Logs</td>
+            <td>OTLP/HTTP → /v1/logs</td>
+            <td>Grafana Loki</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="code-block">
+        <pre>
+# K8s Secret (set via GitLab CI variable GRAFANA_OTLP_ENDPOINT + GRAFANA_OTLP_TOKEN)
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-eu-west-0.grafana.net/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic &lt;base64(instanceId:apiKey)&gt;</pre
+        >
+      </div>
+
+      <!-- Auth0 integration -->
+      <h3>Authentication — Auth0 (OAuth2/OIDC)</h3>
+      <p>
+        The Spring Boot backend validates JWT tokens issued by <strong>Auth0</strong>. The Angular
+        frontend redirects unauthenticated users to the Auth0 Universal Login page. Auth0 handles
+        token issuance, refresh, MFA, and social logins — no passwords stored in the application.
+      </p>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Config key</th>
+            <th>Value (example)</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AUTH0_DOMAIN</code></td>
+            <td><code>mirador.eu.auth0.com</code></td>
+            <td>Issuer URI = <code>https://&lt;domain&gt;/</code></td>
+          </tr>
+          <tr>
+            <td><code>AUTH0_CLIENT_ID</code></td>
+            <td>(from Auth0 app settings)</td>
+            <td>Angular SPA client</td>
+          </tr>
+          <tr>
+            <td><code>AUTH0_CLIENT_SECRET</code></td>
+            <td>(from Auth0 app settings)</td>
+            <td>Backend resource server validation</td>
+          </tr>
+          <tr>
+            <td><code>AUTH0_AUDIENCE</code></td>
+            <td><code>https://mirador-api</code></td>
+            <td>API identifier registered in Auth0</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Auth0 replaces the local <code>Keycloak :9090</code> container in production — the same
+        Spring Security OAuth2 Resource Server configuration works with both, only the issuer URI
+        changes.
+      </p>
 
       <!-- Infrastructure as Code -->
       <h3>Infrastructure as Code — Terraform</h3>
@@ -1928,6 +2039,43 @@ Backend pod:
         </tbody>
       </table>
 
+      <!-- Custom domain + HTTPS -->
+      <h3>Custom domain + HTTPS</h3>
+      <p>
+        The application currently runs at <code>http://34.52.233.183</code> (raw ingress IP). A
+        custom domain (e.g. <code>app.mirador.dev</code>) requires three steps:
+      </p>
+      <ol>
+        <li>
+          <strong>Register a domain</strong> — recommended registrars:
+          <a href="https://www.cloudflare.com/products/registrar/" target="_blank" rel="noopener"
+            >Cloudflare Registrar</a
+          >
+          (at-cost pricing, no markup) or
+          <a href="https://domains.squarespace.com" target="_blank" rel="noopener"
+            >Squarespace Domains</a
+          >
+          (ex-Google Domains). Typical prices:
+          <code>.dev</code> ~$12/year · <code>.app</code> ~$14/year · <code>.io</code> ~$32/year ·
+          <code>.fr</code> ~$10/year
+        </li>
+        <li>
+          <strong>Add an A record</strong> pointing to <code>34.52.233.183</code> (the GKE ingress
+          IP). Set TTL to 60 s for quick updates during initial setup.
+        </li>
+        <li>
+          <strong>Enable HTTPS</strong> — cert-manager is already configured in
+          <code>k8s/ingress.yaml</code>. Set <code>K8S_HOST</code> CI variable to the domain name.
+          Let's Encrypt issues a free certificate automatically on first deploy.
+        </li>
+      </ol>
+      <div class="code-block">
+        <pre>
+# GitLab CI variable to set once the domain is ready
+K8S_HOST=app.mirador.dev   # replaces the raw IP in ingress.yaml annotations</pre
+        >
+      </div>
+
       <!-- Next steps -->
       <h3>Deployment checklist</h3>
       <ol class="checklist">
@@ -1935,12 +2083,31 @@ Backend pod:
         <li>
           Create GCP project and authenticate: <code>gcloud auth application-default login</code>
         </li>
+        <li>
+          Create
+          <a href="https://grafana.com/auth/sign-up" target="_blank" rel="noopener"
+            >Grafana Cloud</a
+          >
+          account (free) → get OTLP endpoint + API key → set GitLab CI variables
+          <code>GRAFANA_OTLP_ENDPOINT</code> and <code>GRAFANA_OTLP_TOKEN</code>
+        </li>
+        <li>
+          Create
+          <a href="https://auth0.com/signup" target="_blank" rel="noopener">Auth0</a>
+          account (free) → create tenant + SPA app → set CI variables
+          <code>AUTH0_DOMAIN</code>, <code>AUTH0_CLIENT_ID</code>, <code>AUTH0_CLIENT_SECRET</code>,
+          <code>AUTH0_AUDIENCE</code>
+        </li>
         <li>Enable APIs: <code>./run.sh gcp-enable-apis</code></li>
         <li>Create Terraform state bucket: <code>./run.sh gcp-tf-bucket</code></li>
         <li>Fill <code>terraform/gcp/terraform.tfvars</code> (copy from <code>.example</code>)</li>
         <li>Preview infrastructure: <code>./run.sh tf-plan</code></li>
         <li>Apply infrastructure: <code>./run.sh tf-apply</code> (~15 min)</li>
         <li>Push to <code>main</code> → CI <code>deploy:gke</code> triggers automatically</li>
+        <li>
+          (Optional) Register domain → add A record → set <code>K8S_HOST</code> CI variable →
+          cert-manager issues HTTPS certificate automatically
+        </li>
       </ol>
     </article>
   }
