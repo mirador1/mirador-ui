@@ -1275,6 +1275,9 @@
             <h3>
               <span class="section-icon">📦</span> Dependencies
               <span class="section-count">{{ r.dependencies!.total }} direct</span>
+              @if (r.dependencies!.outdatedCount) {
+                <span class="badge badge-warn">{{ r.dependencies!.outdatedCount }} outdated</span>
+              }
             </h3>
             <div class="table-wrap">
               <table class="quality-table">
@@ -1283,17 +1286,30 @@
                     <th>Group</th>
                     <th>Artifact</th>
                     <th>Version</th>
+                    <th>Latest</th>
                     <th style="width: 7em">Scope</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (dep of r.dependencies!.dependencies; track dep.artifactId) {
-                    <tr>
+                    <tr [class.row-outdated]="dep.outdated">
                       <td class="muted">{{ dep.groupId }}</td>
                       <td>
                         <strong>{{ dep.artifactId }}</strong>
                       </td>
-                      <td>{{ dep.version }}</td>
+                      <td>
+                        {{ dep.version }}
+                        @if (dep.outdated) {
+                          <span class="badge badge-warn" title="Newer version available">⬆</span>
+                        }
+                      </td>
+                      <td class="muted">
+                        @if (dep.latestVersion && dep.outdated) {
+                          <span class="latest-version">{{ dep.latestVersion }}</span>
+                        } @else if (dep.latestVersion) {
+                          <span class="muted">✓</span>
+                        }
+                      </td>
                       <td>
                         <span class="scope-badge scope-{{ dep.scope }}">{{ dep.scope }}</span>
                       </td>

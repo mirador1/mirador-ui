@@ -704,6 +704,18 @@
   }
 }
 
+// Outdated dependency row highlight
+.row-outdated {
+  background: rgba(234, 179, 8, 0.06); // subtle amber tint for outdated rows
+}
+
+// Latest version on Maven Central
+.latest-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: #f59e0b; // amber — indicates upgrade available
+}
+
 // Violation summary badges row
 .violation-summary {
   display: flex;

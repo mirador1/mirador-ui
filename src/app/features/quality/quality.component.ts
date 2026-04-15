@@ -354,11 +354,22 @@ export interface QualityReport {
     total?: number;
     endpoints?: Array<{ path: string; methods: string[]; handler: string }>;
   };
-  /** Maven dependency list from the POM. */
+  /** Maven dependency list from the POM, with optional freshness data from Maven Central. */
   dependencies?: {
     available: boolean;
     total?: number;
-    dependencies?: Array<{ groupId: string; artifactId: string; version: string; scope: string }>;
+    /** Number of dependencies with a newer version available on Maven Central. */
+    outdatedCount?: number;
+    dependencies?: Array<{
+      groupId: string;
+      artifactId: string;
+      version: string;
+      scope: string;
+      /** Latest version on Maven Central (undefined when dep is BOM-managed or check timed out). */
+      latestVersion?: string;
+      /** True when latestVersion differs from version (and version is not a pre-release). */
+      outdated?: boolean;
+    }>;
   };
   /** Source code metrics (class/method/line counts and complexity). */
   metrics?: {
