@@ -25,7 +25,7 @@ RUN npx ng build --configuration production
 FROM nginx:1.27-alpine
 
 # Copy the compiled Angular app into the Nginx web root
-COPY --from=builder /app/dist/customer-observability-ui/browser /usr/share/nginx/html
+COPY --from=builder /app/dist/mirador-ui/browser /usr/share/nginx/html
 
 # Replace the default Nginx config with our SPA-aware config
 COPY nginx.conf /etc/nginx/conf.d/default.conf

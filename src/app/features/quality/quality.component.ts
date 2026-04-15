@@ -10,6 +10,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -382,6 +383,38 @@ export interface QualityReport {
   sonar?: SonarReport;
   /** Live runtime metadata. */
   runtime?: RuntimeReport;
+  /** GitLab CI/CD pipeline history (last 10 runs). */
+  pipeline?: PipelineReport;
+  /** Remote git branches with last-commit date (up to 20, sorted by recency). */
+  branches?: BranchesReport;
+}
+
+/** Remote git branches with last-commit date, from `git for-each-ref refs/remotes`. */
+export interface BranchesReport {
+  available: boolean;
+  reason?: string;
+  total?: number;
+  branches?: Array<{
+    name: string;
+    lastCommit: string;
+    author: string;
+  }>;
+}
+
+/** GitLab CI/CD pipeline history fetched from the GitLab REST API. */
+export interface PipelineReport {
+  available: boolean;
+  reason?: string;
+  projectId?: string;
+  host?: string;
+  pipelines?: Array<{
+    id: number;
+    ref: string;
+    status: string;
+    createdAt: string;
+    durationSeconds?: number;
+    webUrl: string;
+  }>;
 }
 
 /**
@@ -432,7 +465,7 @@ export interface MavenSiteReport {
 @Component({
   selector: 'app-quality',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, RouterLink],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })

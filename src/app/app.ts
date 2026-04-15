@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AppShellComponent } from './shared/layout/app-shell.component';
+import { Auth0BridgeService } from './core/auth/auth0-bridge.service';
 
 /**
  * Root component — the single entry point bootstrapped by `main.ts`.
@@ -16,4 +17,9 @@ import { AppShellComponent } from './shared/layout/app-shell.component';
   imports: [AppShellComponent],
   template: '<app-shell />',
 })
-export class App {}
+export class App {
+  // Injecting Auth0BridgeService here ensures it is instantiated at bootstrap time,
+  // before any route or component renders, so Auth0 session state is resolved early.
+  // Private because subclasses don't exist — this is injection-for-side-effects only.
+  private readonly _auth0Bridge = inject(Auth0BridgeService);
+}

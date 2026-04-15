@@ -182,6 +182,34 @@ sonarcloud:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+# ── TypeDoc API documentation ─────────────────────────────────────────────────
+#
+# Generates TypeScript API docs from JSDoc comments in Angular services, components,
+# and interfaces. Output is published as a pipeline artifact (browsable in GitLab).
+#
+# The backend's generate-reports job can also invoke `npm run typedoc` as part
+# of a combined site that includes Maven site + Compodoc + TypeDoc.
+#
+# typedoc.json at the repo root controls entry points, output dir, and theme.
+typedoc:
+  stage: quality
+  extends: .install
+  needs: ["build:production"]
+  script:
+    # Run TypeDoc — warns are informational; docs still generate cleanly
+    - npm run typedoc 2>&1 | tee typedoc-output.txt
+    - echo "TypeDoc docs generated at docs/typedoc/"
+  artifacts:
+    name: "typedoc-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - docs/typedoc/
+    expire_in: 30 days
+    when: always
+  allow_failure: true   # documentation failure must not block deployments
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # ── Stage: docker ─────────────────────────────────────────────────────────────
 #
 # Build the Angular Docker image (Nginx + compiled SPA) and push it to the
@@ -265,6 +293,10 @@ docker-build:
 deploy:gke:
   stage: deploy
   image: google/cloud-sdk:alpine
+  id_tokens:
+    # GitLab OIDC token; audience matches the WIF provider configured in GCP.
+    GCP_OIDC_TOKEN:
+      aud: "https://iam.googleapis.com/$GCP_WIF_PROVIDER"
   needs:
     - job: docker-build
       artifacts: false
@@ -274,8 +306,19 @@ deploy:gke:
     name: production/gke
     url: "https://$K8S_HOST"
   script:
-    - echo "$GCP_SA_KEY" | base64 -d > /tmp/sa.json
-    - gcloud auth activate-service-account --key-file=/tmp/sa.json
+    - echo "$GCP_OIDC_TOKEN" > /tmp/gcp_oidc_token.txt
+    - |
+      cat > /tmp/gcp_credentials.json <<EOF
+      {
+        "type": "external_account",
+        "audience": "//iam.googleapis.com/${GCP_WIF_PROVIDER}",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+        "token_url": "https://sts.googleapis.com/v1/token",
+        "credential_source": {"file": "/tmp/gcp_oidc_token.txt", "format": {"type": "text"}},
+        "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SERVICE_ACCOUNT}:generateAccessToken"
+      }
+      EOF
+    - gcloud auth login --cred-file=/tmp/gcp_credentials.json --quiet
     - gcloud container clusters get-credentials "$GKE_CLUSTER"
         --region "$GKE_REGION" --project "$GCP_PROJECT"
     - !reference [.kubectl-apply-ui, script]

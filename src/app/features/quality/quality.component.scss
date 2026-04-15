@@ -932,6 +932,21 @@
   color: var(--text-primary);
 }
 
+.maven-fullpage-link {
+  margin-left: auto; // push to right side of the flex row
+  font-size: 0.78rem;
+  color: var(--text-link, #60a5fa);
+  text-decoration: none;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+
+  &:hover {
+    text-decoration: underline;
+    background: var(--bg-hover);
+  }
+}
+
 .maven-raw-hint {
   font-size: 0.78rem;
   color: var(--text-muted);
@@ -1007,4 +1022,45 @@
     cursor: default;
     opacity: 0.7;
   }
+}
+
+// Pipeline status badges
+.pipeline-status {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.pipeline-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+.pipeline-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.pipeline-running {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.pipeline-canceled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.pipeline-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.pipeline-skipped {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+// Branches tab — branch name displayed in a monospace style to match git output
+.branch-name {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.85rem;
+  color: #4ade80; // green — matches the git branch colour convention
 }
