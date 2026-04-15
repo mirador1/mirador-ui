@@ -13,6 +13,7 @@
 ## Claude workflow rules (apply to every session)
 
 - **Do not stop** between tasks — chain all pending work without asking "shall I continue?".
+- **Regularly display the pending task list** — after completing a task, show what remains so the user can track progress without opening TASKS.md.
 - **Act directly** — read only what is strictly necessary, then make the change.
 - **One commit per logical change** — do not batch unrelated fixes.
 - **Run the build after every change** (`npm run build -- --configuration production`) and fix errors before committing. Build must have zero warnings.
