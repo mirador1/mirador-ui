@@ -140,6 +140,14 @@
           <em>Mirador</em> — Spanish for <em>watchtower</em> or <em>viewpoint</em>. A place to
           watch, understand, and act.
         </p>
+        <div class="hero-links">
+          <a href="https://gitlab.com/mirador1" target="_blank" rel="noopener" class="hero-link">
+            🦊 gitlab.com/mirador1
+          </a>
+          <a href="http://mirador1.duckdns.org" target="_blank" rel="noopener" class="hero-link">
+            🚀 mirador1.duckdns.org
+          </a>
+        </div>
       </div>
     </article>
 
@@ -773,7 +781,7 @@
           JaCoCo · Surefire · Pitest
         </text>
         <text x="575" y="512" text-anchor="middle" font-size="10" fill="#64748b">
-          Compodoc :8085
+          Compodoc :8086
         </text>
         <text x="575" y="526" text-anchor="middle" font-size="9" fill="#475569">
           Angular API docs
@@ -1559,7 +1567,7 @@
             <td>JaCoCo, Surefire, SpotBugs, Pitest reports</td>
           </tr>
           <tr>
-            <td><code>:8085</code></td>
+            <td><code>:8086</code></td>
             <td>Compodoc</td>
             <td>Angular API documentation</td>
           </tr>
@@ -1727,6 +1735,33 @@ k8s/
   @if (activeTab() === 'deploy-gcp') {
     <article class="card deploy-card">
       <h2>☁️ Google Cloud — GKE Autopilot</h2>
+
+      <!-- Live project links -->
+      <div class="deploy-links">
+        <a
+          href="https://console.cloud.google.com/home/dashboard?project=project-8d6ea68c-33ac-412b-8aa"
+          target="_blank"
+          rel="noopener"
+          class="deploy-link"
+        >
+          🌐 GCP Console — project mirador
+        </a>
+        <a
+          href="https://console.cloud.google.com/kubernetes/clusters/details/europe-west1/mirador-prod/details?project=project-8d6ea68c-33ac-412b-8aa"
+          target="_blank"
+          rel="noopener"
+          class="deploy-link"
+        >
+          ☸️ GKE Cluster — mirador-prod (europe-west1)
+        </a>
+        <a href="http://mirador1.duckdns.org" target="_blank" rel="noopener" class="deploy-link">
+          🚀 Application — mirador1.duckdns.org
+        </a>
+        <a href="https://gitlab.com/mirador1" target="_blank" rel="noopener" class="deploy-link">
+          🦊 GitLab — mirador1 group
+        </a>
+      </div>
+
       <p class="card-intro">
         The production environment runs on <strong>GKE Autopilot</strong> — Google's fully managed
         Kubernetes offering where node provisioning, scaling, and patching are handled by GCP. All
@@ -1771,6 +1806,24 @@ k8s/
             <td>kind cluster</td>
             <td>~$0.10/hour cluster management fee</td>
           </tr>
+          <tr>
+            <td>📊 Observability (traces, metrics, logs)</td>
+            <td>
+              <a href="https://grafana.com/products/cloud/" target="_blank" rel="noopener"
+                >Grafana Cloud</a
+              >
+            </td>
+            <td>LGTM all-in-one container (Grafana + Tempo + Loki + Mimir)</td>
+            <td>Free tier — 50 GB logs, 10 k metrics, 50 GB traces / month</td>
+          </tr>
+          <tr>
+            <td>🔐 Authentication (OAuth2/OIDC)</td>
+            <td>
+              <a href="https://auth0.com" target="_blank" rel="noopener">Auth0</a>
+            </td>
+            <td>Keycloak container</td>
+            <td>Free tier — 7 500 MAU, unlimited social logins</td>
+          </tr>
         </tbody>
       </table>
 
@@ -1783,6 +1836,13 @@ k8s/
         <strong>100% Kafka-compatible</strong> — no code changes needed vs a self-hosted broker.
         Pub/Sub was not chosen because it requires rewriting all Spring Kafka consumers and
         producers.
+      </p>
+      <p>
+        <strong>Grafana Cloud</strong> replaces the local LGTM container — same dashboards, same
+        OTLP protocol, no self-hosted storage to manage. The free tier covers development and
+        low-traffic production workloads. <strong>Auth0</strong> replaces the local Keycloak
+        container — fully managed OAuth2/OIDC with a generous free tier (7 500 MAU), social login,
+        and MFA out of the box.
       </p>
 
       <!-- Cloud SQL security model -->
@@ -1802,6 +1862,92 @@ Backend pod:
     - name: cloud-sql-proxy   # cloud-sql-proxy listens on :5432, forwards to Cloud SQL over mTLS</pre
         >
       </div>
+
+      <!-- Grafana Cloud integration -->
+      <h3>Observability — Grafana Cloud (OTLP)</h3>
+      <p>
+        Traces, metrics, and logs are pushed from the Spring Boot backend to
+        <strong>Grafana Cloud</strong> via the OpenTelemetry OTLP/HTTP protocol. The free tier
+        covers 50 GB of logs, 10 k active Prometheus metrics series, and 50 GB of traces per month —
+        sufficient for a dev/staging workload.
+      </p>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th>Protocol</th>
+            <th>Grafana Cloud product</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Traces</td>
+            <td>OTLP/HTTP → /v1/traces</td>
+            <td>Grafana Tempo</td>
+          </tr>
+          <tr>
+            <td>Metrics</td>
+            <td>Prometheus remote_write</td>
+            <td>Grafana Mimir</td>
+          </tr>
+          <tr>
+            <td>Logs</td>
+            <td>OTLP/HTTP → /v1/logs</td>
+            <td>Grafana Loki</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="code-block">
+        <pre>
+# K8s Secret (set via GitLab CI variable GRAFANA_OTLP_ENDPOINT + GRAFANA_OTLP_TOKEN)
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-eu-west-0.grafana.net/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic &lt;base64(instanceId:apiKey)&gt;</pre
+        >
+      </div>
+
+      <!-- Auth0 integration -->
+      <h3>Authentication — Auth0 (OAuth2/OIDC)</h3>
+      <p>
+        The Spring Boot backend validates JWT tokens issued by <strong>Auth0</strong>. The Angular
+        frontend redirects unauthenticated users to the Auth0 Universal Login page. Auth0 handles
+        token issuance, refresh, MFA, and social logins — no passwords stored in the application.
+      </p>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Config key</th>
+            <th>Value (example)</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AUTH0_DOMAIN</code></td>
+            <td><code>mirador.eu.auth0.com</code></td>
+            <td>Issuer URI = <code>https://&lt;domain&gt;/</code></td>
+          </tr>
+          <tr>
+            <td><code>AUTH0_CLIENT_ID</code></td>
+            <td>(from Auth0 app settings)</td>
+            <td>Angular SPA client</td>
+          </tr>
+          <tr>
+            <td><code>AUTH0_CLIENT_SECRET</code></td>
+            <td>(from Auth0 app settings)</td>
+            <td>Backend resource server validation</td>
+          </tr>
+          <tr>
+            <td><code>AUTH0_AUDIENCE</code></td>
+            <td><code>https://mirador-api</code></td>
+            <td>API identifier registered in Auth0</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Auth0 replaces the local <code>Keycloak :9090</code> container in production — the same
+        Spring Security OAuth2 Resource Server configuration works with both, only the issuer URI
+        changes.
+      </p>
 
       <!-- Infrastructure as Code -->
       <h3>Infrastructure as Code — Terraform</h3>
@@ -1901,6 +2047,36 @@ Backend pod:
         </tbody>
       </table>
 
+      <!-- Custom domain + HTTPS -->
+      <h3>Custom domain + HTTPS</h3>
+      <p>
+        The application is reachable at
+        <a href="http://mirador1.duckdns.org" target="_blank" rel="noopener"
+          >mirador1.duckdns.org</a
+        >
+        via
+        <a href="https://www.duckdns.org" target="_blank" rel="noopener">DuckDNS</a> — a free
+        dynamic DNS service. The A record points to the GKE ingress IP <code>34.52.233.183</code>.
+        No annual fee, no credit card.
+      </p>
+      <p>
+        HTTPS will be enabled automatically once cert-manager is installed on the cluster — it
+        requests a Let's Encrypt certificate for <code>mirador1.duckdns.org</code> on first deploy.
+        The <code>K8S_HOST</code> GitLab CI variable is already set to
+        <code>mirador1.duckdns.org</code>.
+      </p>
+      <div class="code-block">
+        <pre>
+# DuckDNS setup (already done)
+# 1. Account at duckdns.org → subdomain "mirador1" created
+# 2. A record: mirador1.duckdns.org → 34.52.233.183
+# 3. GitLab CI group variable: K8S_HOST=mirador1.duckdns.org
+
+# To update the IP if it changes (e.g. after cluster recreation):
+curl "https://www.duckdns.org/update?domains=mirador1&token=&lt;TOKEN&gt;&ip=&lt;NEW_IP&gt;"</pre
+        >
+      </div>
+
       <!-- Next steps -->
       <h3>Deployment checklist</h3>
       <ol class="checklist">
@@ -1908,12 +2084,31 @@ Backend pod:
         <li>
           Create GCP project and authenticate: <code>gcloud auth application-default login</code>
         </li>
+        <li>
+          Create
+          <a href="https://grafana.com/auth/sign-up" target="_blank" rel="noopener"
+            >Grafana Cloud</a
+          >
+          account (free) → get OTLP endpoint + API key → set GitLab CI variables
+          <code>GRAFANA_OTLP_ENDPOINT</code> and <code>GRAFANA_OTLP_TOKEN</code>
+        </li>
+        <li>
+          Create
+          <a href="https://auth0.com/signup" target="_blank" rel="noopener">Auth0</a>
+          account (free) → create tenant + SPA app → set CI variables
+          <code>AUTH0_DOMAIN</code>, <code>AUTH0_CLIENT_ID</code>, <code>AUTH0_CLIENT_SECRET</code>,
+          <code>AUTH0_AUDIENCE</code>
+        </li>
         <li>Enable APIs: <code>./run.sh gcp-enable-apis</code></li>
         <li>Create Terraform state bucket: <code>./run.sh gcp-tf-bucket</code></li>
         <li>Fill <code>terraform/gcp/terraform.tfvars</code> (copy from <code>.example</code>)</li>
         <li>Preview infrastructure: <code>./run.sh tf-plan</code></li>
         <li>Apply infrastructure: <code>./run.sh tf-apply</code> (~15 min)</li>
         <li>Push to <code>main</code> → CI <code>deploy:gke</code> triggers automatically</li>
+        <li>
+          (Optional) Register domain → add A record → set <code>K8S_HOST</code> CI variable →
+          cert-manager issues HTTPS certificate automatically
+        </li>
       </ol>
     </article>
   }
@@ -2423,7 +2618,7 @@ Backend pod:
         <div class="about-item">
           <span class="about-icon">📊</span>
           <div>
-            <strong>Kafka UI — :8085</strong>
+            <strong>Kafka UI — :9080</strong>
             <span>Browse topics, messages, and consumer groups</span>
           </div>
         </div>

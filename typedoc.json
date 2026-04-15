@@ -1,0 +1,22 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "expand",
+  "entryPoints": ["src/app"],
+  "out": "docs/typedoc",
+  "name": "Mirador UI — TypeScript API Docs",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeExternals": true,
+  "excludeNotDocumented": false,
+  "includeVersion": true,
+  "navigationLinks": {
+    "GitLab": "https://gitlab.com/mirador1/mirador-ui",
+    "Backend API": "https://mirador1.duckdns.org/swagger-ui.html"
+  },
+  "logLevel": "Warn",
+  "treatWarningsAsErrors": false,
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}

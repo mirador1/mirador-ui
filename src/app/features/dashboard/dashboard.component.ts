@@ -36,7 +36,7 @@ import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 const SVC = {
   sonarqube: { port: '9000', url: 'http://localhost:9000' },
   'maven-site': { port: '8084', url: 'http://localhost:8084' },
-  compodoc: { port: '8085', url: 'http://localhost:8085' },
+  compodoc: { port: '8086', url: 'http://localhost:8086' },
   gitlab: { port: '9081', url: 'http://localhost:9081' },
   pgadmin: { port: '5050', url: 'http://localhost:5050' },
   'kafka-ui': { port: '9080', url: 'http://localhost:9080' },

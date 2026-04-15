@@ -73,6 +73,8 @@
         <span class="maven-raw-title">📋 Raw reports (Maven Site)</span>
         @if (mavenSiteAvailable()) {
           <span class="maven-status maven-status-up">● Available</span>
+          <!-- Full-page viewer: hides tab chrome so large Javadoc/JaCoCo reports are usable -->
+          <a routerLink="/quality/site" class="maven-fullpage-link">⛶ Full-page view</a>
         } @else {
           <span class="maven-status maven-status-down">● Not deployed</span>
           <span class="maven-raw-hint">Run <code>./run.sh site</code> to generate and serve</span>
@@ -182,6 +184,20 @@
         (click)="selectedTab.set('runtime')"
       >
         ⚙️ Runtime
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-active]="selectedTab() === 'pipeline'"
+        (click)="selectedTab.set('pipeline')"
+      >
+        🚀 Pipelines
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-active]="selectedTab() === 'branches'"
+        (click)="selectedTab.set('branches')"
+      >
+        🌿 Branches
       </button>
     </div>
 
@@ -1401,6 +1417,110 @@
         </section>
       }
       <!-- end runtime tab -->
+
+      @if (selectedTab() === 'pipeline') {
+        <section class="tab-section">
+          <h2 class="section-title">🚀 Pipeline History</h2>
+          @if (r.pipeline?.available) {
+            <div class="info-grid">
+              <span class="info-label">Project</span>
+              <span class="info-value">
+                <a
+                  [href]="r.pipeline!.host + '/' + 'mirador1/mirador-service'"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  #{{ r.pipeline!.projectId }}
+                </a>
+              </span>
+            </div>
+            <table class="data-table" style="margin-top: 1rem">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Branch / Ref</th>
+                  <th>Status</th>
+                  <th>Started</th>
+                  <th>Duration</th>
+                  <th>Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of r.pipeline!.pipelines; track p.id) {
+                  <tr>
+                    <td>{{ p.id }}</td>
+                    <td>{{ p.ref }}</td>
+                    <td>
+                      <span [class]="'pipeline-status pipeline-' + p.status">
+                        {{ p.status }}
+                      </span>
+                    </td>
+                    <td>{{ p.createdAt.substring(0, 10) }}</td>
+                    <td>
+                      @if (p.durationSeconds != null) {
+                        {{ p.durationSeconds | number: '1.0-0' }}s
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td>
+                      <a [href]="p.webUrl" target="_blank" rel="noopener">↗</a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="na-message">
+              {{
+                r.pipeline?.reason ??
+                  'Pipeline history not available (configure GITLAB_PROJECT_ID).'
+              }}
+            </p>
+          }
+        </section>
+      }
+      <!-- end pipeline tab -->
+
+      <!-- ================================================================== -->
+      <!-- BRANCHES TAB — remote git branches with last-commit date           -->
+      <!-- ================================================================== -->
+      @if (selectedTab() === 'branches') {
+        <section class="quality-section">
+          <h3><span class="section-icon">🌿</span> Active Branches</h3>
+
+          @if (!r.branches?.available) {
+            <p class="muted">{{ r.branches?.reason ?? 'Branch data not available.' }}</p>
+          } @else {
+            <p class="muted" style="margin-bottom: 0.75rem">
+              {{ r.branches!.total }} remote branches — sorted by most recently updated.
+            </p>
+            <div class="table-wrap">
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th>Branch</th>
+                    <th style="width: 14em">Last Commit</th>
+                    <th style="width: 12em">Author</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (b of r.branches!.branches; track b.name) {
+                    <tr>
+                      <td>
+                        <span class="branch-name">{{ b.name }}</span>
+                      </td>
+                      <td class="muted">{{ b.lastCommit.substring(0, 19) }}</td>
+                      <td class="muted">{{ b.author }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+      <!-- end branches tab -->
     }
   }
   <!-- end @if (auth.isAdmin()) -->

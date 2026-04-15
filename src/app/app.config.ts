@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAuth0 } from '@auth0/auth0-angular';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
@@ -34,5 +35,24 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     /** HttpClient with the JWT auth interceptor for automatic Bearer token attachment. */
     provideHttpClient(withInterceptors([authInterceptor])),
+    /**
+     * Auth0 OIDC provider (replaces local Keycloak in production).
+     * Domain and clientId are public values — safe to embed in the bundle.
+     * The Auth0BridgeService (core/auth/auth0-bridge.service.ts) syncs the
+     * access token into the existing signal-based AuthService so the
+     * authInterceptor and all components remain unchanged.
+     *
+     * audience: 'https://mirador-api' requires an Auth0 API to be registered
+     * at https://manage.auth0.com → Applications → APIs with identifier
+     * 'https://mirador-api'. Without it, Auth0 returns opaque tokens.
+     */
+    provideAuth0({
+      domain: 'dev-ksxj46zlkhk2gcvo.us.auth0.com',
+      clientId: 'DZKCwZ9dqAk3dOtVdDfc2rLJOenxidX6',
+      authorizationParams: {
+        redirect_uri: window.location.origin,
+        audience: 'https://mirador-api',
+      },
+    }),
   ],
 };
