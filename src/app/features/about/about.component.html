@@ -257,9 +257,17 @@
         </tbody>
       </table>
 
-      <!-- Architecture diagram -->
+      <!-- Architecture diagram
+           Columns (left→right):
+             1. CLIENT        Angular 21 :4200
+             2. APPLICATION   Spring Boot :8080  +  Keycloak :9090
+             3. DATA STORES   PostgreSQL · Redis · Kafka · Ollama
+             4. ADMIN TOOLS   pgAdmin · pgweb · Kafka UI · RedisInsight
+             5. OBSERVABILITY LGTM all-in-one (Grafana + OTel + Loki + Tempo + Mimir + Pyroscope)
+           Footer row: SonarQube · Maven Site · Compodoc
+      -->
       <svg
-        viewBox="0 0 1000 520"
+        viewBox="0 0 1000 560"
         width="100%"
         class="arch-diagram"
         xmlns="http://www.w3.org/2000/svg"
@@ -272,14 +280,17 @@
           <marker id="arrow-left" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
             <polygon points="8 0, 0 3, 8 6" fill="#ffffff80" />
           </marker>
+          <marker id="arrow-otel" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#06b6d480" />
+          </marker>
         </defs>
 
-        <!-- ── Col 1: CLIENT (x 10–175) ──────────────────────────────── -->
+        <!-- ══ Col 1: CLIENT  (x10–175, center=92) ═══════════════════ -->
         <rect
           x="10"
           y="10"
           width="165"
-          height="440"
+          height="455"
           rx="8"
           fill="#3b82f620"
           stroke="#3b82f6"
@@ -296,7 +307,7 @@
         >
           &#x1F310; CLIENT
         </text>
-        <!-- Angular box -->
+        <!-- Angular -->
         <rect
           x="22"
           y="42"
@@ -308,38 +319,43 @@
           stroke-width="1"
         />
         <text x="92" y="62" text-anchor="middle" font-size="12" fill="#f8fafc">Angular 21</text>
-        <text x="92" y="77" text-anchor="middle" font-size="10" fill="#94a3b8">:4200</text>
-        <!-- Sub-items -->
+        <text x="92" y="77" text-anchor="middle" font-size="10" fill="#94a3b8">
+          :4200 (ng serve)
+        </text>
+        <!-- Details -->
         <rect
           x="22"
           y="103"
           width="141"
-          height="32"
+          height="44"
           rx="4"
           fill="#3b82f625"
           stroke="#3b82f650"
           stroke-width="1"
         />
-        <text x="92" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">
+        <text x="92" y="120" text-anchor="middle" font-size="10" fill="#94a3b8">
           TypeScript · SCSS
         </text>
-        <text x="92" y="131" text-anchor="middle" font-size="10" fill="#94a3b8">
+        <text x="92" y="133" text-anchor="middle" font-size="10" fill="#94a3b8">
           Signals · Vitest
         </text>
+        <text x="92" y="143" text-anchor="middle" font-size="9" fill="#64748b">
+          Standalone · Zoneless
+        </text>
 
-        <!-- ── Col 2: APPLICATION (x 195–415) ────────────────────────── -->
+        <!-- ══ Col 2: APPLICATION  (x185–405, center=295) ═══════════ -->
         <rect
-          x="195"
+          x="185"
           y="10"
           width="220"
-          height="440"
+          height="455"
           rx="8"
           fill="#22c55e20"
           stroke="#22c55e"
           stroke-width="1.5"
         />
         <text
-          x="305"
+          x="295"
           y="32"
           text-anchor="middle"
           font-size="11"
@@ -349,9 +365,9 @@
         >
           &#x1F33F; APPLICATION
         </text>
-        <!-- Spring Boot box -->
+        <!-- Spring Boot -->
         <rect
-          x="207"
+          x="197"
           y="42"
           width="196"
           height="52"
@@ -360,45 +376,45 @@
           stroke="#22c55e80"
           stroke-width="1"
         />
-        <text x="305" y="62" text-anchor="middle" font-size="12" fill="#f8fafc">
+        <text x="295" y="62" text-anchor="middle" font-size="12" fill="#f8fafc">
           Spring Boot 4 / Java 25
         </text>
-        <text x="305" y="77" text-anchor="middle" font-size="10" fill="#94a3b8">:8080</text>
-        <!-- Auth box -->
+        <text x="295" y="77" text-anchor="middle" font-size="10" fill="#94a3b8">:8080</text>
+        <!-- Keycloak -->
         <rect
-          x="207"
+          x="197"
           y="103"
           width="196"
-          height="32"
+          height="36"
           rx="4"
           fill="#22c55e25"
           stroke="#22c55e50"
           stroke-width="1"
         />
-        <text x="305" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">
-          JWT · Keycloak · API Key
+        <text x="295" y="118" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Keycloak OAuth2/OIDC :9090
         </text>
-        <text x="305" y="131" text-anchor="middle" font-size="10" fill="#94a3b8">
-          Virtual Threads (Loom)
+        <text x="295" y="131" text-anchor="middle" font-size="9" fill="#64748b">
+          JWT · API Key · Virtual Threads
         </text>
-        <!-- OTEL box -->
+        <!-- OTEL -->
         <rect
-          x="207"
-          y="144"
+          x="197"
+          y="148"
           width="196"
-          height="22"
+          height="26"
           rx="4"
           fill="#22c55e25"
           stroke="#22c55e50"
           stroke-width="1"
         />
-        <text x="305" y="159" text-anchor="middle" font-size="10" fill="#94a3b8">
-          Micrometer · OTEL SDK
+        <text x="295" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Micrometer · OTEL SDK → :4318
         </text>
-        <!-- Resilience box -->
+        <!-- Resilience -->
         <rect
-          x="207"
-          y="178"
+          x="197"
+          y="183"
           width="196"
           height="58"
           rx="4"
@@ -406,27 +422,29 @@
           stroke="#22c55e60"
           stroke-width="1"
         />
-        <text x="305" y="196" text-anchor="middle" font-size="11" font-weight="700" fill="#22c55e">
+        <text x="295" y="201" text-anchor="middle" font-size="11" font-weight="700" fill="#22c55e">
           &#x1F6E1;&#xFE0F; Resilience
         </text>
-        <text x="305" y="212" text-anchor="middle" font-size="10" fill="#94a3b8">
+        <text x="295" y="217" text-anchor="middle" font-size="10" fill="#94a3b8">
           Bucket4j · Resilience4j
         </text>
-        <text x="305" y="224" text-anchor="middle" font-size="10" fill="#94a3b8">Idempotency</text>
+        <text x="295" y="230" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Idempotency keys
+        </text>
 
-        <!-- ── Col 3: DATA STORES (x 435–615) ────────────────────────── -->
+        <!-- ══ Col 3: DATA STORES  (x415–590, center=502) ═══════════ -->
         <rect
-          x="435"
+          x="415"
           y="10"
-          width="180"
-          height="440"
+          width="175"
+          height="455"
           rx="8"
           fill="#f9731620"
           stroke="#f97316"
           stroke-width="1.5"
         />
         <text
-          x="525"
+          x="502"
           y="32"
           text-anchor="middle"
           font-size="11"
@@ -438,72 +456,164 @@
         </text>
         <!-- PostgreSQL -->
         <rect
-          x="447"
+          x="427"
           y="42"
-          width="156"
+          width="151"
           height="40"
           rx="4"
           fill="#f9731640"
           stroke="#f9731680"
           stroke-width="1"
         />
-        <text x="525" y="58" text-anchor="middle" font-size="12" fill="#f8fafc">PostgreSQL 17</text>
-        <text x="525" y="73" text-anchor="middle" font-size="10" fill="#94a3b8">:5432</text>
+        <text x="502" y="58" text-anchor="middle" font-size="12" fill="#f8fafc">PostgreSQL 17</text>
+        <text x="502" y="73" text-anchor="middle" font-size="10" fill="#94a3b8">:5432</text>
         <!-- Redis -->
         <rect
-          x="447"
+          x="427"
           y="91"
-          width="156"
+          width="151"
           height="40"
           rx="4"
           fill="#f9731625"
           stroke="#f9731650"
           stroke-width="1"
         />
-        <text x="525" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Redis 7</text>
-        <text x="525" y="122" text-anchor="middle" font-size="10" fill="#94a3b8">:6379</text>
+        <text x="502" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Redis 7</text>
+        <text x="502" y="122" text-anchor="middle" font-size="10" fill="#94a3b8">:6379</text>
         <!-- Kafka -->
         <rect
-          x="447"
+          x="427"
           y="140"
-          width="156"
+          width="151"
           height="40"
           rx="4"
           fill="#f9731625"
           stroke="#f9731650"
           stroke-width="1"
         />
-        <text x="525" y="156" text-anchor="middle" font-size="12" fill="#f8fafc">Kafka KRaft</text>
-        <text x="525" y="171" text-anchor="middle" font-size="10" fill="#94a3b8">:9092</text>
+        <text x="502" y="156" text-anchor="middle" font-size="12" fill="#f8fafc">Kafka KRaft</text>
+        <text x="502" y="171" text-anchor="middle" font-size="10" fill="#94a3b8">:9092</text>
         <!-- Ollama -->
         <rect
-          x="447"
+          x="427"
           y="189"
-          width="156"
+          width="151"
           height="40"
           rx="4"
           fill="#f9731625"
           stroke="#f9731650"
           stroke-width="1"
         />
-        <text x="525" y="205" text-anchor="middle" font-size="12" fill="#f8fafc">
+        <text x="502" y="205" text-anchor="middle" font-size="12" fill="#f8fafc">
           Ollama llama3.2
         </text>
-        <text x="525" y="220" text-anchor="middle" font-size="10" fill="#94a3b8">:11434</text>
+        <text x="502" y="220" text-anchor="middle" font-size="10" fill="#94a3b8">:11434</text>
 
-        <!-- ── Col 4: OBS COLLECTORS (x 635–800) ──────────────────────── -->
+        <!-- ══ Col 4: ADMIN TOOLS  (x600–760, center=680) ═══════════ -->
         <rect
-          x="635"
+          x="600"
           y="10"
-          width="165"
-          height="440"
+          width="160"
+          height="455"
+          rx="8"
+          fill="#a855f720"
+          stroke="#a855f7"
+          stroke-width="1.5"
+        />
+        <text
+          x="680"
+          y="32"
+          text-anchor="middle"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="1"
+          fill="#a855f7"
+        >
+          &#x1F527; ADMIN TOOLS
+        </text>
+        <!-- pgAdmin -->
+        <rect
+          x="612"
+          y="42"
+          width="136"
+          height="32"
+          rx="4"
+          fill="#a855f740"
+          stroke="#a855f780"
+          stroke-width="1"
+        />
+        <text x="680" y="55" text-anchor="middle" font-size="11" fill="#f8fafc">pgAdmin</text>
+        <text x="680" y="67" text-anchor="middle" font-size="10" fill="#94a3b8">:5050</text>
+        <!-- pgweb -->
+        <rect
+          x="612"
+          y="83"
+          width="136"
+          height="32"
+          rx="4"
+          fill="#a855f725"
+          stroke="#a855f750"
+          stroke-width="1"
+        />
+        <text x="680" y="96" text-anchor="middle" font-size="11" fill="#f8fafc">pgweb</text>
+        <text x="680" y="108" text-anchor="middle" font-size="10" fill="#94a3b8">
+          :8081 (REST + UI)
+        </text>
+        <!-- Kafka UI -->
+        <rect
+          x="612"
+          y="124"
+          width="136"
+          height="32"
+          rx="4"
+          fill="#a855f725"
+          stroke="#a855f750"
+          stroke-width="1"
+        />
+        <text x="680" y="137" text-anchor="middle" font-size="11" fill="#f8fafc">Kafka UI</text>
+        <text x="680" y="149" text-anchor="middle" font-size="10" fill="#94a3b8">:9080</text>
+        <!-- RedisInsight -->
+        <rect
+          x="612"
+          y="165"
+          width="136"
+          height="32"
+          rx="4"
+          fill="#a855f725"
+          stroke="#a855f750"
+          stroke-width="1"
+        />
+        <text x="680" y="178" text-anchor="middle" font-size="11" fill="#f8fafc">RedisInsight</text>
+        <text x="680" y="190" text-anchor="middle" font-size="10" fill="#94a3b8">:5540</text>
+        <!-- Redis Commander -->
+        <rect
+          x="612"
+          y="206"
+          width="136"
+          height="32"
+          rx="4"
+          fill="#a855f725"
+          stroke="#a855f750"
+          stroke-width="1"
+        />
+        <text x="680" y="219" text-anchor="middle" font-size="11" fill="#f8fafc">
+          Redis Commander
+        </text>
+        <text x="680" y="231" text-anchor="middle" font-size="10" fill="#94a3b8">:8082</text>
+
+        <!-- ══ Col 5: OBSERVABILITY  (x770–990, center=880) ══════════ -->
+        <rect
+          x="770"
+          y="10"
+          width="220"
+          height="455"
           rx="8"
           fill="#06b6d420"
           stroke="#06b6d4"
           stroke-width="1.5"
         />
         <text
-          x="717"
+          x="880"
           y="32"
           text-anchor="middle"
           font-size="11"
@@ -511,167 +621,235 @@
           letter-spacing="1"
           fill="#06b6d4"
         >
-          &#x1F4E1; COLLECTORS
+          &#x1F4E1; OBSERVABILITY
         </text>
-        <!-- OTEL LGTM -->
+        <!-- LGTM all-in-one big box -->
         <rect
-          x="647"
+          x="782"
           y="42"
-          width="141"
-          height="40"
-          rx="4"
-          fill="#06b6d440"
+          width="196"
+          height="195"
+          rx="6"
+          fill="#06b6d430"
           stroke="#06b6d480"
+          stroke-width="1.5"
+        />
+        <text x="880" y="58" text-anchor="middle" font-size="11" font-weight="700" fill="#06b6d4">
+          grafana/otel-lgtm
+        </text>
+        <text x="880" y="70" text-anchor="middle" font-size="9" fill="#64748b">
+          all-in-one container
+        </text>
+        <!-- Grafana UI -->
+        <rect
+          x="792"
+          y="78"
+          width="176"
+          height="26"
+          rx="3"
+          fill="#06b6d445"
+          stroke="#06b6d470"
           stroke-width="1"
         />
-        <text x="717" y="58" text-anchor="middle" font-size="11" fill="#f8fafc">OTEL LGTM</text>
-        <text x="717" y="73" text-anchor="middle" font-size="10" fill="#94a3b8">Loki + Tempo</text>
-        <!-- Prometheus -->
+        <text x="880" y="91" text-anchor="middle" font-size="10" fill="#f8fafc">
+          Grafana UI :3000
+        </text>
+        <text x="880" y="101" text-anchor="middle" font-size="9" fill="#94a3b8">
+          Traces · Logs · Metrics · Profiles
+        </text>
+        <!-- OTel Collector -->
         <rect
-          x="647"
-          y="91"
-          width="141"
+          x="792"
+          y="113"
+          width="176"
+          height="26"
+          rx="3"
+          fill="#06b6d435"
+          stroke="#06b6d460"
+          stroke-width="1"
+        />
+        <text x="880" y="126" text-anchor="middle" font-size="10" fill="#f8fafc">
+          OTel Collector
+        </text>
+        <text x="880" y="136" text-anchor="middle" font-size="9" fill="#94a3b8">
+          OTLP gRPC :4317 · HTTP :4318
+        </text>
+        <!-- Loki + Tempo -->
+        <rect
+          x="792"
+          y="148"
+          width="84"
+          height="36"
+          rx="3"
+          fill="#06b6d430"
+          stroke="#06b6d455"
+          stroke-width="1"
+        />
+        <text x="834" y="162" text-anchor="middle" font-size="10" fill="#f8fafc">Loki</text>
+        <text x="834" y="175" text-anchor="middle" font-size="9" fill="#94a3b8">logs · :3100</text>
+        <rect
+          x="884"
+          y="148"
+          width="84"
+          height="36"
+          rx="3"
+          fill="#06b6d430"
+          stroke="#06b6d455"
+          stroke-width="1"
+        />
+        <text x="926" y="162" text-anchor="middle" font-size="10" fill="#f8fafc">Tempo</text>
+        <text x="926" y="175" text-anchor="middle" font-size="9" fill="#94a3b8">
+          traces · :3200
+        </text>
+        <!-- Mimir + Pyroscope -->
+        <rect
+          x="792"
+          y="193"
+          width="84"
+          height="36"
+          rx="3"
+          fill="#06b6d430"
+          stroke="#06b6d455"
+          stroke-width="1"
+        />
+        <text x="834" y="207" text-anchor="middle" font-size="10" fill="#f8fafc">Mimir</text>
+        <text x="834" y="220" text-anchor="middle" font-size="9" fill="#94a3b8">
+          metrics · :9091
+        </text>
+        <rect
+          x="884"
+          y="193"
+          width="84"
+          height="36"
+          rx="3"
+          fill="#06b6d430"
+          stroke="#06b6d455"
+          stroke-width="1"
+        />
+        <text x="926" y="207" text-anchor="middle" font-size="10" fill="#f8fafc">Pyroscope</text>
+        <text x="926" y="220" text-anchor="middle" font-size="9" fill="#94a3b8">
+          profiles · :4040
+        </text>
+        <!-- Nginx CORS proxy -->
+        <rect
+          x="782"
+          y="248"
+          width="196"
           height="32"
           rx="4"
-          fill="#06b6d425"
+          fill="#06b6d420"
           stroke="#06b6d450"
           stroke-width="1"
         />
-        <text x="717" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Prometheus</text>
-        <text x="717" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
+        <text x="880" y="261" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Nginx CORS proxy
+        </text>
+        <text x="880" y="273" text-anchor="middle" font-size="9" fill="#64748b">
+          Loki :3100 · Docker API :2375
+        </text>
 
-        <!-- ── Col 5: OBS DASHBOARDS (x 820–990) ──────────────────────── -->
-        <rect
-          x="820"
-          y="10"
-          width="170"
-          height="440"
-          rx="8"
-          fill="#8b5cf620"
-          stroke="#8b5cf6"
-          stroke-width="1.5"
-        />
-        <text
-          x="905"
-          y="32"
-          text-anchor="middle"
-          font-size="11"
-          font-weight="700"
-          letter-spacing="1"
-          fill="#8b5cf6"
-        >
-          &#x1F4CA; DASHBOARDS
-        </text>
-        <!-- Grafana LGTM -->
-        <rect
-          x="832"
-          y="42"
-          width="146"
-          height="32"
-          rx="4"
-          fill="#8b5cf640"
-          stroke="#8b5cf680"
-          stroke-width="1"
-        />
-        <text x="905" y="55" text-anchor="middle" font-size="12" fill="#f8fafc">Grafana LGTM</text>
-        <text x="905" y="67" text-anchor="middle" font-size="10" fill="#94a3b8">
-          :3000 · incl. Pyroscope
-        </text>
-        <!-- Prometheus UI -->
-        <rect
-          x="832"
-          y="84"
-          width="146"
-          height="32"
-          rx="4"
-          fill="#8b5cf625"
-          stroke="#8b5cf650"
-          stroke-width="1"
-        />
-        <text x="905" y="100" text-anchor="middle" font-size="12" fill="#f8fafc">
-          Prometheus UI
-        </text>
-        <text x="905" y="112" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
-
-        <!-- ── Infrastructure footer ───────────────────────────────────── -->
+        <!-- ══ Footer: QUALITY TOOLS ═══════════════════════════════════ -->
         <rect
           x="10"
-          y="460"
+          y="475"
           width="980"
-          height="50"
+          height="70"
           rx="6"
           fill="#47556930"
           stroke="#47556960"
           stroke-width="1"
         />
-        <text x="500" y="480" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">
-          &#x1F3D7;&#xFE0F; INFRASTRUCTURE
+        <text x="500" y="493" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">
+          &#x1F3D7;&#xFE0F; QUALITY TOOLS &amp; INFRA
         </text>
-        <text x="500" y="497" text-anchor="middle" font-size="10" fill="#64748b">
-          Docker Compose (2 files · 22 containers) · Nginx CORS proxy · docker-socket-proxy
+        <text x="165" y="512" text-anchor="middle" font-size="10" fill="#64748b">
+          SonarQube :9000
+        </text>
+        <text x="165" y="526" text-anchor="middle" font-size="9" fill="#475569">code quality</text>
+        <text x="370" y="512" text-anchor="middle" font-size="10" fill="#64748b">
+          Maven Site :8084
+        </text>
+        <text x="370" y="526" text-anchor="middle" font-size="9" fill="#475569">
+          JaCoCo · Surefire · Pitest
+        </text>
+        <text x="575" y="512" text-anchor="middle" font-size="10" fill="#64748b">
+          Compodoc :8085
+        </text>
+        <text x="575" y="526" text-anchor="middle" font-size="9" fill="#475569">
+          Angular API docs
+        </text>
+        <text x="780" y="512" text-anchor="middle" font-size="10" fill="#64748b">
+          GitLab Runner
+        </text>
+        <text x="780" y="526" text-anchor="middle" font-size="9" fill="#475569">
+          local CI (0 minutes)
+        </text>
+        <text x="940" y="512" text-anchor="middle" font-size="10" fill="#64748b">
+          Docker Compose
+        </text>
+        <text x="940" y="526" text-anchor="middle" font-size="9" fill="#475569">
+          2 files · 22 containers
         </text>
 
-        <!-- ── Arrows ─────────────────────────────────────────────────── -->
-        <!-- Col1 → Col2: HTTP (forward) -->
+        <!-- ══ Arrows ═══════════════════════════════════════════════════ -->
+        <!-- Col1 → Col2: HTTP request -->
         <line
           x1="176"
-          y1="68"
-          x2="192"
-          y2="68"
+          y1="67"
+          x2="194"
+          y2="67"
           stroke="#ffffff60"
           stroke-width="1.5"
           marker-end="url(#arrow)"
         />
-        <!-- Col2 → Col1: SSE (backward) -->
+        <!-- Col2 → Col1: SSE push -->
         <line
-          x1="196"
+          x1="194"
           y1="78"
-          x2="180"
+          x2="176"
           y2="78"
           stroke="#ffffff60"
           stroke-width="1.5"
           marker-end="url(#arrow-left)"
         />
-        <!-- Arrow labels HTTP/SSE -->
-        <text x="186" y="63" text-anchor="middle" font-size="9" fill="#94a3b8">HTTP</text>
-        <text x="186" y="90" text-anchor="middle" font-size="9" fill="#94a3b8">SSE</text>
+        <text x="185" y="62" text-anchor="middle" font-size="9" fill="#94a3b8">HTTP</text>
+        <text x="185" y="92" text-anchor="middle" font-size="9" fill="#94a3b8">SSE</text>
 
-        <!-- Col2 → Col3: read/write -->
+        <!-- Col2 → Col3: read/write (data) -->
         <line
-          x1="416"
+          x1="394"
           y1="68"
-          x2="432"
+          x2="412"
           y2="68"
           stroke="#ffffff60"
           stroke-width="1.5"
           marker-end="url(#arrow)"
         />
-        <text x="424" y="62" text-anchor="middle" font-size="9" fill="#94a3b8">r/w</text>
+        <text x="403" y="62" text-anchor="middle" font-size="9" fill="#94a3b8">r/w</text>
 
-        <!-- Col2 → Col4: OTEL (skip Col3, diagonal) -->
+        <!-- Col3 → Col4: admin tools connect to data stores -->
         <line
-          x1="416"
-          y1="155"
-          x2="632"
-          y2="60"
-          stroke="#ffffff60"
-          stroke-width="1.5"
-          stroke-dasharray="4 2"
+          x1="591"
+          y1="100"
+          x2="598"
+          y2="100"
+          stroke="#a855f780"
+          stroke-width="1"
           marker-end="url(#arrow)"
         />
-        <text x="530" y="95" text-anchor="middle" font-size="9" fill="#94a3b8">OTEL</text>
 
-        <!-- Col4 → Col5: query -->
+        <!-- Col2 → Col5: OTLP telemetry (dashed cyan, diagonal) -->
         <line
-          x1="801"
-          y1="68"
-          x2="817"
-          y2="68"
-          stroke="#ffffff60"
+          x1="394"
+          y1="161"
+          x2="768"
+          y2="128"
+          stroke="#06b6d470"
           stroke-width="1.5"
-          marker-end="url(#arrow)"
+          stroke-dasharray="5 3"
+          marker-end="url(#arrow-otel)"
         />
-        <text x="809" y="62" text-anchor="middle" font-size="9" fill="#94a3b8">query</text>
+        <text x="590" y="140" text-anchor="middle" font-size="9" fill="#06b6d4">OTLP :4318</text>
       </svg>
     </article>
   }
@@ -1307,48 +1485,23 @@ docker compose -f docker-compose.runner.yml up -d
           </tr>
           <tr>
             <td><code>:9090</code></td>
-            <td>Prometheus</td>
-            <td>Metrics scraping + PromQL</td>
-          </tr>
-          <tr>
-            <td><code>:4040</code></td>
-            <td>Pyroscope</td>
-            <td>Continuous profiling flamegraphs</td>
+            <td>Keycloak</td>
+            <td>OAuth2 / OIDC identity provider (admin / admin)</td>
           </tr>
           <tr>
             <td><code>:5432</code></td>
             <td>PostgreSQL</td>
-            <td>Direct JDBC access</td>
+            <td>Primary database</td>
           </tr>
           <tr>
-            <td><code>:8081</code></td>
-            <td>pgAdmin</td>
-            <td>Database GUI (admin&#64;demo.com / admin)</td>
+            <td><code>:6379</code></td>
+            <td>Redis</td>
+            <td>Cache, idempotency keys, ring buffer</td>
           </tr>
           <tr>
-            <td><code>:8082</code></td>
-            <td>pgweb</td>
-            <td>Lightweight SQL explorer (read-only)</td>
-          </tr>
-          <tr>
-            <td><code>:8083</code></td>
-            <td>Kafka UI</td>
-            <td>Topics, consumers, messages</td>
-          </tr>
-          <tr>
-            <td><code>:8085</code></td>
-            <td>Compodoc</td>
-            <td>Angular API documentation</td>
-          </tr>
-          <tr>
-            <td><code>:8084</code></td>
-            <td>Maven Site</td>
-            <td>JaCoCo, Surefire, SpotBugs, Pitest reports</td>
-          </tr>
-          <tr>
-            <td><code>:9000</code></td>
-            <td>SonarQube</td>
-            <td>Code quality dashboard (admin / admin)</td>
+            <td><code>:9092</code></td>
+            <td>Kafka</td>
+            <td>KRaft mode — PLAINTEXT_HOST listener</td>
           </tr>
           <tr>
             <td><code>:11434</code></td>
@@ -1356,9 +1509,59 @@ docker compose -f docker-compose.runner.yml up -d
             <td>LLM inference — llama3.2 model</td>
           </tr>
           <tr>
-            <td><code>:8180</code></td>
-            <td>Keycloak</td>
-            <td>OAuth2 / OIDC identity provider</td>
+            <td><code>:3000</code></td>
+            <td>Grafana LGTM</td>
+            <td>Traces (Tempo) · Logs (Loki) · Metrics (Mimir) · Profiles (Pyroscope)</td>
+          </tr>
+          <tr>
+            <td><code>:9091</code></td>
+            <td>Mimir API</td>
+            <td>Prometheus-compatible metrics query endpoint (bundled in LGTM)</td>
+          </tr>
+          <tr>
+            <td><code>:4318</code></td>
+            <td>OTLP HTTP</td>
+            <td>Spring Boot sends traces and logs here → Loki + Tempo</td>
+          </tr>
+          <tr>
+            <td><code>:5050</code></td>
+            <td>pgAdmin</td>
+            <td>PostgreSQL GUI — desktop mode (no login)</td>
+          </tr>
+          <tr>
+            <td><code>:8081</code></td>
+            <td>pgweb</td>
+            <td>Lightweight SQL client + REST API</td>
+          </tr>
+          <tr>
+            <td><code>:9080</code></td>
+            <td>Kafka UI</td>
+            <td>Topics, consumer groups, messages</td>
+          </tr>
+          <tr>
+            <td><code>:5540</code></td>
+            <td>RedisInsight</td>
+            <td>Redis key browser, memory analysis</td>
+          </tr>
+          <tr>
+            <td><code>:8082</code></td>
+            <td>Redis Commander</td>
+            <td>Live command monitor, auto-connects</td>
+          </tr>
+          <tr>
+            <td><code>:9000</code></td>
+            <td>SonarQube</td>
+            <td>Code quality dashboard (admin / admin)</td>
+          </tr>
+          <tr>
+            <td><code>:8084</code></td>
+            <td>Maven Site</td>
+            <td>JaCoCo, Surefire, SpotBugs, Pitest reports</td>
+          </tr>
+          <tr>
+            <td><code>:8085</code></td>
+            <td>Compodoc</td>
+            <td>Angular API documentation</td>
           </tr>
         </tbody>
       </table>
@@ -1886,8 +2089,8 @@ Backend pod:
           <tr>
             <td><strong>Metrics</strong></td>
             <td>Micrometer (180+ metrics)</td>
-            <td>Prometheus scrape (:9090) + <code>/actuator/prometheus</code></td>
-            <td>Prometheus UI (:9091) · Grafana · Angular Metrics page</td>
+            <td>LGTM Prometheus scraper → <code>/actuator/prometheus</code></td>
+            <td>Mimir API (:9091) · Grafana (:3000) · Angular Metrics page</td>
           </tr>
           <tr>
             <td><strong>Profiles</strong></td>
