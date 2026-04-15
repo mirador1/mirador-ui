@@ -86,6 +86,20 @@
       >
         🔨 Build
       </button>
+      <button
+        class="tab-btn"
+        [class.tab-active]="selectedTab() === 'runtime'"
+        (click)="selectedTab.set('runtime')"
+      >
+        ⚙️ Runtime
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-active]="selectedTab() === 'maven-site'"
+        (click)="selectedTab.set('maven-site')"
+      >
+        📋 Maven Site
+      </button>
     </div>
 
     <!-- Loading state -->
@@ -1027,6 +1041,90 @@
         }
       }
       <!-- end build tab -->
+
+      @if (selectedTab() === 'runtime') {
+        <!-- Runtime section: active profiles, JVM uptime, JAR layers -->
+        <section class="report-section">
+          <h3>Runtime</h3>
+          @if (r.runtime?.available) {
+            <div class="info-grid">
+              <div class="info-row">
+                <span class="info-label">Active Profiles</span>
+                <span class="info-value">
+                  @for (profile of r.runtime!.activeProfiles; track profile) {
+                    <span class="badge badge-profile">{{ profile }}</span>
+                  }
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Uptime</span>
+                <span class="info-value">{{ r.runtime!.uptimeHuman }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Started At</span>
+                <span class="info-value">{{ r.runtime!.startedAt }}</span>
+              </div>
+            </div>
+
+            @if (r.runtime!.jarLayers && r.runtime!.jarLayers!.length > 0) {
+              <h4>JAR Layers</h4>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead>
+                    <tr>
+                      <th>Layer</th>
+                      <th class="num-col">Entries</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (layer of r.runtime!.jarLayers; track layer.name) {
+                      <tr>
+                        <td>{{ layer.name }}</td>
+                        <td class="num-col">{{ layer.entries }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          } @else {
+            <p class="na-message">Runtime info not available.</p>
+          }
+        </section>
+      }
+      <!-- end runtime tab -->
+
+      @if (selectedTab() === 'maven-site') {
+        <!-- Maven Site tab: iframe + navigation links -->
+        <section class="report-section">
+          <h3>Maven Site</h3>
+          @if (mavenSiteAvailable()) {
+            <div class="maven-site-container">
+              <div class="maven-site-nav">
+                <a href="/maven-site/index.html" target="_blank">📋 Project Summary</a>
+                <a href="/maven-site/surefire.html" target="_blank">✅ Surefire Tests</a>
+                <a href="/maven-site/failsafe.html" target="_blank">🔗 Failsafe Tests</a>
+                <a href="/maven-site/jacoco/index.html" target="_blank">📊 JaCoCo Coverage</a>
+                <a href="/maven-site/spotbugs.html" target="_blank">🔬 SpotBugs</a>
+                <a href="/maven-site/apidocs/index.html" target="_blank">📚 Javadoc</a>
+                <a href="/maven-site/dependencies.html" target="_blank">📦 Dependencies</a>
+              </div>
+              <iframe
+                src="/maven-site/index.html"
+                class="maven-site-frame"
+                title="Maven Site"
+              ></iframe>
+            </div>
+          } @else {
+            <div class="maven-site-unavailable">
+              <p>
+                ⚠️ Maven site not available. Run <code>mvn site</code> then restart the backend.
+              </p>
+            </div>
+          }
+        </section>
+      }
+      <!-- end maven-site tab -->
     }
   }
   <!-- end @if (auth.isAdmin()) -->

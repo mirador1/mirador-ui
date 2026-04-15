@@ -132,6 +132,20 @@ export interface OwaspReport {
   vulnerabilities?: OwaspVuln[];
 }
 
+export interface JarLayer {
+  name: string;
+  entries: number;
+}
+
+export interface RuntimeReport {
+  available: boolean;
+  activeProfiles?: string[];
+  uptimeSeconds?: number;
+  uptimeHuman?: string;
+  startedAt?: string;
+  jarLayers?: JarLayer[];
+}
+
 export interface PitestMutation {
   class: string;
   method: string;
@@ -189,6 +203,7 @@ export interface QualityReport {
   checkstyle?: CheckstyleReport;
   owasp?: OwaspReport;
   pitest?: PitestReport;
+  runtime?: RuntimeReport;
 }
 
 @Component({
@@ -207,10 +222,12 @@ export class QualityComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
   selectedTab = signal<string>('overview');
+  mavenSiteAvailable = signal(false);
 
   ngOnInit(): void {
     if (!this.auth.isAdmin()) return; // don't load if not admin
     this.loadReport();
+    this.checkMavenSite();
   }
 
   loadReport(): void {
@@ -254,5 +271,18 @@ export class QualityComponent implements OnInit {
 
   nvdUrl(cve: string): string {
     return `https://nvd.nist.gov/vuln/detail/${cve}`;
+  }
+
+  checkMavenSite(): void {
+    // Check if Maven site is available (served from target/site/ or classpath)
+    this.http
+      .get(`${this.env.baseUrl()}/maven-site/index.html`, {
+        responseType: 'text',
+        observe: 'response',
+      })
+      .subscribe({
+        next: () => this.mavenSiteAvailable.set(true),
+        error: () => this.mavenSiteAvailable.set(false),
+      });
   }
 }
