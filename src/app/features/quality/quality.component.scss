@@ -225,6 +225,16 @@
   }
 }
 
+// Clickable card variant — used on Overview cards that navigate to a detail tab
+.summary-card-link {
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-accent, #3b82f6);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15);
+  }
+}
+
 .card-label {
   font-size: 0.75rem;
   font-weight: 600;
@@ -797,6 +807,42 @@
   padding: 0.15rem 0.4rem;
   font-size: 0.8rem;
   margin-right: 0.3rem;
+}
+
+// Per-tab bar linking to the corresponding full Maven Site report
+// ---------------------------------------------------------------------------
+.tab-maven-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.tab-maven-bar-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.tab-maven-link {
+  color: var(--color-accent, #3b82f6);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: var(--color-accent, #3b82f6);
+  }
 }
 
 // Maven Site availability badge

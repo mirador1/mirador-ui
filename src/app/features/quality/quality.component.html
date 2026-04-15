@@ -119,9 +119,11 @@
         <!-- Primary cards: tests, coverage, bugs, build -->
         <div class="summary-row">
           <div
-            class="summary-card"
+            class="summary-card summary-card-link"
             [class.card-pass]="r.tests.status === 'PASSED'"
             [class.card-fail]="r.tests.status === 'FAILED'"
+            (click)="selectedTab.set('tests')"
+            title="Go to Tests & Coverage"
           >
             <div class="card-label">Tests</div>
             @if (r.tests.available) {
@@ -143,7 +145,11 @@
             }
           </div>
 
-          <div class="summary-card">
+          <div
+            class="summary-card summary-card-link"
+            (click)="selectedTab.set('tests')"
+            title="Go to Tests & Coverage"
+          >
             <div class="card-label">Coverage</div>
             @if (r.coverage.available) {
               <div
@@ -179,9 +185,11 @@
           </div>
 
           <div
-            class="summary-card"
+            class="summary-card summary-card-link"
             [class.card-pass]="r.bugs.available && r.bugs.total === 0"
             [class.card-fail]="r.bugs.available && r.bugs.total! > 0"
+            (click)="selectedTab.set('analysis')"
+            title="Go to Static Analysis"
           >
             <div class="card-label">SpotBugs</div>
             @if (r.bugs.available) {
@@ -199,7 +207,11 @@
             }
           </div>
 
-          <div class="summary-card">
+          <div
+            class="summary-card summary-card-link"
+            (click)="selectedTab.set('build')"
+            title="Go to Build"
+          >
             <div class="card-label">Build</div>
             @if (r.build.available) {
               <div class="card-value build-version">{{ r.build.version }}</div>
@@ -223,7 +235,9 @@
           <div class="summary-row summary-row-secondary">
             @if (r.pmd) {
               <div
-                class="summary-card summary-card-sm"
+                class="summary-card summary-card-sm summary-card-link"
+                (click)="selectedTab.set('analysis')"
+                title="Go to Analysis"
                 [class.card-pass]="r.pmd.available && r.pmd.total === 0"
                 [class.card-fail]="r.pmd.available && r.pmd.total! > 0"
               >
@@ -248,7 +262,9 @@
 
             @if (r.checkstyle) {
               <div
-                class="summary-card summary-card-sm"
+                class="summary-card summary-card-sm summary-card-link"
+                (click)="selectedTab.set('analysis')"
+                title="Go to Analysis"
                 [class.card-pass]="r.checkstyle.available && r.checkstyle.total === 0"
                 [class.card-fail]="r.checkstyle.available && r.checkstyle.total! > 0"
               >
@@ -273,7 +289,9 @@
 
             @if (r.owasp) {
               <div
-                class="summary-card summary-card-sm"
+                class="summary-card summary-card-sm summary-card-link"
+                (click)="selectedTab.set('security')"
+                title="Go to Security"
                 [class.card-pass]="r.owasp.available && r.owasp.total === 0"
                 [class.card-fail]="r.owasp.available && r.owasp.total! > 0"
               >
@@ -296,7 +314,9 @@
 
             @if (r.pitest) {
               <div
-                class="summary-card summary-card-sm"
+                class="summary-card summary-card-sm summary-card-link"
+                (click)="selectedTab.set('mutation')"
+                title="Go to Mutation"
                 [class.card-pass]="r.pitest.available && r.pitest.score! >= 70"
                 [class.card-fail]="r.pitest.available && r.pitest.score! < 50"
               >
@@ -314,7 +334,11 @@
             }
 
             @if (r.runtime?.available) {
-              <div class="summary-card summary-card-sm">
+              <div
+                class="summary-card summary-card-sm summary-card-link"
+                (click)="selectedTab.set('runtime')"
+                title="Go to Runtime"
+              >
                 <div class="card-label">Runtime</div>
                 <div class="card-value" style="font-size: 0.9rem">
                   @for (profile of r.runtime!.activeProfiles; track profile) {
@@ -373,6 +397,25 @@
         <!-- ================================================================== -->
         <!-- TESTS SECTION -->
         <!-- ================================================================== -->
+        @if (mavenSiteAvailable()) {
+          <div class="tab-maven-bar">
+            <span class="tab-maven-bar-label">Full report:</span>
+            <a
+              class="tab-maven-link"
+              href="{ mavenSiteBase + '/surefire.html' }"
+              target="_blank"
+              rel="noopener"
+              >Surefire Tests ↗</a
+            >
+            <a
+              class="tab-maven-link"
+              href="{ mavenSiteBase + '/jacoco/index.html' }"
+              target="_blank"
+              rel="noopener"
+              >JaCoCo Coverage ↗</a
+            >
+          </div>
+        }
         @if (r.tests.available) {
           <section class="quality-section">
             <h3>
@@ -588,6 +631,18 @@
         <!-- ================================================================== -->
         <!-- SPOTBUGS SECTION -->
         <!-- ================================================================== -->
+        @if (mavenSiteAvailable()) {
+          <div class="tab-maven-bar">
+            <span class="tab-maven-bar-label">Full report:</span>
+            <a
+              class="tab-maven-link"
+              href="{ mavenSiteBase + '/spotbugs.html' }"
+              target="_blank"
+              rel="noopener"
+              >SpotBugs ↗</a
+            >
+          </div>
+        }
         <section class="quality-section">
           <h3>
             <span class="section-icon">🐛</span>
@@ -656,6 +711,25 @@
         <!-- ================================================================== -->
         <!-- BUILD SECTION -->
         <!-- ================================================================== -->
+        @if (mavenSiteAvailable()) {
+          <div class="tab-maven-bar">
+            <span class="tab-maven-bar-label">Full report:</span>
+            <a
+              class="tab-maven-link"
+              href="{ mavenSiteBase + '/index.html' }"
+              target="_blank"
+              rel="noopener"
+              >Project Summary ↗</a
+            >
+            <a
+              class="tab-maven-link"
+              href="{ mavenSiteBase + '/apidocs/index.html' }"
+              target="_blank"
+              rel="noopener"
+              >Javadoc ↗</a
+            >
+          </div>
+        }
         <section class="quality-section">
           <h3>
             <span class="section-icon">🔨</span>
@@ -834,6 +908,18 @@
         <!-- ================================================================== -->
         <!-- OWASP CVE SECTION -->
         <!-- ================================================================== -->
+        @if (mavenSiteAvailable()) {
+          <div class="tab-maven-bar">
+            <span class="tab-maven-bar-label">Full report:</span>
+            <a
+              class="tab-maven-link"
+              href="{ mavenSiteBase + '/dependency-check-report.html' }"
+              target="_blank"
+              rel="noopener"
+              >CVE Scan ↗</a
+            >
+          </div>
+        }
         @if (r.owasp) {
           <section class="quality-section">
             <h3>
