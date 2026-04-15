@@ -451,6 +451,9 @@ export class QualityComponent implements OnInit, OnDestroy {
     { label: 'Javadoc', file: 'apidocs/index.html', icon: '📚' },
   ];
 
+  /** SonarQube dashboard URL — port 9000 when the Docker container is running. */
+  readonly sonarUrl = 'http://localhost:9000/dashboard?id=mirador';
+
   /** Base URL of the Maven site: dedicated nginx server if configured, backend fallback. */
   get mavenSiteBase(): string {
     return this.env.mavenSiteUrl() ?? `${this.env.baseUrl()}/maven-site`;

@@ -26,6 +26,8 @@
 
 ## Recently Completed
 
+- [x] SonarQube node added to dashboard topology (port 9000); SonarQube link in quality page
+      raw reports section; dashboard labels clarified: "Maven Site (API)" / "Compodoc (UI)"
 - [x] Runtime tab in quality page: active profiles, uptime, JAR layers
 - [x] Maven Site tab in quality page: iframe + navigation links (guarded by availability check)
 - [x] Backend Report menu item: label updated in app-shell nav
