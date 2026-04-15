@@ -14,7 +14,6 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
@@ -87,7 +86,7 @@ interface DockerContainer {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, RouterLink, InfoTipComponent],
+  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -119,7 +118,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Signal: rolling history of health probe snapshots used to render sparklines. */
   healthHistory = signal<HealthSnapshot[]>([]);
 
-  // ── Real-time chart (persisted in MetricsService) ──────────────────────────
+  // ── Customer count ─────────────────────────────────────────────────────────
+
+  /** Signal: total customer count from the database. Null until first successful API call. */
+  customerCount = signal<number | null>(null);
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
 
@@ -166,6 +168,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.refresh();
     this.setAutoRefresh(this.autoRefreshInterval());
     this.loadContainers();
+    // Auto-start Prometheus polling so JVM/latency/throughput sections are immediately
+    // populated without requiring the user to click "Start live chart" first.
+    this.metricsService.start();
     window.addEventListener('app:refresh', this._onRefresh);
   }
 
@@ -222,6 +227,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: () => this.liveness.set({ status: 'UNREACHABLE' }),
     });
 
+    // Customer count — lightweight page request (size=1) just to get totalElements
+    this.api.getCustomers(0, 1).subscribe({
+      next: (page) => this.customerCount.set(page.totalElements),
+      error: () => {},
+    });
+
     // Refresh dependency graph and Docker containers alongside health probes
     this.refreshTopology();
     this.loadContainers();
@@ -263,6 +274,72 @@ export class DashboardComponent implements OnInit, OnDestroy {
   chartMaxRps(): number {
     const samples = this.metricsService.samples();
     return Math.max(1, ...samples.map((s) => s.rps));
+  }
+
+  // ── Latency history chart ────────────────────────────────────────────────────
+  // Renders an SVG polyline for each of p50/p95/p99 over the sample window.
+  // The chart uses the same 300×100 viewBox as the throughput bar chart.
+
+  latencyChartLines(): {
+    p50: string;
+    p95: string;
+    p99: string;
+    maxMs: number;
+  } {
+    const samples = this.metricsService.samples();
+    if (samples.length < 2) return { p50: '', p95: '', p99: '', maxMs: 0 };
+    const maxMs = Math.max(
+      1,
+      ...samples.map((s) => Math.max(s.latencyP50, s.latencyP95, s.latencyP99)),
+    );
+    const w = 300;
+    const h = 80; // chart height in viewBox units
+    const toPoint = (i: number, val: number) => {
+      const x = (i / (samples.length - 1)) * w;
+      const y = h - (val / maxMs) * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    };
+    return {
+      p50: samples.map((s, i) => toPoint(i, s.latencyP50)).join(' '),
+      p95: samples.map((s, i) => toPoint(i, s.latencyP95)).join(' '),
+      p99: samples.map((s, i) => toPoint(i, s.latencyP99)).join(' '),
+      maxMs,
+    };
+  }
+
+  // ── JVM heap gauge ─────────────────────────────────────────────────────────
+
+  /**
+   * Heap usage as a percentage 0–100. Returns 0 if metrics are not yet available
+   * or if heap max is unknown (-1, which happens for some GC configurations).
+   */
+  heapPercent(): number {
+    const m = this.metricsService.latestMetrics();
+    if (!m || m.heapMaxBytes <= 0) return 0;
+    return Math.round((m.heapUsedBytes / m.heapMaxBytes) * 100);
+  }
+
+  heapUsedMb(): number {
+    const m = this.metricsService.latestMetrics();
+    return m ? Math.round(m.heapUsedBytes / 1_048_576) : 0;
+  }
+
+  heapMaxMb(): number {
+    const m = this.metricsService.latestMetrics();
+    return m && m.heapMaxBytes > 0 ? Math.round(m.heapMaxBytes / 1_048_576) : 0;
+  }
+
+  /** CPU usage as an integer percentage 0–100. */
+  cpuPercent(): number {
+    const m = this.metricsService.latestMetrics();
+    return m ? Math.round(m.cpuProcess * 100) : 0;
+  }
+
+  /** Error rate as a percentage 0–100 (errors / total requests * 100). */
+  errorRatePercent(): number {
+    const m = this.metricsService.latestMetrics();
+    if (!m || m.httpRequestsTotal === 0) return 0;
+    return Math.round((m.httpErrorCount / m.httpRequestsTotal) * 100 * 10) / 10;
   }
 
   // ── Docker service control ─────────────────────────────────────────────────
