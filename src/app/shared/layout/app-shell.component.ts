@@ -328,10 +328,14 @@ export class AppShellComponent {
       children: [
         { label: 'Overview', tip: 'Quick start, architecture summary, and run commands' },
         { label: 'Infrastructure', tip: 'All services, ports, and Docker Compose setup' },
-        { label: 'Deployment', tip: 'Kubernetes architecture diagram and target comparison' },
         {
-          label: 'Local (kind)',
-          tip: 'kind cluster setup — ./run.sh k8s-local, nip.io DNS, manifests layout',
+          label: 'Deployment',
+          tip: 'Architecture diagram + comparison table for all 3 deployment modes',
+        },
+        { label: 'Docker', tip: 'docker-compose local — 22 containers, all services on localhost' },
+        {
+          label: 'Kubernetes local',
+          tip: 'kind cluster — ./run.sh k8s-local, nip.io DNS, mirrors production layout',
         },
         {
           label: 'Google Cloud',

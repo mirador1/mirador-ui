@@ -784,10 +784,11 @@
     <article class="card deploy-card">
       <h2>🚀 Deployment — Architecture Overview</h2>
       <p class="card-intro">
-        When deployed to a Kubernetes cluster the two Docker images sit behind a single
-        <strong>Nginx Ingress</strong> on one hostname — the browser never makes a cross-origin
-        request, eliminating CORS entirely. See the dedicated tabs for <strong>Local</strong> (kind)
-        and <strong>Google Cloud</strong> (GKE Autopilot) deployments.
+        Three deployment modes are supported — see the dedicated tabs:
+        <strong>🐳 Docker</strong> (local docker-compose, fastest to start),
+        <strong>☸️ Kubernetes local</strong> (kind cluster, mirrors production), and
+        <strong>☁️ Google Cloud</strong> (GKE Autopilot, production). In Kubernetes mode the two
+        images sit behind a single Nginx Ingress, eliminating CORS entirely.
       </p>
 
       <!-- K8s architecture SVG diagram -->
@@ -1193,18 +1194,230 @@ docker compose -f docker-compose.runner.yml up -d
         >
       </div>
       <p>
-        Every subsequent push runs the pipeline locally. See the <strong>🏠 Local</strong> tab for
-        kind cluster setup, and the <strong>☁️ Google Cloud</strong> tab for GKE Autopilot.
+        Every subsequent push runs the pipeline locally. See the <strong>🐳 Docker</strong> tab for
+        local docker-compose setup, <strong>☸️ Kubernetes local</strong> for kind cluster, and
+        <strong>☁️ Google Cloud</strong> for GKE Autopilot.
       </p>
+    </article>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Docker local deployment                                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'deploy-docker') {
+    <article class="card deploy-card">
+      <h2>🐳 Local Deployment — Docker Compose</h2>
+      <p class="card-intro">
+        The fastest way to run the full stack locally. Two Docker Compose files bring up 22
+        containers covering the application, all infrastructure services, and the complete
+        observability stack. No Kubernetes, no registry — everything runs on
+        <code>localhost</code>.
+      </p>
+
+      <!-- Two compose files -->
+      <h3>Compose files</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Services</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>docker-compose.yml</code></td>
+            <td>
+              PostgreSQL, Redis, Kafka (KRaft), Ollama, Keycloak, pgAdmin, pgweb, Kafka UI,
+              RedisInsight, Redis Commander, SonarQube, Compodoc, Maven Site
+            </td>
+            <td>Application infrastructure — data stores and admin tools</td>
+          </tr>
+          <tr>
+            <td><code>docker-compose.observability.yml</code></td>
+            <td>
+              LGTM all-in-one (Grafana + Loki + Tempo + Mimir), Prometheus, Pyroscope, Zipkin, Nginx
+              CORS proxy, docker-socket-proxy
+            </td>
+            <td>Full observability stack — metrics, traces, logs, profiling</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Quick start -->
+      <h3>Quick start</h3>
+      <div class="code-block">
+        <pre>
+./run.sh all           # start infrastructure + observability + Spring Boot app
+./run.sh status        # check which services are up
+./run.sh stop          # stop app + all containers (data preserved)
+./run.sh nuke          # full cleanup — containers, volumes, build artifacts</pre
+        >
+      </div>
+      <p>
+        The Spring Boot backend starts on <code>:8080</code> and the Angular frontend on
+        <code>:4200</code> (dev server with proxy). CORS is handled by the dev proxy — the browser
+        talks only to <code>localhost:4200</code>.
+      </p>
+
+      <!-- Useful run.sh commands -->
+      <h3>Useful commands</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>./run.sh all</code></td>
+            <td>Start everything (infra + obs + app)</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh obs</code></td>
+            <td>Start only the observability stack</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh app</code></td>
+            <td>Start only the Spring Boot app</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh app-profiled</code></td>
+            <td>Start app with Pyroscope profiling agent</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh restart</code></td>
+            <td>Stop + restart everything (keeps data)</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh simulate</code></td>
+            <td>Generate traffic (60 iterations, 2 s pause)</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh sonar</code></td>
+            <td>Run mvn verify + SonarQube analysis</td>
+          </tr>
+          <tr>
+            <td><code>./run.sh security-check</code></td>
+            <td>OWASP CVE scan (Dependency-Check)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Service access -->
+      <h3>Service access (all on localhost)</h3>
+      <table class="deploy-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>:4200</code></td>
+            <td>Angular UI (dev server)</td>
+            <td>Hot-reload, proxies /api → :8080</td>
+          </tr>
+          <tr>
+            <td><code>:8080</code></td>
+            <td>Spring Boot API</td>
+            <td>REST + Actuator + SSE</td>
+          </tr>
+          <tr>
+            <td><code>:3000</code></td>
+            <td>Grafana</td>
+            <td>Dashboards, traces, logs</td>
+          </tr>
+          <tr>
+            <td><code>:9090</code></td>
+            <td>Prometheus</td>
+            <td>Metrics scraping + PromQL</td>
+          </tr>
+          <tr>
+            <td><code>:9411</code></td>
+            <td>Zipkin</td>
+            <td>Distributed traces (alternative to Tempo)</td>
+          </tr>
+          <tr>
+            <td><code>:4040</code></td>
+            <td>Pyroscope</td>
+            <td>Continuous profiling flamegraphs</td>
+          </tr>
+          <tr>
+            <td><code>:5432</code></td>
+            <td>PostgreSQL</td>
+            <td>Direct JDBC access</td>
+          </tr>
+          <tr>
+            <td><code>:8081</code></td>
+            <td>pgAdmin</td>
+            <td>Database GUI (admin&#64;demo.com / admin)</td>
+          </tr>
+          <tr>
+            <td><code>:8082</code></td>
+            <td>pgweb</td>
+            <td>Lightweight SQL explorer (read-only)</td>
+          </tr>
+          <tr>
+            <td><code>:8083</code></td>
+            <td>Kafka UI</td>
+            <td>Topics, consumers, messages</td>
+          </tr>
+          <tr>
+            <td><code>:8085</code></td>
+            <td>Compodoc</td>
+            <td>Angular API documentation</td>
+          </tr>
+          <tr>
+            <td><code>:8084</code></td>
+            <td>Maven Site</td>
+            <td>JaCoCo, Surefire, SpotBugs, Pitest reports</td>
+          </tr>
+          <tr>
+            <td><code>:9000</code></td>
+            <td>SonarQube</td>
+            <td>Code quality dashboard (admin / admin)</td>
+          </tr>
+          <tr>
+            <td><code>:11434</code></td>
+            <td>Ollama</td>
+            <td>LLM inference — llama3.2 model</td>
+          </tr>
+          <tr>
+            <td><code>:8180</code></td>
+            <td>Keycloak</td>
+            <td>OAuth2 / OIDC identity provider</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Prerequisites -->
+      <h3>Prerequisites</h3>
+      <div class="code-block">
+        <pre>
+# macOS
+brew install docker          # or install Docker Desktop
+brew install maven           # for ./run.sh build
+brew install node            # for Angular dev server
+
+# Verify
+docker --version             # Docker 25+
+java --version               # Java 25 (for Spring Boot 4 default profile)
+mvn --version                # Maven 3.9+</pre
+        >
+      </div>
     </article>
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!-- TAB: Local deployment (kind)                                           -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
-  @if (activeTab() === 'deploy-local') {
+  @if (activeTab() === 'deploy-k8s') {
     <article class="card deploy-card">
-      <h2>🏠 Local Deployment — kind (Kubernetes IN Docker)</h2>
+      <h2>☸️ Kubernetes Local — kind (Kubernetes IN Docker)</h2>
       <p class="card-intro">
         A <strong>kind</strong> cluster mirrors the production Kubernetes setup on your laptop in
         minutes. The full stack — backend, frontend, PostgreSQL, Redis, Kafka — runs behind an

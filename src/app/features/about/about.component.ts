@@ -33,7 +33,8 @@ export class AboutComponent {
     | 'overview'
     | 'infra'
     | 'deploy'
-    | 'deploy-local'
+    | 'deploy-docker'
+    | 'deploy-k8s'
     | 'deploy-gcp'
     | 'tech'
     | 'compat'
@@ -50,7 +51,8 @@ export class AboutComponent {
     { id: 'overview', label: '📖 Overview' },
     { id: 'infra', label: '🏗️ Infrastructure' },
     { id: 'deploy', label: '🚀 Deployment' },
-    { id: 'deploy-local', label: '🏠 Local' },
+    { id: 'deploy-docker', label: '🐳 Docker' },
+    { id: 'deploy-k8s', label: '☸️ Kubernetes local' },
     { id: 'deploy-gcp', label: '☁️ Google Cloud' },
     { id: 'tech', label: '📚 Technologies' },
     { id: 'compat', label: '🔀 Compatibility' },
