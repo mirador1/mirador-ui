@@ -704,6 +704,18 @@
   }
 }
 
+// Outdated dependency row highlight
+.row-outdated {
+  background: rgba(234, 179, 8, 0.06); // subtle amber tint for outdated rows
+}
+
+// Latest version on Maven Central
+.latest-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: #f59e0b; // amber — indicates upgrade available
+}
+
 // Violation summary badges row
 .violation-summary {
   display: flex;
@@ -1063,4 +1075,105 @@
   font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
   font-size: 0.85rem;
   color: #4ade80; // green — matches the git branch colour convention
+}
+
+.class-name {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+// Dependency tree pre-formatted output from maven-dependency-plugin:tree
+.dep-tree {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.4;
+  white-space: pre;
+}
+
+// Dependency analysis (used-undeclared / unused-declared lists)
+.analyze-label {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.82rem;
+  &.warn {
+    color: #e8a000;
+  }
+  &.info {
+    color: var(--text-secondary);
+  }
+}
+
+.dep-analyze-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.dep-coord {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.78rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  &.warn {
+    color: #e8a000;
+    background: rgba(232, 160, 0, 0.08);
+  }
+  &.info {
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+  }
+}
+
+.analyze-clean {
+  font-size: 0.85rem;
+  color: #4caf50;
+  margin: 0.5rem 0;
+}
+
+// License compliance grid
+.license-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.license-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  min-width: 120px;
+  text-align: center;
+
+  .license-name {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.2rem;
+  }
+
+  .license-count {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &.license-incompatible {
+    border-color: #e53e3e;
+    background: rgba(229, 62, 62, 0.07);
+    .license-name {
+      color: #e53e3e;
+    }
+    .license-count {
+      color: #e53e3e;
+    }
+  }
 }
