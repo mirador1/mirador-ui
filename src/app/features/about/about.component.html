@@ -1746,8 +1746,8 @@ k8s/
         >
           ☸️ GKE Cluster — mirador-prod (europe-west1)
         </a>
-        <a href="http://34.52.233.183/" target="_blank" rel="noopener" class="deploy-link">
-          🚀 Application — http://34.52.233.183
+        <a href="http://mirador1.duckdns.org" target="_blank" rel="noopener" class="deploy-link">
+          🚀 Application — mirador1.duckdns.org
         </a>
         <a href="https://gitlab.com/mirador1" target="_blank" rel="noopener" class="deploy-link">
           🦊 GitLab — mirador1 group
@@ -2042,37 +2042,30 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic &lt;base64(instanceId:apiKey)&gt;
       <!-- Custom domain + HTTPS -->
       <h3>Custom domain + HTTPS</h3>
       <p>
-        The application currently runs at <code>http://34.52.233.183</code> (raw ingress IP). A
-        custom domain (e.g. <code>app.mirador.dev</code>) requires three steps:
+        The application is reachable at
+        <a href="http://mirador1.duckdns.org" target="_blank" rel="noopener"
+          >mirador1.duckdns.org</a
+        >
+        via
+        <a href="https://www.duckdns.org" target="_blank" rel="noopener">DuckDNS</a> — a free
+        dynamic DNS service. The A record points to the GKE ingress IP <code>34.52.233.183</code>.
+        No annual fee, no credit card.
       </p>
-      <ol>
-        <li>
-          <strong>Register a domain</strong> — recommended registrars:
-          <a href="https://www.cloudflare.com/products/registrar/" target="_blank" rel="noopener"
-            >Cloudflare Registrar</a
-          >
-          (at-cost pricing, no markup) or
-          <a href="https://domains.squarespace.com" target="_blank" rel="noopener"
-            >Squarespace Domains</a
-          >
-          (ex-Google Domains). Typical prices:
-          <code>.dev</code> ~$12/year · <code>.app</code> ~$14/year · <code>.io</code> ~$32/year ·
-          <code>.fr</code> ~$10/year
-        </li>
-        <li>
-          <strong>Add an A record</strong> pointing to <code>34.52.233.183</code> (the GKE ingress
-          IP). Set TTL to 60 s for quick updates during initial setup.
-        </li>
-        <li>
-          <strong>Enable HTTPS</strong> — cert-manager is already configured in
-          <code>k8s/ingress.yaml</code>. Set <code>K8S_HOST</code> CI variable to the domain name.
-          Let's Encrypt issues a free certificate automatically on first deploy.
-        </li>
-      </ol>
+      <p>
+        HTTPS will be enabled automatically once cert-manager is installed on the cluster — it
+        requests a Let's Encrypt certificate for <code>mirador1.duckdns.org</code> on first deploy.
+        The <code>K8S_HOST</code> GitLab CI variable is already set to
+        <code>mirador1.duckdns.org</code>.
+      </p>
       <div class="code-block">
         <pre>
-# GitLab CI variable to set once the domain is ready
-K8S_HOST=app.mirador.dev   # replaces the raw IP in ingress.yaml annotations</pre
+# DuckDNS setup (already done)
+# 1. Account at duckdns.org → subdomain "mirador1" created
+# 2. A record: mirador1.duckdns.org → 34.52.233.183
+# 3. GitLab CI group variable: K8S_HOST=mirador1.duckdns.org
+
+# To update the IP if it changes (e.g. after cluster recreation):
+curl "https://www.duckdns.org/update?domains=mirador1&token=&lt;TOKEN&gt;&ip=&lt;NEW_IP&gt;"</pre
         >
       </div>
 
