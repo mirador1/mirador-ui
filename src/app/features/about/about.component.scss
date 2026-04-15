@@ -704,3 +704,67 @@ ol.checklist {
     border-radius: 3px;
   }
 }
+
+// ── External services grid ───────────────────────────────────────────────────
+.ext-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.ext-service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--color-accent);
+    transform: translateY(-1px);
+  }
+
+  .ext-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #fc6d26; // default: GitLab orange
+
+    svg {
+      display: block;
+    }
+  }
+
+  .ext-icon.ext-sonar {
+    color: #f37021;
+  } // SonarCloud orange
+  .ext-icon.ext-auth0 {
+    color: #eb5424;
+  } // Auth0 red-orange
+  .ext-icon.ext-dns {
+    color: #facc15;
+  } // DuckDNS yellow
+  .ext-icon.ext-gcp {
+    color: #4285f4;
+  } // Google blue
+
+  .ext-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .ext-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+}

@@ -31,6 +31,12 @@ export interface MetricsSample {
    * divided by the 3-second polling interval.
    */
   rps: number;
+  /** Median HTTP response latency in milliseconds at this sample time. */
+  latencyP50: number;
+  /** 95th percentile HTTP response latency in milliseconds. */
+  latencyP95: number;
+  /** 99th percentile HTTP response latency in milliseconds. */
+  latencyP99: number;
 }
 
 /**
@@ -46,6 +52,22 @@ export interface ParsedMetrics {
   httpLatencyP95: number;
   /** 99th percentile HTTP response latency in milliseconds. */
   httpLatencyP99: number;
+  /** Total 4xx + 5xx request count (cumulative). Used to compute error rate. */
+  httpErrorCount: number;
+  /** JVM heap memory currently used, in bytes (sum across all heap regions). */
+  heapUsedBytes: number;
+  /** JVM heap memory max (committed), in bytes. -1 if unavailable. */
+  heapMaxBytes: number;
+  /** Process CPU usage as a fraction 0..1. */
+  cpuProcess: number;
+  /** Number of live JVM threads. */
+  threads: number;
+  /** HikariCP: number of active (in-use) connections in the pool. */
+  hikariActive: number;
+  /** HikariCP: number of idle (available) connections in the pool. */
+  hikariIdle: number;
+  /** HikariCP: number of threads waiting for a connection from the pool. */
+  hikariPending: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -59,6 +81,13 @@ export class MetricsService {
    * Because this is a singleton service, the array accumulates across page navigations.
    */
   readonly samples = signal<MetricsSample[]>([]);
+
+  /**
+   * Signal: the full parsed metrics from the most recent Prometheus poll.
+   * Contains JVM heap, CPU, thread count, HikariCP pool stats, and HTTP latencies.
+   * Used by Dashboard sections that need a single latest snapshot (not a time series).
+   */
+  readonly latestMetrics = signal<ParsedMetrics | null>(null);
 
   /**
    * Signal: true when the polling interval is active.
@@ -101,11 +130,14 @@ export class MetricsService {
     else this.start();
   }
 
-  /** Fetch Prometheus metrics and compute RPS from request count delta */
+  /** Fetch Prometheus metrics, compute RPS and latency, and update both signals. */
   private poll(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
         const parsed = this.parsePrometheus(text);
+        // Publish full snapshot so Dashboard sections (JVM, HikariCP, etc.) can read it.
+        this.latestMetrics.set(parsed);
+
         const current = this.samples();
         // RPS = (current total - previous total) / polling interval (3s)
         const prevTotal =
@@ -117,6 +149,10 @@ export class MetricsService {
             time: new Date(),
             requestsTotal: parsed.httpRequestsTotal,
             rps,
+            // Store latency per sample so the Dashboard can render a latency history chart.
+            latencyP50: parsed.httpLatencyP50,
+            latencyP95: parsed.httpLatencyP95,
+            latencyP99: parsed.httpLatencyP99,
           },
         ]);
       },
@@ -171,11 +207,80 @@ export class MetricsService {
       return buckets[buckets.length - 1][0] * 1000;
     };
 
+    // ── 4xx + 5xx error count ─────────────────────────────────────────────────
+    // Spring Boot Micrometer labels status codes numerically (status="404", status="500", etc.).
+    let errorCount = 0;
+    const errorRegex =
+      /^http_server_requests_seconds_count\{[^}]*status="[45]\d\d"[^}]*\}\s+(\d+\.?\d*)/gm;
+    let err;
+    while ((err = errorRegex.exec(raw)) !== null) {
+      errorCount += parseFloat(err[1]);
+    }
+
+    // ── JVM heap memory ────────────────────────────────────────────────────────
+    // jvm_memory_used_bytes and jvm_memory_max_bytes are emitted per region (Eden,
+    // Survivor, Old Gen…). Sum only area="heap" entries to get total heap usage.
+    //
+    // IMPORTANT: Prometheus values may use scientific notation (e.g. 4.294967296E9 for
+    // 4 GiB). The number pattern must capture the exponent part too — plain \d+\.?\d*
+    // would parse 4.294967296E9 as 4.3 bytes instead of 4.3 GB.
+    // With G1GC, Eden and Survivor regions report max=-1.0 (unlimited); these must be
+    // excluded so they don't corrupt the sum. Only positive values contribute to heapMax.
+    const FLOAT = '(-?[\\d.]+(?:[Ee][+-]?\\d+)?)'; // handles both 12345 and 1.23E9
+    let heapUsed = 0;
+    let heapMax = 0;
+    const heapUsedRegex = new RegExp(
+      `^jvm_memory_used_bytes\\{[^}]*area="heap"[^}]*\\}\\s+${FLOAT}`,
+      'gm',
+    );
+    const heapMaxRegex = new RegExp(
+      `^jvm_memory_max_bytes\\{[^}]*area="heap"[^}]*\\}\\s+${FLOAT}`,
+      'gm',
+    );
+    let hm;
+    while ((hm = heapUsedRegex.exec(raw)) !== null) heapUsed += parseFloat(hm[1]);
+    while ((hm = heapMaxRegex.exec(raw)) !== null) {
+      const v = parseFloat(hm[1]);
+      if (v > 0) heapMax += v; // skip -1.0 entries (G1 regions with no fixed max)
+    }
+
+    // ── CPU usage ──────────────────────────────────────────────────────────────
+    // process_cpu_usage is a gauge in range [0, 1] representing the fraction of CPU
+    // time used by the JVM process. Published by ProcessorMetrics (Micrometer default).
+    // Value may be in scientific notation when CPU is very low (e.g. 4.23E-4).
+    const cpuMatch = raw.match(new RegExp(`^process_cpu_usage\\s+${FLOAT}`, 'm'));
+    const cpuProcess = cpuMatch ? parseFloat(cpuMatch[1]) : 0;
+
+    // ── JVM threads ───────────────────────────────────────────────────────────
+    const threadsMatch = raw.match(new RegExp(`^jvm_threads_live_threads\\s+${FLOAT}`, 'm'));
+    const threads = threadsMatch ? Math.round(parseFloat(threadsMatch[1])) : 0;
+
+    // ── HikariCP connection pool ───────────────────────────────────────────────
+    // hikaricp_connections_{active,idle,pending} are gauges published by HikariCP's
+    // Micrometer integration. They reflect the real-time state of the JDBC pool.
+    const hikariActiveM = raw.match(
+      new RegExp(`^hikaricp_connections_active\\{[^}]*\\}\\s+${FLOAT}`, 'm'),
+    );
+    const hikariIdleM = raw.match(
+      new RegExp(`^hikaricp_connections_idle\\{[^}]*\\}\\s+${FLOAT}`, 'm'),
+    );
+    const hikariPendingM = raw.match(
+      new RegExp(`^hikaricp_connections_pending\\{[^}]*\\}\\s+${FLOAT}`, 'm'),
+    );
+
     return {
       httpRequestsTotal: totalCount,
       httpLatencyP50: Math.round(percentile(0.5) * 10) / 10,
       httpLatencyP95: Math.round(percentile(0.95) * 10) / 10,
       httpLatencyP99: Math.round(percentile(0.99) * 10) / 10,
+      httpErrorCount: errorCount,
+      heapUsedBytes: heapUsed,
+      heapMaxBytes: heapMax,
+      cpuProcess,
+      threads,
+      hikariActive: hikariActiveM ? Math.round(parseFloat(hikariActiveM[1])) : 0,
+      hikariIdle: hikariIdleM ? Math.round(parseFloat(hikariIdleM[1])) : 0,
+      hikariPending: hikariPendingM ? Math.round(parseFloat(hikariPendingM[1])) : 0,
     };
   }
 }

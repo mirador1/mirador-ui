@@ -108,3 +108,13 @@ AppShellComponent (layout: topbar + sidebar + router-outlet)
 - [ ] No `*ngIf`/`*ngFor` directives (use `@if`/`@for`)
 - [ ] Error handlers are not silently empty
 - [ ] New services are added to the correct `imports` or `providers` array
+
+## Docker Cleanup
+
+At the start of each session (or after heavy build/test work), run:
+```
+docker container prune -f
+docker volume prune -f
+docker builder prune -f
+```
+Check disk usage first with `docker system df`. Never prune running containers or named volumes without confirming with the user.
