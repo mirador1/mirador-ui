@@ -306,8 +306,10 @@ deploy:gke:
     name: production/gke
     url: "https://$K8S_HOST"
   before_script:
-    # google/cloud-sdk:alpine does not include kubectl or gke-gcloud-auth-plugin.
-    # Install both so kubectl can authenticate against the GKE cluster.
+    # google/cloud-sdk:alpine ships without kubectl, gke-gcloud-auth-plugin, and envsubst.
+    # - kubectl + gke-gcloud-auth-plugin: authenticate kubectl to GKE via WIF
+    # - gettext: provides envsubst (used to expand ${K8S_HOST}, ${IMAGE_TAG}, etc. in manifests)
+    - apk add --no-cache gettext
     - gcloud components install kubectl gke-gcloud-auth-plugin --quiet
   script:
     - echo "$GCP_OIDC_TOKEN" > /tmp/gcp_oidc_token.txt
