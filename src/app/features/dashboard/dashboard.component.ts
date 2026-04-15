@@ -426,16 +426,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '5540',
       url: 'http://localhost:5540',
     },
-    gitlab: {
-      icon: '🦊',
-      label: 'GitLab (local)',
-      description: 'GitLab CE — instance locale',
-      detail:
-        'GitLab Community Edition — instance locale via docker-compose.gitlab.yml. Héberge les dépôts et pipelines CI/CD. Accès : http://localhost:9081. Premier démarrage : ~2-3 min. Enregistrer le runner : docker exec -it gitlab-runner gitlab-runner register --url http://host.docker.internal:9081 --token <token>.',
-      image: 'images/tools/gitlab.png',
-      port: '9081',
-      url: 'http://localhost:9081',
-    },
     sonarqube: {
       icon: '🔍',
       label: 'SonarQube',
@@ -881,36 +871,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
     },
     // Col 5 — CI/CD
     {
-      id: 'gitlab-local',
-      label: 'GitLab (local)',
-      col: 5,
-      row: 0,
-      icon: '🦊',
-      port: '9081',
-      container: 'gitlab',
-      url: 'http://localhost:9081',
-      tip: 'GitLab CE — instance locale Docker',
-      detail:
-        'GitLab Community Edition — instance locale via docker-compose.gitlab.yml. Héberge les dépôts et pipelines CI/CD sans consommer de minutes sur gitlab.com. Accès : http://localhost:9081. Premier démarrage : ~2-3 min. Enregistrer le runner local : docker exec -it gitlab-runner gitlab-runner register --url http://host.docker.internal:9081 --token <token>.',
-      image: 'images/tools/gitlab.png',
-    },
-    {
       id: 'gitlab-com',
       label: 'gitlab.com',
       col: 5,
-      row: 1,
+      row: 0,
       icon: '🌍',
-      url: 'https://gitlab.com/benoit.besson/customer-service/-/pipelines',
+      url: 'https://gitlab.com/mirador1/mirador-service/-/pipelines',
       tip: 'Dépôt distant — pipelines gitlab.com',
       detail:
-        "Instance SaaS gitlab.com — dépôt distant du projet customer-service. Les pipelines s'exécutent soit sur les shared runners GitLab (minutes partagées), soit sur le runner local enregistré. URL : https://gitlab.com/benoit.besson/customer-service.",
+        "Instance SaaS gitlab.com — groupe mirador1, projets mirador-service et mirador-ui. Les pipelines s'exécutent sur le runner local enregistré (glrt-*). Enregistrer un runner : ./run.sh runner puis ./run.sh register-cloud <TOKEN>. URL : https://gitlab.com/mirador1.",
       image: 'images/tools/gitlab.png',
     },
     {
       id: 'sonarqube',
       label: 'SonarQube',
       col: 5,
-      row: 2,
+      row: 1,
       icon: '🔍',
       container: 'sonarqube',
       tip: 'Static analysis — Java + TypeScript',
@@ -922,7 +898,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       id: 'maven-site',
       label: 'Maven Site (API)',
       col: 5,
-      row: 3,
+      row: 2,
       icon: '📊',
       container: 'maven-site',
       tip: 'Backend API quality reports — nginx',
@@ -934,7 +910,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       id: 'compodoc',
       label: 'Compodoc (UI)',
       col: 5,
-      row: 4,
+      row: 3,
       icon: '📐',
       container: 'compodoc',
       tip: 'Angular UI API docs — nginx',
@@ -961,9 +937,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'kafka', to: 'consumer' },
     { from: 'kafka', to: 'kafka-ui' },
     // Col 5 CI/CD → quality tools
-    { from: 'gitlab-local', to: 'sonarqube' },
-    { from: 'gitlab-local', to: 'maven-site' },
-    { from: 'gitlab-local', to: 'compodoc' },
+    { from: 'gitlab-com', to: 'sonarqube' },
+    { from: 'gitlab-com', to: 'maven-site' },
+    { from: 'gitlab-com', to: 'compodoc' },
     // Col 1 → 4 (API pushes to obs collectors via OTLP on port 4318)
     { from: 'api', to: 'loki' }, // OTLP traces + logs → LGTM (Tempo + Loki inside)
   ];
@@ -1000,13 +976,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       keycloak: 'keycloak',
       pgweb: 'pgweb',
       'redis-commander': 'redis-commander',
-      'customerservice-jaeger': 'jaeger',
       pgadmin: 'pgadmin',
       'kafka-ui': 'kafka-ui',
       redisinsight: 'redisinsight',
-      'customerservice-zipkin': 'zipkin',
       'customerservice-lgtm': 'loki',
-      gitlab: 'gitlab-local',
       sonarqube: 'sonarqube',
       'maven-site': 'maven-site',
       compodoc: 'compodoc',
@@ -1070,13 +1043,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     'redis-commander': 'Docker container state via Docker Engine API (container running = UP).',
     consumer: 'Inferred from Kafka container state — shown as UP when kafka-demo is running.',
     'kafka-ui': 'Docker container state via Docker Engine API (container running = UP).',
-    zipkin: 'Docker container state via Docker Engine API (container running = UP).',
     loki: 'Docker container state via Docker Engine API (container running = UP).',
-    grafana: 'Docker container state via Docker Engine API (container running = UP).',
-    jaeger: 'Docker container state via Docker Engine API (container running = UP).',
     'spring-app': 'Docker container state via Docker Engine API (container running = UP).',
-    'gitlab-local':
-      'Docker container state — "gitlab" container running = UP (docker-compose.gitlab.yml).',
     'gitlab-com':
       'HEAD https://gitlab.com (no-cors) — UP if reachable from the browser, DOWN if network error.',
   };
