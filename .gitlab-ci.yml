@@ -76,9 +76,9 @@ build:production:
       echo "$BUILD_OUT" > dist/build-warnings.txt
     - |
       echo "── Bundle analysis ──"
-      du -sh dist/customer-observability-ui/browser/*.js 2>/dev/null | sort -rh | head -10
+      du -sh dist/mirador-ui/browser/*.js 2>/dev/null | sort -rh | head -10 || true
       echo ""
-      TOTAL=$(du -sh dist/customer-observability-ui/browser/ 2>/dev/null | cut -f1)
+      TOTAL=$(du -sh dist/mirador-ui/browser/ 2>/dev/null | cut -f1 || echo "n/a")
       echo "Total bundle size: $TOTAL"
   artifacts:
     paths:
@@ -111,7 +111,7 @@ bundle-size-check:
   script:
     - |
       MAX_SIZE_KB=500
-      MAIN_JS=$(ls dist/customer-observability-ui/browser/main-*.js 2>/dev/null | head -1)
+      MAIN_JS=$(ls dist/mirador-ui/browser/main-*.js 2>/dev/null | head -1)
       if [ -z "$MAIN_JS" ]; then
         echo "WARN: No main-*.js found in dist, skipping bundle size check"
         exit 0
