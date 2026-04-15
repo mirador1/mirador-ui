@@ -32,6 +32,22 @@
           GitLab
         </a>
       }
+      <!-- SonarCloud: sonar.organization + sonar.projectKey are set in pom.xml -->
+      <a
+        class="btn-sonar"
+        href="https://sonarcloud.io/project/overview?id=mirador1_mirador-service"
+        target="_blank"
+        rel="noopener"
+        title="SonarCloud — code quality, coverage, bugs and security hotspots for mirador-service"
+      >
+        <!-- SonarCloud logo mark (simplified) -->
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+          <path
+            d="M19.5 13.5c0 4.14-3.36 7.5-7.5 7.5S4.5 17.64 4.5 13.5c0-2.76 1.5-5.19 3.75-6.54V3.75A9.02 9.02 0 0 0 3 13.5C3 18.75 7.25 23 12.5 23S22 18.75 22 13.5c0-3.84-2.4-7.14-5.82-8.53v3.3c1.93 1.17 3.32 3.24 3.32 5.23z"
+          />
+        </svg>
+        SonarCloud
+      </a>
       <button class="btn-refresh" (click)="loadReport()" [disabled]="loading()">
         <span class="refresh-icon" [class.spinning]="loading()">↻</span>
         Refresh
