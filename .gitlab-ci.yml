@@ -11,12 +11,9 @@ variables:
 
 default:
   image: node:${NODE_VERSION}-alpine
-  # Force all jobs to run on GitLab SaaS Linux runners.
-  # Without this, a locally-registered runner (Mac Docker Desktop) may pick up jobs,
-  # causing DinD failures: 'docker' hostname not DNS-resolvable on Mac Docker Desktop
-  # (uses 192.168.65.7 internal DNS which doesn't resolve service aliases).
-  tags:
-    - saas-linux-medium-amd64
+  # No global runner tag — most jobs (lint, build, test) run on any available runner.
+  # The docker-build and trivy jobs carry their own saas-linux-medium-amd64 tag
+  # because they need DinD (privileged mode) which the local Mac runner cannot provide.
   cache:
     key:
       files:
@@ -228,6 +225,9 @@ typedoc:
 docker-build:
   stage: docker
   image: docker:28
+  tags:
+    # DinD requires privileged mode, only available on GitLab SaaS Linux runners.
+    - saas-linux-medium-amd64
   services:
     - name: docker:28-dind
       alias: docker
@@ -275,6 +275,9 @@ trivy:scan:
   # allow_failure:true — CVEs are tracked informationally, not build-blocking.
   stage: docker
   image: aquasec/trivy:latest
+  tags:
+    # DinD is used to pull the image for scanning — requires privileged mode.
+    - saas-linux-medium-amd64
   needs:
     - job: docker-build
   rules:
