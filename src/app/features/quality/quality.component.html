@@ -183,6 +183,13 @@
       >
         ⚙️ Runtime
       </button>
+      <button
+        class="tab-btn"
+        [class.tab-active]="selectedTab() === 'pipeline'"
+        (click)="selectedTab.set('pipeline')"
+      >
+        🚀 Pipelines
+      </button>
     </div>
 
     <!-- Loading state -->
@@ -1401,6 +1408,70 @@
         </section>
       }
       <!-- end runtime tab -->
+
+      @if (selectedTab() === 'pipeline') {
+        <section class="tab-section">
+          <h2 class="section-title">🚀 Pipeline History</h2>
+          @if (r.pipeline?.available) {
+            <div class="info-grid">
+              <span class="info-label">Project</span>
+              <span class="info-value">
+                <a
+                  [href]="r.pipeline!.host + '/' + 'mirador1/mirador-service'"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  #{{ r.pipeline!.projectId }}
+                </a>
+              </span>
+            </div>
+            <table class="data-table" style="margin-top: 1rem">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Branch / Ref</th>
+                  <th>Status</th>
+                  <th>Started</th>
+                  <th>Duration</th>
+                  <th>Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of r.pipeline!.pipelines; track p.id) {
+                  <tr>
+                    <td>{{ p.id }}</td>
+                    <td>{{ p.ref }}</td>
+                    <td>
+                      <span [class]="'pipeline-status pipeline-' + p.status">
+                        {{ p.status }}
+                      </span>
+                    </td>
+                    <td>{{ p.createdAt.substring(0, 10) }}</td>
+                    <td>
+                      @if (p.durationSeconds != null) {
+                        {{ p.durationSeconds | number: '1.0-0' }}s
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td>
+                      <a [href]="p.webUrl" target="_blank" rel="noopener">↗</a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="na-message">
+              {{
+                r.pipeline?.reason ??
+                  'Pipeline history not available (configure GITLAB_PROJECT_ID).'
+              }}
+            </p>
+          }
+        </section>
+      }
+      <!-- end pipeline tab -->
     }
   }
   <!-- end @if (auth.isAdmin()) -->

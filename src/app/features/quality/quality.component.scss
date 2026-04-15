@@ -1008,3 +1008,37 @@
     opacity: 0.7;
   }
 }
+
+// Pipeline status badges
+.pipeline-status {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.pipeline-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+.pipeline-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.pipeline-running {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.pipeline-canceled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.pipeline-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.pipeline-skipped {
+  background: #f3f4f6;
+  color: #9ca3af;
+}

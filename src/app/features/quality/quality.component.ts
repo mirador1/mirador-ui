@@ -382,6 +382,24 @@ export interface QualityReport {
   sonar?: SonarReport;
   /** Live runtime metadata. */
   runtime?: RuntimeReport;
+  /** GitLab CI/CD pipeline history (last 10 runs). */
+  pipeline?: PipelineReport;
+}
+
+/** GitLab CI/CD pipeline history fetched from the GitLab REST API. */
+export interface PipelineReport {
+  available: boolean;
+  reason?: string;
+  projectId?: string;
+  host?: string;
+  pipelines?: Array<{
+    id: number;
+    ref: string;
+    status: string;
+    createdAt: string;
+    durationSeconds?: number;
+    webUrl: string;
+  }>;
 }
 
 /**
