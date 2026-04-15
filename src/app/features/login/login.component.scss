@@ -75,6 +75,44 @@ button {
   }
 }
 
+.btn-auth0 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem;
+  margin-top: 0.5rem;
+  background: #635dff; // Auth0 brand purple
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+
+  &:hover {
+    background: #4f49e0;
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--text-label);
+  font-size: 0.78rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-default);
+  }
+}
+
 .error {
   display: flex;
   align-items: flex-start;

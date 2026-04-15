@@ -1,14 +1,17 @@
 /**
- * LoginComponent — JWT authentication form.
+ * LoginComponent — authentication entry point.
  *
- * Submits username/password to /auth/login, stores the returned JWT token
- * in AuthService (signal + localStorage), and redirects to the dashboard.
- * Default credentials: admin / admin.
+ * Offers two login paths:
+ * 1. Auth0 Universal Login (production) — redirects to Auth0, returns with JWT access token
+ *    which Auth0BridgeService syncs into AuthService automatically.
+ * 2. Local JWT form (development) — calls POST /auth/login on the Spring Boot backend.
+ *    Default credentials: admin / admin.
  */
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -22,6 +25,7 @@ import { AuthService } from '../../core/auth/auth.service';
 export class LoginComponent {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  private readonly auth0 = inject(Auth0Service);
   private readonly router = inject(Router);
 
   /** Pre-filled username — default `admin` matches the Spring Boot in-memory user. */
@@ -47,6 +51,15 @@ export class LoginComponent {
 
   /** Signal: true while the login HTTP request is in flight. Disables the submit button. */
   loading = signal(false);
+
+  /**
+   * Redirect to Auth0 Universal Login.
+   * After authentication, Auth0 returns to window.location.origin with a code.
+   * Auth0BridgeService picks up isAuthenticated$ and syncs the token into AuthService.
+   */
+  loginWithAuth0(): void {
+    this.auth0.loginWithRedirect();
+  }
 
   /**
    * Submit the login form.

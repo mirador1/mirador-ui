@@ -1,6 +1,19 @@
 <div class="login-wrapper">
   <div class="login-card">
     <h2>Sign in</h2>
+
+    <!-- Auth0 — production OIDC login -->
+    <button class="btn-auth0" (click)="loginWithAuth0()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <path
+          d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.03 9.206 3.815 12.015L12.007 24l6.157-4.552c3.755-2.81 5.182-7.688 3.815-12z"
+        />
+      </svg>
+      Continue with Auth0
+    </button>
+
+    <div class="divider"><span>or (local dev)</span></div>
+
     <p class="hint">Default credentials: <code>admin / admin</code></p>
 
     @if (error()) {
