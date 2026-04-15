@@ -7,7 +7,7 @@
  * - Static analysis (SpotBugs) bug list
  * - Build metadata (artifact, version, timestamps)
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -215,7 +215,7 @@ export interface QualityReport {
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })
-export class QualityComponent implements OnInit {
+export class QualityComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly env = inject(EnvService);
   private readonly sanitizer = inject(DomSanitizer);
@@ -226,6 +226,9 @@ export class QualityComponent implements OnInit {
   error = signal<string | null>(null);
   selectedTab = signal<string>('overview');
   mavenSiteAvailable = signal(false);
+
+  // Polls every 10s until the nginx server responds — cleared once available or on destroy.
+  private _mavenSiteRetryTimer: ReturnType<typeof setInterval> | null = null;
 
   // Resolved base URL for the Maven site — prefers the dedicated nginx server (port 8083)
   // over the backend's /maven-site/ fallback. The dedicated server has an independent
@@ -244,6 +247,10 @@ export class QualityComponent implements OnInit {
     if (!this.auth.isAdmin()) return; // don't load if not admin
     this.loadReport();
     this.checkMavenSite();
+  }
+
+  ngOnDestroy(): void {
+    this.clearMavenSiteRetry();
   }
 
   loadReport(): void {
@@ -291,14 +298,33 @@ export class QualityComponent implements OnInit {
 
   checkMavenSite(): void {
     // Probe the Maven site server (dedicated nginx at mavenSiteUrl, or backend fallback).
+    // On failure, starts a 10s retry loop so the tab auto-updates once the server starts
+    // (e.g. after running `./run.sh site`) without requiring a full page reload.
+    this.clearMavenSiteRetry();
     this.http
       .get(`${this.mavenSiteBase}/index.html`, {
         responseType: 'text',
         observe: 'response',
       })
       .subscribe({
-        next: () => this.mavenSiteAvailable.set(true),
-        error: () => this.mavenSiteAvailable.set(false),
+        next: () => {
+          this.mavenSiteAvailable.set(true);
+          this.clearMavenSiteRetry(); // stop polling once the server is reachable
+        },
+        error: () => {
+          this.mavenSiteAvailable.set(false);
+          // Retry every 10s — mirrors the Docker API retry in DashboardComponent.
+          if (!this._mavenSiteRetryTimer) {
+            this._mavenSiteRetryTimer = setInterval(() => this.checkMavenSite(), 10_000);
+          }
+        },
       });
+  }
+
+  private clearMavenSiteRetry(): void {
+    if (this._mavenSiteRetryTimer !== null) {
+      clearInterval(this._mavenSiteRetryTimer);
+      this._mavenSiteRetryTimer = null;
+    }
   }
 }
