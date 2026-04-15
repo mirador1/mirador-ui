@@ -462,6 +462,14 @@
     <div class="alert-error">{{ dockerError() }}</div>
   }
 
+  <p class="archi-legend">
+    Status sources vary by service — <strong>API, DB, Redis</strong>: live
+    <code>/actuator/health</code> probe · <strong>most containers</strong>: Docker daemon via
+    <code>localhost:2375</code> · <strong>gitlab.com</strong>: HEAD request ·
+    <strong>Browser, Consumer, Swagger, Actuator</strong>: derived from their parent service.
+    Start/Stop buttons control Docker containers directly.
+  </p>
+
   <div class="archi-columns">
     @for (colLabel of topoColumns; track colLabel; let colIdx = $index) {
       <div class="archi-col">
