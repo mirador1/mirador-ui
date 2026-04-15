@@ -57,6 +57,8 @@ Budget limits in `angular.json`:
 - Branch: `dev`. One commit per logical change.
 - Push: `git push origin dev`.
 - Pre-push hook runs prettier and pre-push checks — do not skip.
+- When merging MR: `glab mr merge <id> --auto-merge --squash=false --remove-source-branch=false`.
+  **Always pass `--remove-source-branch=false`** — GitLab deletes source branch by default, which would destroy `dev`.
 - Never push to `main` directly.
 
 ## Key architecture patterns
