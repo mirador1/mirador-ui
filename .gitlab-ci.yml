@@ -274,7 +274,7 @@ trivy:scan:
   # Scans the freshly built frontend Docker image for OS + CVEs using Trivy.
   # allow_failure:true — CVEs are tracked informationally, not build-blocking.
   stage: docker
-  image: aquasec/trivy:latest
+  image: aquasecurity/trivy:latest
   tags:
     # DinD is used to pull the image for scanning — requires privileged mode.
     - saas-linux-medium-amd64
