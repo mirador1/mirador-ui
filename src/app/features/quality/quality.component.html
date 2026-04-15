@@ -1405,6 +1405,29 @@
                 </table>
               </div>
             }
+
+            @if (r.metrics!.untestedClasses && r.metrics!.untestedClasses!.length > 0) {
+              <h4>
+                Classes with 0% Coverage
+                <span class="section-count">{{ r.metrics!.untestedCount }}</span>
+              </h4>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cls of r.metrics!.untestedClasses; track cls) {
+                      <tr>
+                        <td class="class-name">{{ cls }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
           </section>
         }
       }

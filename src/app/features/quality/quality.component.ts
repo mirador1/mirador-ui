@@ -390,6 +390,10 @@ export interface QualityReport {
       class: string;
       complexity: number;
     }>;
+    /** Classes with 0% method coverage (METHOD_COVERED=0 but METHOD_TOTAL>0). */
+    untestedClasses?: string[];
+    /** Number of classes with 0% method coverage. */
+    untestedCount?: number;
   };
   /** PMD static analysis results. */
   pmd?: PmdReport;
