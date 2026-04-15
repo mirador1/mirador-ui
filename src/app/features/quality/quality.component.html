@@ -1377,6 +1377,34 @@
                 </tbody>
               </table>
             </div>
+
+            @if (r.metrics!.topComplexClasses && r.metrics!.topComplexClasses!.length > 0) {
+              <h4>Top 10 Most Complex Classes</h4>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th class="num-col">Cyclomatic Complexity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cls of r.metrics!.topComplexClasses; track cls.class) {
+                      <tr>
+                        <td class="class-name">{{ cls.class }}</td>
+                        <td
+                          class="num-col"
+                          [class.pct-warn]="cls.complexity > 15"
+                          [class.pct-bad]="cls.complexity > 30"
+                        >
+                          {{ cls.complexity }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
           </section>
         }
       }

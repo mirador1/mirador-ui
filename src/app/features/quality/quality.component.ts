@@ -385,6 +385,11 @@ export interface QualityReport {
       lines: number;
       complexity?: number;
     }>;
+    /** Top 10 most complex classes by cyclomatic complexity (COMPLEXITY_MISSED + COMPLEXITY_COVERED). */
+    topComplexClasses?: Array<{
+      class: string;
+      complexity: number;
+    }>;
   };
   /** PMD static analysis results. */
   pmd?: PmdReport;
