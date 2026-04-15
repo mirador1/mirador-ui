@@ -138,6 +138,33 @@
   }
 }
 
+// SonarCloud button — same shape as .btn-gitlab, orange SonarCloud brand colour
+.btn-sonar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: #f37021;
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: #f37021; // SonarCloud orange brand colour
+  }
+}
+
 .hash-link {
   text-decoration: none;
   &:hover code {

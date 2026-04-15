@@ -127,128 +127,6 @@
     </div>
   }
 
-  <!-- Stats cards -->
-  <div class="stats-section-header">
-    <span class="stats-section-label">Live metrics</span>
-    <a href="http://localhost:3000" target="_blank" rel="noopener" class="grafana-link"
-      >📊 Grafana</a
-    >
-  </div>
-  <div class="stats-grid">
-    <article class="stat-card">
-      <div class="stat-label-row">
-        <span class="stat-label">Total Customers</span>
-        <app-info-tip
-          text="GET /customers — totalElements field from paginated response."
-          source="/customers?page=0&size=1"
-        />
-      </div>
-      <span class="stat-value">{{ customerCount() ?? '—' }}</span>
-      <div class="stat-links">
-        <a routerLink="/customers">📋 Customers</a>
-        <a href="http://localhost:5050" target="_blank" rel="noopener">🐘 pgAdmin</a>
-      </div>
-    </article>
-    @if (metrics()) {
-      <article class="stat-card">
-        <div class="stat-label-row">
-          <span class="stat-label">HTTP Requests (total)</span>
-          <app-info-tip
-            text="Cumulative counter since startup."
-            source="http_server_requests_seconds_count"
-          />
-        </div>
-        <span class="stat-value">{{ metrics()!.httpRequestsTotal | number: '1.0-0' }}</span>
-      </article>
-      <article class="stat-card">
-        <div class="stat-label-row">
-          <span class="stat-label">Latency p50</span>
-          <app-info-tip
-            text="Median — 50% of requests are faster than this value. Computed from a sliding window quantile."
-            source='http_server_requests_seconds{quantile="0.5"}'
-          />
-        </div>
-        <span class="stat-value">{{ metrics()!.httpLatencyP50 | number: '1.1-1' }} ms</span>
-      </article>
-      <article class="stat-card">
-        <div class="stat-label-row">
-          <span class="stat-label">Latency p95</span>
-          <app-info-tip
-            text="95th percentile — only 5% of requests are slower. Key indicator for SLOs."
-            source='http_server_requests_seconds{quantile="0.95"}'
-          />
-        </div>
-        <span class="stat-value">{{ metrics()!.httpLatencyP95 | number: '1.1-1' }} ms</span>
-      </article>
-      <article class="stat-card">
-        <div class="stat-label-row">
-          <span class="stat-label">Latency p99</span>
-          <app-info-tip
-            text="Worst 1% of requests — detects outliers like Kafka timeouts or Ollama cold starts."
-            source='http_server_requests_seconds{quantile="0.99"}'
-          />
-        </div>
-        <span class="stat-value">{{ metrics()!.httpLatencyP99 | number: '1.1-1' }} ms</span>
-      </article>
-    }
-  </div>
-
-  <!-- Snapshot comparator -->
-  <div class="section-header">
-    <h3>
-      Before / After Comparator
-      <app-info-tip
-        text="1. Take Snapshot A. 2. Generate traffic below. 3. Take Snapshot B. The table shows the delta with percentage change."
-      />
-    </h3>
-    <div class="snapshot-actions">
-      <button class="refresh-btn" (click)="takeSnapshot('A')">📸 Snapshot A</button>
-      <button class="refresh-btn" (click)="takeSnapshot('B')">📸 Snapshot B</button>
-    </div>
-  </div>
-  @if (snapshotDiff()) {
-    <div class="snapshot-diff">
-      <table>
-        <thead>
-          <tr>
-            <th>Metric</th>
-            <th>Before (A)</th>
-            <th>After (B)</th>
-            <th>Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (d of snapshotDiff()!; track d.label) {
-            <tr>
-              <td>{{ d.label }}</td>
-              <td class="mono">{{ d.a | number: '1.1-1' }}</td>
-              <td class="mono">{{ d.b | number: '1.1-1' }}</td>
-              <td class="mono" [class.positive]="d.b > d.a" [class.negative]="d.b < d.a">
-                {{ d.pct }}
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  } @else if (snapshotA() || snapshotB()) {
-    <p class="muted">Take both snapshots to see the diff.</p>
-  }
-
-  <!-- Quick traffic generator -->
-  <div class="quick-traffic">
-    <button class="traffic-btn" (click)="quickTraffic()" [disabled]="trafficRunning()">
-      {{ trafficRunning() ? 'Sending...' : '⚡ Generate traffic' }}
-    </button>
-    <span class="traffic-hint"
-      >Includes slow endpoints (bio, enrich, aggregate) to impact latency</span
-    >
-    <app-info-tip
-      text="Sends 10 requests mixing fast endpoints (/customers, /health) and slow ones (/bio via Ollama, /enrich via Kafka, /aggregate via virtual threads) to visibly impact latency percentiles."
-      [wide]="true"
-    />
-  </div>
-
   <!-- Real-time requests chart -->
   <div class="section-header">
     <h3>
@@ -289,6 +167,307 @@
   } @else if (metricsService.running()) {
     <p class="muted">Collecting samples...</p>
   }
+
+  <!-- Latency history chart -->
+  @if (metricsService.samples().length > 1) {
+    <div class="section-header">
+      <h3>
+        HTTP Latency History
+        <app-info-tip
+          text="Polyline chart showing p50/p95/p99 response latency (ms) over the last ~2 minutes. Computed from http_server_requests_seconds_bucket histogram using linear interpolation. Same sample window as the throughput chart."
+          command="quantile(0.99, http_server_requests_seconds_bucket)"
+          source="/actuator/prometheus (histogram buckets)"
+        />
+      </h3>
+    </div>
+    <div class="chart-container">
+      <div class="chart-y-axis">
+        <span>{{ latencyChartLines().maxMs | number: '1.0-0' }} ms</span>
+        <span>0</span>
+      </div>
+      <svg viewBox="0 0 300 100" class="bar-chart" preserveAspectRatio="none">
+        <!-- p99 (outermost / slowest) — red -->
+        <polyline
+          [attr.points]="latencyChartLines().p99"
+          fill="none"
+          stroke="#ef4444"
+          stroke-width="1.2"
+          opacity="0.7"
+          vector-effect="non-scaling-stroke"
+        />
+        <!-- p95 — orange -->
+        <polyline
+          [attr.points]="latencyChartLines().p95"
+          fill="none"
+          stroke="#f59e0b"
+          stroke-width="1.2"
+          opacity="0.8"
+          vector-effect="non-scaling-stroke"
+        />
+        <!-- p50 (median / fastest) — green -->
+        <polyline
+          [attr.points]="latencyChartLines().p50"
+          fill="none"
+          stroke="#22c55e"
+          stroke-width="1.5"
+          opacity="0.9"
+          vector-effect="non-scaling-stroke"
+        />
+      </svg>
+      <div class="latency-legend">
+        <span class="leg-p50">p50</span>
+        <span class="leg-p95">p95</span>
+        <span class="leg-p99">p99</span>
+      </div>
+    </div>
+  }
+
+  <!-- JVM & System metrics -->
+  @if (metricsService.latestMetrics(); as m) {
+    <div class="section-header">
+      <h3>
+        JVM & System
+        <app-info-tip
+          text="Live JVM and OS metrics from /actuator/prometheus. Heap: jvm_memory_used_bytes{area=heap} / jvm_memory_max_bytes. CPU: process_cpu_usage (fraction of available CPU time used by the JVM process). Threads: jvm_threads_live_threads."
+          command="GET /actuator/prometheus"
+          source="jvm_memory_*, process_cpu_usage, jvm_threads_live_threads"
+        />
+      </h3>
+    </div>
+    <div class="jvm-grid">
+      <!-- Heap usage -->
+      <div class="jvm-card">
+        <div class="jvm-card-title">💾 Heap</div>
+        <div class="jvm-bar-track">
+          <div
+            class="jvm-bar-fill"
+            [style.width.%]="heapPercent()"
+            [class.jvm-bar-warn]="heapPercent() > 70"
+            [class.jvm-bar-crit]="heapPercent() > 90"
+          ></div>
+        </div>
+        <div class="jvm-bar-label">
+          {{ heapUsedMb() }} MB / {{ heapMaxMb() }} MB
+          <span class="jvm-pct" [class.warn]="heapPercent() > 70">{{ heapPercent() }}%</span>
+        </div>
+      </div>
+      <!-- CPU usage -->
+      <div class="jvm-card">
+        <div class="jvm-card-title">⚡ CPU</div>
+        <div class="jvm-bar-track">
+          <div
+            class="jvm-bar-fill"
+            [style.width.%]="cpuPercent()"
+            [class.jvm-bar-warn]="cpuPercent() > 60"
+            [class.jvm-bar-crit]="cpuPercent() > 85"
+          ></div>
+        </div>
+        <div class="jvm-bar-label">
+          Process: <span class="jvm-pct" [class.warn]="cpuPercent() > 60">{{ cpuPercent() }}%</span>
+        </div>
+      </div>
+      <!-- Thread count -->
+      <div class="jvm-card jvm-card-stat">
+        <div class="jvm-card-title">🧵 Threads</div>
+        <div class="jvm-stat-value">{{ m.threads }}</div>
+        <div class="jvm-stat-label">live threads</div>
+      </div>
+      <!-- HikariCP pool -->
+      <div class="jvm-card jvm-card-pool">
+        <div class="jvm-card-title">
+          🏊 DB Pool
+          <app-info-tip
+            text="HikariCP JDBC connection pool state. Active = connections currently executing a query. Idle = connections available for use. Pending = threads waiting for a connection (non-zero means pool is saturated)."
+            source="hikaricp_connections_{active,idle,pending}"
+          />
+        </div>
+        <div class="pool-bars">
+          <div class="pool-row">
+            <span class="pool-label">Active</span>
+            <div class="pool-track">
+              <div
+                class="pool-fill pool-active"
+                [style.width.%]="(m.hikariActive / (m.hikariActive + m.hikariIdle + 1)) * 100"
+              ></div>
+            </div>
+            <span class="pool-count">{{ m.hikariActive }}</span>
+          </div>
+          <div class="pool-row">
+            <span class="pool-label">Idle</span>
+            <div class="pool-track">
+              <div
+                class="pool-fill pool-idle"
+                [style.width.%]="(m.hikariIdle / (m.hikariActive + m.hikariIdle + 1)) * 100"
+              ></div>
+            </div>
+            <span class="pool-count">{{ m.hikariIdle }}</span>
+          </div>
+          <div class="pool-row">
+            <span class="pool-label">Pending</span>
+            <div class="pool-track">
+              <div
+                class="pool-fill pool-pending"
+                [style.width.%]="m.hikariPending > 0 ? 100 : 0"
+              ></div>
+            </div>
+            <span class="pool-count" [class.warn]="m.hikariPending > 0">{{ m.hikariPending }}</span>
+          </div>
+        </div>
+      </div>
+      <!-- HTTP stats -->
+      <div class="jvm-card jvm-card-stat">
+        <div class="jvm-card-title">📊 HTTP</div>
+        <div class="jvm-stat-value">{{ m.httpRequestsTotal | number }}</div>
+        <div class="jvm-stat-label">total requests</div>
+        <div class="jvm-stat-sub">
+          Error rate: <span [class.warn]="errorRatePercent() > 1">{{ errorRatePercent() }}%</span>
+        </div>
+      </div>
+      <!-- Latency snapshot -->
+      <div class="jvm-card jvm-card-latency">
+        <div class="jvm-card-title">⏱ Latency</div>
+        <div class="latency-table">
+          <div class="lat-row">
+            <span class="lat-pct leg-p50">p50</span
+            ><span class="lat-val">{{ m.httpLatencyP50 | number: '1.1-1' }} ms</span>
+          </div>
+          <div class="lat-row">
+            <span class="lat-pct leg-p95">p95</span
+            ><span class="lat-val">{{ m.httpLatencyP95 | number: '1.1-1' }} ms</span>
+          </div>
+          <div class="lat-row">
+            <span class="lat-pct leg-p99">p99</span
+            ><span class="lat-val">{{ m.httpLatencyP99 | number: '1.1-1' }} ms</span>
+          </div>
+        </div>
+      </div>
+      <!-- Customer count -->
+      @if (customerCount() !== null) {
+        <div class="jvm-card jvm-card-stat">
+          <div class="jvm-card-title">👥 Customers</div>
+          <div class="jvm-stat-value">{{ customerCount() | number }}</div>
+          <div class="jvm-stat-label">total in DB</div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Code Quality Summary -->
+  <section class="section">
+    <div class="section-header">
+      <h3>
+        Code Quality
+        <app-info-tip
+          text="Build quality snapshot from /actuator/quality. Aggregates JaCoCo coverage, SpotBugs static analysis, Surefire tests, and SonarCloud ratings. Data reflects the last mvn verify run — restart the app after a rebuild to refresh."
+          [wide]="true"
+        />
+      </h3>
+      <a routerLink="/quality" class="quality-full-link">View full report →</a>
+    </div>
+
+    @if (qualitySummary() === null) {
+      <p class="quality-loading">Loading quality data…</p>
+    }
+    @if (qualitySummary() !== null && !qualitySummary()!.available) {
+      <p class="quality-unavailable">
+        Quality report not available — run <code>mvn verify</code> and restart the app.
+      </p>
+    }
+    @if (qualitySummary()?.available) {
+      <div class="quality-grid">
+        <!-- Tests -->
+        <div class="quality-card">
+          <span class="quality-icon">🧪</span>
+          <div class="quality-value">{{ qualitySummary()!.testsTotal ?? '—' }}</div>
+          <div class="quality-label">Tests</div>
+          @if (qualitySummary()!.testsPassed !== null) {
+            <span
+              class="quality-badge"
+              [class.quality-badge-pass]="qualitySummary()!.testsPassed!"
+              [class.quality-badge-fail]="!qualitySummary()!.testsPassed!"
+              >{{ qualitySummary()!.testsPassed ? 'PASSED' : 'FAILED' }}</span
+            >
+          }
+        </div>
+
+        <!-- Coverage -->
+        <div class="quality-card">
+          <span class="quality-icon">📊</span>
+          <div class="quality-value">
+            @if (qualitySummary()!.coveragePct !== null) {
+              {{ qualitySummary()!.coveragePct! | number: '1.0-1' }}%
+            } @else {
+              —
+            }
+          </div>
+          <div class="quality-label">Coverage</div>
+          @if (qualitySummary()!.coveragePct !== null) {
+            <div class="quality-bar-track">
+              <div
+                class="quality-bar-fill"
+                [style.width.%]="qualitySummary()!.coveragePct!"
+                [class.quality-bar-low]="qualitySummary()!.coveragePct! < 60"
+                [class.quality-bar-mid]="
+                  qualitySummary()!.coveragePct! >= 60 && qualitySummary()!.coveragePct! < 80
+                "
+                [class.quality-bar-high]="qualitySummary()!.coveragePct! >= 80"
+              ></div>
+            </div>
+          }
+        </div>
+
+        <!-- SpotBugs -->
+        <div class="quality-card">
+          <span class="quality-icon">🐛</span>
+          <div class="quality-value">{{ qualitySummary()!.bugsTotal ?? '—' }}</div>
+          <div class="quality-label">Bugs (SpotBugs)</div>
+          @if (qualitySummary()!.bugsTotal !== null) {
+            <span
+              class="quality-badge"
+              [class.quality-badge-pass]="qualitySummary()!.bugsTotal === 0"
+              [class.quality-badge-warn]="qualitySummary()!.bugsTotal! > 0"
+              >{{
+                qualitySummary()!.bugsTotal === 0 ? 'Clean' : qualitySummary()!.bugsTotal + ' found'
+              }}</span
+            >
+          }
+        </div>
+
+        <!-- SonarCloud -->
+        <div class="quality-card">
+          <span class="quality-icon">☁️</span>
+          <div
+            class="quality-value quality-sonar-rating"
+            [class.rating-a]="qualitySummary()!.sonarRating === 'A'"
+            [class.rating-b]="qualitySummary()!.sonarRating === 'B'"
+            [class.rating-c]="qualitySummary()!.sonarRating === 'C'"
+            [class.rating-d]="qualitySummary()!.sonarRating === 'D'"
+            [class.rating-e]="qualitySummary()!.sonarRating === 'E'"
+          >
+            {{ qualitySummary()!.sonarRating ?? '—' }}
+          </div>
+          <div class="quality-label">Sonar Reliability</div>
+          @if (qualitySummary()!.sonarUrl) {
+            <a
+              [href]="qualitySummary()!.sonarUrl!"
+              target="_blank"
+              rel="noopener"
+              class="quality-sonar-link"
+              >sonarcloud.io ↗</a
+            >
+          } @else {
+            <a
+              href="https://sonarcloud.io/project/overview?id=mirador1_mirador-service"
+              target="_blank"
+              rel="noopener"
+              class="quality-sonar-link"
+              >sonarcloud.io ↗</a
+            >
+          }
+        </div>
+      </div>
+    }
+  </section>
 
   <h3>
     Health Probes

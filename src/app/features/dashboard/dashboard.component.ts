@@ -3,28 +3,25 @@
  *
  * Features:
  * - Health probes: /actuator/health, /readiness, /liveness with UP/DOWN badges
- * - Stats cards: customer count, HTTP request count, latency percentiles
  * - Live throughput chart: RPS bar chart (delegates to MetricsService singleton)
  * - Auto-refresh: configurable polling interval (1s / 5s / 10s / 30s)
  * - Health change detection: toasts on UP/DOWN transitions
  * - Docker service control: list/start/stop/restart containers via Docker Engine API proxy
  * - Dependency graph: SVG graph of backend services with health status colors
- * - Quick traffic generator: fires mixed requests to populate metrics
  * - Request heatmap: 24h traffic distribution grid
- * - Snapshot comparator: before/after metric diffs with percentage change
  * - Observability links: one-click access to Grafana, Prometheus, Zipkin, etc.
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
-import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.service';
+import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 /**
@@ -90,7 +87,7 @@ interface DockerContainer {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, RouterLink, InfoTipComponent],
+  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -117,23 +114,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Signal: timestamp of the last successful refresh cycle. Displayed in the topbar. */
   lastRefresh = signal<Date | null>(null);
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
-
-  /** Signal: total customer count from `GET /customers?size=1`. Null on error. */
-  customerCount = signal<number | null>(null);
-
-  /** Signal: latest parsed Prometheus metrics for the stats cards. Null until first poll. */
-  metrics = signal<ParsedMetrics | null>(null);
-
-  /** Signal: error message when Prometheus metrics cannot be fetched. */
-  metricsError = signal('');
-
   // ── Health history ─────────────────────────────────────────────────────────
 
   /** Signal: rolling history of health probe snapshots used to render sparklines. */
   healthHistory = signal<HealthSnapshot[]>([]);
 
-  // ── Real-time chart (persisted in MetricsService) ──────────────────────────
+  // ── Customer count ─────────────────────────────────────────────────────────
+
+  /** Signal: total customer count from the database. Null until first successful API call. */
+  customerCount = signal<number | null>(null);
+
+  // ── Code Quality Summary ────────────────────────────────────────────────────
+
+  /**
+   * Minimal quality snapshot fetched once on init from /actuator/quality.
+   * Shows tests/coverage/bugs/sonar at a glance — links to the full /quality page.
+   * Not refreshed on every auto-refresh cycle (quality data only changes after a rebuild).
+   */
+  qualitySummary = signal<{
+    testsTotal: number | null;
+    testsPassed: boolean | null;
+    coveragePct: number | null;
+    bugsTotal: number | null;
+    sonarRating: string | null;
+    sonarUrl: string | null;
+    available: boolean;
+  } | null>(null);
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
 
@@ -180,7 +186,50 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.refresh();
     this.setAutoRefresh(this.autoRefreshInterval());
     this.loadContainers();
+    // Auto-start Prometheus polling so JVM/latency/throughput sections are immediately
+    // populated without requiring the user to click "Start live chart" first.
+    this.metricsService.start();
+    this.loadQualitySummary();
     window.addEventListener('app:refresh', this._onRefresh);
+  }
+
+  /**
+   * Fetch the quality summary from /actuator/quality and populate qualitySummary.
+   * Called once on init — quality data only changes after mvn verify + restart.
+   * Gracefully handles unavailable endpoint (backend running without reports).
+   */
+  loadQualitySummary(): void {
+    this.http
+      .get<Record<string, unknown>>(`${this.env.baseUrl()}/actuator/quality`)
+      .pipe(catchError(() => of(null)))
+      .subscribe((data) => {
+        if (!data) {
+          this.qualitySummary.set({
+            available: false,
+            testsTotal: null,
+            testsPassed: null,
+            coveragePct: null,
+            bugsTotal: null,
+            sonarRating: null,
+            sonarUrl: null,
+          });
+          return;
+        }
+        const tests = data['tests'] as Record<string, unknown> | undefined;
+        const cov = data['coverage'] as Record<string, unknown> | undefined;
+        const bugs = data['bugs'] as Record<string, unknown> | undefined;
+        const sonar = data['sonar'] as Record<string, unknown> | undefined;
+        const instr = cov?.['instructions'] as Record<string, unknown> | undefined;
+        this.qualitySummary.set({
+          available: true,
+          testsTotal: (tests?.['total'] as number) ?? null,
+          testsPassed: tests?.['status'] === 'PASSED',
+          coveragePct: (instr?.['pct'] as number) ?? null,
+          bugsTotal: (bugs?.['total'] as number) ?? null,
+          sonarRating: (sonar?.['reliabilityRating'] as string) ?? null,
+          sonarUrl: (sonar?.['url'] as string) ?? null,
+        });
+      });
   }
 
   ngOnDestroy(): void {
@@ -236,14 +285,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: () => this.liveness.set({ status: 'UNREACHABLE' }),
     });
 
+    // Customer count — lightweight page request (size=1) just to get totalElements
     this.api.getCustomers(0, 1).subscribe({
       next: (page) => this.customerCount.set(page.totalElements),
-      error: () => this.customerCount.set(null),
-    });
-
-    this.api.getPrometheusMetrics().subscribe({
-      next: (text) => this.metrics.set(this.metricsService.parsePrometheus(text)),
-      error: () => this.metricsError.set('Could not fetch metrics'),
+      error: () => {},
     });
 
     // Refresh dependency graph and Docker containers alongside health probes
@@ -287,6 +332,72 @@ export class DashboardComponent implements OnInit, OnDestroy {
   chartMaxRps(): number {
     const samples = this.metricsService.samples();
     return Math.max(1, ...samples.map((s) => s.rps));
+  }
+
+  // ── Latency history chart ────────────────────────────────────────────────────
+  // Renders an SVG polyline for each of p50/p95/p99 over the sample window.
+  // The chart uses the same 300×100 viewBox as the throughput bar chart.
+
+  latencyChartLines(): {
+    p50: string;
+    p95: string;
+    p99: string;
+    maxMs: number;
+  } {
+    const samples = this.metricsService.samples();
+    if (samples.length < 2) return { p50: '', p95: '', p99: '', maxMs: 0 };
+    const maxMs = Math.max(
+      1,
+      ...samples.map((s) => Math.max(s.latencyP50, s.latencyP95, s.latencyP99)),
+    );
+    const w = 300;
+    const h = 80; // chart height in viewBox units
+    const toPoint = (i: number, val: number) => {
+      const x = (i / (samples.length - 1)) * w;
+      const y = h - (val / maxMs) * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    };
+    return {
+      p50: samples.map((s, i) => toPoint(i, s.latencyP50)).join(' '),
+      p95: samples.map((s, i) => toPoint(i, s.latencyP95)).join(' '),
+      p99: samples.map((s, i) => toPoint(i, s.latencyP99)).join(' '),
+      maxMs,
+    };
+  }
+
+  // ── JVM heap gauge ─────────────────────────────────────────────────────────
+
+  /**
+   * Heap usage as a percentage 0–100. Returns 0 if metrics are not yet available
+   * or if heap max is unknown (-1, which happens for some GC configurations).
+   */
+  heapPercent(): number {
+    const m = this.metricsService.latestMetrics();
+    if (!m || m.heapMaxBytes <= 0) return 0;
+    return Math.round((m.heapUsedBytes / m.heapMaxBytes) * 100);
+  }
+
+  heapUsedMb(): number {
+    const m = this.metricsService.latestMetrics();
+    return m ? Math.round(m.heapUsedBytes / 1_048_576) : 0;
+  }
+
+  heapMaxMb(): number {
+    const m = this.metricsService.latestMetrics();
+    return m && m.heapMaxBytes > 0 ? Math.round(m.heapMaxBytes / 1_048_576) : 0;
+  }
+
+  /** CPU usage as an integer percentage 0–100. */
+  cpuPercent(): number {
+    const m = this.metricsService.latestMetrics();
+    return m ? Math.round(m.cpuProcess * 100) : 0;
+  }
+
+  /** Error rate as a percentage 0–100 (errors / total requests * 100). */
+  errorRatePercent(): number {
+    const m = this.metricsService.latestMetrics();
+    if (!m || m.httpRequestsTotal === 0) return 0;
+    return Math.round((m.httpErrorCount / m.httpRequestsTotal) * 100 * 10) / 10;
   }
 
   // ── Docker service control ─────────────────────────────────────────────────
@@ -566,54 +677,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   isDockerActionLoading(name: string, action: string): boolean {
     return this.dockerActionLoading() === `${name}:${action}`;
-  }
-
-  // ── Quick traffic generator ────────────────────────────────────────────────
-
-  /** Signal: true while the quick traffic generation is running. Disables the button. */
-  trafficRunning = signal(false);
-
-  /**
-   * Fire a fixed set of 9 mixed requests to populate Prometheus metrics for the stats cards.
-   * Includes slow endpoints (bio, enrich, aggregate) so latency percentiles are non-zero.
-   * Shows a toast on completion and triggers a full dashboard refresh.
-   */
-  quickTraffic(): void {
-    this.trafficRunning.set(true);
-    const base = this.env.baseUrl();
-    // Fetch first available customer ID, then build endpoint list
-    this.api.getFirstCustomerId().subscribe((id) => {
-      const endpoints = [
-        `${base}/customers?page=0&size=5`,
-        `${base}/customers?page=0&size=5`,
-        `${base}/customers/recent`,
-        `${base}/actuator/health`,
-        `${base}/customers/aggregate`,
-        `${base}/customers/${id}/bio`,
-        `${base}/customers/${id}/todos`,
-        `${base}/customers/${id}/enrich`,
-        `${base}/customers?page=0&size=100`,
-      ];
-      let done = 0;
-      const total = endpoints.length;
-      this.toast.show(
-        `Sending ${total} requests (including slow ones: bio, enrich, aggregate)...`,
-        'info',
-      );
-      for (const url of endpoints) {
-        this.http
-          .get(url)
-          .pipe(catchError(() => of(null)))
-          .subscribe(() => {
-            done++;
-            if (done === total) {
-              this.trafficRunning.set(false);
-              this.toast.show(`${total} requests done — latency metrics updated`, 'success');
-              this.refresh();
-            }
-          });
-      }
-    }); // end getFirstCustomerId subscribe
   }
 
   // ── Topology map ───────────────────────────────────────────────────────────
@@ -1084,45 +1147,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (intensity < 0.6) return '#86efac';
     if (intensity < 0.8) return '#4ade80';
     return '#16a34a';
-  }
-
-  // ── Snapshot comparator ───────────────────────────────────────────────────
-  snapshotA = signal<(ParsedMetrics & { customerCount: number; timestamp: Date }) | null>(null);
-  snapshotB = signal<(ParsedMetrics & { customerCount: number; timestamp: Date }) | null>(null);
-
-  takeSnapshot(slot: 'A' | 'B'): void {
-    const m = this.metrics();
-    const cc = this.customerCount() ?? 0;
-    if (!m) {
-      this.toast.show('No metrics available — refresh first', 'warn');
-      return;
-    }
-    const snap = { ...m, customerCount: cc, timestamp: new Date() };
-    if (slot === 'A') this.snapshotA.set(snap);
-    else this.snapshotB.set(snap);
-    this.toast.show(`Snapshot ${slot} saved`, 'info');
-  }
-
-  snapshotDiff(): Array<{ label: string; a: number; b: number; pct: string }> | null {
-    const a = this.snapshotA();
-    const b = this.snapshotB();
-    if (!a || !b) return null;
-    const diff = (label: string, av: number, bv: number) => {
-      const pct =
-        av === 0
-          ? bv > 0
-            ? '+100%'
-            : '0%'
-          : `${bv >= av ? '+' : ''}${(((bv - av) / av) * 100).toFixed(1)}%`;
-      return { label, a: av, b: bv, pct };
-    };
-    return [
-      diff('Customers', a.customerCount, b.customerCount),
-      diff('Total requests', a.httpRequestsTotal, b.httpRequestsTotal),
-      diff('Latency p50', a.httpLatencyP50, b.httpLatencyP50),
-      diff('Latency p95', a.httpLatencyP95, b.httpLatencyP95),
-      diff('Latency p99', a.httpLatencyP99, b.httpLatencyP99),
-    ];
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
