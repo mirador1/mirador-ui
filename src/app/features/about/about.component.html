@@ -240,12 +240,12 @@
           <tr>
             <td class="arch-layer">📡 Obs Collectors</td>
             <td class="arch-role">Trace, log &amp; metric collection</td>
-            <td class="arch-tech">OpenTelemetry OTLP → LGTM (Loki + Tempo) · Zipkin</td>
+            <td class="arch-tech">OpenTelemetry OTLP → LGTM (Loki + Tempo + Mimir) · Prometheus</td>
           </tr>
           <tr>
             <td class="arch-layer">📊 Obs Dashboards</td>
             <td class="arch-role">Telemetry visualization</td>
-            <td class="arch-tech">Grafana (incl. Pyroscope) · Prometheus UI · Zipkin UI</td>
+            <td class="arch-tech">Grafana LGTM (incl. Pyroscope) · Prometheus UI</td>
           </tr>
           <tr>
             <td class="arch-layer">🏗️ Infrastructure</td>
@@ -526,7 +526,7 @@
         />
         <text x="717" y="58" text-anchor="middle" font-size="11" fill="#f8fafc">OTEL LGTM</text>
         <text x="717" y="73" text-anchor="middle" font-size="10" fill="#94a3b8">Loki + Tempo</text>
-        <!-- Zipkin -->
+        <!-- Prometheus -->
         <rect
           x="647"
           y="91"
@@ -537,21 +537,8 @@
           stroke="#06b6d450"
           stroke-width="1"
         />
-        <text x="717" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Zipkin</text>
-        <text x="717" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">:9411</text>
-        <!-- Prometheus -->
-        <rect
-          x="647"
-          y="132"
-          width="141"
-          height="32"
-          rx="4"
-          fill="#06b6d425"
-          stroke="#06b6d450"
-          stroke-width="1"
-        />
-        <text x="717" y="148" text-anchor="middle" font-size="12" fill="#f8fafc">Prometheus</text>
-        <text x="717" y="160" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
+        <text x="717" y="107" text-anchor="middle" font-size="12" fill="#f8fafc">Prometheus</text>
+        <text x="717" y="119" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
 
         <!-- ── Col 5: OBS DASHBOARDS (x 820–990) ──────────────────────── -->
         <rect
@@ -593,7 +580,7 @@
         <!-- Prometheus UI -->
         <rect
           x="832"
-          y="124"
+          y="84"
           width="146"
           height="32"
           rx="4"
@@ -601,23 +588,10 @@
           stroke="#8b5cf650"
           stroke-width="1"
         />
-        <text x="905" y="140" text-anchor="middle" font-size="12" fill="#f8fafc">
+        <text x="905" y="100" text-anchor="middle" font-size="12" fill="#f8fafc">
           Prometheus UI
         </text>
-        <text x="905" y="152" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
-        <!-- Zipkin UI -->
-        <rect
-          x="832"
-          y="165"
-          width="146"
-          height="32"
-          rx="4"
-          fill="#8b5cf625"
-          stroke="#8b5cf650"
-          stroke-width="1"
-        />
-        <text x="905" y="181" text-anchor="middle" font-size="12" fill="#f8fafc">Zipkin UI</text>
-        <text x="905" y="193" text-anchor="middle" font-size="10" fill="#94a3b8">:9411</text>
+        <text x="905" y="112" text-anchor="middle" font-size="10" fill="#94a3b8">:9090</text>
 
         <!-- ── Infrastructure footer ───────────────────────────────────── -->
         <rect
@@ -1236,8 +1210,8 @@ docker compose -f docker-compose.runner.yml up -d
           <tr>
             <td><code>docker-compose.observability.yml</code></td>
             <td>
-              LGTM all-in-one (Grafana + Loki + Tempo + Mimir), Prometheus, Pyroscope, Zipkin, Nginx
-              CORS proxy, docker-socket-proxy
+              LGTM all-in-one (Grafana + Loki + Tempo + Mimir), Prometheus, Pyroscope, Nginx CORS
+              proxy, docker-socket-proxy
             </td>
             <td>Full observability stack — metrics, traces, logs, profiling</td>
           </tr>
@@ -1335,11 +1309,6 @@ docker compose -f docker-compose.runner.yml up -d
             <td><code>:9090</code></td>
             <td>Prometheus</td>
             <td>Metrics scraping + PromQL</td>
-          </tr>
-          <tr>
-            <td><code>:9411</code></td>
-            <td>Zipkin</td>
-            <td>Distributed traces (alternative to Tempo)</td>
           </tr>
           <tr>
             <td><code>:4040</code></td>
@@ -1906,7 +1875,7 @@ Backend pod:
             <td><strong>Traces</strong></td>
             <td>Spring Boot auto-instrumentation</td>
             <td>OTEL OTLP (:4318)</td>
-            <td>Tempo · Zipkin (:9411) — both in Grafana LGTM (:3000)</td>
+            <td>Tempo — via Grafana LGTM (:3000, Explore → Traces)</td>
           </tr>
           <tr>
             <td><strong>Logs</strong></td>
