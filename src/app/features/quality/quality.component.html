@@ -192,6 +192,13 @@
       >
         🚀 Pipelines
       </button>
+      <button
+        class="tab-btn"
+        [class.tab-active]="selectedTab() === 'branches'"
+        (click)="selectedTab.set('branches')"
+      >
+        🌿 Branches
+      </button>
     </div>
 
     <!-- Loading state -->
@@ -1474,6 +1481,46 @@
         </section>
       }
       <!-- end pipeline tab -->
+
+      <!-- ================================================================== -->
+      <!-- BRANCHES TAB — remote git branches with last-commit date           -->
+      <!-- ================================================================== -->
+      @if (selectedTab() === 'branches') {
+        <section class="quality-section">
+          <h3><span class="section-icon">🌿</span> Active Branches</h3>
+
+          @if (!r.branches?.available) {
+            <p class="muted">{{ r.branches?.reason ?? 'Branch data not available.' }}</p>
+          } @else {
+            <p class="muted" style="margin-bottom: 0.75rem">
+              {{ r.branches!.total }} remote branches — sorted by most recently updated.
+            </p>
+            <div class="table-wrap">
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th>Branch</th>
+                    <th style="width: 14em">Last Commit</th>
+                    <th style="width: 12em">Author</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (b of r.branches!.branches; track b.name) {
+                    <tr>
+                      <td>
+                        <span class="branch-name">{{ b.name }}</span>
+                      </td>
+                      <td class="muted">{{ b.lastCommit.substring(0, 19) }}</td>
+                      <td class="muted">{{ b.author }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+      <!-- end branches tab -->
     }
   }
   <!-- end @if (auth.isAdmin()) -->

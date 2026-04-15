@@ -385,6 +385,20 @@ export interface QualityReport {
   runtime?: RuntimeReport;
   /** GitLab CI/CD pipeline history (last 10 runs). */
   pipeline?: PipelineReport;
+  /** Remote git branches with last-commit date (up to 20, sorted by recency). */
+  branches?: BranchesReport;
+}
+
+/** Remote git branches with last-commit date, from `git for-each-ref refs/remotes`. */
+export interface BranchesReport {
+  available: boolean;
+  reason?: string;
+  total?: number;
+  branches?: Array<{
+    name: string;
+    lastCommit: string;
+    author: string;
+  }>;
 }
 
 /** GitLab CI/CD pipeline history fetched from the GitLab REST API. */

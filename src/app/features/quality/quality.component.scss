@@ -1057,3 +1057,10 @@
   background: #f3f4f6;
   color: #9ca3af;
 }
+
+// Branches tab — branch name displayed in a monospace style to match git output
+.branch-name {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.85rem;
+  color: #4ade80; // green — matches the git branch colour convention
+}
