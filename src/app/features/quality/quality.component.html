@@ -219,9 +219,13 @@
           </div>
         </div>
 
-        <!-- Secondary cards: static analysis + security + mutation (shown when data is available) -->
+        <!-- Secondary cards: static analysis, security, mutation, runtime (shown when data is available) -->
         @if (
-          r.pmd?.available || r.checkstyle?.available || r.owasp?.available || r.pitest?.available
+          r.pmd?.available ||
+          r.checkstyle?.available ||
+          r.owasp?.available ||
+          r.pitest?.available ||
+          r.runtime?.available
         ) {
           <div class="summary-row summary-row-secondary">
             @if (r.pmd) {
@@ -315,15 +319,32 @@
                 }
               </div>
             }
+
+            @if (r.runtime?.available) {
+              <div class="summary-card summary-card-sm">
+                <div class="card-label">Runtime</div>
+                <div class="card-value" style="font-size: 0.9rem">
+                  @for (profile of r.runtime!.activeProfiles; track profile) {
+                    <span class="badge badge-profile">{{ profile }}</span>
+                  }
+                  @if (!r.runtime!.activeProfiles?.length) {
+                    <span class="muted">default</span>
+                  }
+                </div>
+                <div class="card-sub">{{ r.runtime!.uptimeHuman }}</div>
+              </div>
+            }
           </div>
         }
 
-        <!-- Quick links to Maven Site reports (only shown when Maven site is deployed) -->
-        @if (mavenSiteAvailable()) {
-          <div class="overview-maven-links">
-            <span class="overview-maven-label">📋 Full reports:</span>
+        <!-- Quick links to Maven Site — always visible, links enabled only when site is up -->
+        <div class="overview-maven-links">
+          <span class="overview-maven-label">📋 Maven Site:</span>
+          @if (mavenSiteAvailable()) {
+            <span class="maven-status maven-status-up">● Available</span>
             @for (
               page of [
+                { label: 'Project Summary', file: 'index.html' },
                 { label: 'Surefire Tests', file: 'surefire.html' },
                 { label: 'JaCoCo Coverage', file: 'jacoco/index.html' },
                 { label: 'SpotBugs', file: 'spotbugs.html' },
@@ -336,8 +357,13 @@
                 {{ page.label }} ↗
               </button>
             }
-          </div>
-        }
+          } @else {
+            <span class="maven-status maven-status-down">● Not deployed</span>
+            <span class="overview-maven-hint"
+              >Run <code>./run.sh site</code> to generate and serve it</span
+            >
+          }
+        </div>
       }
       <!-- end overview tab -->
 

@@ -820,6 +820,29 @@
   margin-right: 0.25rem;
 }
 
+.maven-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.3rem;
+
+  &.maven-status-up {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.1);
+  }
+
+  &.maven-status-down {
+    color: var(--text-muted);
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  }
+}
+
+.overview-maven-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .overview-maven-btn {
   background: var(--bg-hover, rgba(0, 0, 0, 0.05));
   border: 1px solid var(--border-default);
