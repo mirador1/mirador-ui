@@ -1082,3 +1082,19 @@
   font-size: 0.82rem;
   color: var(--text-primary);
 }
+
+// Dependency tree pre-formatted output from maven-dependency-plugin:tree
+.dep-tree {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.4;
+  white-space: pre;
+}

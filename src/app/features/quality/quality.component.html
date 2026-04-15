@@ -1318,6 +1318,18 @@
                 </tbody>
               </table>
             </div>
+
+            @if (r.dependencies!.dependencyTree?.available) {
+              <h4>
+                Dependency Tree
+                @if (r.dependencies!.dependencyTree!.totalTransitive) {
+                  <span class="section-count"
+                    >{{ r.dependencies!.dependencyTree!.totalTransitive }} transitive</span
+                  >
+                }
+              </h4>
+              <pre class="dep-tree">{{ r.dependencies!.dependencyTree!.tree }}</pre>
+            }
           </section>
         }
 
