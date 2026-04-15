@@ -1383,6 +1383,69 @@
         }
 
         <!-- ================================================================== -->
+        <!-- LICENSES SECTION -->
+        <!-- ================================================================== -->
+        @if (r.licenses?.available) {
+          <section class="quality-section">
+            <h3>
+              <span class="section-icon">⚖️</span> License Compliance
+              @if (r.licenses!.total) {
+                <span class="section-count">{{ r.licenses!.total }} deps</span>
+              }
+              @if (r.licenses!.incompatibleCount) {
+                <span class="badge badge-error"
+                  >{{ r.licenses!.incompatibleCount }} incompatible</span
+                >
+              }
+            </h3>
+
+            @if (r.licenses!.licenses?.length) {
+              <h4>License Distribution</h4>
+              <div class="license-grid">
+                @for (lic of r.licenses!.licenses; track lic.license) {
+                  <div class="license-card" [class.license-incompatible]="lic.incompatible">
+                    <div class="license-name">{{ lic.license }}</div>
+                    <div class="license-count">{{ lic.count }}</div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (r.licenses!.incompatibleCount) {
+              <h4>⚠ Potentially Incompatible Dependencies</h4>
+              <p class="analyze-label warn">
+                These licenses (GPL, AGPL, LGPL, CDDL, EPL) may require open-sourcing your code or
+                be incompatible with commercial distribution. Review with your legal team.
+              </p>
+              <table class="quality-table">
+                <thead>
+                  <tr>
+                    <th>Group</th>
+                    <th>Artifact</th>
+                    <th>Version</th>
+                    <th>License</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (dep of r.licenses!.dependencies; track dep.artifact) {
+                    @if (dep.incompatible) {
+                      <tr class="row-outdated">
+                        <td class="class-name">{{ dep.group }}</td>
+                        <td class="class-name">{{ dep.artifact }}</td>
+                        <td>{{ dep.version }}</td>
+                        <td>
+                          <span class="latest-version">{{ dep.license }}</span>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            }
+          </section>
+        }
+
+        <!-- ================================================================== -->
         <!-- METRICS SECTION -->
         <!-- ================================================================== -->
         @if (r.metrics?.available) {

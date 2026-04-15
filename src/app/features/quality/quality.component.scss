@@ -1137,3 +1137,43 @@
   color: #4caf50;
   margin: 0.5rem 0;
 }
+
+// License compliance grid
+.license-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.license-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  min-width: 120px;
+  text-align: center;
+
+  .license-name {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.2rem;
+  }
+
+  .license-count {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &.license-incompatible {
+    border-color: #e53e3e;
+    background: rgba(229, 62, 62, 0.07);
+    .license-name {
+      color: #e53e3e;
+    }
+    .license-count {
+      color: #e53e3e;
+    }
+  }
+}

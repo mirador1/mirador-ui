@@ -429,6 +429,23 @@ export interface QualityReport {
   pipeline?: PipelineReport;
   /** Remote git branches with last-commit date (up to 20, sorted by recency). */
   branches?: BranchesReport;
+  /** Third-party dependency license compliance (from license-maven-plugin:add-third-party). */
+  licenses?: {
+    available: boolean;
+    total?: number;
+    /** Number of dependencies with potentially incompatible licenses (GPL, AGPL, LGPL, CDDL, EPL). */
+    incompatibleCount?: number;
+    /** License names grouped by usage count, sorted by count desc. */
+    licenses?: Array<{ license: string; count: number; incompatible: boolean }>;
+    dependencies?: Array<{
+      group: string;
+      artifact: string;
+      version: string;
+      license: string;
+      /** True when license is GPL/AGPL/LGPL/CDDL/EPL — may be incompatible with commercial use. */
+      incompatible: boolean;
+    }>;
+  };
 }
 
 /** Remote git branches with last-commit date, from `git for-each-ref refs/remotes`. */
