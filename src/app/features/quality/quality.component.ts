@@ -173,6 +173,7 @@ export interface QualityReport {
   build: BuildReport;
   git?: {
     available: boolean;
+    remoteUrl?: string;
     commits?: Array<{ hash: string; author: string; date: string; message: string }>;
   };
   api?: {
@@ -241,6 +242,7 @@ export class QualityComponent implements OnInit, OnDestroy {
     { label: 'Surefire Tests', file: 'surefire.html', icon: '🧪' },
     { label: 'JaCoCo Coverage', file: 'jacoco/index.html', icon: '📊' },
     { label: 'SpotBugs', file: 'spotbugs.html', icon: '🐛' },
+    { label: 'Mutation Testing', file: 'pit-reports/index.html', icon: '🧬' },
     { label: 'CVE Scan', file: 'dependency-check-report.html', icon: '🛡️' },
     { label: 'Javadoc', file: 'apidocs/index.html', icon: '📚' },
   ];
@@ -301,6 +303,27 @@ export class QualityComponent implements OnInit, OnDestroy {
 
   nvdUrl(cve: string): string {
     return `https://nvd.nist.gov/vuln/detail/${cve}`;
+  }
+
+  /**
+   * Converts a git remote URL (SSH or HTTPS) to a browseable web URL.
+   * e.g. git@gitlab.com:foo/bar.git  → https://gitlab.com/foo/bar
+   *      https://gitlab.com/foo/bar  → https://gitlab.com/foo/bar
+   */
+  gitWebUrl(remoteUrl: string): string {
+    // SSH format: git@host:path.git
+    const ssh = remoteUrl.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+    if (ssh) return `https://${ssh[1]}/${ssh[2]}`;
+    // HTTPS format: https://host/path.git
+    return remoteUrl.replace(/\.git$/, '');
+  }
+
+  /** Returns the commit URL for a given hash on the git remote. */
+  commitUrl(remoteUrl: string, hash: string): string {
+    const base = this.gitWebUrl(remoteUrl);
+    // GitLab and GitHub both use /-/commit/<hash>... but GitHub uses /commit/<hash>
+    if (base.includes('gitlab')) return `${base}/-/commit/${hash}`;
+    return `${base}/commit/${hash}`;
   }
 
   checkMavenSite(): void {
