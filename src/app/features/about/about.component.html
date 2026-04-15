@@ -1727,6 +1727,33 @@ k8s/
   @if (activeTab() === 'deploy-gcp') {
     <article class="card deploy-card">
       <h2>☁️ Google Cloud — GKE Autopilot</h2>
+
+      <!-- Live project links -->
+      <div class="deploy-links">
+        <a
+          href="https://console.cloud.google.com/home/dashboard?project=project-8d6ea68c-33ac-412b-8aa"
+          target="_blank"
+          rel="noopener"
+          class="deploy-link"
+        >
+          🌐 GCP Console — project mirador
+        </a>
+        <a
+          href="https://console.cloud.google.com/kubernetes/clusters/details/europe-west1/mirador-prod/details?project=project-8d6ea68c-33ac-412b-8aa"
+          target="_blank"
+          rel="noopener"
+          class="deploy-link"
+        >
+          ☸️ GKE Cluster — mirador-prod (europe-west1)
+        </a>
+        <a href="http://34.52.233.183/" target="_blank" rel="noopener" class="deploy-link">
+          🚀 Application — http://34.52.233.183
+        </a>
+        <a href="https://gitlab.com/mirador1" target="_blank" rel="noopener" class="deploy-link">
+          🦊 GitLab — mirador1 group
+        </a>
+      </div>
+
       <p class="card-intro">
         The production environment runs on <strong>GKE Autopilot</strong> — Google's fully managed
         Kubernetes offering where node provisioning, scaling, and patching are handled by GCP. All
