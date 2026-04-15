@@ -10,6 +10,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -210,12 +211,14 @@ export interface QualityReport {
   selector: 'app-quality',
   standalone: true,
   imports: [DecimalPipe],
+  // DomSanitizer is not imported as a module — it is injected directly as a service.
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })
 export class QualityComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly env = inject(EnvService);
+  private readonly sanitizer = inject(DomSanitizer);
   readonly auth = inject(AuthService);
 
   report = signal<QualityReport | null>(null);
@@ -223,6 +226,21 @@ export class QualityComponent implements OnInit {
   error = signal<string | null>(null);
   selectedTab = signal<string>('overview');
   mavenSiteAvailable = signal(false);
+
+  // Absolute backend URL for the Maven site iframe.
+  // A relative /maven-site/... URL would resolve to the Angular dev server (port 4200),
+  // not the Spring Boot backend (port 8080) — showing the Angular UI inside the iframe.
+  // SafeResourceUrl is required by Angular to allow iframes pointing to external origins.
+  get mavenSiteIframeSrc(): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `${this.env.baseUrl()}/maven-site/index.html`,
+    );
+  }
+
+  /** Absolute backend base URL for Maven site navigation links. */
+  get mavenSiteBase(): string {
+    return `${this.env.baseUrl()}/maven-site`;
+  }
 
   ngOnInit(): void {
     if (!this.auth.isAdmin()) return; // don't load if not admin

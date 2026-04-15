@@ -1101,16 +1101,21 @@
           @if (mavenSiteAvailable()) {
             <div class="maven-site-container">
               <div class="maven-site-nav">
-                <a href="/maven-site/index.html" target="_blank">📋 Project Summary</a>
-                <a href="/maven-site/surefire.html" target="_blank">✅ Surefire Tests</a>
-                <a href="/maven-site/failsafe.html" target="_blank">🔗 Failsafe Tests</a>
-                <a href="/maven-site/jacoco/index.html" target="_blank">📊 JaCoCo Coverage</a>
-                <a href="/maven-site/spotbugs.html" target="_blank">🔬 SpotBugs</a>
-                <a href="/maven-site/apidocs/index.html" target="_blank">📚 Javadoc</a>
-                <a href="/maven-site/dependencies.html" target="_blank">📦 Dependencies</a>
+                <a [href]="mavenSiteBase + '/index.html'" target="_blank">📋 Project Summary</a>
+                <a [href]="mavenSiteBase + '/surefire.html'" target="_blank">✅ Surefire Tests</a>
+                <a [href]="mavenSiteBase + '/failsafe.html'" target="_blank">🔗 Failsafe Tests</a>
+                <a [href]="mavenSiteBase + '/jacoco/index.html'" target="_blank"
+                  >📊 JaCoCo Coverage</a
+                >
+                <a [href]="mavenSiteBase + '/spotbugs.html'" target="_blank">🔬 SpotBugs</a>
+                <a [href]="mavenSiteBase + '/apidocs/index.html'" target="_blank">📚 Javadoc</a>
+                <a [href]="mavenSiteBase + '/dependencies.html'" target="_blank">📦 Dependencies</a>
               </div>
+              <!-- [src] with SafeResourceUrl — absolute backend URL required.
+                   A relative /maven-site/... would resolve to the Angular dev server (port 4200)
+                   and show the Angular UI inside the iframe instead of the Maven reports. -->
               <iframe
-                src="/maven-site/index.html"
+                [src]="mavenSiteIframeSrc"
                 class="maven-site-frame"
                 title="Maven Site"
               ></iframe>
@@ -1118,7 +1123,8 @@
           } @else {
             <div class="maven-site-unavailable">
               <p>
-                ⚠️ Maven site not available. Run <code>mvn site</code> then restart the backend.
+                ⚠️ Maven site not available. Run <code>./run.sh site</code> to generate and serve
+                it.
               </p>
             </div>
           }
