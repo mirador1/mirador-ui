@@ -42,6 +42,41 @@
       </div>
     </div>
 
+    <!-- Raw reports from Maven Site — fixed above the tab bar, always visible -->
+    <div class="maven-raw-section">
+      <div class="maven-raw-header">
+        <span class="maven-raw-title">📋 Raw reports (Maven Site)</span>
+        @if (mavenSiteAvailable()) {
+          <span class="maven-status maven-status-up">● Available</span>
+        } @else {
+          <span class="maven-status maven-status-down">● Not deployed</span>
+          <span class="maven-raw-hint">Run <code>./run.sh site</code> to generate and serve</span>
+        }
+      </div>
+      <div class="maven-raw-grid">
+        @for (rep of mavenSiteReports; track rep.file) {
+          <div class="maven-raw-item">
+            <span class="maven-raw-label"
+              ><span class="maven-raw-icon">{{ rep.icon }}</span> {{ rep.label }}</span
+            >
+            @if (mavenSiteAvailable()) {
+              <a
+                class="maven-raw-btn"
+                [href]="mavenSiteBase + '/' + rep.file"
+                target="_blank"
+                rel="noopener"
+                >Detail ↗</a
+              >
+            } @else {
+              <span class="maven-raw-btn maven-raw-disabled" title="Maven Site not deployed"
+                >Not deployed</span
+              >
+            }
+          </div>
+        }
+      </div>
+    </div>
+
     <!-- Tab navigation -->
     <div class="tab-bar">
       <button
@@ -353,43 +388,6 @@
             }
           </div>
         }
-
-        <!-- Raw reports from Maven Site — always shown, linked when server is up -->
-        <div class="maven-raw-section">
-          <div class="maven-raw-header">
-            <span class="maven-raw-title">📋 Raw reports (Maven Site)</span>
-            @if (mavenSiteAvailable()) {
-              <span class="maven-status maven-status-up">● Available</span>
-            } @else {
-              <span class="maven-status maven-status-down">● Not deployed</span>
-              <span class="maven-raw-hint"
-                >Run <code>./run.sh site</code> to generate and serve</span
-              >
-            }
-          </div>
-          <div class="maven-raw-grid">
-            @for (rep of mavenSiteReports; track rep.file) {
-              <div class="maven-raw-item">
-                <span class="maven-raw-label"
-                  ><span class="maven-raw-icon">{{ rep.icon }}</span> {{ rep.label }}</span
-                >
-                @if (mavenSiteAvailable()) {
-                  <a
-                    class="maven-raw-btn"
-                    [href]="mavenSiteBase + '/' + rep.file"
-                    target="_blank"
-                    rel="noopener"
-                    >Detail ↗</a
-                  >
-                } @else {
-                  <span class="maven-raw-btn maven-raw-disabled" title="Maven Site not deployed"
-                    >Not deployed</span
-                  >
-                }
-              </div>
-            }
-          </div>
-        </div>
       }
       <!-- end overview tab -->
 
