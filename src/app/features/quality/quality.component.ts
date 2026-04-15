@@ -494,12 +494,21 @@ export class QualityComponent implements OnInit, OnDestroy {
   ];
 
   /**
-   * Computed SonarQube dashboard URL, built from the env-configured base URL.
-   * Falls back to a sensible default when the environment has no sonarUrl set.
-   * The project key 'mirador' matches sonar.projectKey in pom.xml.
+   * SonarQube projects list URL — shows both mirador (Java) and mirador-ui (Angular).
+   * /projects lists all projects; /dashboard?id=X is single-project and would hide mirador-ui.
    */
   get sonarUrl(): string {
+    return `${this.env.sonarUrl() ?? 'http://localhost:9000'}/projects`;
+  }
+
+  /** Direct SonarQube URL for the backend (Java) project. */
+  get sonarBackendUrl(): string {
     return `${this.env.sonarUrl() ?? 'http://localhost:9000'}/dashboard?id=mirador`;
+  }
+
+  /** Direct SonarQube URL for the frontend (Angular) project. */
+  get sonarFrontendUrl(): string {
+    return `${this.env.sonarUrl() ?? 'http://localhost:9000'}/dashboard?id=mirador-ui`;
   }
 
   /** Base URL of the Maven site: dedicated nginx server if configured, backend fallback. */

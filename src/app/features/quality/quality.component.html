@@ -119,7 +119,15 @@
         <!-- SonarQube Community Edition — self-hosted at port 9000 via Docker -->
         <div class="maven-raw-item">
           <span class="maven-raw-label"><span class="maven-raw-icon">🔍</span> SonarQube</span>
-          <a class="maven-raw-btn" [href]="sonarUrl" target="_blank" rel="noopener">Dashboard ↗</a>
+          <a class="maven-raw-btn" [href]="sonarUrl" target="_blank" rel="noopener"
+            >All projects ↗</a
+          >
+          <a class="maven-raw-btn" [href]="sonarBackendUrl" target="_blank" rel="noopener"
+            >Backend ↗</a
+          >
+          <a class="maven-raw-btn" [href]="sonarFrontendUrl" target="_blank" rel="noopener"
+            >Frontend ↗</a
+          >
         </div>
       </div>
     </div>
