@@ -10,7 +10,7 @@ import { Injectable, signal, computed } from '@angular/core';
 export interface Environment {
   name: string;
   baseUrl: string;
-  /** URL of the dedicated Maven site static server (nginx port 8083 locally).
+  /** URL of the dedicated Maven site static server (nginx port 8084 locally).
    *  Separate from the backend so the report server has an independent lifecycle
    *  (regenerated daily by CI, not on every backend deploy). */
   mavenSiteUrl?: string;
@@ -22,7 +22,7 @@ const ENVIRONMENTS: Environment[] = [
     name: 'Local',
     baseUrl: 'http://localhost:8080',
     // nginx container serving target/site/ — start with `./run.sh site`
-    mavenSiteUrl: 'http://localhost:8083',
+    mavenSiteUrl: 'http://localhost:8084',
   },
 ];
 

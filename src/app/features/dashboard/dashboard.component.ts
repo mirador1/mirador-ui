@@ -377,14 +377,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '5540',
       url: 'http://localhost:5540',
     },
+    gitlab: {
+      icon: '🦊',
+      label: 'GitLab (local)',
+      description: 'GitLab CE — instance locale',
+      detail:
+        'GitLab Community Edition — instance locale via docker-compose.gitlab.yml. Héberge les dépôts et pipelines CI/CD. Accès : http://localhost:9081. Premier démarrage : ~2-3 min. Enregistrer le runner : docker exec -it gitlab-runner gitlab-runner register --url http://host.docker.internal:9081 --token <token>.',
+      image: 'images/tools/gitlab.png',
+      port: '9081',
+      url: 'http://localhost:9081',
+    },
     'maven-site': {
       icon: '📊',
       label: 'Maven Site',
       description: 'Quality reports (static)',
       detail:
         'Nginx serving the Maven-generated quality report site (Surefire, Failsafe, JaCoCo, SpotBugs, Javadoc). Regenerated daily by the CI report schedule (REPORT_PIPELINE=true). Run `mvn verify && mvn site` locally to populate target/site/ before starting this container.',
-      port: '8083',
-      url: 'http://localhost:8083',
+      port: '8084',
+      url: 'http://localhost:8084',
     },
   };
 
@@ -831,12 +841,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       col: 5,
       row: 2,
       icon: '📊',
-      port: '8083',
+      port: '8084',
       container: 'maven-site',
-      url: 'http://localhost:8083',
+      url: 'http://localhost:8084',
       tip: 'Quality reports — nginx static server',
       detail:
-        'Nginx 1.27 container serving the Maven-generated site (target/site/) at port 8083. Contains: Surefire test report, JaCoCo coverage, SpotBugs, PMD, Checkstyle, Javadoc, OWASP CVE scan. Started via `./run.sh site`. Regenerated daily by the CI REPORT_PIPELINE schedule.',
+        'Nginx 1.27 container serving the Maven-generated site (target/site/) at port 8084. Contains: Surefire test report, JaCoCo coverage, SpotBugs, PMD, Checkstyle, Javadoc, OWASP CVE scan. Started via `./run.sh site`. Regenerated daily by the CI REPORT_PIPELINE schedule.',
     },
     {
       id: 'pyroscope',
