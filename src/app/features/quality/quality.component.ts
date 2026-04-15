@@ -378,8 +378,42 @@ export interface QualityReport {
   owasp?: OwaspReport;
   /** PIT mutation testing results. */
   pitest?: PitestReport;
+  /** SonarQube analysis results fetched live from the local SonarQube instance. */
+  sonar?: SonarReport;
   /** Live runtime metadata. */
   runtime?: RuntimeReport;
+}
+
+/**
+ * SonarQube analysis metrics returned by `/actuator/quality` sonar section.
+ * Populated by the backend calling the SonarQube REST API — returns `available: false`
+ * if SonarQube is unreachable, has no token, or the project key has no analysis yet.
+ */
+export interface SonarReport {
+  /** True when a SonarQube instance was reachable and returned data for this project. */
+  available: boolean;
+  /** SonarQube project key (e.g., `'mirador'`). */
+  projectKey?: string;
+  /** Direct URL to the SonarQube project dashboard (used for "Open ↗" links). */
+  url?: string;
+  /** Number of bugs detected. */
+  bugs?: number;
+  /** Number of security vulnerabilities. */
+  vulnerabilities?: number;
+  /** Number of code smells (maintainability issues). */
+  codeSmells?: number;
+  /** Test coverage percentage as reported by SonarQube (from JaCoCo XML). */
+  coverage?: number;
+  /** Code duplication percentage. */
+  duplications?: number;
+  /** Total non-commented lines of code. */
+  linesOfCode?: number;
+  /** Reliability rating: A (0 bugs) through E (≥1 blocker). */
+  reliabilityRating?: string;
+  /** Security rating: A (0 vulnerabilities) through E (≥1 blocker). */
+  securityRating?: string;
+  /** Maintainability (technical debt) rating: A through E. */
+  maintainabilityRating?: string;
 }
 
 /**
@@ -432,9 +466,17 @@ export class QualityComponent implements OnInit, OnDestroy {
    */
   compodocAvailable = signal(false);
 
+  /**
+   * Signal: true when the SonarQube instance (port 9000) responds to a HEAD probe.
+   * Used to determine whether to show the SonarQube dashboard link as active.
+   * SonarQube can take ~2 min to start on first run (Elasticsearch initialization).
+   */
+  sonarAvailable = signal(false);
+
   // Polls every 10s until the nginx server responds — cleared once available or on destroy.
   private _mavenSiteRetryTimer: ReturnType<typeof setInterval> | null = null;
   private _compodocRetryTimer: ReturnType<typeof setInterval> | null = null;
+  private _sonarRetryTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
    * List of Maven Site report HTML files shown as "Detail ↗" links in the Overview tab.
@@ -451,8 +493,14 @@ export class QualityComponent implements OnInit, OnDestroy {
     { label: 'Javadoc', file: 'apidocs/index.html', icon: '📚' },
   ];
 
-  /** SonarQube dashboard URL — port 9000 when the Docker container is running. */
-  readonly sonarUrl = 'http://localhost:9000/dashboard?id=mirador';
+  /**
+   * Computed SonarQube dashboard URL, built from the env-configured base URL.
+   * Falls back to a sensible default when the environment has no sonarUrl set.
+   * The project key 'mirador' matches sonar.projectKey in pom.xml.
+   */
+  get sonarUrl(): string {
+    return `${this.env.sonarUrl() ?? 'http://localhost:9000'}/dashboard?id=mirador`;
+  }
 
   /** Base URL of the Maven site: dedicated nginx server if configured, backend fallback. */
   get mavenSiteBase(): string {
@@ -464,11 +512,13 @@ export class QualityComponent implements OnInit, OnDestroy {
     this.loadReport();
     this.checkMavenSite();
     this.checkCompodoc();
+    this.checkSonar();
   }
 
   ngOnDestroy(): void {
     this.clearMavenSiteRetry();
     this.clearCompodocRetry();
+    this.clearSonarRetry();
   }
 
   loadReport(): void {
@@ -609,6 +659,37 @@ export class QualityComponent implements OnInit, OnDestroy {
     if (this._compodocRetryTimer !== null) {
       clearInterval(this._compodocRetryTimer);
       this._compodocRetryTimer = null;
+    }
+  }
+
+  /**
+   * Probes the SonarQube instance with a HEAD request.
+   * SonarQube takes ~2 min to start on first run (Elasticsearch init);
+   * this retries every 10s so the UI recovers automatically.
+   */
+  checkSonar(): void {
+    const url = this.env.sonarUrl();
+    if (!url) return;
+    this.clearSonarRetry();
+    // Probe /api/system/status — returns 200 JSON regardless of auth
+    this.http.get(`${url}/api/system/status`, { observe: 'response' }).subscribe({
+      next: () => {
+        this.sonarAvailable.set(true);
+        this.clearSonarRetry();
+      },
+      error: () => {
+        this.sonarAvailable.set(false);
+        if (!this._sonarRetryTimer) {
+          this._sonarRetryTimer = setInterval(() => this.checkSonar(), 10_000);
+        }
+      },
+    });
+  }
+
+  private clearSonarRetry(): void {
+    if (this._sonarRetryTimer !== null) {
+      clearInterval(this._sonarRetryTimer);
+      this._sonarRetryTimer = null;
     }
   }
 }

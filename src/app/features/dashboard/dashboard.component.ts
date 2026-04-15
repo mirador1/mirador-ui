@@ -28,6 +28,25 @@ import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.servic
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 /**
+ * Service port/URL registry — single source of truth for all local service addresses.
+ * Referenced by both `knownContainers` (services panel) and `topoNodes` (topology graph)
+ * so changing a port only requires editing this one object.
+ * Only services with port duplication across multiple data structures are listed here.
+ */
+const SVC = {
+  sonarqube: { port: '9000', url: 'http://localhost:9000' },
+  'maven-site': { port: '8084', url: 'http://localhost:8084' },
+  compodoc: { port: '8085', url: 'http://localhost:8085' },
+  gitlab: { port: '9081', url: 'http://localhost:9081' },
+  pgadmin: { port: '5050', url: 'http://localhost:5050' },
+  'kafka-ui': { port: '9080', url: 'http://localhost:9080' },
+  redisinsight: { port: '5540', url: 'http://localhost:5540' },
+  keycloak: { port: '9090', url: 'http://localhost:9090/admin' },
+  lgtm: { port: '3000', url: 'http://localhost:3000/' },
+  api: { port: '8080', url: 'http://localhost:8080' },
+} as const;
+
+/**
  * A snapshot of all three health probe statuses taken at a single point in time.
  * Accumulated in `healthHistory` to render sparkline charts showing status over time.
  */
@@ -422,9 +441,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       label: 'SonarQube',
       description: 'Static analysis — Java + TypeScript',
       detail:
-        'SonarQube Community Edition — free self-hosted static analysis. Bugs, code smells, vulnerabilities, duplications and coverage trends in one dashboard. First startup: log in admin/admin → change password → generate token → set SONAR_TOKEN in .env → run `./run.sh sonar`.',
-      port: '9000',
-      url: 'http://localhost:9000',
+        'SonarQube Community Edition — free self-hosted static analysis. Bugs, code smells, vulnerabilities, duplications and coverage trends in one dashboard. First startup: run `./run.sh sonar-setup` to disable force-auth, then generate a token and set SONAR_TOKEN in .env.',
+      ...SVC.sonarqube,
     },
     'maven-site': {
       icon: '📊',
@@ -432,8 +450,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       description: 'Backend quality reports (static)',
       detail:
         'Nginx serving the Maven-generated quality report site for the Spring Boot backend (Surefire, JaCoCo, SpotBugs, Javadoc, OWASP CVE scan, Mutation Testing). Generate: `./run.sh site`. Regenerated daily by the CI REPORT_PIPELINE schedule.',
-      port: '8084',
-      url: 'http://localhost:8084',
+      ...SVC['maven-site'],
     },
     compodoc: {
       icon: '📐',
@@ -441,8 +458,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       description: 'Angular API docs (static)',
       detail:
         'Nginx serving Compodoc-generated documentation for the Angular frontend — components, services, interfaces, routes with JSDoc comments. The frontend equivalent of Javadoc. Generate: `cd mirador-ui && npm run compodoc`.',
-      port: '8085',
-      url: 'http://localhost:8085',
+      ...SVC.compodoc,
     },
   };
 
@@ -896,10 +912,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       col: 5,
       row: 2,
       icon: '🔍',
-      port: '9000',
       container: 'sonarqube',
-      url: 'http://localhost:9000',
       tip: 'Static analysis — Java + TypeScript',
+      ...SVC.sonarqube,
       detail:
         'SonarQube Community Edition — free self-hosted static analysis at port 9000. Aggregates bugs, code smells, vulnerabilities, duplications and coverage trends. First startup: log in admin/admin, change password, generate a project token, set SONAR_TOKEN in .env. Run: `./run.sh sonar`.',
     },
@@ -909,10 +924,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       col: 5,
       row: 3,
       icon: '📊',
-      port: '8084',
       container: 'maven-site',
-      url: 'http://localhost:8084',
       tip: 'Backend API quality reports — nginx',
+      ...SVC['maven-site'],
       detail:
         'Nginx 1.27 serving the Maven-generated site for the Spring Boot backend (target/site/) at port 8084. Contains: Surefire tests, JaCoCo coverage, SpotBugs, PMD, Checkstyle, Javadoc, OWASP CVE scan, Mutation Testing (PIT). Generate: `./run.sh site`.',
     },
@@ -922,10 +936,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       col: 5,
       row: 4,
       icon: '📐',
-      port: '8085',
       container: 'compodoc',
-      url: 'http://localhost:8085',
       tip: 'Angular UI API docs — nginx',
+      ...SVC.compodoc,
       detail:
         'Nginx 1.27 serving Compodoc-generated documentation for the Angular frontend at port 8085. Documents all components, services, interfaces, routes with JSDoc — equivalent of Javadoc for the UI. Generate: `cd mirador-ui && npm run compodoc`.',
     },

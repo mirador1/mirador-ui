@@ -236,15 +236,6 @@ export class AppShellComponent {
       ],
     },
     {
-      id: 'quality',
-      label: 'Backend Report',
-      icon: '🎯',
-      path: '/quality',
-      tip: 'Build quality report — tests, coverage, SpotBugs, OWASP, PMD, Checkstyle, Pitest',
-      children: [],
-      adminOnly: true,
-    },
-    {
       id: 'chaos',
       icon: '💥',
       label: 'Chaos & Traffic',
@@ -320,6 +311,15 @@ export class AppShellComponent {
       ],
     },
     {
+      id: 'quality',
+      label: 'Code Report',
+      icon: '🎯',
+      path: '/quality',
+      tip: 'Code quality report — tests, coverage, SonarQube, SpotBugs, OWASP, PMD, Checkstyle, Pitest',
+      children: [],
+      adminOnly: true,
+    },
+    {
       id: 'about',
       icon: '📖',
       label: 'About',
@@ -389,9 +389,10 @@ export class AppShellComponent {
       keywords: 'dashboard home health metrics architecture services',
     },
     {
-      label: '🎯 Backend Report',
+      label: '🎯 Code Report',
       path: '/quality',
-      keywords: 'quality report maven spotbugs owasp pmd checkstyle pitest coverage tests',
+      keywords:
+        'quality code report maven sonarqube spotbugs owasp pmd checkstyle pitest coverage tests',
     },
     {
       label: '👤 Customers',
