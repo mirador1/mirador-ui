@@ -27,25 +27,44 @@ import { ActivityService } from '../../core/activity/activity.service';
 import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
-/** Snapshot of all three health probe statuses at a point in time */
+/**
+ * A snapshot of all three health probe statuses taken at a single point in time.
+ * Accumulated in `healthHistory` to render sparkline charts showing status over time.
+ */
 interface HealthSnapshot {
+  /** Wall-clock time of the snapshot. */
   time: Date;
+  /** Composite health status string: `'UP'`, `'DOWN'`, or `'UNREACHABLE'`. */
   health: string;
+  /** Kubernetes readiness probe status. */
   readiness: string;
+  /** Kubernetes liveness probe status. */
   liveness: string;
 }
 
-/** Minimal shape of Spring Boot /actuator/health response */
+/**
+ * Minimal shape of the Spring Boot `/actuator/health` JSON response.
+ * Only the fields used in the component are typed — the full response may contain more.
+ */
 interface ActuatorHealth {
+  /** Overall aggregate status: `'UP'`, `'DOWN'`, `'OUT_OF_SERVICE'`. */
   status?: string;
+  /** Per-component health details keyed by component name (e.g., `db`, `redis`, `diskSpace`). */
   components?: Record<string, { status?: string }>;
 }
 
-/** Docker Engine container list item (fields we actually use) */
+/**
+ * Fields from a Docker Engine API container list item that the dashboard uses.
+ * The full Docker API response contains many more fields that are ignored here.
+ */
 interface DockerContainer {
+  /** Array of container name strings, each prefixed with `/` (e.g., `['/postgres-demo']`). */
   Names?: string[];
+  /** Human-readable status string (e.g., `'Up 3 hours'`, `'Exited (0) 2 hours ago'`). */
   Status?: string;
+  /** Docker image name used to start the container. */
   Image?: string;
+  /** Low-level container state: `'running'`, `'exited'`, `'paused'`, etc. */
   State?: string;
 }
 
@@ -64,24 +83,48 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private readonly activity = inject(ActivityService);
   readonly metricsService = inject(MetricsService);
 
+  /** Signal: raw JSON from `/actuator/health`. Null until first poll. Shape: `{status, components}`. */
   health = signal<unknown>(null);
+
+  /** Signal: raw JSON from `/actuator/health/readiness`. Null until first poll. */
   readiness = signal<unknown>(null);
+
+  /** Signal: raw JSON from `/actuator/health/liveness`. Null until first poll. */
   liveness = signal<unknown>(null);
+
+  /** Signal: error message when the backend is unreachable. Cleared on each successful poll. */
   error = signal('');
+
+  /** Signal: timestamp of the last successful refresh cycle. Displayed in the topbar. */
   lastRefresh = signal<Date | null>(null);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
+
+  /** Signal: total customer count from `GET /customers?size=1`. Null on error. */
   customerCount = signal<number | null>(null);
+
+  /** Signal: latest parsed Prometheus metrics for the stats cards. Null until first poll. */
   metrics = signal<ParsedMetrics | null>(null);
+
+  /** Signal: error message when Prometheus metrics cannot be fetched. */
   metricsError = signal('');
 
   // ── Health history ─────────────────────────────────────────────────────────
+
+  /** Signal: rolling history of health probe snapshots used to render sparklines. */
   healthHistory = signal<HealthSnapshot[]>([]);
 
   // ── Real-time chart (persisted in MetricsService) ──────────────────────────
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
+
+  /**
+   * Signal: currently selected auto-refresh interval in seconds.
+   * 0 means auto-refresh is off. Default is 5s.
+   */
   autoRefreshInterval = signal<number>(5);
+
+  /** Available interval choices shown in the refresh interval dropdown. */
   readonly intervalOptions = [
     { label: 'Off', value: 0 },
     { label: '1s', value: 1 },
@@ -89,8 +132,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { label: '10s', value: 10 },
     { label: '30s', value: 30 },
   ];
+
+  /** Handle for the auto-refresh `setInterval` timer. Null when refresh is off. */
   private _timer: ReturnType<typeof setInterval> | null = null;
-  /** Tracks previous health status to detect UP/DOWN transitions and trigger toasts */
+
+  /** Tracks previous health status to detect UP/DOWN transitions and trigger toasts. */
   private _previousHealthStatus: string | null = null;
 
   /** Quick links — items that don't have a corresponding Docker container in Service Control */
@@ -229,7 +275,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // backed by docker-socket-proxy (tecnativa/docker-socket-proxy) in docker-compose.
   private readonly dockerApiUrl = 'http://localhost:2375';
 
-  /** Known project containers — only these are shown in the UI */
+  /**
+   * Known project containers — only these are shown in the UI.
+   * Keyed by Docker container name (without the leading slash).
+   * Containers not in this map are silently ignored even if they exist locally.
+   */
   private readonly knownContainers: Record<
     string,
     {
@@ -387,6 +437,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     },
   };
 
+  /**
+   * Signal: list of known project containers enriched with metadata.
+   * Populated by `loadContainers()` after filtering the Docker API response.
+   * Sorted: running containers first, then alphabetically.
+   */
   dockerContainers = signal<
     Array<{
       name: string;
@@ -402,8 +457,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       url?: string;
     }>
   >([]);
+
+  /** Signal: true while the Docker container list request is in flight. */
   dockerLoading = signal(false);
+
+  /**
+   * Signal: key of the container action currently in progress (e.g., `"kafka-demo:stop"`).
+   * Null when no action is running. Used to show a spinner on the active button.
+   */
   dockerActionLoading = signal<string | null>(null);
+
+  /** Signal: error message when the Docker API proxy is unreachable. */
   dockerError = signal('');
   // Retry timer: when the Docker API is unreachable, probe again every 10 s so the
   // services panel recovers automatically once the docker-socket-proxy starts up,
@@ -490,8 +554,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Quick traffic generator ────────────────────────────────────────────────
+
+  /** Signal: true while the quick traffic generation is running. Disables the button. */
   trafficRunning = signal(false);
 
+  /**
+   * Fire a fixed set of 9 mixed requests to populate Prometheus metrics for the stats cards.
+   * Includes slow endpoints (bio, enrich, aggregate) so latency percentiles are non-zero.
+   * Shows a toast on completion and triggers a full dashboard refresh.
+   */
   quickTraffic(): void {
     this.trafficRunning.set(true);
     const base = this.env.baseUrl();

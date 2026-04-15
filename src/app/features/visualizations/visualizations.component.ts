@@ -24,69 +24,145 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
+/** Active visualization tab in the Metrics page. */
 type VizTab = 'topology' | 'errors' | 'kafka' | 'jvm' | 'golden' | 'slowdb' | 'bundle3d';
 
 // ── Topology ────────────────────────────────────────────────────────────────
+
+/** A node in the animated service dependency topology graph. */
 interface TopoNode {
+  /** Unique node ID for edge references. */
   id: string;
+  /** Display label shown below the node circle. */
   label: string;
+  /** SVG X coordinate. */
   x: number;
+  /** SVG Y coordinate. */
   y: number;
+  /** Health status that determines the node's fill color. */
   status: 'up' | 'down' | 'unknown';
 }
+
+/**
+ * An animated particle traveling along a topology edge.
+ * Particles simulate data flow between services in the dependency graph.
+ */
 interface TopoParticle {
+  /** ID of the source node. */
   fromId: string;
+  /** ID of the destination node. */
   toId: string;
+  /** Animation progress: 0 = at source, 1 = at destination. */
   progress: number;
+  /** CSS color string of the particle (matches the edge type). */
   color: string;
 }
 
 // ── Error timeline ──────────────────────────────────────────────────────────
+
+/**
+ * One sample in the error timeline chart.
+ * Stacked as green (ok) + red (errors) bars, polled every 3 seconds.
+ */
 interface ErrorSample {
+  /** Wall-clock time of the sample. */
   time: Date;
+  /** Number of 2xx HTTP responses in this sample window. */
   ok: number;
+  /** Number of non-2xx HTTP responses in this sample window. */
   errors: number;
 }
 
 // ── JVM Gauges ──────────────────────────────────────────────────────────────
+
+/** Resolved gauge data ready for SVG arc rendering. */
 interface GaugeData {
+  /** Gauge identifier matching its `GaugeDef.id`. */
   id: string;
+  /** Display label shown below the arc. */
   label: string;
+  /** Emoji icon shown at the center of the arc. */
   icon: string;
+  /** Tooltip text for the InfoTip component. */
   tip: string;
+  /** Current numeric value. */
   value: number;
+  /** Maximum value used to compute the arc fill percentage. */
   max: number;
+  /** Unit suffix appended to the displayed value (e.g., `'MB'`, `'%'`, `'ms'`). */
   unit: string;
+  /** CSS color string for the arc fill — changes from green to orange to red as value approaches max. */
   color: string;
 }
 
+/**
+ * Static definition of a JVM gauge metric.
+ * Each definition knows how to extract its value from a raw Prometheus text scrape.
+ */
 interface GaugeDef {
+  /** Unique identifier for this gauge. */
   id: string;
+  /** Display label. */
   label: string;
+  /** Emoji icon. */
   icon: string;
+  /** Category for grouping in the UI (e.g., `'Memory'`, `'Threads'`). */
   category: string;
+  /** Tooltip explanation text. */
   tip: string;
+  /**
+   * Extract the gauge value and display metadata from a raw Prometheus text block.
+   * @param text Raw Prometheus scrape text from `/actuator/prometheus`.
+   * @returns Resolved value, max, unit, and color for SVG rendering.
+   */
   extract: (text: string) => { value: number; max: number; unit: string; color: string };
 }
 
 // ── Golden Signals / Metric Cards ───────────────────────────────────────────
+
+/**
+ * One of the four SRE Golden Signals (Latency, Traffic, Errors, Saturation).
+ * Shown as a large summary card at the top of the Metrics page.
+ */
 interface GoldenSignal {
+  /** Unique identifier for this signal. */
   id: string;
+  /** Signal name (e.g., `'Latency'`, `'Traffic'`). */
   name: string;
+  /** Formatted current value string (e.g., `'45ms'`, `'12 RPS'`). */
   value: string;
+  /** Traffic-light status determining the card border color. */
   status: 'ok' | 'warn' | 'critical';
+  /** Secondary detail text (e.g., threshold info). */
   detail: string;
+  /** Emoji icon. */
   icon: string;
+  /** InfoTip tooltip text. */
   tip: string;
 }
 
-/** Definition of an available metric card */
+/**
+ * Definition of a configurable Prometheus metric card (78 total).
+ * Cards are organized into categories (HTTP, JVM, GC, DB, Redis, Kafka, Security, System)
+ * and extract their values from the raw Prometheus text scrape.
+ */
 interface MetricDef {
+  /** Unique identifier for this metric card. */
   id: string;
+  /** Display name shown on the card. */
   name: string;
+  /** Emoji icon. */
   icon: string;
+  /** Category for grouping and filtering. */
   category: string;
+  /** InfoTip tooltip explanation. */
   tip: string;
+  /**
+   * Extract the card's current value and status from Prometheus data.
+   * @param text    Raw Prometheus scrape text.
+   * @param parsed  Pre-parsed common metrics (totals and latency percentiles).
+   * @returns Formatted value string, traffic-light status, and a detail annotation.
+   */
   extract: (
     text: string,
     parsed: {

@@ -14,23 +14,42 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
+/**
+ * A single audit event row from `GET /audit`.
+ * Records who did what, from which IP, and when.
+ */
 interface AuditEvent {
+  /** Server-assigned primary key. */
   id: number;
+  /** Username of the user who triggered the event. */
   userName: string;
+  /** Action type enum string (e.g., `'LOGIN_SUCCESS'`, `'CUSTOMER_DELETED'`). */
   action: string;
+  /** Human-readable event detail. */
   detail: string;
+  /** Client IP address recorded at the time of the request. */
   ipAddress: string;
+  /** ISO-8601 timestamp of the event. */
   createdAt: string;
 }
 
+/** Spring Data Page wrapper for paginated audit event responses. */
 interface AuditPage {
   content: AuditEvent[];
+  /** Zero-based current page index. */
   page: number;
+  /** Page size requested. */
   size: number;
+  /** Total number of events matching the current filter. */
   totalElements: number;
+  /** Total number of pages. */
   totalPages: number;
 }
 
+/**
+ * Allowed action filter values for the audit event dropdown.
+ * Used both for the UI dropdown options and the `?action=` query parameter.
+ */
 const ACTION_VALUES = [
   'LOGIN_SUCCESS',
   'LOGIN_FAILED',
@@ -54,21 +73,38 @@ export class AuditComponent implements OnInit, OnDestroy {
   private readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
 
+  /** Available action filter values for the filter dropdown. */
   readonly actions = ACTION_VALUES;
 
   // ── Filter state ──────────────────────────────────────────────────────────
+
+  /** Signal: currently selected action filter. Empty string means no filter (all actions). */
   filterAction = signal<string>('');
+
+  /** Signal: username substring filter. Empty means no filter. */
   filterUser = signal<string>('');
+
+  /** Signal: zero-based current page index for pagination. */
   currentPage = signal(0);
 
   // ── Data state ────────────────────────────────────────────────────────────
+
+  /** Signal: the current page of audit events. Null until first load. */
   data = signal<AuditPage | null>(null);
+
+  /** Signal: true while a fetch request is in flight. */
   loading = signal(false);
+
+  /** Signal: error message if the last fetch failed. */
   error = signal('');
 
+  /** Computed: total page count, derived from the data signal. */
   readonly totalPages = computed(() => this.data()?.totalPages ?? 1);
+
+  /** Computed: total event count matching the current filter. */
   readonly totalElements = computed(() => this.data()?.totalElements ?? 0);
 
+  /** Handle for the 30-second auto-refresh `setInterval`. Cleared in `ngOnDestroy`. */
   private _refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {

@@ -23,17 +23,48 @@ import { ToastService } from '../../core/toast/toast.service';
   styleUrl: './app-shell.component.scss',
 })
 export class AppShellComponent {
+  /** Provides `isAuthenticated` and `isAdmin` for conditional nav rendering and logout. */
   readonly auth = inject(AuthService);
+
+  /** Provides `theme` signal and `toggle()` for the topbar dark-mode button. */
   readonly theme = inject(ThemeService);
+
+  /** Provides `current` environment info for display in the topbar. */
   readonly env = inject(EnvService);
+
+  /** Provides `toasts` signal rendered in the toast container overlay. */
   readonly toast = inject(ToastService);
+
   private readonly router = inject(Router);
 
+  /** Signal: true when the mobile hamburger menu is open. Used on small viewports only. */
   mobileMenuOpen = signal(false);
+
+  /**
+   * Signal: true when the global search overlay (`Ctrl+K`) is visible.
+   * Managed locally here (in addition to `KeyboardService.showSearch`) so the
+   * shell template can bind directly without injecting an additional service.
+   */
   showSearch = signal(false);
+
+  /** Signal: true when the sidebar is collapsed to icon-only mode. */
   sidebarCollapsed = signal(false);
+
+  /**
+   * Signal: set of nav section IDs that are currently expanded (accordion behavior).
+   * Initialized with `dashboard` and `customers` expanded so the most-used pages are
+   * immediately visible without any interaction.
+   */
   expandedSections = signal<Set<string>>(new Set(['dashboard', 'customers']));
 
+  /**
+   * Global keydown handler registered via `@HostListener`.
+   * Handles Ctrl+K (open/close search overlay) and Escape (close search).
+   * This duplicates some logic from `KeyboardService` intentionally — the shell
+   * owns the search overlay state, so it handles the keys directly.
+   *
+   * @param e The browser keyboard event.
+   */
   @HostListener('document:keydown', ['$event'])
   onKeyDown(e: KeyboardEvent): void {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -305,6 +336,12 @@ export class AppShellComponent {
     },
   ];
 
+  /**
+   * Toggle a nav section open/closed using accordion behavior (only one open at a time).
+   * If the clicked section is already open, all sections close.
+   *
+   * @param id The nav section ID (e.g., `'dashboard'`, `'customers'`).
+   */
   toggleSection(id: string): void {
     this.expandedSections.update((set) => {
       const next = new Set<string>();
@@ -314,18 +351,37 @@ export class AppShellComponent {
     });
   }
 
+  /**
+   * Returns true if the given nav section is currently expanded.
+   * Used in the template to toggle the chevron icon and child list visibility.
+   *
+   * @param id Nav section ID.
+   */
   isSectionExpanded(id: string): boolean {
     return this.expandedSections().has(id);
   }
 
+  /**
+   * Returns true if the given route path matches the current URL.
+   * Strips query params and hash before comparison to avoid false negatives.
+   * The root path `/` requires an exact match to avoid all paths matching.
+   *
+   * @param path Route path (e.g., `'/'`, `'/customers'`).
+   */
   isActive(path: string): boolean {
     const url = this.router.url.split('?')[0].split('#')[0];
     if (path === '/') return url === '/';
     return url.startsWith(path);
   }
 
-  /** Global search index — each item has a label, route path, and search keywords */
+  /** Current search query bound to the search overlay input field. */
   searchQuery = '';
+
+  /**
+   * Static search index used by the global search overlay.
+   * Each item has a display label, target route path, and space-separated keywords
+   * used for substring matching. Adding a new page requires a corresponding entry here.
+   */
   readonly searchItems = [
     {
       label: '🏠 Dashboard',
@@ -395,6 +451,11 @@ export class AppShellComponent {
     },
   ];
 
+  /**
+   * Derived list of search items filtered by `searchQuery`.
+   * Matches against both the display label and keyword string (case-insensitive).
+   * Returns all items when the query is empty.
+   */
   get filteredSearchItems() {
     if (!this.searchQuery) return this.searchItems;
     const q = this.searchQuery.toLowerCase();
@@ -403,21 +464,33 @@ export class AppShellComponent {
     );
   }
 
+  /**
+   * Navigate to a route selected from the search overlay.
+   * Closes the overlay and clears the query after navigation.
+   *
+   * @param path The route path to navigate to.
+   */
   navigateFromSearch(path: string): void {
     this.router.navigateByUrl(path);
     this.showSearch.set(false);
     this.searchQuery = '';
   }
 
+  /**
+   * Log out the current user: clears tokens from `AuthService` and
+   * redirects to the login page.
+   */
   logout(): void {
     this.auth.logout();
     this.router.navigateByUrl('/login');
   }
 
+  /** Toggle the mobile hamburger menu open/closed. */
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update((v) => !v);
   }
 
+  /** Close the mobile menu. Called when a nav link is clicked on mobile. */
   closeMobileMenu(): void {
     this.mobileMenuOpen.set(false);
   }

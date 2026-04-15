@@ -184,17 +184,51 @@ import { Component, Input, signal, ElementRef, inject } from '@angular/core';
 export class InfoTipComponent {
   private readonly el = inject(ElementRef);
 
+  /** Required. Main explanation text shown in the popup body. */
   @Input() text = '';
+
+  /** Optional bold header displayed above the body text. */
   @Input() title = '';
+
+  /** Optional monospace code block shown below the body (e.g., a CLI command). */
   @Input() command = '';
+
+  /** Optional italic attribution footer (e.g., the documentation source). */
   @Input() source = '';
+
+  /** Optional image URL shown at the top of the popup (e.g., a tool screenshot). */
   @Input() image = '';
+
+  /**
+   * When true, the popup uses a wider min/max width (300–440px vs 220–320px).
+   * Set this for popups with long text or an image to prevent wrapping.
+   */
   @Input() wide = false;
 
+  /**
+   * Signal: true when the user has clicked the icon (click-to-pin behavior).
+   * Keeps the popup open until the user clicks again.
+   */
   open = signal(false);
+
+  /**
+   * Signal: true while the mouse is hovering over the icon.
+   * Set in `onEnter()` and cleared on `mouseleave`.
+   */
   hover = signal(false);
+
+  /**
+   * Signal: true when the popup should appear below the icon instead of above.
+   * Set based on the icon's viewport position to prevent the popup from
+   * being clipped by the top edge of the viewport.
+   */
   showBelow = signal(false);
 
+  /**
+   * Handle mouse-enter: compute viewport position and update `showBelow`,
+   * then set `hover` to true to show the popup.
+   * If the icon is in the top 250px of the viewport, the popup opens below to avoid clipping.
+   */
   onEnter(): void {
     // If the element is in the top 250px of the viewport, show popup below instead of above
     const rect = this.el.nativeElement.getBoundingClientRect();

@@ -17,18 +17,30 @@ import { catchError, of } from 'rxjs';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 
+/**
+ * A customer event received from the SSE stream at `/customers/stream`.
+ * `isNew` is added client-side and fades after `NEW_BADGE_DURATION_MS`.
+ */
 interface LiveCustomer {
   id: number;
   name: string;
   email: string;
+  /** ISO-8601 creation timestamp from the server. */
   createdAt: string;
+  /** Client-side flag: true for `NEW_BADGE_DURATION_MS` after arrival, then set to false. */
   isNew: boolean;
 }
 
+/** SSE connection lifecycle states, mapped to status badge colors in the template. */
 type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
+/** Maximum number of SSE events to keep in memory (oldest are discarded). */
 const MAX_EVENTS = 50;
+
+/** Duration in milliseconds for which the NEW badge is shown on a fresh event. */
 const NEW_BADGE_DURATION_MS = 5_000;
+
+/** Delay in milliseconds before reconnecting after an SSE error. */
 const RECONNECT_DELAY_MS = 3_000;
 
 @Component({
@@ -43,24 +55,49 @@ export class TimelineComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
 
+  /** Signal: currently active tab — `'sse'` for live customer events, `'activity'` for endpoint feed. */
   activeTab = signal<'sse' | 'activity'>('sse');
 
   // ── SSE tab ───────────────────────────────────────────────────────────────
+
+  /** Signal: list of the last `MAX_EVENTS` customers received via SSE, newest first. */
   events = signal<LiveCustomer[]>([]);
+
+  /** Signal: current SSE connection state, displayed as a status badge. */
   status = signal<ConnectionStatus>('connecting');
+
+  /** Signal: true while the SSE traffic generator is running. */
   sseTrafficRunning = signal(false);
 
+  /** The active `EventSource` connection. Null when disconnected. */
   private _es: EventSource | null = null;
+
+  /** Timer handle for the SSE reconnect delay. Cleared when reconnect fires. */
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Map of customer ID → badge fade timer. Ensures each NEW badge fades independently. */
   private _badgeTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   // ── Activity tab (Prometheus polling) ────────────────────────────────────
+
+  /**
+   * Signal: scrolling feed of HTTP endpoint activity entries.
+   * Capped at 100 entries, prepended with each poll's new entries (max 5 per poll).
+   */
   liveFeed = signal<
     Array<{ time: string; method: string; uri: string; status: string; duration: string }>
   >([]);
+
+  /** Signal: true while the endpoint activity Prometheus polling is running. */
   livePolling = signal(false);
+
+  /** Signal: true while the activity tab traffic generator is running. */
   liveTrafficRunning = signal(false);
+
+  /** Handle for the 2-second Prometheus polling interval. Null when stopped. */
   private _liveTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Last seen HTTP request count — used to detect new requests between polls. */
   private _lastRequestCount = 0;
 
   constructor() {

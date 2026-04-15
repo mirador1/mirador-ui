@@ -24,12 +24,39 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  /** Pre-filled username — default `admin` matches the Spring Boot in-memory user. */
   username = 'admin';
+
+  /** Pre-filled password — default `admin` matches the Spring Boot in-memory user. */
   password = 'admin';
+
+  /**
+   * Signal holding the current error message string.
+   * Cleared on each new submission attempt and set on failure.
+   */
   error = signal('');
+
+  /**
+   * Signal holding the error category used to apply different CSS styles:
+   * - `'credentials'` — wrong username/password (red, shows remaining attempts)
+   * - `'blocked'` — too many failed attempts, account locked (red, shows unlock time)
+   * - `'backend'` — backend unreachable or unexpected HTTP error (orange)
+   * - `''` — no error
+   */
   errorType = signal<'credentials' | 'blocked' | 'backend' | ''>('');
+
+  /** Signal: true while the login HTTP request is in flight. Disables the submit button. */
   loading = signal(false);
 
+  /**
+   * Submit the login form.
+   * Calls `POST /auth/login`, stores tokens in `AuthService`, and navigates to the dashboard.
+   * On failure, classifies the error type for distinct user-facing messages:
+   * - 401 — wrong credentials with optional remaining-attempts hint
+   * - 429 — rate-limited with minutes-until-unlock from the response body
+   * - 0 / network error — backend unreachable
+   * - other — unexpected server error
+   */
   submit(): void {
     this.loading.set(true);
     this.error.set('');

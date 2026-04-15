@@ -4,6 +4,12 @@
  *
  * Each route maps to a standalone component in `features/`.
  * The wildcard route (`**`) redirects unknown paths to the dashboard.
+ *
+ * Notable routing decisions:
+ * - `/audit` and `/timeline` are redirect aliases kept for backward-compatible
+ *   bookmarks and external links.
+ * - No auth guards are present at the router level — the AppShell and individual
+ *   components check `AuthService.isAuthenticated()` and redirect to `/login` as needed.
  */
 import { Routes } from '@angular/router';
 

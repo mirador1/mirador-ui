@@ -24,48 +24,88 @@ import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 
-/** Aggregated trace with root span info and child spans */
+/**
+ * An assembled trace with its root span metadata and all child spans.
+ * Built by combining Tempo's search summary and the full OTLP trace detail.
+ */
 interface Trace {
+  /** Hex-encoded trace ID (16 bytes = 32 hex chars). */
   traceId: string;
+  /** All spans belonging to this trace, sorted by start time for waterfall rendering. */
   spans: Span[];
+  /** Total trace duration in milliseconds from earliest span start to latest span end. */
   durationMs: number;
+  /** Root span's service name (e.g., `'customer-service'`). */
   serviceName: string;
+  /** Root span operation name (e.g., `'GET /customers'`). */
   operationName: string;
+  /** Wall-clock start time of the root span. */
   timestamp: Date;
 }
 
-/** Individual span within a trace — duration is in microseconds */
+/**
+ * A single span in a distributed trace.
+ * Duration is stored in microseconds (standard for OTLP) and converted to ms for display.
+ */
 interface Span {
+  /** Hex trace ID linking this span to its parent trace. */
   traceId: string;
+  /** Hex span ID — unique within the trace. */
   spanId: string;
+  /** Hex span ID of the parent span. Undefined for the root span. */
   parentSpanId?: string;
+  /** Human-readable operation name (e.g., `'SELECT customers'`). */
   operationName: string;
+  /** Name of the service that emitted this span. */
   serviceName: string;
+  /** Start time as Unix nanoseconds (OTLP format). */
   startTimeUnixNano: number;
+  /** Span duration in microseconds (OTLP format — divide by 1000 for milliseconds). */
   duration: number; // microseconds
+  /** Key/value span attributes from OTLP (e.g., `http.method`, `db.statement`). */
   tags: Record<string, string>;
+  /** Span status string: `'OK'`, `'ERROR'`, or undefined for unset. */
   status?: string;
 }
 
-/** Summary row returned by Tempo /api/search */
+/**
+ * Trace summary row returned by the Tempo `/api/search` endpoint.
+ * Contains just enough information to render the search results list.
+ */
 interface TempoTraceSummary {
+  /** Tempo's hex trace ID field (capital ID — matches Tempo API). */
   traceID: string;
+  /** Root span's service name. */
   rootServiceName: string;
+  /** Root span operation name. */
   rootTraceName: string;
+  /** Root span start time as a nanosecond Unix timestamp string. */
   startTimeUnixNano: string;
+  /** Total trace duration in milliseconds. */
   durationMs: number;
 }
 
-/** Single log line parsed from Loki query response */
+/**
+ * A single parsed log line from a Loki query response.
+ * Level is extracted from the log line text by pattern matching.
+ */
 interface LogEntry {
+  /** ISO-8601 timestamp of the log line. */
   timestamp: string;
+  /** Full log line text. */
   line: string;
+  /** Log level extracted from the line: `'ERROR'`, `'WARN'`, `'INFO'`, `'DEBUG'`. */
   level?: string;
 }
 
-/** Histogram bucket for latency distribution chart */
+/**
+ * One bucket in the Prometheus HTTP latency histogram, used to build the bar chart.
+ * Converted from cumulative to differential counts before rendering.
+ */
 interface LatencyBucket {
+  /** Upper bound label (e.g., `'50ms'`, `'200ms'`, `'+Inf'`). */
   le: string;
+  /** Differential request count for this bucket range (not cumulative). */
   count: number;
 }
 

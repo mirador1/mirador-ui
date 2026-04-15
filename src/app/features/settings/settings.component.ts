@@ -17,24 +17,41 @@ import { ToastService } from '../../core/toast/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { RouterLink } from '@angular/router';
 
-/** Shape of /scheduled/jobs response items */
+/**
+ * A single ShedLock scheduled job entry from `GET /scheduled/jobs`.
+ * Allows the Settings page to show which jobs are currently locked (running).
+ */
 interface ScheduledJob {
+  /** Spring `@Scheduled` method name used as the ShedLock lock key. */
   name: string;
+  /** ISO-8601 timestamp until which the lock is held. Null when not locked. */
   lockUntil: string | null;
+  /** ISO-8601 timestamp when the lock was acquired. Null when not locked. */
   lockedAt: string | null;
+  /** Hostname of the node that holds the lock. Null when not locked. */
   lockedBy: string | null;
 }
 
-/** Shape of /actuator/env response */
+/**
+ * Minimal shape of the Spring Boot `/actuator/env` response.
+ * Only the fields needed to display property sources are typed here.
+ */
 interface ActuatorEnv {
+  /** List of Spring property sources (application.yml, system properties, env vars, etc.). */
   propertySources?: Array<{
+    /** Name of the property source (e.g., `'Config resource [classpath:/application.yml]'`). */
     name: string;
+    /** Map of property name → value wrapper. */
     properties: Record<string, { value: string }>;
   }>;
 }
 
-/** Shape of /actuator/beans response — only the fields we access */
+/**
+ * Minimal shape of the Spring Boot `/actuator/beans` response.
+ * Used only to count the total number of beans in the application context.
+ */
 interface ActuatorBeans {
+  /** Map of application context ID → context detail including the bean map. */
   contexts?: Record<string, { beans?: Record<string, unknown> }>;
 }
 
@@ -52,13 +69,25 @@ export class SettingsComponent {
   readonly auth = inject(AuthService);
 
   // ── Actuator info ──────────────────────────────────────────────────────────
+
+  /** Signal: raw JSON from `/actuator/info` (app name, version, Git metadata, etc.). */
   actuatorInfo = signal<unknown>(null);
+
+  /** Signal: raw JSON from `/actuator/env`. Shown as collapsible property sources. */
   actuatorEnv = signal<unknown>(null);
+
+  /** Signal: count of Spring beans in the application context. Null until loaded. */
   actuatorBeans = signal<number | null>(null);
+
+  /** Signal: true while the `/actuator/info` load is in flight. */
   loading = signal(false);
+
+  /** Signal: error message if actuator endpoints are unreachable. */
   error = signal('');
 
   // ── Actuator endpoints ─────────────────────────────────────────────────────
+
+  /** Pre-defined actuator endpoints shown in the explorer dropdown. */
   readonly endpoints = [
     { label: 'Health', path: '/actuator/health', icon: '💚' },
     { label: 'Info', path: '/actuator/info', icon: 'ℹ️' },
@@ -69,13 +98,24 @@ export class SettingsComponent {
     { label: 'Prometheus', path: '/actuator/prometheus', icon: '🔥' },
   ];
 
+  /** Signal: path of the currently selected actuator endpoint. */
   selectedEndpoint = signal<string | null>(null);
+
+  /** Signal: raw response text from the selected actuator endpoint call. */
   endpointResult = signal<string | null>(null);
+
+  /** Signal: true while an actuator endpoint call is in flight. */
   endpointLoading = signal(false);
 
   // ── Loggers ───────────────────────────────────────────────────────────────
+
+  /** Signal: list of Spring loggers with their current effective log level. */
   loggers = signal<Array<{ name: string; level: string }>>([]);
+
+  /** Logger name filter bound via ngModel — filters the displayed logger list. */
   loggerFilter = '';
+
+  /** Signal: true while the loggers list or a level-change request is in flight. */
   loggerLoading = signal(false);
 
   ngOnInit(): void {

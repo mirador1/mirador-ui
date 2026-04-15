@@ -1,5 +1,23 @@
 import { Component, signal } from '@angular/core';
 
+/**
+ * AboutComponent — Architecture documentation and project reference.
+ *
+ * Ten tabs providing a comprehensive reference for the full stack:
+ * - Overview: quick-start commands and architecture summary
+ * - Infrastructure: all Docker services and ports
+ * - Kubernetes: kind cluster setup and deployment targets
+ * - Technologies: full stack listing with usage notes for each technology
+ * - Compatibility: Spring Boot/Java version matrix
+ * - Observability: tracing, metrics, logs, and profiling architecture
+ * - Resilience: circuit breaker, retry, rate limit, and bulkhead patterns
+ * - Security: authentication, authorization, and security headers
+ * - Messaging: Kafka topics, consumer groups, and request-reply pattern
+ * - Data Layer: JPA, Redis, Flyway, and data flow overview
+ *
+ * This component is a pure documentation page — it has no HTTP calls.
+ * All content is statically defined in `technologies`, `portMap`, and other arrays.
+ */
 @Component({
   selector: 'app-about',
   standalone: true,
@@ -7,6 +25,7 @@ import { Component, signal } from '@angular/core';
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
+  /** Signal: currently active documentation tab. Defaults to overview. */
   readonly activeTab = signal<
     | 'overview'
     | 'infra'
@@ -21,6 +40,7 @@ export class AboutComponent {
     | 'deploy'
   >('overview');
 
+  /** Tab definitions rendered as the nav pill row. The `id` must match `activeTab` values. */
   readonly tabs = [
     { id: 'overview', label: '📖 Overview' },
     { id: 'infra', label: '🏗️ Infrastructure' },

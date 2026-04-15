@@ -4,6 +4,10 @@
  * Displays all events logged by ActivityService (CRUD ops, health changes,
  * diagnostic runs, env switches, imports) in reverse chronological order.
  * Each event type has a distinct badge color and icon for visual scanning.
+ *
+ * The component also provides "Quick Actions" buttons that generate all 7
+ * event types in a single click, useful for demonstrating the timeline in demos.
+ * Events are stored in-memory by ActivityService and lost on page reload.
  */
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -28,6 +32,7 @@ export class ActivityComponent {
   private readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
 
+  /** Signal: true while the `quickTraffic()` sequence is running. Disables the button. */
   generating = signal(false);
 
   /** Create a customer and log it */
@@ -136,8 +141,13 @@ export class ActivityComponent {
     }
   }
 
+  /** Signal: currently active event type filter. `'all'` shows every event type. */
   filterType = signal<ActivityType | 'all'>('all');
 
+  /**
+   * Display metadata for each event type: label, icon, and tooltip text.
+   * Used to render the filter button row and the badge on each event row.
+   */
   readonly typeLabels: Record<ActivityType | 'all', { label: string; icon: string; tip: string }> =
     {
       all: { label: 'All', icon: '📋', tip: 'Show all event types' },
@@ -178,6 +188,7 @@ export class ActivityComponent {
       },
     };
 
+  /** Ordered list of filter values for the filter button row. */
   readonly typeFilters: (ActivityType | 'all')[] = [
     'all',
     'customer-create',
@@ -189,12 +200,22 @@ export class ActivityComponent {
     'bulk-import',
   ];
 
+  /**
+   * Derived event list filtered by `filterType`.
+   * Returns all events when filter is `'all'`, otherwise filters by matching type.
+   */
   get filteredEvents() {
     const type = this.filterType();
     if (type === 'all') return this.activity.events();
     return this.activity.events().filter((e) => e.type === type);
   }
 
+  /**
+   * Returns the single-character symbol for an event type, shown inside the timeline icon circle.
+   *
+   * @param type The activity event type.
+   * @returns A single character symbol (e.g., `'+'` for create, `'-'` for delete).
+   */
   typeIcon(type: ActivityType): string {
     switch (type) {
       case 'customer-create':

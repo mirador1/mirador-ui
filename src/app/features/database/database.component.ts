@@ -12,31 +12,54 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth/auth.service';
 import { RouterLink } from '@angular/router';
 
+/** Active tab in the Database page explorer. */
 type DbTab = 'health' | 'customer' | 'diagnostics' | 'schema' | 'investigation' | 'performance';
 
 /**
- * Shape returned by the docker-api.mjs Node.js proxy for SQL queries.
+ * Shape returned by the pgweb REST API (`GET /api/query`) for SQL execution.
  * Rows contain mixed primitive types (number, string, boolean, null) from PostgreSQL.
+ * The `error` field is set when the SQL fails or pgweb is unreachable.
  */
 interface SqlQueryResult {
+  /** Column names from the SELECT result set. */
   columns?: string[];
+  /** Row data as a 2D array indexed `[row][column]`. */
   rows?: unknown[][];
+  /** Error message from pgweb or the proxy if the query failed. */
   error?: string;
 }
 
-/** Shape returned by the Spring Boot /actuator/maintenance custom endpoint */
+/**
+ * Shape returned by the Spring Boot `/actuator/maintenance` custom endpoint.
+ * Called when the user triggers a VACUUM operation from the Health tab.
+ */
 interface MaintenanceResult {
+  /** The operation type that was executed (e.g., `'vacuum'`, `'vacuumFull'`). */
   operation: string;
+  /** How long the maintenance operation took in milliseconds. */
   durationMs: number;
+  /** Result status string (e.g., `'OK'`). */
   status: string;
 }
 
+/**
+ * Definition of a database health check displayed in the Health tab.
+ * Each check runs a read-only SQL query via pgweb and evaluates the result.
+ */
 interface HealthCheck {
+  /** Unique string identifier for this check (used as a React-style key). */
   id: string;
+  /** Display label shown as the check's heading. */
   label: string;
+  /** Tooltip description explaining what the check measures. */
   description: string;
+  /** The SQL query to execute against PostgreSQL via pgweb. */
   query: string;
-  /** Evaluate the first row's first value and return 'ok' | 'warn' | 'crit' */
+  /**
+   * Evaluate the first row's first value and return a traffic-light status.
+   * @param rows Result rows from the SQL query.
+   * @returns Status (`'ok'`=green, `'warn'`=orange, `'crit'`=red) with a detail message.
+   */
   evaluate: (rows: string[][]) => { status: 'ok' | 'warn' | 'crit'; detail: string };
 }
 
@@ -51,9 +74,15 @@ export class DatabaseComponent {
   private readonly http = inject(HttpClient);
   readonly auth = inject(AuthService);
 
+  /** Signal: currently active tab in the Database page. */
   activeTab = signal<DbTab>('health');
 
   // ── Health checks ─────────────────────────────────────────────────────────
+
+  /**
+   * Signal: list of health check results from the most recent batch run.
+   * Populated by running all `healthChecks` queries against pgweb in sequence.
+   */
   healthResults = signal<
     Array<{
       check: HealthCheck;
@@ -62,11 +91,19 @@ export class DatabaseComponent {
       rows: string[][];
     }>
   >([]);
+
+  /** Signal: true while the batch health check queries are in flight. */
   healthRunning = signal(false);
 
   // ── Maintenance actions (VACUUM via /actuator/maintenance) ──────────────
+
+  /** Signal: true while a VACUUM request to `/actuator/maintenance` is in flight. */
   vacuumRunning = signal(false);
+
+  /** Signal: result of the last VACUUM operation. Null until first run. */
   vacuumResult = signal<{ operation: string; durationMs: number; status: string } | null>(null);
+
+  /** Signal: error message if the VACUUM request failed. */
   vacuumError = signal('');
 
   runVacuum(operation: 'vacuum' | 'vacuumFull' | 'vacuumVerbose'): void {

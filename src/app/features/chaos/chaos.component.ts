@@ -27,20 +27,35 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 
-/** Chaos action definition with name, description, and action callback */
+/**
+ * Definition of a single chaos engineering action shown as a button in the UI.
+ * The `action` callback performs the actual HTTP calls when the button is clicked.
+ */
 interface ChaosAction {
+  /** Short label displayed on the button. */
   name: string;
+  /** Explanation of what the action does and which backend behavior it triggers. */
   description: string;
+  /** Emoji icon displayed on the button for quick visual identification. */
   icon: string;
+  /** CSS color string for the button border/glow effect. */
   color: string;
+  /** Callback executed when the user clicks the action button. */
   action: () => void;
 }
 
-/** Impact monitoring sample: health ping results + average latency */
+/**
+ * A single impact monitoring sample from the 2-second health poll.
+ * Used to build the live stacked bar chart (OK vs errors over time).
+ */
 interface ImpactSample {
+  /** Wall-clock time of this sample. */
   time: Date;
+  /** Number of health probe requests that returned 2xx in this sample. */
   ok: number;
+  /** Number of health probe requests that returned non-2xx in this sample. */
   errors: number;
+  /** Average response latency in milliseconds across all probes in this sample. */
   avgMs: number;
 }
 
@@ -59,23 +74,59 @@ export class ChaosComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
 
+  /**
+   * Signal: rolling list of impact monitoring samples (last N entries).
+   * Rendered as a stacked bar chart in the template.
+   */
   impactSamples = signal<ImpactSample[]>([]);
+
+  /** Signal: true while the 2-second impact monitor polling is active. */
   monitoring = signal(false);
+
+  /** Handle for the impact monitor `setInterval`. Null when monitoring is stopped. */
   private _monitorTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Last seen total request count from Prometheus — used to compute RPS delta. */
   private _lastTotalRequests = 0;
 
   // ── Traffic breakdown ─────────────────────────────────────────────────────
+
+  /**
+   * Signal: top-10 endpoint breakdown sorted by request count.
+   * Parsed from Prometheus `http_server_requests_seconds_count` metrics.
+   */
   trafficBreakdown = signal<Array<{ uri: string; count: number; status: string }>>([]);
+
+  /** Signal: estimated total requests per second across all endpoints. */
   totalRps = signal(0);
 
   // ── Chaos log ─────────────────────────────────────────────────────────────
+
+  /**
+   * Signal: timestamped log of chaos events and impact readings.
+   * Shown in the terminal-style log panel below the action buttons.
+   * Types: `'action'`=cyan (user-triggered), `'impact'`=orange (monitor), `'info'`=gray.
+   */
   chaosLog = signal<Array<{ time: Date; message: string; type: 'action' | 'impact' | 'info' }>>([]);
 
   // ── Faker generator ───────────────────────────────────────────────────────
+
+  /** Number of customers to generate in the next faker run. Bound via ngModel. */
   fakerCount = 10;
+
+  /** Delay in milliseconds between consecutive faker create requests. Bound via ngModel. */
   fakerDelay = 100; // ms between requests
+
+  /** Signal: true while the faker generator is running. Disables the start button. */
   fakerRunning = signal(false);
+
+  /** Signal: number of customers created so far in the current faker run. */
   fakerProgress = signal(0);
+
+  /**
+   * Abort flag checked between faker requests.
+   * Set to true by the stop button to cancel a running faker without completing it.
+   */
   private _fakerAbort = false;
 
   readonly actions: ChaosAction[] = [
