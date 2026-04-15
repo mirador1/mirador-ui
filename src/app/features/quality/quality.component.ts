@@ -224,7 +224,7 @@ export class QualityComponent implements OnInit, OnDestroy {
   report = signal<QualityReport | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
-  selectedTab = signal<string>('tests');
+  selectedTab = signal<string>('overview');
   mavenSiteAvailable = signal(false);
 
   // Polls every 10s until the nginx server responds — cleared once available or on destroy.
@@ -246,6 +246,12 @@ export class QualityComponent implements OnInit, OnDestroy {
 
   navigateMavenSite(page: string): void {
     this.mavenSitePage.set(page);
+  }
+
+  /** Navigate to the Maven Site tab and load the given page in the iframe. */
+  openMavenSitePage(page: string): void {
+    this.mavenSitePage.set(page);
+    this.selectedTab.set('maven-site');
   }
 
   /** Base URL of the Maven site: dedicated nginx server if configured, backend fallback. */

@@ -175,7 +175,14 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+
+  // Secondary row (PMD, Checkstyle, OWASP, Pitest) — smaller gap from primary row
+  &.summary-row-secondary {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
 
   @media (max-width: 900px) {
     grid-template-columns: repeat(2, 1fr);
@@ -183,6 +190,15 @@
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
+  }
+}
+
+// Smaller variant for secondary overview cards
+.summary-card-sm {
+  padding: 0.65rem 0.9rem;
+
+  .card-value {
+    font-size: 1.2rem;
   }
 }
 
@@ -781,6 +797,63 @@
   padding: 0.15rem 0.4rem;
   font-size: 0.8rem;
   margin-right: 0.3rem;
+}
+
+// Overview → Maven Site quick-links bar
+// ---------------------------------------------------------------------------
+.overview-maven-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.overview-maven-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.overview-maven-btn {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--border-default);
+  border-radius: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--color-accent, #3b82f6);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--bg-card-hover, rgba(59, 130, 246, 0.08));
+  }
+}
+
+// Per-tab Maven Site link bar (shown at top of Tests, Analysis, Security tabs)
+.tab-maven-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-radius: 0.4rem;
+  font-size: 0.82rem;
+}
+
+.tab-maven-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-right: 0.25rem;
 }
 
 .maven-site-container {
