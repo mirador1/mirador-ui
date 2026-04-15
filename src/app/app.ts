@@ -20,5 +20,6 @@ import { Auth0BridgeService } from './core/auth/auth0-bridge.service';
 export class App {
   // Injecting Auth0BridgeService here ensures it is instantiated at bootstrap time,
   // before any route or component renders, so Auth0 session state is resolved early.
-  protected readonly _auth0Bridge = inject(Auth0BridgeService);
+  // Private because subclasses don't exist — this is injection-for-side-effects only.
+  private readonly _auth0Bridge = inject(Auth0BridgeService);
 }

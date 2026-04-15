@@ -17,7 +17,8 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter, switchMap } from 'rxjs/operators';
+import { catchError, filter, switchMap } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -30,11 +31,26 @@ export class Auth0BridgeService {
     // AuthService so the existing authInterceptor attaches it to API requests.
     // getAccessTokenSilently() returns a signed JWT when the 'https://mirador-api'
     // audience is configured in Auth0 (Applications → APIs).
+    //
+    // catchError absorbs token-refresh failures (Auth0 unreachable, session expired)
+    // without breaking the outer stream — the user simply stays unauthenticated.
     this.auth0.isAuthenticated$
       .pipe(
         takeUntilDestroyed(),
         filter(Boolean),
-        switchMap(() => this.auth0.getAccessTokenSilently()),
+        switchMap(() =>
+          this.auth0.getAccessTokenSilently().pipe(
+            catchError(() => {
+              // Token refresh failed (network issue, session expiry, Auth0 down).
+              // Log for diagnostics but don't propagate — the outer isAuthenticated$
+              // stream must keep running for future auth state changes.
+              console.warn(
+                '[Auth0Bridge] getAccessTokenSilently failed — user stays unauthenticated',
+              );
+              return EMPTY;
+            }),
+          ),
+        ),
       )
       .subscribe((token) => {
         this.auth.setToken(token);
