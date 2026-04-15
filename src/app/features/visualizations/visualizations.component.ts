@@ -2525,9 +2525,11 @@ export class VisualizationsComponent implements OnDestroy {
         updateNode('redisinsight', r ? 'up' : 'down');
       });
 
-    // Prometheus
+    // Mimir (Prometheus-compatible API, replaces standalone Prometheus at 9091)
+    // /api/v1/labels is a lightweight read used as a liveness probe —
+    // Mimir doesn't expose /-/ready like Prometheus does.
     this.http
-      .get('http://localhost:9091/-/ready', { responseType: 'text' })
+      .get('http://localhost:9091/api/v1/labels')
       .pipe(catchError(() => of(null)))
       .subscribe((r) => {
         updateNode('prometheus', r ? 'up' : 'down');

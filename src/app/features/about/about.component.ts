@@ -276,12 +276,12 @@ export class AboutComponent {
         'Enforced via Lefthook pre-push hooks and the GitLab CI pipeline. All Angular source files are formatted to a consistent style. Run manually with `npx prettier --write "src/**/*.{ts,html,scss,json}"`.',
     },
     {
-      name: 'Prometheus',
+      name: 'Mimir (via otel-lgtm)',
       icon: '🔥',
-      url: 'https://prometheus.io',
-      description: 'Time-series metrics database with PromQL query language.',
+      url: 'https://grafana.com/oss/mimir',
+      description: 'Scalable Prometheus-compatible metrics backend, bundled inside otel-lgtm.',
       usage:
-        'Scrapes `/actuator/prometheus` every 15 seconds. Stores 180+ metrics. Also queried directly by the Angular Metrics page and Observability Latency tab to parse the raw text exposition format.',
+        'The OTel Collector inside otel-lgtm scrapes `/actuator/prometheus` every 15s and stores metrics in Mimir. Prometheus-compatible query API exposed at localhost:9091. Replaces the standalone Prometheus container.',
     },
     {
       name: 'Pyroscope',
@@ -552,9 +552,9 @@ export class AboutComponent {
     },
     {
       port: 9091,
-      name: 'Prometheus',
+      name: 'Mimir',
       category: 'Obs',
-      note: 'Metrics store (9090 used by Keycloak)',
+      note: 'Metrics (Prometheus-compatible API, bundled in otel-lgtm)',
       url: 'http://localhost:9091',
     },
     {
