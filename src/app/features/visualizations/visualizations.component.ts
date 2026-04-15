@@ -13,9 +13,9 @@
  * - Slow Queries: Spring Data repository invocation metrics from Prometheus
  * - Bundle: treemap of Angular lazy chunks with 3D CSS transforms
  */
-import { Component, inject, signal, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
@@ -24,95 +24,145 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
-type VizTab =
-  | 'topology'
-  | 'waterfall'
-  | 'sankey'
-  | 'errors'
-  | 'kafka'
-  | 'jvm'
-  | 'golden'
-  | 'slowdb'
-  | 'bundle3d';
+/** Active visualization tab in the Metrics page. */
+type VizTab = 'topology' | 'errors' | 'kafka' | 'jvm' | 'golden' | 'slowdb' | 'bundle3d';
 
 // ── Topology ────────────────────────────────────────────────────────────────
+
+/** A node in the animated service dependency topology graph. */
 interface TopoNode {
+  /** Unique node ID for edge references. */
   id: string;
+  /** Display label shown below the node circle. */
   label: string;
+  /** SVG X coordinate. */
   x: number;
+  /** SVG Y coordinate. */
   y: number;
+  /** Health status that determines the node's fill color. */
   status: 'up' | 'down' | 'unknown';
 }
+
+/**
+ * An animated particle traveling along a topology edge.
+ * Particles simulate data flow between services in the dependency graph.
+ */
 interface TopoParticle {
+  /** ID of the source node. */
   fromId: string;
+  /** ID of the destination node. */
   toId: string;
+  /** Animation progress: 0 = at source, 1 = at destination. */
   progress: number;
-  color: string;
-}
-
-// ── Waterfall ───────────────────────────────────────────────────────────────
-interface WaterfallEntry {
-  method: string;
-  uri: string;
-  status: number;
-  startMs: number;
-  durationMs: number;
-}
-
-// ── Sankey ───────────────────────────────────────────────────────────────────
-interface SankeyFlow {
-  from: string;
-  to: string;
-  value: number;
+  /** CSS color string of the particle (matches the edge type). */
   color: string;
 }
 
 // ── Error timeline ──────────────────────────────────────────────────────────
+
+/**
+ * One sample in the error timeline chart.
+ * Stacked as green (ok) + red (errors) bars, polled every 3 seconds.
+ */
 interface ErrorSample {
+  /** Wall-clock time of the sample. */
   time: Date;
+  /** Number of 2xx HTTP responses in this sample window. */
   ok: number;
+  /** Number of non-2xx HTTP responses in this sample window. */
   errors: number;
 }
 
 // ── JVM Gauges ──────────────────────────────────────────────────────────────
+
+/** Resolved gauge data ready for SVG arc rendering. */
 interface GaugeData {
+  /** Gauge identifier matching its `GaugeDef.id`. */
   id: string;
+  /** Display label shown below the arc. */
   label: string;
+  /** Emoji icon shown at the center of the arc. */
   icon: string;
+  /** Tooltip text for the InfoTip component. */
   tip: string;
+  /** Current numeric value. */
   value: number;
+  /** Maximum value used to compute the arc fill percentage. */
   max: number;
+  /** Unit suffix appended to the displayed value (e.g., `'MB'`, `'%'`, `'ms'`). */
   unit: string;
+  /** CSS color string for the arc fill — changes from green to orange to red as value approaches max. */
   color: string;
 }
 
+/**
+ * Static definition of a JVM gauge metric.
+ * Each definition knows how to extract its value from a raw Prometheus text scrape.
+ */
 interface GaugeDef {
+  /** Unique identifier for this gauge. */
   id: string;
+  /** Display label. */
   label: string;
+  /** Emoji icon. */
   icon: string;
+  /** Category for grouping in the UI (e.g., `'Memory'`, `'Threads'`). */
   category: string;
+  /** Tooltip explanation text. */
   tip: string;
+  /**
+   * Extract the gauge value and display metadata from a raw Prometheus text block.
+   * @param text Raw Prometheus scrape text from `/actuator/prometheus`.
+   * @returns Resolved value, max, unit, and color for SVG rendering.
+   */
   extract: (text: string) => { value: number; max: number; unit: string; color: string };
 }
 
 // ── Golden Signals / Metric Cards ───────────────────────────────────────────
+
+/**
+ * One of the four SRE Golden Signals (Latency, Traffic, Errors, Saturation).
+ * Shown as a large summary card at the top of the Metrics page.
+ */
 interface GoldenSignal {
+  /** Unique identifier for this signal. */
   id: string;
+  /** Signal name (e.g., `'Latency'`, `'Traffic'`). */
   name: string;
+  /** Formatted current value string (e.g., `'45ms'`, `'12 RPS'`). */
   value: string;
+  /** Traffic-light status determining the card border color. */
   status: 'ok' | 'warn' | 'critical';
+  /** Secondary detail text (e.g., threshold info). */
   detail: string;
+  /** Emoji icon. */
   icon: string;
+  /** InfoTip tooltip text. */
   tip: string;
 }
 
-/** Definition of an available metric card */
+/**
+ * Definition of a configurable Prometheus metric card (78 total).
+ * Cards are organized into categories (HTTP, JVM, GC, DB, Redis, Kafka, Security, System)
+ * and extract their values from the raw Prometheus text scrape.
+ */
 interface MetricDef {
+  /** Unique identifier for this metric card. */
   id: string;
+  /** Display name shown on the card. */
   name: string;
+  /** Emoji icon. */
   icon: string;
+  /** Category for grouping and filtering. */
   category: string;
+  /** InfoTip tooltip explanation. */
   tip: string;
+  /**
+   * Extract the card's current value and status from Prometheus data.
+   * @param text    Raw Prometheus scrape text.
+   * @param parsed  Pre-parsed common metrics (totals and latency percentiles).
+   * @returns Formatted value string, traffic-light status, and a detail annotation.
+   */
   extract: (
     text: string,
     parsed: {
@@ -130,10 +180,16 @@ interface KafkaLagPoint {
   lag: number;
 }
 
+/** Minimal Spring Boot /actuator/health response shape */
+interface ActuatorHealth {
+  status?: string;
+  components?: Record<string, { status?: string }>;
+}
+
 @Component({
   selector: 'app-visualizations',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, InfoTipComponent],
+  imports: [FormsModule, DecimalPipe, RouterLink, InfoTipComponent],
   templateUrl: './visualizations.component.html',
   styleUrl: './visualizations.component.scss',
 })
@@ -145,6 +201,7 @@ export class VisualizationsComponent implements OnDestroy {
 
   readonly Math = Math;
   activeTab = signal<VizTab>('golden');
+  activeTabTip = computed(() => this.vizTabs.find((t) => t.id === this.activeTab())?.tip ?? '');
 
   readonly vizTabs: Array<{ id: VizTab; label: string; icon: string; tip: string }> = [
     {
@@ -158,18 +215,6 @@ export class VisualizationsComponent implements OnDestroy {
       label: 'JVM Gauges',
       icon: '🧠',
       tip: 'Circular gauges for JVM runtime metrics: heap, CPU, threads, GC, connection pools, disk',
-    },
-    {
-      id: 'waterfall',
-      label: 'Waterfall',
-      icon: '🏊',
-      tip: 'Parallel request timing bars (like Chrome DevTools Network tab). Shows start offset and duration for 6 endpoints',
-    },
-    {
-      id: 'sankey',
-      label: 'Sankey',
-      icon: '🔀',
-      tip: 'Flow diagram from HTTP endpoint → status code (2xx/4xx/5xx). Width proportional to request volume from Prometheus',
     },
     {
       id: 'errors',
@@ -225,7 +270,7 @@ export class VisualizationsComponent implements OnDestroy {
     { id: 'prometheus', label: 'Prometheus', x: 800, y: 40, status: 'unknown' },
     { id: 'grafana', label: 'Grafana', x: 800, y: 110, status: 'unknown' },
     { id: 'zipkin', label: 'Zipkin', x: 800, y: 180, status: 'unknown' },
-    { id: 'loki', label: 'Loki (LGTM)', x: 800, y: 250, status: 'unknown' },
+    { id: 'loki', label: 'Grafana', x: 800, y: 250, status: 'unknown' },
     // Col 6
     { id: 'pyroscope', label: 'Pyroscope', x: 950, y: 110, status: 'unknown' },
   ]);
@@ -258,13 +303,6 @@ export class VisualizationsComponent implements OnDestroy {
   topoParticles = signal<TopoParticle[]>([]);
   private _topoTimer: ReturnType<typeof setInterval> | null = null;
   topoAnimating = signal(false);
-
-  // ── Waterfall ─────────────────────────────────────────────────────────────
-  waterfallEntries = signal<WaterfallEntry[]>([]);
-  waterfallRunning = signal(false);
-
-  // ── Sankey ────────────────────────────────────────────────────────────────
-  sankeyFlows = signal<SankeyFlow[]>([]);
 
   // ── Error timeline ────────────────────────────────────────────────────────
   errorSamples = signal<ErrorSample[]>([]);
@@ -2478,6 +2516,11 @@ export class VisualizationsComponent implements OnDestroy {
   // ── Slow DB queries ───────────────────────────────────────────────────────
   slowQueries = signal<Array<{ query: string; avgMs: number; count: number }>>([]);
 
+  // ── Error / raw data ──────────────────────────────────────────────────────
+  vizError = signal<string>('');
+  rawPrometheus = signal<string>('');
+  showRawData = signal(false);
+
   // ── Bundle treemap ────────────────────────────────────────────────────────
   bundleChunks = signal<Array<{ name: string; size: number; pct: number }>>([]);
 
@@ -2489,6 +2532,8 @@ export class VisualizationsComponent implements OnDestroy {
 
   switchTab(tab: VizTab): void {
     this.activeTab.set(tab);
+    this.vizError.set('');
+    this.showRawData.set(false);
   }
 
   // ── Topology map ──────────────────────────────────────────────────────────
@@ -2505,7 +2550,7 @@ export class VisualizationsComponent implements OnDestroy {
 
     // API + db + redis from actuator/health
     this.http
-      .get<any>(`${base}/actuator/health`)
+      .get<ActuatorHealth>(`${base}/actuator/health`)
       .pipe(catchError(() => of(null)))
       .subscribe((h) => {
         const c = h?.components ?? {};
@@ -2556,9 +2601,11 @@ export class VisualizationsComponent implements OnDestroy {
         updateNode('redisinsight', r ? 'up' : 'down');
       });
 
-    // Prometheus
+    // Mimir (Prometheus-compatible API, replaces standalone Prometheus at 9091)
+    // /api/v1/labels is a lightweight read used as a liveness probe —
+    // Mimir doesn't expose /-/ready like Prometheus does.
     this.http
-      .get('http://localhost:9091/-/ready', { responseType: 'text' })
+      .get('http://localhost:9091/api/v1/labels')
       .pipe(catchError(() => of(null)))
       .subscribe((r) => {
         updateNode('prometheus', r ? 'up' : 'down');
@@ -2662,99 +2709,6 @@ export class VisualizationsComponent implements OnDestroy {
     });
   }
 
-  // ── Waterfall ─────────────────────────────────────────────────────────────
-  async runWaterfall(): Promise<void> {
-    this.waterfallRunning.set(true);
-    this.waterfallEntries.set([]);
-    const base = this.env.baseUrl();
-    const endpoints = [
-      { method: 'GET', uri: '/actuator/health' },
-      { method: 'GET', uri: '/customers?page=0&size=5' },
-      { method: 'GET', uri: '/customers/summary?page=0&size=5' },
-      { method: 'GET', uri: '/customers/recent' },
-      { method: 'GET', uri: '/actuator/info' },
-      { method: 'GET', uri: '/customers/aggregate' },
-    ];
-    const globalStart = performance.now();
-
-    const promises = endpoints.map(async (ep) => {
-      const start = performance.now() - globalStart;
-      try {
-        const t0 = performance.now();
-        await this.http.get(`${base}${ep.uri}`).toPromise();
-        return {
-          method: ep.method,
-          uri: ep.uri,
-          status: 200,
-          startMs: start,
-          durationMs: performance.now() - t0,
-        };
-      } catch (e: any) {
-        return {
-          method: ep.method,
-          uri: ep.uri,
-          status: e.status || 0,
-          startMs: start,
-          durationMs: performance.now() - globalStart - start,
-        };
-      }
-    });
-
-    const results = await Promise.all(promises);
-    this.waterfallEntries.set(results);
-    this.waterfallRunning.set(false);
-  }
-
-  waterfallMaxMs(): number {
-    const entries = this.waterfallEntries();
-    return Math.max(1, ...entries.map((e) => e.startMs + e.durationMs));
-  }
-
-  // ── Sankey ────────────────────────────────────────────────────────────────
-  buildSankey(): void {
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        const flows: SankeyFlow[] = [];
-        const regex =
-          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let m;
-        const byEndpoint: Record<string, Record<string, number>> = {};
-        while ((m = regex.exec(text)) !== null) {
-          const uri = m[3];
-          const status = m[2][0] + 'xx';
-          const count = parseFloat(m[4]);
-          if (!byEndpoint[uri]) byEndpoint[uri] = {};
-          byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
-        }
-        const colors: Record<string, string> = {
-          '2xx': '#4ade80',
-          '3xx': '#60a5fa',
-          '4xx': '#fbbf24',
-          '5xx': '#f87171',
-        };
-        for (const [uri, statuses] of Object.entries(byEndpoint)) {
-          for (const [status, count] of Object.entries(statuses)) {
-            if (count > 0) {
-              flows.push({
-                from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
-                to: status,
-                value: count,
-                color: colors[status] || '#94a3b8',
-              });
-            }
-          }
-        }
-        flows.sort((a, b) => b.value - a.value);
-        this.sankeyFlows.set(flows.slice(0, 20));
-      },
-      error: () => {},
-    });
-  }
-
-  sankeyMaxValue(): number {
-    return Math.max(1, ...this.sankeyFlows().map((f) => f.value));
-  }
-
   // ── Error timeline ────────────────────────────────────────────────────────
   toggleErrorPolling(): void {
     if (this.errorPolling()) {
@@ -2846,8 +2800,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── JVM Gauges ────────────────────────────────────────────────────────────
   fetchJvmGauges(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         const selected = this.selectedGaugeIds();
         const result: GaugeData[] = [];
         for (const def of this.allGauges) {
@@ -2857,7 +2813,11 @@ export class VisualizationsComponent implements OnDestroy {
         }
         this.gauges.set(result);
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
+      },
     });
   }
 
@@ -2882,8 +2842,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── Golden Signals ────────────────────────────────────────────────────────
   fetchGoldenSignals(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         const parsed = this.metricsService.parsePrometheus(text);
         const selected = this.selectedMetricIds();
         const signals: GoldenSignal[] = [];
@@ -2896,7 +2858,11 @@ export class VisualizationsComponent implements OnDestroy {
 
         this.goldenSignals.set(signals);
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
+      },
     });
   }
 
@@ -2937,7 +2903,7 @@ export class VisualizationsComponent implements OnDestroy {
           email: `kafka${i}@test.com`,
         })
         .pipe(catchError(() => of(null)))
-        .subscribe((c: any) => {
+        .subscribe((c: { id?: number } | null) => {
           // Enrich → Kafka request-reply (customer.request → customer.reply)
           if (c?.id) {
             this.http
@@ -2961,8 +2927,13 @@ export class VisualizationsComponent implements OnDestroy {
         );
         const lag = match ? parseFloat(match[1]) : Math.random() * 10; // simulated if metric unavailable
         this.kafkaLag.update((s) => [...s.slice(-29), { time: new Date(), lag }]);
+        this.vizError.set('');
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
+      },
     });
   }
 
@@ -2987,8 +2958,10 @@ export class VisualizationsComponent implements OnDestroy {
 
   // ── Slow DB queries ───────────────────────────────────────────────────────
   fetchSlowQueries(): void {
+    this.vizError.set('');
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
       next: (text) => {
+        this.rawPrometheus.set(text);
         // Parse JDBC/Hibernate metrics
         const queries: Array<{ query: string; avgMs: number; count: number }> = [];
         const regex =
@@ -2999,7 +2972,7 @@ export class VisualizationsComponent implements OnDestroy {
         while ((m = regex.exec(text)) !== null) {
           const method = m[1];
           const val = parseFloat(m[2]);
-          if (text.includes('_sum')) sums[method] = (sums[method] || 0) + val;
+          if (m[0].includes('_sum')) sums[method] = (sums[method] || 0) + val;
           else counts[method] = (counts[method] || 0) + val;
         }
         for (const method of Object.keys(sums)) {
@@ -3021,7 +2994,11 @@ export class VisualizationsComponent implements OnDestroy {
         queries.sort((a, b) => b.avgMs - a.avgMs);
         this.slowQueries.set(queries.slice(0, 10));
       },
-      error: () => {},
+      error: (err) => {
+        this.vizError.set(
+          `Cannot reach /actuator/prometheus — ${err?.status ? 'HTTP ' + err.status : 'backend unreachable'}`,
+        );
+      },
     });
   }
 

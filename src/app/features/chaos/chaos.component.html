@@ -1,8 +1,12 @@
 <section>
   <div class="page-header">
+    <span class="page-icon">💥</span>
     <div>
       <h2>Chaos & Traffic</h2>
-      <p class="subtitle">Simulate failures, generate data, and observe real-time impact</p>
+      <p class="subtitle">
+        Intentional disruption — inject failures, generate load, and observe the impact in real
+        time: rate limit flood, Kafka timeout, circuit breaker, concurrent writes, data generation.
+      </p>
     </div>
     <div class="header-actions">
       <button class="monitor-btn" [class.active]="monitoring()" (click)="toggleMonitoring()">

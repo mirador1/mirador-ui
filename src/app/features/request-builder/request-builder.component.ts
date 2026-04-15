@@ -17,12 +17,23 @@ import { RouterLink } from '@angular/router';
 import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 
-/** Pre-configured request template */
+/**
+ * A pre-configured request template shown in the Presets panel.
+ * Headers and body are raw text strings (one header per line, JSON body).
+ */
 interface SavedRequest {
+  /** Display name shown in the presets list (e.g., `'Health check'`). */
   name: string;
+  /** HTTP method string: `'GET'`, `'POST'`, `'PUT'`, `'DELETE'`, `'PATCH'`. */
   method: string;
+  /**
+   * URL or relative path (e.g., `'/actuator/health'`).
+   * Relative paths are prefixed with the active `EnvService.baseUrl()`.
+   */
   url: string;
+  /** Raw header text: one `Header-Name: value` per line. */
   headers: string;
+  /** Raw request body text (JSON or empty string). */
   body: string;
 }
 
@@ -97,10 +108,20 @@ export class RequestBuilderComponent {
     { name: 'Loggers', method: 'GET', url: '/actuator/loggers', headers: '', body: '' },
   ];
 
+  /**
+   * Signal: last 20 requests sent from this component.
+   * Shown in the History panel with click-to-replay. Capped at 20 to keep the list scannable.
+   */
   history = signal<
     Array<{ method: string; url: string; status: number; timeMs: number; timestamp: Date }>
   >([]);
 
+  /**
+   * Apply a preset to the current request form fields.
+   * Called when the user clicks a preset button.
+   *
+   * @param p The preset to apply.
+   */
   loadPreset(p: SavedRequest): void {
     this.method = p.method;
     this.url = p.url;
@@ -108,6 +129,12 @@ export class RequestBuilderComponent {
     this.bodyText = p.body;
   }
 
+  /**
+   * Execute the currently configured HTTP request.
+   * Relative URLs are prefixed with the active environment base URL.
+   * Response is shown as formatted JSON (or raw text if not parseable as JSON).
+   * Timing is measured with `performance.now()` for sub-millisecond accuracy.
+   */
   send(): void {
     const fullUrl = this.url.startsWith('http') ? this.url : `${this.env.baseUrl()}${this.url}`;
     this.loading.set(true);
@@ -158,19 +185,19 @@ export class RequestBuilderComponent {
         this.loading.set(false);
         this.recordHistory(this.method, this.url, res.status, elapsed);
       },
-      error: (err: any) => {
+      error: (err: { status?: number; error?: string; message?: string }) => {
         const elapsed = Math.round(performance.now() - t0);
-        this.responseStatus.set(err.status || 0);
+        this.responseStatus.set(err.status ?? 0);
         this.responseTime.set(elapsed);
-        this.responseBody.set(err.error || err.message || 'Request failed');
+        this.responseBody.set(err.error ?? err.message ?? 'Request failed');
         this.responseHeaders.set(null);
         this.loading.set(false);
-        this.recordHistory(this.method, this.url, err.status || 0, elapsed);
+        this.recordHistory(this.method, this.url, err.status ?? 0, elapsed);
       },
     });
   }
 
-  private formatHeaders(headers: any): string {
+  private formatHeaders(headers: HttpHeaders): string {
     const lines: string[] = [];
     headers.keys().forEach((key: string) => {
       lines.push(`${key}: ${headers.get(key)}`);

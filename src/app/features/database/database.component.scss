@@ -1,0 +1,454 @@
+// ── Page layout — flex column so SQL panel sticks at the bottom ──────────────
+.db-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+h2 {
+  margin: 0 0 0.25rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-label);
+  font-size: 0.9rem;
+}
+
+.header-links {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ext-link-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.82rem;
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+.alert-error {
+  background: var(--bg-error);
+  color: var(--text-error);
+  border: 1px solid var(--border-error);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.alert-warn {
+  background: var(--bg-warn);
+  color: var(--text-warn);
+  border: 1px solid var(--border-warn);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  a {
+    color: var(--text-link);
+  }
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+
+  button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: -1px;
+    transition:
+      color 0.12s,
+      background 0.12s;
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--bg-card-hover);
+    }
+
+    &.tab-active {
+      color: var(--color-accent);
+      background: var(--bg-card);
+      border-color: var(--border-default);
+      border-bottom-color: var(--bg-card);
+    }
+  }
+}
+
+// ── Preset buttons area ───────────────────────────────────────────────────────
+.presets-area {
+  padding-bottom: 1rem;
+}
+
+.health-area {
+  padding-bottom: 0;
+}
+
+.sql-cat-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sql-preset-btn {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: var(--bg-card-hover);
+  }
+}
+
+// ── Health checks ─────────────────────────────────────────────────────────────
+.health-intro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.health-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.magic-btn {
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+  }
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.magic-spin {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.health-card {
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+
+  &.hc-ok {
+    border-left: 4px solid #4ade80;
+  }
+  &.hc-warn {
+    border-left: 4px solid #fbbf24;
+  }
+  &.hc-crit {
+    border-left: 4px solid #f87171;
+  }
+  &.hc-loading {
+    opacity: 0.6;
+  }
+  &.hc-error {
+    border-left: 4px solid #6b7280;
+  }
+}
+
+.hc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.hc-icon {
+  font-size: 1rem;
+}
+
+.hc-label {
+  font-weight: 700;
+  font-size: 0.83rem;
+  color: var(--text-primary);
+}
+
+.hc-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0 0 0.35rem;
+}
+
+.hc-detail {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+  font-family: monospace;
+}
+
+.hc-query-btn {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: 0.7rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+// ── SQL Explorer panel — sticky at the bottom of the viewport ────────────────
+.sql-panel {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-body);
+  border-top: 2px solid var(--border-default);
+  padding: 0.75rem 0 0;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.sql-panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sql-panel-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.sql-panel-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  a {
+    color: var(--text-link);
+  }
+}
+
+.sql-editor {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.sql-textarea {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-terminal);
+  color: #86efac;
+  font-family: monospace;
+  font-size: 0.78rem;
+  resize: vertical;
+}
+
+.run-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  &:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.sql-result {
+  overflow-x: auto;
+  max-height: 240px;
+  overflow-y: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    th {
+      text-align: left;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 2px solid var(--border-default);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      background: var(--bg-body);
+    }
+    td {
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-family: monospace;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+  }
+}
+
+// ── Maintenance section ───────────────────────────────────────────────────────
+.maintenance-area {
+  border-top: 1px solid var(--border-default);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.maintenance-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.maintenance-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.maintenance-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  code {
+    font-size: 0.7rem;
+  }
+}
+
+.maintenance-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.maint-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: var(--bg-card-hover);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.maint-btn-warn:hover:not(:disabled) {
+    border-color: #fbbf24;
+    color: #fbbf24;
+  }
+}
+
+.maint-status {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  font-family: monospace;
+
+  &.maint-running {
+    color: var(--text-muted);
+  }
+  &.maint-ok {
+    color: #4ade80;
+  }
+  &.maint-err {
+    color: #f87171;
+  }
+}

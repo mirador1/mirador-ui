@@ -15,9 +15,15 @@ import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeService } from '../theme/theme.service';
 
+/**
+ * Metadata for a single keyboard shortcut, used to render the help overlay.
+ */
 export interface Shortcut {
+  /** Key or key sequence label shown in the help modal (e.g., `"G then D"`, `"Ctrl+K"`). */
   key: string;
+  /** Human-readable description of what the shortcut does. */
   description: string;
+  /** Grouping label used to section the help overlay (e.g., `"Navigation"`, `"Actions"`). */
   category: string;
 }
 
@@ -26,11 +32,25 @@ export class KeyboardService implements OnDestroy {
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
 
+  /**
+   * Signal: true when the keyboard shortcut help modal should be visible.
+   * Toggled by pressing `?` or dismissed by `Escape`.
+   */
   readonly showHelp = signal(false);
+
+  /**
+   * Signal: true when the global search overlay should be visible.
+   * Toggled by `Ctrl+K` / `Cmd+K` or dismissed by `Escape`.
+   */
   readonly showSearch = signal(false);
 
+  /**
+   * Bound event handler stored as a property so it can be removed in `ngOnDestroy`.
+   * Using an arrow function ensures `this` refers to the service instance.
+   */
   private readonly handler = (e: KeyboardEvent) => this.onKeyDown(e);
 
+  /** Complete list of registered shortcuts, displayed in the help overlay. */
   readonly shortcuts: Shortcut[] = [
     { key: 'Ctrl+K', description: 'Open global search', category: 'Navigation' },
     { key: '?', description: 'Show keyboard shortcuts', category: 'Navigation' },
@@ -44,14 +64,22 @@ export class KeyboardService implements OnDestroy {
     { key: 'D', description: 'Toggle dark/light mode', category: 'Actions' },
   ];
 
-  /** Whether the G key was pressed, waiting for the second key within 500ms */
+  /** Whether the G key was pressed, waiting for the second key within 500ms. */
   private _gPending = false;
+
+  /** Timer handle for the 500ms G-key sequence window. Cleared when the second key arrives. */
   private _gTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Register globally on `document` so shortcuts work regardless of focus position.
     document.addEventListener('keydown', this.handler);
   }
 
+  /**
+   * Remove the global keydown listener when the service is destroyed.
+   * In practice this only fires if the service is provided at a non-root scope,
+   * but the cleanup is included for correctness.
+   */
   ngOnDestroy(): void {
     document.removeEventListener('keydown', this.handler);
   }

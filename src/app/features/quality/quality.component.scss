@@ -1,0 +1,1010 @@
+// =============================================================================
+// Quality Report — styles
+// =============================================================================
+
+.quality-page {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Page header
+// ---------------------------------------------------------------------------
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+}
+
+.header-icon {
+  font-size: 1.5rem;
+}
+
+.generated-at {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+// Refresh instructions banner
+// ---------------------------------------------------------------------------
+.refresh-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.refresh-info-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.refresh-info-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  line-height: 1.5;
+}
+
+.refresh-cmd {
+  display: inline-block;
+  background: var(--bg-code);
+  color: var(--text-primary);
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.3rem;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.82rem;
+  user-select: all;
+}
+
+.refresh-variant {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.refresh-variant-label {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.refresh-hint {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+// Container holding the GitLab link and the Refresh button side by side.
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// GitLab repository link — rendered as a button-like anchor in the page header.
+.btn-gitlab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--color-accent);
+  }
+
+  .gitlab-icon {
+    flex-shrink: 0;
+    color: #fc6d26; // GitLab orange — brand colour
+  }
+}
+
+.hash-link {
+  text-decoration: none;
+  &:hover code {
+    text-decoration: underline;
+  }
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.refresh-icon {
+  font-size: 1rem;
+  display: inline-block;
+  transition: transform 0.3s;
+
+  &.spinning {
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Loading / error
+// ---------------------------------------------------------------------------
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  justify-content: center;
+  color: var(--text-muted);
+
+  .spinner {
+    font-size: 1.4rem;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--color-error, #f87171);
+  color: var(--color-error, #ef4444);
+  margin-bottom: 1rem;
+}
+
+// Summary row — 4 cards
+// ---------------------------------------------------------------------------
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  // Secondary row (PMD, Checkstyle, OWASP, Pitest) — smaller gap from primary row
+  &.summary-row-secondary {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Smaller variant for secondary overview cards
+.summary-card-sm {
+  padding: 0.65rem 0.9rem;
+
+  .card-value {
+    font-size: 1.2rem;
+  }
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.6rem;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &.card-pass {
+    border-left: 4px solid #22c55e;
+  }
+
+  &.card-fail {
+    border-left: 4px solid #ef4444;
+  }
+}
+
+// Clickable card variant — used on Overview cards that navigate to a detail tab
+.summary-card-link {
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-accent, #3b82f6);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15);
+  }
+}
+
+.card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.card-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+
+  &.card-na {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+  }
+
+  &.build-version {
+    font-size: 1.1rem;
+    font-family: monospace;
+  }
+}
+
+.card-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.card-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.coverage-bar-wrap {
+  margin-top: 0.4rem;
+}
+
+// Badges
+// ---------------------------------------------------------------------------
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-pass {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.badge-fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.badge-warn {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+}
+
+.badge-ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+// Color utilities
+// ---------------------------------------------------------------------------
+.pct-good,
+.pct-ok {
+  color: #4ade80;
+}
+.pct-warn {
+  color: #facc15;
+}
+.pct-bad {
+  color: #f87171;
+}
+
+// Quality sections
+// ---------------------------------------------------------------------------
+.quality-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.6rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+}
+
+.section-icon {
+  font-size: 1.1rem;
+}
+
+.section-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+
+  &.badge-pass {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+  }
+
+  &.badge-fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+
+  &.badge-warn {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+}
+
+// Test summary line
+// ---------------------------------------------------------------------------
+.test-summary-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+
+  .sep {
+    color: var(--text-muted);
+  }
+}
+
+// Tables
+// ---------------------------------------------------------------------------
+.table-wrap {
+  overflow-x: auto;
+}
+
+.quality-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--border-default);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: middle;
+    color: var(--text-primary);
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+
+  tr.row-fail td {
+    background: rgba(239, 68, 68, 0.08);
+  }
+
+  .num-col {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .pct-col {
+    width: 120px;
+    padding-right: 0.75rem;
+  }
+}
+
+.suite-name,
+.pkg-name,
+.bug-type {
+  font-family: monospace;
+  font-size: 0.825rem;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+// Coverage counters grid
+// ---------------------------------------------------------------------------
+.coverage-counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 700px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.counter-card {
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.counter-pct {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.counter-abs {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+// Coverage bars
+// ---------------------------------------------------------------------------
+.coverage-bar {
+  width: 100%;
+  height: 5px;
+  display: block;
+}
+
+.pkg-bar {
+  width: 100%;
+  height: 8px;
+  display: block;
+}
+
+// Bug section
+// ---------------------------------------------------------------------------
+.bug-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+
+  .sep {
+    color: var(--text-muted);
+  }
+}
+
+.success-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.4rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+  font-size: 0.875rem;
+}
+
+.info-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+
+  code {
+    background: var(--bg-code);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+  }
+}
+
+// Build section
+// ---------------------------------------------------------------------------
+.build-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.build-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+}
+
+.build-key {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.build-val {
+  font-size: 0.9rem;
+  font-family: monospace;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+// Access denied
+// ---------------------------------------------------------------------------
+.access-denied {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.section-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+}
+
+.hash {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+.ep-path {
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.method-badge {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-right: 2px;
+
+  &.method-get {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  &.method-post {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+  }
+  &.method-put {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+  &.method-patch {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+  }
+  &.method-delete {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+}
+
+.scope-badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  &.scope-compile {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+  }
+  &.scope-test {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  &.scope-provided {
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+  }
+  &.scope-runtime {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+}
+
+// Violation summary badges row
+.violation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+// Ruleset chips (PMD)
+.ruleset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.ruleset-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+}
+.ruleset-name {
+  color: var(--text-secondary);
+}
+.ruleset-count {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.metrics-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+  min-width: 100px;
+}
+.metric-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+.metric-lbl {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+// Tabs
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 0.5rem;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+
+  &.tab-active {
+    background: var(--bg-card);
+    border-color: var(--border-default);
+    border-bottom-color: var(--bg-card);
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-bottom: -1px;
+  }
+}
+
+.cve-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.85rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.info-label {
+  width: 130px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--text-primary);
+}
+
+.na-message {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.badge-profile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+  margin-right: 0.3rem;
+}
+
+// Per-tab bar linking to the corresponding full Maven Site report
+// ---------------------------------------------------------------------------
+.tab-maven-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.tab-maven-bar-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.tab-maven-link {
+  color: var(--color-accent, #3b82f6);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: var(--color-accent, #3b82f6);
+  }
+}
+
+// Maven Site availability badge
+// ---------------------------------------------------------------------------
+.maven-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.3rem;
+
+  &.maven-status-up {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.1);
+  }
+
+  &.maven-status-down {
+    color: var(--text-muted);
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  }
+}
+
+// Raw reports section — fixed above the tab bar
+// ---------------------------------------------------------------------------
+.maven-raw-section {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.maven-raw-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+  flex-wrap: wrap;
+}
+
+.maven-raw-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.maven-raw-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+
+  code {
+    background: var(--bg-code, rgba(0, 0, 0, 0.08));
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    font-style: normal;
+    font-size: 0.78rem;
+  }
+}
+
+.maven-raw-grid {
+  display: grid;
+  // Fit as many columns as possible — each at least 180px wide
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.maven-raw-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+
+  // Last column: no right border (tricky with auto-fill — suppress with nth-child logic omitted;
+  // the slight double-border on edges is acceptable)
+}
+
+.maven-raw-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.maven-raw-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.maven-raw-btn {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.15s;
+  border: 1px solid var(--border-default);
+
+  // When available: styled as a link-button
+  &:not(.maven-raw-disabled) {
+    color: var(--color-accent, #3b82f6);
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+  }
+
+  // When not deployed: greyed out, no pointer
+  &.maven-raw-disabled {
+    color: var(--text-muted);
+    background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+    cursor: default;
+    opacity: 0.7;
+  }
+}

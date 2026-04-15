@@ -11,6 +11,19 @@ h2 {
   gap: 0.75rem;
 }
 
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mirador-logo {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.18));
+}
+
 .subtitle {
   margin: 0;
   color: var(--text-label);
@@ -135,6 +148,12 @@ h2 {
   letter-spacing: 0.03em;
 }
 
+.stat-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .stat-links {
   display: flex;
   flex-direction: row;
@@ -174,9 +193,55 @@ h2 {
   margin-bottom: 0.4rem;
 }
 
+.sparkline-wrapper {
+  position: relative;
+}
+
 .sparkline {
   width: 100%;
-  height: 30px;
+  height: 80px;
+  display: block;
+}
+
+.sparkline-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  &.dot-up {
+    background: #4ade80;
+    box-shadow: 0 0 3px #4ade8066;
+  }
+  &.dot-down {
+    background: #f87171;
+    box-shadow: 0 0 3px #f8717166;
+  }
+}
+
+// X-axis minute labels below the sparkline
+.sparkline-xaxis {
+  position: relative;
+  height: 1.1rem;
+  margin-top: 3px;
+}
+
+.sparkline-xaxis-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+
+  // Keep first/last labels from overflowing the container
+  &:first-child {
+    transform: translateX(0);
+  }
+  &:last-child {
+    transform: translateX(-100%);
+  }
 }
 
 .sparkline-legend {
@@ -641,6 +706,21 @@ pre {
   }
 }
 
+// ── Architecture legend ───────────────────────────────────────────────────────
+.archi-legend {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+
+  code {
+    background: var(--bg-card);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+  }
+}
+
 // ── Architecture columns ─────────────────────────────────────────────────────
 .archi-columns {
   display: flex;
@@ -971,4 +1051,82 @@ pre {
 .ext-icon {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+// ── Live Activity ─────────────────────────────────────────────────────────────
+.live-feed-preview {
+  margin-bottom: 1.5rem;
+  background: var(--bg-card, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.view-all-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.live-names-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.live-name-item {
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-card, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  animation: slideIn 0.3s ease-out;
+
+  &:first-child {
+    border-color: var(--color-accent, #6366f1);
+    background: color-mix(in srgb, var(--color-accent, #6366f1) 10%, transparent);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── SSE live indicator dot ────────────────────────────────────────────────────
+.sse-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  animation: ssePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ssePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
 }

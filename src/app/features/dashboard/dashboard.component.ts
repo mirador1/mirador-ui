@@ -17,6 +17,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
@@ -26,18 +27,70 @@ import { ActivityService } from '../../core/activity/activity.service';
 import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
-/** Snapshot of all three health probe statuses at a point in time */
+/**
+ * Service port/URL registry — single source of truth for all local service addresses.
+ * Referenced by both `knownContainers` (services panel) and `topoNodes` (topology graph)
+ * so changing a port only requires editing this one object.
+ * Only services with port duplication across multiple data structures are listed here.
+ */
+const SVC = {
+  sonarqube: { port: '9000', url: 'http://localhost:9000' },
+  'maven-site': { port: '8084', url: 'http://localhost:8084' },
+  compodoc: { port: '8085', url: 'http://localhost:8085' },
+  gitlab: { port: '9081', url: 'http://localhost:9081' },
+  pgadmin: { port: '5050', url: 'http://localhost:5050' },
+  'kafka-ui': { port: '9080', url: 'http://localhost:9080' },
+  redisinsight: { port: '5540', url: 'http://localhost:5540' },
+  keycloak: { port: '9090', url: 'http://localhost:9090/admin' },
+  lgtm: { port: '3000', url: 'http://localhost:3000/' },
+  api: { port: '8080', url: 'http://localhost:8080' },
+} as const;
+
+/**
+ * A snapshot of all three health probe statuses taken at a single point in time.
+ * Accumulated in `healthHistory` to render sparkline charts showing status over time.
+ */
 interface HealthSnapshot {
+  /** Wall-clock time of the snapshot. */
   time: Date;
+  /** Composite health status string: `'UP'`, `'DOWN'`, or `'UNREACHABLE'`. */
   health: string;
+  /** Kubernetes readiness probe status. */
   readiness: string;
+  /** Kubernetes liveness probe status. */
   liveness: string;
+}
+
+/**
+ * Minimal shape of the Spring Boot `/actuator/health` JSON response.
+ * Only the fields used in the component are typed — the full response may contain more.
+ */
+interface ActuatorHealth {
+  /** Overall aggregate status: `'UP'`, `'DOWN'`, `'OUT_OF_SERVICE'`. */
+  status?: string;
+  /** Per-component health details keyed by component name (e.g., `db`, `redis`, `diskSpace`). */
+  components?: Record<string, { status?: string }>;
+}
+
+/**
+ * Fields from a Docker Engine API container list item that the dashboard uses.
+ * The full Docker API response contains many more fields that are ignored here.
+ */
+interface DockerContainer {
+  /** Array of container name strings, each prefixed with `/` (e.g., `['/postgres-demo']`). */
+  Names?: string[];
+  /** Human-readable status string (e.g., `'Up 3 hours'`, `'Exited (0) 2 hours ago'`). */
+  Status?: string;
+  /** Docker image name used to start the container. */
+  Image?: string;
+  /** Low-level container state: `'running'`, `'exited'`, `'paused'`, etc. */
+  State?: string;
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent],
+  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, RouterLink, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -49,24 +102,48 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private readonly activity = inject(ActivityService);
   readonly metricsService = inject(MetricsService);
 
+  /** Signal: raw JSON from `/actuator/health`. Null until first poll. Shape: `{status, components}`. */
   health = signal<unknown>(null);
+
+  /** Signal: raw JSON from `/actuator/health/readiness`. Null until first poll. */
   readiness = signal<unknown>(null);
+
+  /** Signal: raw JSON from `/actuator/health/liveness`. Null until first poll. */
   liveness = signal<unknown>(null);
+
+  /** Signal: error message when the backend is unreachable. Cleared on each successful poll. */
   error = signal('');
+
+  /** Signal: timestamp of the last successful refresh cycle. Displayed in the topbar. */
   lastRefresh = signal<Date | null>(null);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
+
+  /** Signal: total customer count from `GET /customers?size=1`. Null on error. */
   customerCount = signal<number | null>(null);
+
+  /** Signal: latest parsed Prometheus metrics for the stats cards. Null until first poll. */
   metrics = signal<ParsedMetrics | null>(null);
+
+  /** Signal: error message when Prometheus metrics cannot be fetched. */
   metricsError = signal('');
 
   // ── Health history ─────────────────────────────────────────────────────────
+
+  /** Signal: rolling history of health probe snapshots used to render sparklines. */
   healthHistory = signal<HealthSnapshot[]>([]);
 
   // ── Real-time chart (persisted in MetricsService) ──────────────────────────
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
+
+  /**
+   * Signal: currently selected auto-refresh interval in seconds.
+   * 0 means auto-refresh is off. Default is 5s.
+   */
   autoRefreshInterval = signal<number>(5);
+
+  /** Available interval choices shown in the refresh interval dropdown. */
   readonly intervalOptions = [
     { label: 'Off', value: 0 },
     { label: '1s', value: 1 },
@@ -74,8 +151,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { label: '10s', value: 10 },
     { label: '30s', value: 30 },
   ];
+
+  /** Handle for the auto-refresh `setInterval` timer. Null when refresh is off. */
   private _timer: ReturnType<typeof setInterval> | null = null;
-  /** Tracks previous health status to detect UP/DOWN transitions and trigger toasts */
+
+  /** Tracks previous health status to detect UP/DOWN transitions and trigger toasts. */
   private _previousHealthStatus: string | null = null;
 
   /** Quick links — items that don't have a corresponding Docker container in Service Control */
@@ -105,6 +185,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    if (this._dockerRetryTimer) {
+      clearInterval(this._dockerRetryTimer);
+      this._dockerRetryTimer = null;
+    }
     window.removeEventListener('app:refresh', this._onRefresh);
   }
 
@@ -210,7 +294,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // backed by docker-socket-proxy (tecnativa/docker-socket-proxy) in docker-compose.
   private readonly dockerApiUrl = 'http://localhost:2375';
 
-  /** Known project containers — only these are shown in the UI */
+  /**
+   * Known project containers — only these are shown in the UI.
+   * Keyed by Docker container name (without the leading slash).
+   * Containers not in this map are silently ignored even if they exist locally.
+   */
   private readonly knownContainers: Record<
     string,
     {
@@ -280,64 +368,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '8080',
       url: 'http://localhost:8080/swagger-ui.html',
     },
-    'customerservice-prometheus': {
-      icon: '🔥',
-      label: 'Prometheus',
-      description: 'Metrics store',
-      detail:
-        'Scrapes /actuator/prometheus every 15s. Stores time-series metrics (HTTP request counts, latency histograms, JVM gauges). Queried by Grafana dashboards and directly by the Angular UI for golden signals, latency charts, and Sankey diagrams.',
-      image: 'images/tools/prometheus.png',
-      port: '9091',
-      url: 'http://localhost:9091',
-    },
-    'customerservice-grafana': {
-      icon: '📊',
-      label: 'Grafana',
-      description: 'Metrics dashboards',
-      detail:
-        'Standalone Grafana instance pre-provisioned with Prometheus datasource and custom dashboards. Shows HTTP throughput, latency percentiles, JVM metrics, and error rates.',
-      image: 'images/tools/grafana.png',
-      port: '3000',
-      url: 'http://localhost:3000',
-    },
     'customerservice-lgtm': {
       icon: '🔍',
       label: 'LGTM Stack',
-      description: 'Loki + Grafana + Tempo',
+      description: 'Grafana · Loki · Tempo · Mimir',
       detail:
-        'Grafana LGTM all-in-one: bundles Loki (logs), Tempo (traces), Mimir (metrics), and Grafana (UI). Spring Boot sends traces and logs via OpenTelemetry OTLP (port 4318). Loki API on port 3100 is accessed via the CORS proxy.',
+        'Grafana LGTM all-in-one (port 3001): bundles Loki (logs), Tempo (distributed traces), Mimir (long-term metrics), and Grafana (UI) in a single container. Spring Boot sends traces and logs via OpenTelemetry OTLP on port 4318 → OTel Collector → Tempo / Loki. There is no standalone Tempo UI — use Grafana Explore (port 3001) to search traces with TraceQL. Tempo HTTP API also exposed on port 3200 for direct lookups.',
       image: 'images/tools/grafana.png',
       port: '3001',
-      url: 'http://localhost:3001',
-    },
-    'customerservice-zipkin': {
-      icon: '🔗',
-      label: 'Zipkin',
-      description: 'Distributed tracing',
-      detail:
-        'Lightweight tracing UI. Receives spans from Spring Boot via the Zipkin exporter. The Angular Observability tab queries /api/v2/traces directly (CORS enabled via ZIPKIN_HTTP_ALLOWED_ORIGINS). Shows trace waterfall and span details.',
-      image: 'images/tools/zipkin.png',
-      port: '9411',
-      url: 'http://localhost:9411',
-    },
-    'customerservice-jaeger': {
-      icon: '🔭',
-      label: 'Jaeger',
-      description: 'Advanced tracing',
-      detail:
-        'Jaeger — richer tracing UI than Zipkin. Trace comparison, dependency graph, flamegraph view, critical path analysis. Useful for comparing traces before/after optimization.',
-      port: '16686',
-      url: 'http://localhost:16686',
-    },
-    'customerservice-pyroscope': {
-      icon: '🧬',
-      label: 'Pyroscope',
-      description: 'Continuous profiling',
-      detail:
-        'Grafana Pyroscope — captures CPU and memory flamegraphs continuously. Attach the Pyroscope Java agent to Spring Boot (app-profiled mode) to push profiles. Useful for identifying hot methods and memory leaks.',
-      image: 'images/tools/pyroscope.png',
-      port: '4040',
-      url: 'http://localhost:4040',
+      url: 'http://localhost:3000/dashboards',
     },
     pgweb: {
       icon: '🔬',
@@ -357,15 +396,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       image: 'images/tools/pgadmin.png',
       port: '5050',
       url: 'http://localhost:5050',
-    },
-    akhq: {
-      icon: '🔬',
-      label: 'AKHQ',
-      description: 'Advanced Kafka UI',
-      detail:
-        'Full-featured Kafka UI — live tail of messages, consumer group management, schema registry support, topic creation/deletion, ACLs. Alternative to Kafka UI with more features.',
-      port: '8083',
-      url: 'http://localhost:8083',
     },
     'kafka-ui': {
       icon: '📋',
@@ -396,8 +426,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '5540',
       url: 'http://localhost:5540',
     },
+    sonarqube: {
+      icon: '🔍',
+      label: 'SonarQube',
+      description: 'Static analysis — Java + TypeScript',
+      detail:
+        'SonarQube Community Edition — free self-hosted static analysis. Bugs, code smells, vulnerabilities, duplications and coverage trends in one dashboard. First startup: run `./run.sh sonar-setup` to disable force-auth, then generate a token and set SONAR_TOKEN in .env.',
+      ...SVC.sonarqube,
+    },
+    'maven-site': {
+      icon: '📊',
+      label: 'Maven Site (API)',
+      description: 'Backend quality reports (static)',
+      detail:
+        'Nginx serving the Maven-generated quality report site for the Spring Boot backend (Surefire, JaCoCo, SpotBugs, Javadoc, OWASP CVE scan, Mutation Testing). Generate: `./run.sh site`. Regenerated daily by the CI REPORT_PIPELINE schedule.',
+      ...SVC['maven-site'],
+    },
+    compodoc: {
+      icon: '📐',
+      label: 'Compodoc (UI)',
+      description: 'Angular API docs (static)',
+      detail:
+        'Nginx serving Compodoc-generated documentation for the Angular frontend — components, services, interfaces, routes with JSDoc comments. The frontend equivalent of Javadoc. Generate: `cd mirador-ui && npm run compodoc`.',
+      ...SVC.compodoc,
+    },
   };
 
+  /**
+   * Signal: list of known project containers enriched with metadata.
+   * Populated by `loadContainers()` after filtering the Docker API response.
+   * Sorted: running containers first, then alphabetically.
+   */
   dockerContainers = signal<
     Array<{
       name: string;
@@ -413,9 +472,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
       url?: string;
     }>
   >([]);
+
+  /** Signal: true while the Docker container list request is in flight. */
   dockerLoading = signal(false);
+
+  /**
+   * Signal: key of the container action currently in progress (e.g., `"kafka-demo:stop"`).
+   * Null when no action is running. Used to show a spinner on the active button.
+   */
   dockerActionLoading = signal<string | null>(null);
+
+  /** Signal: error message when the Docker API proxy is unreachable. */
   dockerError = signal('');
+  // Retry timer: when the Docker API is unreachable, probe again every 10 s so the
+  // services panel recovers automatically once the docker-socket-proxy starts up,
+  // without requiring a manual page reload.
+  private _dockerRetryTimer: ReturnType<typeof setInterval> | null = null;
 
   loadContainers(): void {
     this.dockerLoading.set(true);
@@ -429,11 +501,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.dockerError.set(
             'Cannot reach Docker API (localhost:2375). Run: docker compose -f docker-compose.observability.yml up -d',
           );
+          // Retry every 10 s — recovers automatically when the proxy starts up.
+          if (!this._dockerRetryTimer) {
+            this._dockerRetryTimer = setInterval(() => this.loadContainers(), 10_000);
+          }
           return;
+        }
+        // Docker API is reachable — cancel any pending retry timer.
+        if (this._dockerRetryTimer) {
+          clearInterval(this._dockerRetryTimer);
+          this._dockerRetryTimer = null;
         }
         // Filter to known project containers only, enrich with description
         const mapped = containers
-          .map((c: any) => {
+          .map((c: DockerContainer) => {
             const name = (c.Names?.[0] || '').replace(/^\//, '');
             const known = this.knownContainers[name];
             if (!known) return null; // skip unknown/orphan containers
@@ -465,7 +546,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dockerActionLoading.set(`${name}:${action}`);
     // Docker Engine API: POST /containers/{name}/{action}
     this.http
-      .post<any>(`${this.dockerApiUrl}/containers/${name}/${action}`, null)
+      .post<void>(`${this.dockerApiUrl}/containers/${name}/${action}`, null)
       .pipe(catchError(() => of(null)))
       .subscribe(() => {
         this.dockerActionLoading.set(null);
@@ -488,8 +569,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Quick traffic generator ────────────────────────────────────────────────
+
+  /** Signal: true while the quick traffic generation is running. Disables the button. */
   trafficRunning = signal(false);
 
+  /**
+   * Fire a fixed set of 9 mixed requests to populate Prometheus metrics for the stats cards.
+   * Includes slow endpoints (bio, enrich, aggregate) so latency percentiles are non-zero.
+   * Shows a toast on completion and triggers a full dashboard refresh.
+   */
   quickTraffic(): void {
     this.trafficRunning.set(true);
     const base = this.env.baseUrl();
@@ -544,21 +632,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   //  Col 1         Col 2          Col 3           Col 4            Col 5           Col 6
   //  CLIENT        APPLICATION    DATA STORES     DATA TOOLS       OBS COLLECTORS  OBS DASHBOARDS
   //  ─────────     ───────────    ──────────      ──────────       ──────────────  ──────────────
-  //  Browser  →    API        →   PostgreSQL  →   pgAdmin          Prometheus  →   Grafana
-  //                Swagger        Redis       →   pgweb            Zipkin      →   Jaeger
-  //                Actuator       Kafka       →   RedisInsight     Loki            Pyroscope
+  //  Browser  →    API        →   PostgreSQL  →   pgAdmin          Mimir (in lgtm) → Grafana
+  //                Swagger        Redis       →   pgweb            Tempo (in lgtm) → Grafana
+  //                Actuator       Kafka       →   RedisInsight     Loki  (in lgtm, + Pyroscope)
   //                Keycloak       Ollama      →   Redis Commander
   //                                               Kafka Consumer
   //                                               Kafka UI
-  //                                               AKHQ
   //
   readonly topoColumns = [
-    'Client',
-    'Application',
-    'Data Stores',
-    'Data Tools',
-    'Obs Collectors',
-    'Obs Dashboards',
+    '🌐 Client',
+    '🍃 Application',
+    '🗄️ Data Stores',
+    '🛠️ Data Tools',
+    '📡 Obs Collectors',
+    '🔧 CI/CD',
   ];
 
   readonly topoNodes: Array<{
@@ -595,11 +682,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: '🍃',
       port: '8080',
       container: 'spring-app',
-      url: 'http://localhost:8080/swagger-ui.html',
       tip: 'Spring Boot REST API',
       detail:
         'Spring Boot 4 + Java 25 backend. Customer CRUD with pagination, search, sort, API versioning (v1/v2). Resilience: circuit breaker (Resilience4j), rate limiting (Bucket4j 100 req/min), idempotency keys (LRU cache). Virtual threads for /aggregate.',
-      image: 'images/tools/swagger.png',
     },
     {
       id: 'swagger',
@@ -769,103 +854,69 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'Provectus Kafka UI — browse topics (customer.created, customer.request, customer.reply), inspect individual messages with headers and payload, monitor consumer groups and lag. Also used by the Angular topology view to check Kafka health.',
       image: 'images/tools/kafka-ui.gif',
     },
-    {
-      id: 'akhq',
-      label: 'AKHQ',
-      col: 3,
-      row: 6,
-      icon: '🔬',
-      port: '8083',
-      container: 'akhq',
-      url: 'http://localhost:8083',
-      tip: 'Advanced Kafka UI',
-      detail:
-        'AKHQ (tchiotludo) — full-featured Kafka UI. Live tail of messages in real-time, consumer group management with lag visualization, schema registry support, topic creation/deletion, ACL management. More powerful than Kafka UI for debugging the enrich request-reply pattern.',
-    },
     // Col 4 — Observability Collectors
     {
-      id: 'prometheus',
-      label: 'Prometheus',
-      col: 4,
-      row: 0,
-      icon: '🔥',
-      port: '9091',
-      container: 'customerservice-prometheus',
-      url: 'http://localhost:9091',
-      tip: 'Metrics store',
-      detail:
-        'Prometheus — scrapes /actuator/prometheus every 15s. Stores 180+ time-series metrics: HTTP request counts and latency histograms, JVM heap/threads/GC, HikariCP connection pool, Lettuce Redis ops, Kafka producer/consumer, Spring Security, custom app counters. Queried by Grafana and the Angular UI.',
-      image: 'images/tools/prometheus.png',
-    },
-    {
-      id: 'zipkin',
-      label: 'Zipkin',
-      col: 4,
-      row: 1,
-      icon: '🔗',
-      port: '9411',
-      container: 'customerservice-zipkin',
-      url: 'http://localhost:9411',
-      tip: 'Trace collector',
-      detail:
-        'Zipkin — receives distributed traces from Spring Boot via the Zipkin exporter. Each HTTP request generates a trace with spans for controller, JPA, Redis, Kafka operations. The Angular Telemetry tab queries /api/v2/traces directly (CORS enabled). Shows span waterfall and timing.',
-      image: 'images/tools/zipkin.png',
-    },
-    {
       id: 'loki',
-      label: 'Loki (LGTM)',
+      label: 'Grafana (otel-lgtm)',
       col: 4,
-      row: 2,
-      icon: '🔍',
-      port: '3001',
+      row: 1,
+      icon: '📦',
+      port: '3000',
       container: 'customerservice-lgtm',
-      url: 'http://localhost:3001',
-      tip: 'Log aggregation',
+      url: 'http://localhost:3000/',
+      tip: 'Loki, Grafana, Tempo, Mimir, Pyroscope',
       detail:
-        'Grafana LGTM all-in-one: bundles Loki (log aggregation), Tempo (trace storage), Mimir (long-term metrics), and Grafana (UI) in a single container. Spring Boot sends logs via OpenTelemetry Logback appender → OTLP collector → Loki. Query with LogQL in the Angular Telemetry tab or Grafana Explore.',
+        'Grafana otel-lgtm — bundles Loki (logs), Tempo (traces), Mimir (metrics), Grafana (UI), et Pyroscope (profiling). Spring Boot envoie traces et logs via OTLP port 4318. Le OTel Collector intégré scrape /actuator/prometheus toutes les 15s → Mimir. API Mimir (Prometheus-compatible) exposée sur localhost:9091. Profiles Pyroscope via Explore → Profiles.',
       image: 'images/tools/grafana.png',
     },
+    // Col 5 — CI/CD
     {
-      id: 'pyroscope',
-      label: 'Pyroscope',
-      col: 4,
-      row: 3,
-      icon: '🧬',
-      port: '4040',
-      container: 'customerservice-pyroscope',
-      url: 'http://localhost:4040',
-      tip: 'Continuous profiling',
-      detail:
-        'Grafana Pyroscope — continuous profiling with CPU (itimer), memory allocation (alloc 512KB threshold), and lock contention (10ms threshold) flamegraphs. The Pyroscope Java agent attaches via -javaagent in app-profiled mode. Uploads profiles every 10s. Identifies hot methods and memory leaks.',
-      image: 'images/tools/pyroscope.png',
-    },
-    // Col 5 — Observability Dashboards
-    {
-      id: 'grafana',
-      label: 'Grafana',
+      id: 'gitlab-com',
+      label: 'gitlab.com',
       col: 5,
       row: 0,
-      icon: '📊',
-      port: '3000',
-      container: 'customerservice-grafana',
-      url: 'http://localhost:3000',
-      tip: 'Unified dashboards',
+      icon: '🌍',
+      url: 'https://gitlab.com/mirador1/mirador-service/-/pipelines',
+      tip: 'Dépôt distant — pipelines gitlab.com',
       detail:
-        'Standalone Grafana instance pre-provisioned with Prometheus datasource and custom Customer Service dashboard (HTTP throughput, latency percentiles, error rates, JVM metrics). Anonymous access enabled (no login). Opens directly on the overview dashboard. Also available: Grafana inside LGTM on port 3001 with Loki+Tempo datasources.',
-      image: 'images/tools/grafana.png',
+        "Instance SaaS gitlab.com — groupe mirador1, projets mirador-service et mirador-ui. Les pipelines s'exécutent sur le runner local enregistré (glrt-*). Enregistrer un runner : ./run.sh runner puis ./run.sh register-cloud <TOKEN>. URL : https://gitlab.com/mirador1.",
+      image: 'images/tools/gitlab.png',
     },
     {
-      id: 'jaeger',
-      label: 'Jaeger',
+      id: 'sonarqube',
+      label: 'SonarQube',
       col: 5,
       row: 1,
-      icon: '🔭',
-      port: '16686',
-      container: 'customerservice-jaeger',
-      url: 'http://localhost:16686/search?service=customer-service&lookback=1h',
-      tip: 'Advanced tracing',
+      icon: '🔍',
+      container: 'sonarqube',
+      tip: 'Static analysis — Java + TypeScript',
+      ...SVC.sonarqube,
       detail:
-        'Jaeger — richer tracing UI than Zipkin. Features: trace comparison (before/after optimization), service dependency graph auto-generated from traces, flamegraph view, critical path analysis, deep dependency analysis. Receives traces via OTLP from the LGTM collector.',
+        'SonarQube Community Edition — free self-hosted static analysis at port 9000. Aggregates bugs, code smells, vulnerabilities, duplications and coverage trends. First startup: log in admin/admin, change password, generate a project token, set SONAR_TOKEN in .env. Run: `./run.sh sonar`.',
+    },
+    {
+      id: 'maven-site',
+      label: 'Maven Site (API)',
+      col: 5,
+      row: 2,
+      icon: '📊',
+      container: 'maven-site',
+      tip: 'Backend API quality reports — nginx',
+      ...SVC['maven-site'],
+      detail:
+        'Nginx 1.27 serving the Maven-generated site for the Spring Boot backend (target/site/) at port 8084. Contains: Surefire tests, JaCoCo coverage, SpotBugs, PMD, Checkstyle, Javadoc, OWASP CVE scan, Mutation Testing (PIT). Generate: `./run.sh site`.',
+    },
+    {
+      id: 'compodoc',
+      label: 'Compodoc (UI)',
+      col: 5,
+      row: 3,
+      icon: '📐',
+      container: 'compodoc',
+      tip: 'Angular UI API docs — nginx',
+      ...SVC.compodoc,
+      detail:
+        'Nginx 1.27 serving Compodoc-generated documentation for the Angular frontend at port 8085. Documents all components, services, interfaces, routes with JSDoc — equivalent of Javadoc for the UI. Generate: `cd mirador-ui && npm run compodoc`.',
     },
   ];
 
@@ -885,18 +936,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'redis', to: 'redis-commander' },
     { from: 'kafka', to: 'consumer' },
     { from: 'kafka', to: 'kafka-ui' },
-    { from: 'kafka', to: 'akhq' },
-    // Col 1 → 4 (API pushes to obs collectors)
-    { from: 'api', to: 'prometheus' },
-    { from: 'api', to: 'zipkin' },
-    { from: 'api', to: 'loki' },
-    { from: 'api', to: 'pyroscope' },
-    // Col 4 → 5 (collectors → dashboards)
-    { from: 'prometheus', to: 'grafana' },
-    { from: 'zipkin', to: 'grafana' },
-    { from: 'loki', to: 'grafana' },
-    { from: 'pyroscope', to: 'grafana' },
-    { from: 'zipkin', to: 'jaeger' },
+    // Col 5 CI/CD → quality tools
+    { from: 'gitlab-com', to: 'sonarqube' },
+    { from: 'gitlab-com', to: 'maven-site' },
+    { from: 'gitlab-com', to: 'compodoc' },
+    // Col 1 → 4 (API pushes to obs collectors via OTLP on port 4318)
+    { from: 'api', to: 'loki' }, // OTLP traces + logs → LGTM (Tempo + Loki inside)
   ];
   topoStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
 
@@ -911,7 +956,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // API + db + redis from actuator/health
     this.http
-      .get<any>(`${base}/actuator/health`)
+      .get<ActuatorHealth>(`${base}/actuator/health`)
       .pipe(catchError(() => of(null)))
       .subscribe((h) => {
         const c = h?.components ?? {};
@@ -931,16 +976,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       keycloak: 'keycloak',
       pgweb: 'pgweb',
       'redis-commander': 'redis-commander',
-      akhq: 'akhq',
-      'customerservice-jaeger': 'jaeger',
       pgadmin: 'pgadmin',
       'kafka-ui': 'kafka-ui',
       redisinsight: 'redisinsight',
-      'customerservice-prometheus': 'prometheus',
-      'customerservice-grafana': 'grafana',
-      'customerservice-zipkin': 'zipkin',
       'customerservice-lgtm': 'loki',
-      'customerservice-pyroscope': 'pyroscope',
+      sonarqube: 'sonarqube',
+      'maven-site': 'maven-site',
+      compodoc: 'compodoc',
     };
     for (const [containerName, nodeId] of Object.entries(dockerMap)) {
       const c = containers.find((x) => x.name === containerName);
@@ -949,6 +991,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Consumer = same as Kafka
     const kafkaC = containers.find((x) => x.name === 'kafka-demo');
     update('consumer', kafkaC?.running ? 'up' : 'unknown');
+
+    // gitlab.com — probe with a no-cors HEAD request (network failure = DOWN, reachable = UP)
+    fetch('https://gitlab.com', { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+      .then(() => update('gitlab-com', 'up'))
+      .catch(() => update('gitlab-com', 'down'));
   }
 
   topoNodesInCol(col: number) {
@@ -977,6 +1024,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (s === 'up') return '#4ade80';
     if (s === 'down') return '#f87171';
     return '#94a3b8';
+  }
+
+  /** Tooltip explaining how the UP/DOWN status of each node is probed. */
+  private readonly statusProbeDescriptions: Record<string, string> = {
+    client: 'Always UP — represents your browser, no probe needed.',
+    api: 'GET /actuator/health → HTTP 200 + JSON { status: "UP" }.',
+    swagger: 'Derived from API status — UP when the Spring Boot app is running.',
+    actuator: 'Derived from API status — UP when the Spring Boot app is running.',
+    keycloak: 'Docker container state via Docker Engine API (container running = UP).',
+    pg: 'Spring Boot health component "db" inside /actuator/health/components.',
+    redis: 'Spring Boot health component "redis" inside /actuator/health/components.',
+    kafka: 'Docker container state via Docker Engine API (container running = UP).',
+    ollama: 'Docker container state via Docker Engine API (container running = UP).',
+    pgadmin: 'Docker container state via Docker Engine API (container running = UP).',
+    pgweb: 'Docker container state via Docker Engine API (container running = UP).',
+    redisinsight: 'Docker container state via Docker Engine API (container running = UP).',
+    'redis-commander': 'Docker container state via Docker Engine API (container running = UP).',
+    consumer: 'Inferred from Kafka container state — shown as UP when kafka-demo is running.',
+    'kafka-ui': 'Docker container state via Docker Engine API (container running = UP).',
+    loki: 'Docker container state via Docker Engine API (container running = UP).',
+    'spring-app': 'Docker container state via Docker Engine API (container running = UP).',
+    'gitlab-com':
+      'HEAD https://gitlab.com (no-cors) — UP if reachable from the browser, DOWN if network error.',
+  };
+
+  topoStatusTooltip(nodeId: string): string {
+    const probe =
+      this.statusProbeDescriptions[nodeId] ?? 'Docker container state via Docker Engine API.';
+    const s = this.topoStatus()[nodeId];
+    const stateLabel = s === 'up' ? '✅ UP' : s === 'down' ? '❌ DOWN' : '— unknown';
+    return `${stateLabel}\nProbe: ${probe}`;
   }
 
   // ── Heatmap ───────────────────────────────────────────────────────────────
@@ -1088,5 +1166,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
       })
       .join(' ');
+  }
+
+  /**
+   * Compute evenly-spaced x-axis labels (relative seconds) for the health history sparkline.
+   * The rightmost label is "0s" (now), earlier points show "-Xs" relative to the last snapshot.
+   * Returns up to 5 labels with their percentage position along the x-axis.
+   */
+  sparklineXLabels(): { pct: number; label: string }[] {
+    const history = this.healthHistory();
+    if (history.length < 2) return [];
+    const count = Math.min(5, history.length);
+    const step = (history.length - 1) / (count - 1);
+    return Array.from({ length: count }, (_, i) => {
+      const idx = Math.round(i * step);
+      const t = history[idx].time;
+      const label = t.toTimeString().slice(0, 8); // HH:MM:SS
+      const pct = (idx / (history.length - 1)) * 100;
+      return { pct, label };
+    });
+  }
+
+  /** Area fill path — same as sparklinePath but closed at the bottom */
+  sparklineAreaPath(): string {
+    const history = this.healthHistory();
+    if (history.length < 2) return '';
+    const w = 200;
+    const h = 30;
+    const step = w / (history.length - 1);
+    const line = history
+      .map((s, i) => {
+        const y = s.health === 'UP' ? 5 : h - 5;
+        return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
+      })
+      .join(' ');
+    return `${line} L${w},${h} L0,${h} Z`;
   }
 }

@@ -1,7 +1,11 @@
 <section>
   <div class="page-header">
-    <h2>Visualizations</h2>
-    <p class="subtitle">Advanced observability dashboards and real-time monitoring</p>
+    <span class="page-icon">📊</span>
+    <h2>Metrics</h2>
+    <p class="subtitle">
+      Quantitative dashboards — aggregated numbers over time: 78 HTTP/JVM/DB/Kafka metrics, 55
+      circular gauges, error timeline, consumer lag, SQL query durations, Angular chunk sizes.
+    </p>
   </div>
 
   @if (!auth.isAuthenticated()) {
@@ -9,15 +13,31 @@
   } @else {
     <div class="tabs">
       @for (tab of vizTabs; track tab.id) {
-        <button
-          [class.tab-active]="activeTab() === tab.id"
-          (click)="switchTab(tab.id)"
-          [title]="tab.tip"
-        >
+        <button [class.tab-active]="activeTab() === tab.id" (click)="switchTab(tab.id)">
           <span class="tab-icon">{{ tab.icon }}</span> {{ tab.label }}
         </button>
       }
     </div>
+    <p class="tab-tip-line">{{ activeTabTip() }}</p>
+
+    @if (vizError()) {
+      <div class="viz-error-banner">
+        <span>⚠ {{ vizError() }}</span>
+        <button class="viz-error-dismiss" (click)="vizError.set('')">✕</button>
+      </div>
+    }
+
+    @if (rawPrometheus()) {
+      <div class="raw-data-toggle">
+        <button class="run-btn" (click)="showRawData.set(!showRawData())">
+          {{ showRawData() ? '✕ Hide raw data' : '{ } Show raw Prometheus' }}
+        </button>
+      </div>
+    }
+
+    @if (showRawData() && rawPrometheus()) {
+      <pre class="raw-prometheus">{{ rawPrometheus() }}</pre>
+    }
 
     <!-- ── Golden Signals ──────────────────────────────────────────────── -->
     @if (activeTab() === 'golden') {
@@ -94,8 +114,8 @@
                 <div class="golden-header">
                   <span class="golden-icon">{{ s.icon }}</span>
                   <span class="golden-name">{{ s.name }}</span>
-                  <app-info-tip [title]="s.name" [text]="s.tip" source="Prometheus" />
                 </div>
+                <span class="golden-tip">{{ s.tip }}</span>
                 <span class="golden-value">{{ s.value }}</span>
                 <span class="golden-detail">{{ s.detail }}</span>
               </div>
@@ -209,94 +229,9 @@
                 <div class="gauge-footer">
                   <span class="gauge-icon">{{ g.icon }}</span>
                   <span class="gauge-label">{{ g.label }}</span>
-                  <app-info-tip [title]="g.label" [text]="g.tip" source="Prometheus" />
                 </div>
+                <span class="gauge-tip">{{ g.tip }}</span>
                 <span class="gauge-range">0 — {{ g.max }} {{ g.unit }}</span>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    <!-- ── Waterfall ───────────────────────────────────────────────────── -->
-    @if (activeTab() === 'waterfall') {
-      <div class="tab-content">
-        <p class="tab-desc">
-          HTTP request waterfall, like the Network tab in Chrome DevTools. Fires 6 requests in
-          parallel and shows when each one starts and how long it takes.
-          <app-info-tip
-            text="Sends GET requests to /actuator/health, /customers, /customers/summary, /customers/recent, /actuator/info, /customers/aggregate simultaneously. The horizontal bar shows start offset and duration relative to the first request."
-            [wide]="true"
-          />
-        </p>
-        <button class="run-btn" (click)="runWaterfall()" [disabled]="waterfallRunning()">
-          {{ waterfallRunning() ? 'Running...' : '▶ Fire 6 parallel requests' }}
-        </button>
-        @if (waterfallEntries().length) {
-          <div class="waterfall-chart">
-            @for (e of waterfallEntries(); track $index) {
-              <div class="waterfall-row">
-                <span class="wf-method">{{ e.method }}</span>
-                <span class="wf-uri">{{ e.uri }}</span>
-                <div class="wf-bar-container">
-                  <div
-                    class="wf-bar"
-                    [style.left.%]="(e.startMs / waterfallMaxMs()) * 100"
-                    [style.width.%]="Math.max(1, (e.durationMs / waterfallMaxMs()) * 100)"
-                    [class.wf-ok]="e.status < 400"
-                    [class.wf-err]="e.status >= 400"
-                  >
-                    <span class="wf-time">{{ e.durationMs | number: '1.0-0' }}ms</span>
-                  </div>
-                </div>
-                <span
-                  class="wf-status"
-                  [class.status-ok]="e.status < 400"
-                  [class.status-err]="e.status >= 400"
-                  >{{ e.status }}</span
-                >
-              </div>
-            }
-            <div class="wf-scale">
-              <span>0ms</span><span>{{ waterfallMaxMs() | number: '1.0-0' }}ms</span>
-            </div>
-          </div>
-        }
-      </div>
-    }
-
-    <!-- ── Sankey ──────────────────────────────────────────────────────── -->
-    @if (activeTab() === 'sankey') {
-      <div class="tab-content">
-        <p class="tab-desc">
-          Request flow diagram: each endpoint mapped to its HTTP status codes (2xx, 4xx, 5xx). Bar
-          width is proportional to the number of requests. Shows where errors concentrate.
-          <app-info-tip
-            text="Parses http_server_requests_seconds_count from Prometheus, grouped by URI and status code. 4xx includes 401 (auth), 404 (not found), 429 (rate limit). 5xx are real server errors."
-            command="http_server_requests_seconds_count{uri=..., status=...}"
-            source="/actuator/prometheus"
-            [wide]="true"
-          />
-        </p>
-        <button class="run-btn" (click)="buildSankey()">
-          ▶ Parse Prometheus metrics and build flow
-        </button>
-        @if (sankeyFlows().length) {
-          <div class="sankey-chart">
-            @for (f of sankeyFlows(); track $index) {
-              <div class="sankey-row">
-                <span class="sankey-from">{{ f.from }}</span>
-                <div class="sankey-bar-container">
-                  <div
-                    class="sankey-bar"
-                    [style.width.%]="(f.value / sankeyMaxValue()) * 100"
-                    [style.background]="f.color"
-                  >
-                    {{ f.value | number: '1.0-0' }}
-                  </div>
-                </div>
-                <span class="sankey-to" [style.color]="f.color">{{ f.to }}</span>
               </div>
             }
           </div>

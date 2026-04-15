@@ -1,8 +1,9 @@
 /**
  * ObservabilityComponent — Live backend telemetry with 4 tabs.
  *
- * Traces: Fetches distributed traces from Zipkin API directly (CORS enabled via env var).
- *   Displays trace list, expandable span waterfall, and flame graph view.
+ * Traces: Queries Tempo via the Grafana datasource proxy (http://localhost:3000).
+ *   Supports TraceQL and tag-based search. Each trace links to Grafana Explore.
+ *   Displays expandable span waterfall on row click.
  *
  * Logs: Queries Loki directly via Nginx CORS proxy on port 3100.
  *   Color-coded by level (ERROR/WARN/INFO/DEBUG). Optional 5s live polling.
@@ -13,7 +14,7 @@
  * Live Feed: Polls /actuator/prometheus every 2s and extracts HTTP request
  *   metrics to display a scrolling feed of method/URI/status entries.
  */
-import { Component, inject, signal, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -23,40 +24,135 @@ import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 
-/** Aggregated trace with root span info and child spans */
+/**
+ * An assembled trace with its root span metadata and all child spans.
+ * Built by combining Tempo's search summary and the full OTLP trace detail.
+ */
 interface Trace {
+  /** Hex-encoded trace ID (16 bytes = 32 hex chars). */
   traceId: string;
+  /** All spans belonging to this trace, sorted by start time for waterfall rendering. */
   spans: Span[];
+  /** Total trace duration in milliseconds from earliest span start to latest span end. */
   durationMs: number;
+  /** Root span's service name (e.g., `'customer-service'`). */
   serviceName: string;
+  /** Root span operation name (e.g., `'GET /customers'`). */
   operationName: string;
+  /** Wall-clock start time of the root span. */
   timestamp: Date;
 }
 
-/** Individual span within a trace — duration is in microseconds */
+/**
+ * A single span in a distributed trace.
+ * Duration is stored in microseconds (standard for OTLP) and converted to ms for display.
+ */
 interface Span {
+  /** Hex trace ID linking this span to its parent trace. */
   traceId: string;
+  /** Hex span ID — unique within the trace. */
   spanId: string;
+  /** Hex span ID of the parent span. Undefined for the root span. */
+  parentSpanId?: string;
+  /** Human-readable operation name (e.g., `'SELECT customers'`). */
   operationName: string;
+  /** Name of the service that emitted this span. */
   serviceName: string;
+  /** Start time as Unix nanoseconds (OTLP format). */
+  startTimeUnixNano: number;
+  /** Span duration in microseconds (OTLP format — divide by 1000 for milliseconds). */
   duration: number; // microseconds
+  /** Key/value span attributes from OTLP (e.g., `http.method`, `db.statement`). */
   tags: Record<string, string>;
+  /** Span status string: `'OK'`, `'ERROR'`, or undefined for unset. */
+  status?: string;
 }
 
-/** Single log line parsed from Loki query response */
+/**
+ * Trace summary row returned by the Tempo `/api/search` endpoint.
+ * Contains just enough information to render the search results list.
+ */
+interface TempoTraceSummary {
+  /** Tempo's hex trace ID field (capital ID — matches Tempo API). */
+  traceID: string;
+  /** Root span's service name. */
+  rootServiceName: string;
+  /** Root span operation name. */
+  rootTraceName: string;
+  /** Root span start time as a nanosecond Unix timestamp string. */
+  startTimeUnixNano: string;
+  /** Total trace duration in milliseconds. */
+  durationMs: number;
+}
+
+/**
+ * A single parsed log line from a Loki query response.
+ * Level is extracted from the log line text by pattern matching.
+ */
 interface LogEntry {
+  /** ISO-8601 timestamp of the log line. */
   timestamp: string;
+  /** Full log line text. */
   line: string;
+  /** Log level extracted from the line: `'ERROR'`, `'WARN'`, `'INFO'`, `'DEBUG'`. */
   level?: string;
 }
 
-/** Histogram bucket for latency distribution chart */
+/**
+ * One bucket in the Prometheus HTTP latency histogram, used to build the bar chart.
+ * Converted from cumulative to differential counts before rendering.
+ */
 interface LatencyBucket {
+  /** Upper bound label (e.g., `'50ms'`, `'200ms'`, `'+Inf'`). */
   le: string;
+  /** Differential request count for this bucket range (not cumulative). */
   count: number;
 }
 
-type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
+interface LiveCustomer {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+  isNew: boolean;
+}
+
+type SseStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+
+/**
+ * Minimal OTLP ResourceSpans shape returned by Tempo GET /api/traces/:id.
+ * Only the fields actually parsed in parseOtlpTrace() are typed here.
+ */
+interface OtlpAttribute {
+  key: string;
+  value?: { stringValue?: string; intValue?: string | number; boolValue?: boolean };
+}
+interface OtlpSpan {
+  spanId?: string;
+  parentSpanId?: string;
+  name?: string;
+  startTimeUnixNano?: string | number;
+  endTimeUnixNano?: string | number;
+  attributes?: OtlpAttribute[];
+  status?: { code?: number };
+}
+interface OtlpTrace {
+  batches?: Array<{
+    resource?: { attributes?: OtlpAttribute[] };
+    scopeSpans?: Array<{ spans?: OtlpSpan[] }>;
+  }>;
+}
+
+/** Minimal Loki /api/v1/query_range response shape. */
+interface LokiQueryResult {
+  data?: { result?: Array<{ values?: [string, string][] }> };
+}
+
+const MAX_SSE_EVENTS = 50;
+const NEW_BADGE_MS = 5_000;
+const RECONNECT_DELAY_MS = 3_000;
+
+type ObsTab = 'traces' | 'logger' | 'logs' | 'latency' | 'live';
 
 @Component({
   selector: 'app-observability',
@@ -65,7 +161,7 @@ type ObsTab = 'traces' | 'logs' | 'latency' | 'live';
   templateUrl: './observability.component.html',
   styleUrl: './observability.component.scss',
 })
-export class ObservabilityComponent implements OnDestroy {
+export class ObservabilityComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
@@ -73,13 +169,21 @@ export class ObservabilityComponent implements OnDestroy {
 
   activeTab = signal<ObsTab>('traces');
 
-  // ── Traces (Zipkin/Tempo API) ─────────────────────────────────────────────
-  traces = signal<Trace[]>([]);
-  tracesLoading = signal(false);
-  tracesError = signal('');
-  traceLimit = 20;
-  traceService = 'customer-service';
-  selectedTrace = signal<Trace | null>(null);
+  // ── Traces (Tempo API via Grafana proxy) ──────────────────────────────────
+  private readonly TEMPO_BASE = 'http://localhost:3000/api/datasources/proxy/uid/tempo';
+
+  tempoSummaries = signal<TempoTraceSummary[]>([]);
+  tempoLoading = signal(false);
+  tempoError = signal('');
+  tempoQuery = ''; // TraceQL expression — empty = tag search
+  tempoTagKey = 'http.url';
+  tempoTagValue = '';
+  tempoLimit = 20;
+  tempoLookback = '1h';
+  tempoSelectedId = signal<string | null>(null);
+  tempoSelectedTrace = signal<Trace | null>(null);
+  tempoDetailLoading = signal(false);
+  tempoTags = signal<string[]>([]);
 
   // ── Logs (Loki API) ───────────────────────────────────────────────────────
   logs = signal<LogEntry[]>([]);
@@ -95,76 +199,349 @@ export class ObservabilityComponent implements OnDestroy {
   latencyBuckets = signal<LatencyBucket[]>([]);
   latencyLoading = signal(false);
 
-  // ── Flame graph ───────────────────────────────────────────────────────────
-  flameViewTrace = signal<Trace | null>(null);
+  // ── Live Feeds ────────────────────────────────────────────────────────────
+  liveSub = signal<'sse' | 'activity'>('sse');
 
-  // ── Live request feed ─────────────────────────────────────────────────────
-  liveFeed = signal<
-    Array<{ time: string; method: string; uri: string; status: string; duration: string }>
-  >([]);
-  livePolling = signal(false);
-  private _liveTimer: ReturnType<typeof setInterval> | null = null;
-  private _lastRequestCount = 0;
+  // SSE
+  sseEvents = signal<LiveCustomer[]>([]);
+  sseStatus = signal<SseStatus>('disconnected');
+  sseTrafficRunning = signal(false);
+  private _es: EventSource | null = null;
+  private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private _badgeTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
-  ngOnDestroy(): void {
-    this.stopLogsPolling();
-    this.stopLiveFeed();
-  }
+  // Endpoint Activity (Prometheus polling)
+  activityFeed = signal<Array<{ time: string; method: string; uri: string; status: string }>>([]);
+  activityPolling = signal(false);
+  activityTrafficRunning = signal(false);
+  private _activityTimer: ReturnType<typeof setInterval> | null = null;
 
-  switchTab(tab: ObsTab): void {
-    this.activeTab.set(tab);
-  }
+  // ── Loggers ───────────────────────────────────────────────────────────────
+  loggersList = signal<Array<{ name: string; level: string }>>([]);
+  loggerFilter = '';
+  loggerLoading = signal(false);
 
-  // ── Traces ────────────────────────────────────────────────────────────────
-  fetchTraces(): void {
-    this.tracesLoading.set(true);
-    this.tracesError.set('');
-
-    // Call Zipkin directly — CORS enabled via ZIPKIN_HTTP_ALLOWED_ORIGINS in docker-compose
+  loadLoggers(): void {
+    this.loggerLoading.set(true);
     this.http
-      .get<any[][]>('http://localhost:9411/api/v2/traces', {
-        params: {
-          serviceName: this.traceService,
-          limit: this.traceLimit.toString(),
-          lookback: '3600000', // 1 hour
-        },
-      })
+      .get<{
+        loggers: Record<string, { effectiveLevel: string }>;
+      }>(`${this.env.baseUrl()}/actuator/loggers`)
       .subscribe({
-        next: (data) => {
-          this.traces.set(
-            data.map((spans) => {
-              const root = spans[0];
-              const totalDuration = spans.reduce((max, s) => Math.max(max, s.duration || 0), 0);
-              return {
-                traceId: root.traceID || root.traceId,
-                spans: spans.map((s: any) => ({
-                  traceId: s.traceID || s.traceId,
-                  spanId: s.spanID || s.id,
-                  operationName: s.operationName || s.name || '?',
-                  serviceName: s.localEndpoint?.serviceName || s.process?.serviceName || '?',
-                  duration: s.duration || 0,
-                  tags: s.tags || {},
-                })),
-                durationMs: totalDuration / 1000,
-                serviceName: root.localEndpoint?.serviceName || this.traceService,
-                operationName: root.name || root.operationName || '?',
-                timestamp: new Date((root.timestamp || 0) / 1000),
-              };
-            }),
-          );
-          this.tracesLoading.set(false);
+        next: (v) => {
+          const entries = Object.entries(v.loggers ?? {})
+            .map(([name, val]) => ({ name, level: val.effectiveLevel }))
+            .filter((l) => l.level !== 'OFF');
+          this.loggersList.set(entries);
+          this.loggerLoading.set(false);
         },
-        error: (e) => {
-          this.tracesError.set(
-            `Could not fetch traces from Zipkin (localhost:9411) — ${e.status || 'unreachable'}. Is Zipkin running?`,
-          );
-          this.tracesLoading.set(false);
+        error: () => {
+          this.toast.show('Could not load loggers', 'error');
+          this.loggerLoading.set(false);
         },
       });
   }
 
-  selectTrace(t: Trace): void {
-    this.selectedTrace.set(this.selectedTrace()?.traceId === t.traceId ? null : t);
+  setLoggerLevel(name: string, level: string): void {
+    this.http
+      .post(`${this.env.baseUrl()}/actuator/loggers/${name}`, { configuredLevel: level })
+      .subscribe({
+        next: () => {
+          this.toast.show(`Logger "${name}" set to ${level}`, 'success');
+          this.loadLoggers();
+        },
+        error: () => this.toast.show('Failed to set logger level', 'error'),
+      });
+  }
+
+  get filteredLoggers() {
+    if (!this.loggerFilter) return this.loggersList().slice(0, 50);
+    const q = this.loggerFilter.toLowerCase();
+    return this.loggersList()
+      .filter((l) => l.name.toLowerCase().includes(q))
+      .slice(0, 50);
+  }
+
+  // ── Flame graph ───────────────────────────────────────────────────────────
+  flameViewTrace = signal<Trace | null>(null);
+
+  ngOnInit(): void {
+    // Pre-connect SSE so it's ready by the time the user opens the Live tab
+    this.connectSse();
+    // Pre-load Tempo tag list for the search autocomplete
+    this.loadTempoTags();
+  }
+
+  ngOnDestroy(): void {
+    this.stopLogsPolling();
+    this.cleanupSse();
+    this.stopActivityPolling();
+  }
+
+  switchTab(tab: ObsTab): void {
+    this.activeTab.set(tab);
+    if (tab === 'logger' && this.loggersList().length === 0) {
+      this.loadLoggers();
+    }
+    if (tab === 'traces' && this.tempoTags().length === 0) {
+      this.loadTempoTags();
+    }
+    if (tab === 'live' && this._es === null && this.sseStatus() === 'disconnected') {
+      this.connectSse();
+    }
+  }
+
+  // ── Tempo search ──────────────────────────────────────────────────────────
+
+  /**
+   * Returns a Grafana Explore deep-link for the given Tempo trace ID.
+   * When traceId is omitted, returns the general Tempo search page.
+   */
+  /**
+   * Grafana Explore URL for Tempo — TraceQL search pre-filtered on customer-service.
+   * The filters array uses scope="resource" + tag="service.name" so results appear
+   * immediately without any manual input from the user.
+   */
+  private readonly TEMPO_SEARCH_URL =
+    'http://localhost:3000/explore?schemaVersion=1&panes=' +
+    encodeURIComponent(
+      JSON.stringify({
+        t: {
+          datasource: 'tempo',
+          queries: [
+            {
+              refId: 'A',
+              datasource: { type: 'tempo', uid: 'tempo' },
+              queryType: 'traceqlSearch',
+              limit: 20,
+              tableType: 'traces',
+              filters: [
+                {
+                  id: 'svc',
+                  operator: '=',
+                  scope: 'resource',
+                  tag: 'service.name',
+                  value: 'customer-service',
+                },
+              ],
+              metricsQueryType: 'range',
+              serviceMapUseNativeHistograms: false,
+            },
+          ],
+          range: { from: 'now-1h', to: 'now' },
+          compact: false,
+        },
+      }),
+    ) +
+    '&orgId=1';
+
+  tempoExploreUrl(traceId?: string): string {
+    if (traceId) {
+      const panes = encodeURIComponent(
+        JSON.stringify({
+          t: {
+            datasource: 'tempo',
+            queries: [
+              {
+                refId: 'A',
+                datasource: { type: 'tempo', uid: 'tempo' },
+                queryType: 'traceId',
+                query: traceId,
+              },
+            ],
+            range: { from: 'now-1h', to: 'now' },
+          },
+        }),
+      );
+      return `http://localhost:3000/explore?schemaVersion=1&panes=${panes}&orgId=1`;
+    }
+    return this.TEMPO_SEARCH_URL;
+  }
+
+  fetchTempoSearch(): void {
+    this.tempoLoading.set(true);
+    this.tempoError.set('');
+    this.tempoSelectedId.set(null);
+    this.tempoSelectedTrace.set(null);
+
+    const now = Date.now();
+    const lookbackMs: Record<string, number> = {
+      '15m': 15 * 60_000,
+      '1h': 3_600_000,
+      '3h': 3 * 3_600_000,
+      '6h': 6 * 3_600_000,
+      '24h': 24 * 3_600_000,
+    };
+    const startMs = now - (lookbackMs[this.tempoLookback] ?? 3_600_000);
+
+    const params: Record<string, string> = {
+      limit: this.tempoLimit.toString(),
+      start: Math.floor(startMs / 1000).toString(),
+      end: Math.floor(now / 1000).toString(),
+    };
+
+    // TraceQL mode — send q= parameter when query is non-empty
+    if (this.tempoQuery.trim()) {
+      params['q'] = this.tempoQuery.trim();
+    } else if (this.tempoTagValue.trim()) {
+      // Tag-based search mode
+      params['tags'] = `${this.tempoTagKey}=${this.tempoTagValue.trim()}`;
+    } else {
+      // No filter — add a service.name filter so results are relevant
+      params['tags'] = 'service.name=customer-service';
+    }
+
+    this.http
+      .get<{ traces?: TempoTraceSummary[] }>(`${this.TEMPO_BASE}/api/search`, { params })
+      .subscribe({
+        next: (r) => {
+          this.tempoSummaries.set(r.traces ?? []);
+          this.tempoLoading.set(false);
+        },
+        error: (e) => {
+          this.tempoError.set(
+            `Tempo unreachable (Grafana proxy http://localhost:3000) — ${e.status || 'check that LGTM is running'}.`,
+          );
+          this.tempoLoading.set(false);
+        },
+      });
+  }
+
+  loadTempoTags(): void {
+    this.http
+      .get<{ tagNames?: string[] }>(`${this.TEMPO_BASE}/api/search/tags`)
+      .subscribe({ next: (r) => this.tempoTags.set(r.tagNames ?? []) });
+  }
+
+  selectTempoTrace(id: string): void {
+    if (this.tempoSelectedId() === id) {
+      this.tempoSelectedId.set(null);
+      this.tempoSelectedTrace.set(null);
+      return;
+    }
+    this.tempoSelectedId.set(id);
+    this.tempoDetailLoading.set(true);
+    this.http.get<OtlpTrace>(`${this.TEMPO_BASE}/api/traces/${id}`).subscribe({
+      next: (otlp) => {
+        this.tempoSelectedTrace.set(this.parseOtlpTrace(id, otlp));
+        this.tempoDetailLoading.set(false);
+      },
+      error: () => {
+        this.tempoDetailLoading.set(false);
+      },
+    });
+  }
+
+  /** Parse OTLP ResourceSpans format into our internal Trace/Span model. */
+  private parseOtlpTrace(traceId: string, otlp: OtlpTrace): Trace {
+    const spans: Span[] = (otlp.batches ?? []).flatMap((batch) => {
+      const svcName = this.extractServiceName(batch);
+      return (batch.scopeSpans ?? []).flatMap((scope) =>
+        (scope.spans ?? []).map((s) => this.parseOtlpSpan(s, traceId, svcName)),
+      );
+    });
+    spans.sort((a, b) => a.startTimeUnixNano - b.startTimeUnixNano);
+    const root = spans[0];
+    const traceStartNs = root?.startTimeUnixNano ?? 0;
+    const traceEndNs = Math.max(...spans.map((s) => s.startTimeUnixNano + s.duration * 1000));
+    const totalMs = Math.round((traceEndNs - traceStartNs) / 1e6);
+    return {
+      traceId,
+      spans,
+      durationMs: totalMs,
+      serviceName: root?.serviceName ?? 'unknown',
+      operationName: root?.operationName ?? '?',
+      timestamp: new Date(Math.round((traceStartNs ?? 0) / 1e6)),
+    };
+  }
+
+  /** Extract service.name from an OTLP ResourceSpans batch. */
+  private extractServiceName(batch: { resource?: { attributes?: OtlpAttribute[] } }): string {
+    const attr = (batch.resource?.attributes ?? []).find((a) => a.key === 'service.name');
+    return attr?.value?.stringValue ?? 'unknown';
+  }
+
+  /** Convert a single OTLP span proto to our internal Span model. */
+  private parseOtlpSpan(s: OtlpSpan, traceId: string, serviceName: string): Span {
+    const spanId = this.b64toHex(s.spanId ?? '');
+    const parentSpanId = s.parentSpanId ? this.b64toHex(s.parentSpanId) : undefined;
+    const start = Number(s.startTimeUnixNano ?? 0);
+    const end = Number(s.endTimeUnixNano ?? 0);
+    const durUs = Math.round((end - start) / 1000); // ns → µs
+    const tags: Record<string, string> = {};
+    for (const attr of s.attributes ?? []) {
+      const v = attr.value;
+      tags[attr.key] = v?.stringValue ?? v?.intValue?.toString() ?? v?.boolValue?.toString() ?? '';
+    }
+    return {
+      traceId,
+      spanId,
+      parentSpanId,
+      operationName: s.name ?? '?',
+      serviceName,
+      startTimeUnixNano: start,
+      duration: durUs,
+      tags,
+      status: s.status?.code === 2 ? 'error' : 'ok',
+    };
+  }
+
+  private b64toHex(b64: string): string {
+    try {
+      return Array.from(atob(b64), (c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    } catch {
+      return b64; // already hex (older Tempo versions)
+    }
+  }
+
+  /** Span waterfall rows with relative position/width inside the selected Tempo trace. */
+  tempoWaterfallRows(): Array<{
+    span: Span;
+    depth: number;
+    left: number;
+    width: number;
+    color: string;
+  }> {
+    const t = this.tempoSelectedTrace();
+    if (!t || t.spans.length === 0) return [];
+
+    const traceStartNs = t.spans[0].startTimeUnixNano;
+    const totalDurNs = t.durationMs * 1e6;
+    if (totalDurNs === 0) return [];
+
+    // Build parent→children map for depth calculation
+    const depthMap = new Map<string, number>();
+    const parentMap = new Map<string, string | undefined>();
+    t.spans.forEach((s) => parentMap.set(s.spanId, s.parentSpanId));
+
+    const getDepth = (id: string, visited = new Set<string>()): number => {
+      if (visited.has(id)) return 0;
+      visited.add(id);
+      const parentId = parentMap.get(id);
+      if (!parentId || !depthMap.has(parentId)) return 0;
+      return (depthMap.get(parentId) ?? 0) + 1;
+    };
+
+    const COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+    return t.spans.map((s) => {
+      const d = getDepth(s.spanId);
+      depthMap.set(s.spanId, d);
+      const offsetNs = s.startTimeUnixNano - traceStartNs;
+      const left = (offsetNs / totalDurNs) * 100;
+      const width = Math.max(0.3, ((s.duration * 1000) / totalDurNs) * 100);
+      return {
+        span: s,
+        depth: d,
+        left,
+        width,
+        color: s.status === 'error' ? '#ef4444' : COLORS[d % COLORS.length],
+      };
+    });
+  }
+
+  /** Format nanoseconds timestamp as HH:mm:ss.SSS */
+  formatNs(ns: number): string {
+    return new Date(Math.round(ns / 1e6)).toISOString().slice(11, 23);
   }
 
   // ── Logs ──────────────────────────────────────────────────────────────────
@@ -178,7 +555,7 @@ export class ObservabilityComponent implements OnDestroy {
     const start = (Date.now() - 3600000) * 1e6; // 1 hour ago
 
     this.http
-      .get<any>('http://localhost:3100/loki/api/v1/query_range', {
+      .get<LokiQueryResult>('http://localhost:3100/loki/api/v1/query_range', {
         params: {
           query: this.lokiQuery,
           limit: this.lokiLimit.toString(),
@@ -287,6 +664,194 @@ export class ObservabilityComponent implements OnDestroy {
     }
   }
 
+  // ── Live Feeds — SSE ─────────────────────────────────────────────────────
+  private connectSse(): void {
+    this.cleanupSse();
+    this.sseStatus.set('connecting');
+    const url = `${this.env.baseUrl()}/customers/stream`;
+    try {
+      this._es = new EventSource(url);
+      this._es.addEventListener('customer', (e: MessageEvent) => {
+        this.sseStatus.set('connected');
+        try {
+          const c = JSON.parse(e.data) as LiveCustomer;
+          c.isNew = true;
+          this.sseEvents.update((prev) => [c, ...prev].slice(0, MAX_SSE_EVENTS));
+          const t = setTimeout(() => {
+            this.sseEvents.update((prev) =>
+              prev.map((ev) => (ev.id === c.id ? { ...ev, isNew: false } : ev)),
+            );
+            this._badgeTimers.delete(c.id);
+          }, NEW_BADGE_MS);
+          this._badgeTimers.set(c.id, t);
+        } catch {
+          /* ignore */
+        }
+      });
+      this._es.addEventListener('ping', () => this.sseStatus.set('connected'));
+      this._es.onopen = () => this.sseStatus.set('connected');
+      this._es.onerror = () => {
+        if (!this._es) return;
+        if (this._es.readyState === EventSource.CLOSED) {
+          // Connection truly closed — manual reconnect needed.
+          this.sseStatus.set('reconnecting');
+          this._es.close();
+          this._es = null;
+          this._reconnectTimer = setTimeout(() => this.connectSse(), RECONNECT_DELAY_MS);
+        }
+        // readyState === CONNECTING: browser is already auto-reconnecting.
+        // Don't touch the status — onopen will fire when it succeeds.
+      };
+    } catch {
+      this.sseStatus.set('disconnected');
+    }
+  }
+
+  reconnectSse(): void {
+    this.connectSse();
+  }
+
+  stopSse(): void {
+    this.cleanupSse();
+    this.sseStatus.set('disconnected');
+  }
+
+  private cleanupSse(): void {
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this._badgeTimers.forEach((t) => clearTimeout(t));
+    this._badgeTimers.clear();
+    if (this._es) {
+      this._es.close();
+      this._es = null;
+    }
+  }
+
+  sseStatusLabel(s: SseStatus): string {
+    switch (s) {
+      case 'connected':
+        return '● Connected';
+      case 'connecting':
+        return '◌ Connecting…';
+      case 'reconnecting':
+        return '⟳ Reconnecting…';
+      case 'disconnected':
+        return '○ Disconnected';
+    }
+  }
+
+  sseStatusClass(s: SseStatus): string {
+    switch (s) {
+      case 'connected':
+        return 'sse-connected';
+      case 'connecting':
+        return 'sse-connecting';
+      case 'reconnecting':
+        return 'sse-reconnecting';
+      case 'disconnected':
+        return 'sse-disconnected';
+    }
+  }
+
+  generateSseTraffic(count = 3): void {
+    this.sseTrafficRunning.set(true);
+    const firstNames = ['Alice', 'Bob', 'Carlos', 'Diana', 'Eve', 'Frank', 'Grace', 'Hiro'];
+    const lastNames = ['Smith', 'Jones', 'Tanaka', 'Müller', 'Dupont', 'Kim', 'Rossi', 'Patel'];
+    const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+    const base = this.env.baseUrl();
+    let done = 0;
+    for (let i = 0; i < count; i++) {
+      const first = rand(firstNames);
+      const last = rand(lastNames);
+      const suffix = Math.floor(Math.random() * 9000 + 1000);
+      this.http
+        .post(`${base}/customers`, {
+          firstName: first,
+          lastName: last,
+          email: `${first.toLowerCase()}.${last.toLowerCase()}${suffix}@demo.dev`,
+        })
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === count) {
+            this.sseTrafficRunning.set(false);
+            this.toast.show(`${count} customer(s) created — SSE events incoming`, 'success');
+          }
+        });
+    }
+  }
+
+  // ── Live Feeds — Endpoint Activity ────────────────────────────────────────
+  toggleActivityPolling(): void {
+    if (this.activityPolling()) {
+      this.stopActivityPolling();
+    } else {
+      this.activityPolling.set(true);
+      this.pollActivity();
+      this._activityTimer = setInterval(() => this.pollActivity(), 2000);
+    }
+  }
+
+  private stopActivityPolling(): void {
+    this.activityPolling.set(false);
+    if (this._activityTimer) {
+      clearInterval(this._activityTimer);
+      this._activityTimer = null;
+    }
+  }
+
+  private pollActivity(): void {
+    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
+      next: (text) => {
+        const entries: Array<{ time: string; method: string; uri: string; status: string }> = [];
+        const regex =
+          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          entries.push({
+            time: new Date().toISOString().slice(11, 23),
+            method: m[1],
+            uri: m[3],
+            status: m[2],
+          });
+        }
+        if (entries.length > 0) {
+          this.activityFeed.update((f) => [...entries.slice(0, 5), ...f].slice(0, 100));
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  generateActivityTraffic(): void {
+    this.activityTrafficRunning.set(true);
+    const base = this.env.baseUrl();
+    const urls = [
+      `${base}/customers?page=0&size=10`,
+      `${base}/customers?page=0&size=10`,
+      `${base}/actuator/health`,
+      `${base}/customers/recent`,
+      `${base}/customers/summary?page=0&size=5`,
+      `${base}/customers/aggregate`,
+      `${base}/customers/1/todos`,
+      `${base}/customers/1/enrich`,
+      `${base}/customers?page=999&size=1`,
+      `${base}/actuator/info`,
+    ];
+    let done = 0;
+    for (const url of urls) {
+      this.http
+        .get(url)
+        .pipe(catchError(() => of(null)))
+        .subscribe(() => {
+          done++;
+          if (done === urls.length) this.activityTrafficRunning.set(false);
+        });
+    }
+  }
+
   // ── Latency histograms ────────────────────────────────────────────────────
   /** Human-readable bucket boundaries (in seconds) to group Micrometer's fine-grained buckets */
   private readonly displayBuckets = [
@@ -385,55 +950,5 @@ export class ObservabilityComponent implements OnDestroy {
       width: Math.max(2, (s.duration / totalDuration) * 100),
       depth: i % 3, // simplified depth
     }));
-  }
-
-  // ── Live request feed ─────────────────────────────────────────────────────
-  toggleLiveFeed(): void {
-    if (this.livePolling()) {
-      this.stopLiveFeed();
-    } else {
-      this.livePolling.set(true);
-      this.pollMetricsForFeed();
-      this._liveTimer = setInterval(() => this.pollMetricsForFeed(), 2000);
-    }
-  }
-
-  private stopLiveFeed(): void {
-    this.livePolling.set(false);
-    if (this._liveTimer) {
-      clearInterval(this._liveTimer);
-      this._liveTimer = null;
-    }
-  }
-
-  private pollMetricsForFeed(): void {
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        const entries: Array<{
-          time: string;
-          method: string;
-          uri: string;
-          status: string;
-          duration: string;
-        }> = [];
-        const regex =
-          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let m;
-        while ((m = regex.exec(text)) !== null) {
-          entries.push({
-            time: new Date().toISOString().slice(11, 23),
-            method: m[1],
-            uri: m[3],
-            status: m[2],
-            duration: '-',
-          });
-        }
-        // Only add new entries based on count changes
-        if (entries.length > 0) {
-          this.liveFeed.update((f) => [...entries.slice(0, 5), ...f].slice(0, 100));
-        }
-      },
-      error: () => {},
-    });
   }
 }

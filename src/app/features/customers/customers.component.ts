@@ -34,19 +34,29 @@ import {
   Page,
   AggregatedResponse,
 } from '../../core/api/api.service';
+import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
-/** Generate a UUID v4 for idempotency keys */
+/**
+ * Generate a UUID v4 string for use as idempotency keys.
+ * Uses `crypto.randomUUID()` — available in all modern browsers and Node.js 14.17+.
+ *
+ * @returns A random UUID v4 string.
+ */
 function uuid(): string {
   return crypto.randomUUID();
 }
 
-/** Per-customer detail panel tabs */
+/** Per-customer detail panel tab identifier. */
 type DetailTab = 'bio' | 'todos' | 'enrich';
+
+/** Column that the customer list can be sorted by. */
 type SortField = 'id' | 'name' | 'email' | 'createdAt';
+
+/** Sort direction for the customer list. */
 type SortDir = 'asc' | 'desc';
 
 @Component({
@@ -58,87 +68,226 @@ type SortDir = 'asc' | 'desc';
 })
 export class CustomersComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
 
   // ── List state ─────────────────────────────────────────────────────────────
+
+  /** Signal: current page of full customer entities. Null until first load. */
   customers = signal<Page<Customer> | null>(null);
+
+  /** Signal: current page of lightweight customer summaries (id+name only). Null until first load. */
   summaries = signal<Page<CustomerSummary> | null>(null);
+
+  /** Signal: last 10 customers from the Redis ring buffer (`/customers/recent`). */
   recent = signal<Customer[] | null>(null);
+
+  /** Signal: result from `/customers/aggregate` — two parallel virtual thread tasks. */
   aggregate = signal<AggregatedResponse | null>(null);
 
+  /**
+   * Signal: active API version sent as the `X-API-Version` header.
+   * v2.0 adds the `createdAt` field to the response.
+   */
   apiVersion = signal<'1.0' | '2.0'>('1.0');
+
+  /**
+   * Signal: when true, fetches summary projections instead of full customer entities.
+   * Demonstrates the `/customers/summary` lightweight endpoint.
+   */
   summaryMode = signal(false);
+
+  /** Signal: zero-based current page index for list pagination. */
   currentPage = signal(0);
 
+  /** Signal: true while a list or summary fetch is in flight. */
   listLoading = signal(false);
+
+  /** Signal: error message from the most recent list fetch. */
   listError = signal('');
 
   // ── Search ────────────────────────────────────────────────────────────────
+
+  /** Signal: current search query string. Debounced 300ms before triggering a list reload. */
   searchQuery = signal('');
+
+  /** Debounce timer for search input — prevents a request on every keystroke. */
   private _searchTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // ── Live new-customer notification (SSE) ──────────────────────────────────
+
+  /**
+   * Signal: count of new customers received via SSE since the list was last loaded.
+   * Shown as a banner to prompt the user to refresh the list.
+   */
+  newCustomerCount = signal(0);
+
+  /** The active Server-Sent Events connection to `/customers/stream`. Null when disconnected. */
+  private _sseSource: EventSource | null = null;
+
   // ── Sort ──────────────────────────────────────────────────────────────────
+
+  /** Signal: the column currently used for sorting. Null means no explicit sort (default order). */
   sortField = signal<SortField | null>(null);
+
+  /** Signal: current sort direction, toggled per-column on click. */
   sortDir = signal<SortDir>('asc');
 
   // ── Batch selection ───────────────────────────────────────────────────────
+
+  /** Signal: set of customer IDs currently checked for batch operations. */
   selectedIds = signal<Set<number>>(new Set());
+
+  /** Signal: true when the "select all on current page" checkbox is checked. */
   selectAll = signal(false);
 
   // ── Create form ────────────────────────────────────────────────────────────
+
+  /**
+   * Template reference to the name input element.
+   * Read directly from the DOM in `createCustomer()` because in zoneless mode
+   * the signal bound via two-way binding may not have updated synchronously.
+   */
   readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
+
+  /** Template reference to the email input (same zoneless reason as `nameInput`). */
   readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
+
+  /** Signal: current value of the name create-form field. */
   newName = signal('');
+
+  /** Signal: current value of the email create-form field. */
   newEmail = signal('');
+
+  /** Signal: whether to attach an idempotency key to the create request. */
   useIdempotencyKey = signal(false);
+
+  /**
+   * Signal: the current idempotency key UUID.
+   * Initialized with a fresh UUID and regenerable via `resetIdempotencyKey()`.
+   * Sent as the `Idempotency-Key` header when `useIdempotencyKey` is true.
+   */
   idempotencyKey = signal(uuid());
+
+  /** Signal: true while the create HTTP request is in flight. */
   createLoading = signal(false);
+
+  /** Signal: error message from the most recent create attempt. */
   createError = signal('');
+
+  /** Signal: the newly created customer returned by the server. Shown as a success confirmation. */
   createSuccess = signal<Customer | null>(null);
 
   // ── Edit modal ────────────────────────────────────────────────────────────
+
+  /** Signal: the customer currently open in the edit modal. Null when modal is closed. */
   editingCustomer = signal<Customer | null>(null);
+
+  /** Mutable field for the edit modal name input (not a signal — bound via ngModel). */
   editName = '';
+
+  /** Mutable field for the edit modal email input (not a signal — bound via ngModel). */
   editEmail = '';
+
+  /** Signal: true while the update HTTP request is in flight. */
   editLoading = signal(false);
+
+  /** Signal: error message from the most recent update attempt. */
   editError = signal('');
 
   // ── Delete confirm ────────────────────────────────────────────────────────
+
+  /** Signal: the customer for which a delete confirmation dialog is open. */
   deletingCustomer = signal<Customer | null>(null);
+
+  /** Signal: true while a single-customer delete request is in flight. */
   deleteLoading = signal(false);
+
+  /** Signal: true while any batch delete requests are in flight. */
   batchDeleteLoading = signal(false);
+
+  /** Signal: true when the batch delete confirmation dialog is open. */
   confirmBatchDelete = signal(false);
 
   // ── Per-customer detail ────────────────────────────────────────────────────
+
+  /** Signal: the customer whose detail panel is currently open. Null when panel is closed. */
   selectedCustomer = signal<Customer | null>(null);
+
+  /** Signal: active tab in the per-customer detail panel. */
   activeTab = signal<DetailTab>('bio');
+
+  /** Signal: AI-generated bio from `/customers/{id}/bio` (Ollama LLM). Null until loaded. */
   bio = signal<string | null>(null);
+
+  /** Signal: todos from `/customers/{id}/todos` (JSONPlaceholder). Null until loaded. */
   todos = signal<TodoItem[] | null>(null);
+
+  /** Signal: enriched customer from `/customers/{id}/enrich` (Kafka reply). Null until loaded. */
   enriched = signal<EnrichedCustomer | null>(null);
+
+  /** Signal: true while any detail panel tab request is in flight. */
   detailLoading = signal(false);
+
+  /** Signal: error message from the most recent detail tab load attempt. */
   detailError = signal('');
 
   // ── Aggregate ─────────────────────────────────────────────────────────────
+
+  /** Signal: true while the `/customers/aggregate` request is in flight. */
   aggregateLoading = signal(false);
+
+  /** Signal: result message from the aggregate call (timing or error). */
   aggregateError = signal('');
 
+  /**
+   * Computed: total number of pages for the currently active list mode.
+   * Switches between full and summary page counts based on `summaryMode`.
+   */
   readonly totalPages = computed(() => {
     if (this.summaryMode()) return this.summaries()?.totalPages ?? 1;
     return this.customers()?.totalPages ?? 1;
   });
 
+  /** Computed: true when at least one customer is selected for batch operations. */
   readonly hasSelection = computed(() => this.selectedIds().size > 0);
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
       this.loadCustomers();
     }
+    this.connectSse();
   }
 
   ngOnDestroy(): void {
     if (this._searchTimer) clearTimeout(this._searchTimer);
+    this.disconnectSse();
+  }
+
+  private connectSse(): void {
+    try {
+      const base = this.env.baseUrl();
+      this._sseSource = new EventSource(`${base}/customers/stream`);
+      this._sseSource.addEventListener('customer', () => {
+        this.newCustomerCount.update((n) => n + 1);
+      });
+    } catch {
+      /* SSE not available */
+    }
+  }
+
+  private disconnectSse(): void {
+    if (this._sseSource) {
+      this._sseSource.close();
+      this._sseSource = null;
+    }
+  }
+
+  dismissNewBanner(): void {
+    this.newCustomerCount.set(0);
+    this.loadCustomers();
   }
 
   // ── Search ────────────────────────────────────────────────────────────────
@@ -422,9 +571,17 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 
   // ── Bulk import ────────────────────────────────────────────────────────────
+
+  /** Signal: true while the bulk import loop is running. */
   importLoading = signal(false);
+
+  /** Signal: number of records processed so far during bulk import. Used for the progress bar. */
   importProgress = signal(0);
+
+  /** Signal: total number of records to import in the current batch. */
   importTotal = signal(0);
+
+  /** Signal: final result of the last bulk import (ok/error counts). Shown after completion. */
   importResults = signal<{ ok: number; errors: number } | null>(null);
 
   onFileSelected(event: Event): void {

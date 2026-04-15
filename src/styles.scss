@@ -154,3 +154,18 @@ body {
     transform: translateX(0);
   }
 }
+
+// ── Page icon (top-left icon in page headers matching the nav menu icon) ──────
+.page-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-right: 0.1rem;
+}
+
+// ── Page header layout — aligns .page-icon with the h1/h2 title ──────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}

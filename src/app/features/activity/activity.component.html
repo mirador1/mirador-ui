@@ -1,8 +1,14 @@
 <section>
   <div class="page-header">
+    <span class="page-icon">📋</span>
     <div>
       <h2>Activity</h2>
-      <p class="subtitle">Chronological event timeline — all actions in this session</p>
+      <p class="subtitle">
+        Chronological event timeline — all actions in this browser session. An
+        <strong>event</strong> is a client-side record created each time you (or the UI) performs an
+        action: creating a customer, running a diagnostic, checking health, importing a file, etc.
+        Events are stored in memory only — they reset on page reload.
+      </p>
     </div>
     <div class="header-actions">
       <span class="count">{{ filteredEvents.length }} events</span>
@@ -25,9 +31,26 @@
 
   <div class="quick-actions">
     <span class="quick-label">Generate activity:</span>
-    <button class="action-btn" (click)="quickCreate()">+ Create customer</button>
-    <button class="action-btn" (click)="quickHealth()">💚 Health check</button>
-    <button class="action-btn" (click)="quickTraffic()" [disabled]="generating()">
+    <button
+      class="action-btn"
+      (click)="quickCreate()"
+      title="POST /customers — creates a real customer via the API and logs a customer-create event"
+    >
+      + Create customer
+    </button>
+    <button
+      class="action-btn"
+      (click)="quickHealth()"
+      title="GET /actuator/health — checks backend status and logs a health-change event (UP / DOWN)"
+    >
+      💚 Health check
+    </button>
+    <button
+      class="action-btn"
+      (click)="quickTraffic()"
+      [disabled]="generating()"
+      title="Runs a full sequence: create, update, delete, health check, diagnostic call, env switch, import — produces all 7 activity event types in one pass"
+    >
       {{ generating() ? 'Generating...' : '⚡ Full cycle (all 7 event types)' }}
     </button>
   </div>

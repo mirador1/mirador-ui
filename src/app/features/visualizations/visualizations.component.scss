@@ -21,6 +21,49 @@ h2 {
   }
 }
 
+.viz-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-error, #fee2e2);
+  color: var(--text-error, #b91c1c);
+  border: 1px solid var(--border-error, #fca5a5);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.viz-error-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: 1rem;
+  padding: 0 0.25rem;
+  opacity: 0.7;
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.raw-data-toggle {
+  margin-bottom: 0.5rem;
+}
+
+.raw-prometheus {
+  background: var(--bg-code, #0f172a);
+  color: var(--text-code, #94a3b8);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.75rem;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre;
+  margin-bottom: 1rem;
+}
+
 .tabs {
   display: flex;
   gap: 0;
@@ -56,6 +99,15 @@ h2 {
 
 .tab-icon {
   font-size: 0.95rem;
+}
+
+.tab-tip-line {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem;
+  padding: 0 0.25rem;
+  line-height: 1.4;
+  min-height: 1.1rem;
 }
 
 .tab-content {
@@ -156,6 +208,12 @@ h2 {
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--text-primary);
+}
+.golden-tip {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin-bottom: 0.15rem;
 }
 .golden-detail {
   font-size: 0.72rem;
@@ -315,6 +373,14 @@ h2 {
   font-weight: 600;
   color: var(--text-primary);
 }
+.gauge-tip {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.3;
+  margin: 0.15rem 0;
+  padding: 0 0.25rem;
+}
 .gauge-range {
   font-size: 0.65rem;
   color: var(--text-muted);
@@ -333,141 +399,6 @@ h2 {
   width: 100%;
   height: auto;
   max-height: 280px;
-}
-
-// ── Waterfall ───────────────────────────────────────────────────────────────
-.waterfall-chart {
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: var(--shadow-card);
-}
-
-.waterfall-row {
-  display: grid;
-  grid-template-columns: 40px 1fr 3fr 40px;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.3rem 0;
-  font-size: 0.78rem;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.wf-method {
-  font-weight: 700;
-  color: var(--color-accent);
-  font-family: monospace;
-  font-size: 0.7rem;
-}
-.wf-uri {
-  color: var(--text-secondary);
-  font-family: monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.wf-bar-container {
-  position: relative;
-  height: 18px;
-  background: var(--bg-code);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.wf-bar {
-  position: absolute;
-  height: 100%;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
-  &.wf-ok {
-    background: #4ade80;
-  }
-  &.wf-err {
-    background: #f87171;
-  }
-}
-
-.wf-time {
-  font-size: 0.6rem;
-  color: white;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.wf-status {
-  font-weight: 700;
-  font-family: monospace;
-  font-size: 0.72rem;
-}
-.status-ok {
-  color: #4ade80;
-}
-.status-err {
-  color: #f87171;
-}
-
-.wf-scale {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.3rem;
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  font-family: monospace;
-}
-
-// ── Sankey ───────────────────────────────────────────────────────────────────
-.sankey-chart {
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: var(--shadow-card);
-}
-
-.sankey-row {
-  display: grid;
-  grid-template-columns: 180px 1fr 50px;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.25rem 0;
-  font-size: 0.78rem;
-}
-
-.sankey-from {
-  font-family: monospace;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.sankey-bar-container {
-  height: 16px;
-  background: var(--bg-code);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.sankey-bar {
-  height: 100%;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0 4px;
-  font-size: 0.6rem;
-  color: white;
-  font-weight: 700;
-  min-width: 20px;
-}
-
-.sankey-to {
-  font-weight: 800;
-  font-size: 0.75rem;
 }
 
 // ── Error chart ─────────────────────────────────────────────────────────────
