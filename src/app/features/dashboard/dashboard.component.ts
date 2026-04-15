@@ -319,16 +319,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '3001',
       url: 'http://localhost:3000/dashboards',
     },
-    'customerservice-pyroscope': {
-      icon: '🧬',
-      label: 'Pyroscope',
-      description: 'Continuous profiling',
-      detail:
-        'Grafana Pyroscope — captures CPU and memory flamegraphs continuously. The Pyroscope Java agent is embedded in the app and pushes JFR profiles every 10s. Useful for identifying hot methods and memory leaks.',
-      image: 'images/tools/pyroscope.png',
-      port: '4040',
-      url: 'http://localhost:4040/explore?profileTypeId=process_cpu:cpu:nanoseconds:cpu:nanoseconds&labelSelector=%7Bservice_name%3D%22customer-service%22%7D',
-    },
     pgweb: {
       icon: '🔬',
       label: 'pgweb',
@@ -559,7 +549,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   //  ─────────     ───────────    ──────────      ──────────       ──────────────  ──────────────
   //  Browser  →    API        →   PostgreSQL  →   pgAdmin          Prometheus  →   Grafana
   //                Swagger        Redis       →   pgweb            Tempo       →   Grafana
-  //                Actuator       Kafka       →   RedisInsight     Loki            Pyroscope
+  //                Actuator       Kafka       →   RedisInsight     Loki (+ Pyroscope bundled)
   //                Keycloak       Ollama      →   Redis Commander
   //                                               Kafka Consumer
   //                                               Kafka UI
@@ -803,9 +793,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '3000',
       container: 'customerservice-lgtm',
       url: 'http://localhost:3000/',
-      tip: 'Loki, Grafana, Tempo, Mimir',
+      tip: 'Loki, Grafana, Tempo, Mimir, Pyroscope',
       detail:
-        'Grafana customisé — image Docker grafana/otel-lgtm (LGTM = Loki, Grafana, Tempo, Mimir). Bundles Loki (logs), Tempo (traces), Mimir (metrics) et Grafana (UI) dans un seul container. Spring Boot envoie traces et logs via OTLP port 4318 → OTel Collector → Tempo / Loki. Ouvrir le dashboard CustomerService Overview pour la corrélation complète.',
+        'Grafana customisé — image Docker grafana/otel-lgtm. Bundles Loki (logs), Tempo (traces), Mimir (metrics), Grafana (UI), et Pyroscope (profiling continu CPU/mémoire) dans un seul container. Spring Boot envoie traces et logs via OTLP port 4318 → OTel Collector → Tempo / Loki. Profiles Pyroscope accessibles via Explore → Profiles dans Grafana.',
       image: 'images/tools/grafana.png',
     },
     // Col 5 — CI/CD
@@ -848,20 +838,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       detail:
         'Nginx 1.27 container serving the Maven-generated site (target/site/) at port 8084. Contains: Surefire test report, JaCoCo coverage, SpotBugs, PMD, Checkstyle, Javadoc, OWASP CVE scan. Started via `./run.sh site`. Regenerated daily by the CI REPORT_PIPELINE schedule.',
     },
-    {
-      id: 'pyroscope',
-      label: 'Pyroscope',
-      col: 4,
-      row: 3,
-      icon: '🧬',
-      port: '4040',
-      container: 'customerservice-pyroscope',
-      url: 'http://localhost:4040/explore?profileTypeId=process_cpu:cpu:nanoseconds:cpu:nanoseconds&labelSelector=%7Bservice_name%3D%22customer-service%22%7D',
-      tip: 'Continuous profiling',
-      detail:
-        'Grafana Pyroscope — continuous profiling with CPU (itimer), memory allocation (alloc 512KB threshold), and lock contention (10ms threshold) flamegraphs. The Pyroscope Java agent attaches via -javaagent in app-profiled mode. Uploads profiles every 10s. Identifies hot methods and memory leaks.',
-      image: 'images/tools/pyroscope.png',
-    },
   ];
 
   // All edges flow strictly left → right (lower col → higher col)
@@ -885,7 +861,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Col 1 → 4 (API pushes to obs collectors via OTLP on port 4318)
     { from: 'api', to: 'prometheus' },
     { from: 'api', to: 'loki' }, // OTLP traces + logs → LGTM (Tempo + Loki inside)
-    { from: 'api', to: 'pyroscope' },
   ];
   topoStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
 
@@ -927,7 +902,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'customerservice-prometheus': 'prometheus',
       'customerservice-zipkin': 'zipkin',
       'customerservice-lgtm': 'loki',
-      'customerservice-pyroscope': 'pyroscope',
       gitlab: 'gitlab-local',
       'maven-site': 'maven-site',
     };
@@ -994,7 +968,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     zipkin: 'Docker container state via Docker Engine API (container running = UP).',
     loki: 'Docker container state via Docker Engine API (container running = UP).',
     grafana: 'Docker container state via Docker Engine API (container running = UP).',
-    pyroscope: 'Docker container state via Docker Engine API (container running = UP).',
     jaeger: 'Docker container state via Docker Engine API (container running = UP).',
     'spring-app': 'Docker container state via Docker Engine API (container running = UP).',
     'gitlab-local':
