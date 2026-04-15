@@ -3,15 +3,12 @@
  *
  * Features:
  * - Health probes: /actuator/health, /readiness, /liveness with UP/DOWN badges
- * - Stats cards: customer count, HTTP request count, latency percentiles
  * - Live throughput chart: RPS bar chart (delegates to MetricsService singleton)
  * - Auto-refresh: configurable polling interval (1s / 5s / 10s / 30s)
  * - Health change detection: toasts on UP/DOWN transitions
  * - Docker service control: list/start/stop/restart containers via Docker Engine API proxy
  * - Dependency graph: SVG graph of backend services with health status colors
- * - Quick traffic generator: fires mixed requests to populate metrics
  * - Request heatmap: 24h traffic distribution grid
- * - Snapshot comparator: before/after metric diffs with percentage change
  * - Observability links: one-click access to Grafana, Prometheus, Zipkin, etc.
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
@@ -24,7 +21,7 @@ import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
-import { MetricsService, ParsedMetrics } from '../../core/metrics/metrics.service';
+import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 /**
@@ -116,17 +113,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   /** Signal: timestamp of the last successful refresh cycle. Displayed in the topbar. */
   lastRefresh = signal<Date | null>(null);
-
-  // ── Stats ──────────────────────────────────────────────────────────────────
-
-  /** Signal: total customer count from `GET /customers?size=1`. Null on error. */
-  customerCount = signal<number | null>(null);
-
-  /** Signal: latest parsed Prometheus metrics for the stats cards. Null until first poll. */
-  metrics = signal<ParsedMetrics | null>(null);
-
-  /** Signal: error message when Prometheus metrics cannot be fetched. */
-  metricsError = signal('');
 
   // ── Health history ─────────────────────────────────────────────────────────
 
@@ -234,16 +220,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.api.getLiveness().subscribe({
       next: (v) => this.liveness.set(v),
       error: () => this.liveness.set({ status: 'UNREACHABLE' }),
-    });
-
-    this.api.getCustomers(0, 1).subscribe({
-      next: (page) => this.customerCount.set(page.totalElements),
-      error: () => this.customerCount.set(null),
-    });
-
-    this.api.getPrometheusMetrics().subscribe({
-      next: (text) => this.metrics.set(this.metricsService.parsePrometheus(text)),
-      error: () => this.metricsError.set('Could not fetch metrics'),
     });
 
     // Refresh dependency graph and Docker containers alongside health probes
@@ -566,54 +542,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   isDockerActionLoading(name: string, action: string): boolean {
     return this.dockerActionLoading() === `${name}:${action}`;
-  }
-
-  // ── Quick traffic generator ────────────────────────────────────────────────
-
-  /** Signal: true while the quick traffic generation is running. Disables the button. */
-  trafficRunning = signal(false);
-
-  /**
-   * Fire a fixed set of 9 mixed requests to populate Prometheus metrics for the stats cards.
-   * Includes slow endpoints (bio, enrich, aggregate) so latency percentiles are non-zero.
-   * Shows a toast on completion and triggers a full dashboard refresh.
-   */
-  quickTraffic(): void {
-    this.trafficRunning.set(true);
-    const base = this.env.baseUrl();
-    // Fetch first available customer ID, then build endpoint list
-    this.api.getFirstCustomerId().subscribe((id) => {
-      const endpoints = [
-        `${base}/customers?page=0&size=5`,
-        `${base}/customers?page=0&size=5`,
-        `${base}/customers/recent`,
-        `${base}/actuator/health`,
-        `${base}/customers/aggregate`,
-        `${base}/customers/${id}/bio`,
-        `${base}/customers/${id}/todos`,
-        `${base}/customers/${id}/enrich`,
-        `${base}/customers?page=0&size=100`,
-      ];
-      let done = 0;
-      const total = endpoints.length;
-      this.toast.show(
-        `Sending ${total} requests (including slow ones: bio, enrich, aggregate)...`,
-        'info',
-      );
-      for (const url of endpoints) {
-        this.http
-          .get(url)
-          .pipe(catchError(() => of(null)))
-          .subscribe(() => {
-            done++;
-            if (done === total) {
-              this.trafficRunning.set(false);
-              this.toast.show(`${total} requests done — latency metrics updated`, 'success');
-              this.refresh();
-            }
-          });
-      }
-    }); // end getFirstCustomerId subscribe
   }
 
   // ── Topology map ───────────────────────────────────────────────────────────
@@ -1084,45 +1012,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (intensity < 0.6) return '#86efac';
     if (intensity < 0.8) return '#4ade80';
     return '#16a34a';
-  }
-
-  // ── Snapshot comparator ───────────────────────────────────────────────────
-  snapshotA = signal<(ParsedMetrics & { customerCount: number; timestamp: Date }) | null>(null);
-  snapshotB = signal<(ParsedMetrics & { customerCount: number; timestamp: Date }) | null>(null);
-
-  takeSnapshot(slot: 'A' | 'B'): void {
-    const m = this.metrics();
-    const cc = this.customerCount() ?? 0;
-    if (!m) {
-      this.toast.show('No metrics available — refresh first', 'warn');
-      return;
-    }
-    const snap = { ...m, customerCount: cc, timestamp: new Date() };
-    if (slot === 'A') this.snapshotA.set(snap);
-    else this.snapshotB.set(snap);
-    this.toast.show(`Snapshot ${slot} saved`, 'info');
-  }
-
-  snapshotDiff(): Array<{ label: string; a: number; b: number; pct: string }> | null {
-    const a = this.snapshotA();
-    const b = this.snapshotB();
-    if (!a || !b) return null;
-    const diff = (label: string, av: number, bv: number) => {
-      const pct =
-        av === 0
-          ? bv > 0
-            ? '+100%'
-            : '0%'
-          : `${bv >= av ? '+' : ''}${(((bv - av) / av) * 100).toFixed(1)}%`;
-      return { label, a: av, b: bv, pct };
-    };
-    return [
-      diff('Customers', a.customerCount, b.customerCount),
-      diff('Total requests', a.httpRequestsTotal, b.httpRequestsTotal),
-      diff('Latency p50', a.httpLatencyP50, b.httpLatencyP50),
-      diff('Latency p95', a.httpLatencyP95, b.httpLatencyP95),
-      diff('Latency p99', a.httpLatencyP99, b.httpLatencyP99),
-    ];
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
