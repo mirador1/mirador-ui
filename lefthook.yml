@@ -10,6 +10,34 @@ pre-commit:
       run: npx prettier --write {staged_files}
       stage_fixed: true
 
+    # Catch .gitlab-ci.yml errors locally (saves a 15-min failed pipeline for a YAML typo).
+    gitlab-ci-lint:
+      glob: ".gitlab-ci.yml"
+      run: |
+        if command -v glab >/dev/null 2>&1; then
+          glab ci lint
+        else
+          echo "⚠️  glab not installed — skipping CI lint. Install: brew install glab"
+        fi
+
+    dockerfile-lint:
+      glob: "Dockerfile*"
+      run: |
+        if command -v hadolint >/dev/null 2>&1; then
+          hadolint {staged_files}
+        else
+          echo "⚠️  hadolint not installed — skipping Dockerfile lint"
+        fi
+
+    k8s-dry-run:
+      glob: "k8s/**/*.yaml"
+      run: |
+        if command -v kubectl >/dev/null 2>&1; then
+          for f in {staged_files}; do kubectl apply --dry-run=client -f "$f" >/dev/null; done
+        else
+          echo "⚠️  kubectl not installed — skipping k8s dry-run"
+        fi
+
 pre-push:
   parallel: false
   commands:
