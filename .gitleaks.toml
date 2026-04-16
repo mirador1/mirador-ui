@@ -1,0 +1,45 @@
+# =============================================================================
+# gitleaks config — secret scanner for mirador-ui.
+#
+# Runs on:
+#   - pre-commit (via lefthook) — scans staged changes
+#   - CI        (via .gitlab-ci.yml secret-scan job) — scans the whole repo
+#
+# Same shape as the mirador-service config; kept separate so each repo
+# can have its own allowlist.
+# =============================================================================
+
+title = "Mirador UI — gitleaks config"
+
+[extend]
+useDefault = true
+
+# -----------------------------------------------------------------------------
+# Allowlist — strings that look like secrets but aren't.
+# -----------------------------------------------------------------------------
+
+[[rules.allowlist]]
+description = "Demo credentials used in docs/tests — never deployed."
+regexes = [
+  '''admin/admin''',
+  '''demo''',
+  '''localhost''',
+]
+
+[[rules.allowlist]]
+description = "Files that legitimately contain secret-shaped tokens (examples, test fixtures)."
+paths = [
+  '''\.env\.example$''',
+  '''docs/examples/.+\.json$''',
+  '''src/.*\.spec\.ts$''',
+  '''node_modules/.+''',
+  '''\.angular/.+''',
+  '''dist/.+''',
+  '''docs/(compodoc|typedoc)/.+''',
+]
+
+[[rules.allowlist]]
+description = "Fake JWT tokens in tests (header.payload.signature shape)."
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIs[A-Za-z0-9_\-\.]+''',
+]

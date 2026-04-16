@@ -27,7 +27,7 @@ Angular 21 frontend for the `mirador-service` Spring Boot backend.
 Provides observability dashboard, customer management, diagnostics, chaos testing, and visualisations.
 
 - **Entry point:** `src/main/ts` / `src/app/app.ts`
-- **Config:** `angular.json`, `proxy.conf.json`, `.env` (optional)
+- **Config:** `angular.json` (root), `config/proxy.conf.json`, `config/typedoc.json`, `config/.compodocrc.json`, `.env` (optional)
 - **Backend** must be cloned as a sibling: `../workspace-modern/mirador-service/`
 
 ## Angular rules — critical

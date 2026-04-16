@@ -1,0 +1,45 @@
+# =============================================================================
+# .dockerignore — exclude files from the Docker build context
+#
+# Reduces context size → faster builds, no accidental inclusion of dev
+# artefacts / secrets / local state. The build context is the repo root
+# (see `docker build -f build/Dockerfile .`), so every excluded path here
+# is measured from the repo root.
+# =============================================================================
+
+# ── Build output (copied in at build time, not needed here) ──────────────────
+dist/
+.angular/
+node_modules/
+
+# ── Local / IDE state ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.claude/
+
+# ── Docs — not bundled into the image ────────────────────────────────────────
+docs/
+README.md
+CLAUDE.md
+
+# ── CI / Git metadata ────────────────────────────────────────────────────────
+.git/
+.github/
+.gitignore
+.gitlab-ci.yml
+.scannerwork/
+
+# ── Environment files — secrets must never be baked in ──────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Tool caches and reports ─────────────────────────────────────────────────
+coverage/
+*.log
+.cache/
+.npm/
+
+# ── macOS clutter ───────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
