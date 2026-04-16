@@ -21,15 +21,8 @@ docs/
 ## Architecture decisions
 
 Non-obvious architectural choices are captured in **ADRs** (Michael Nygard
-format). Start with the index: [`adr/README.md`](adr/README.md).
-
-| ID   | Status    | Decision                                                           |
-| ---- | --------- | ------------------------------------------------------------------ |
-| 0001 | Accepted  | [Record architecture decisions](adr/0001-record-architecture-decisions.md)      |
-| 0002 | Accepted  | [Zoneless change detection + Signals](adr/0002-zoneless-and-signals.md)         |
-| 0003 | Accepted  | [Raw SVG for all visualizations](adr/0003-raw-svg-charts.md)                    |
-| 0004 | Accepted  | [Vitest over Jest for unit tests](adr/0004-vitest-over-jest.md)                 |
-| 0005 | Accepted  | [Standalone components, no NgModules](adr/0005-standalone-components.md)        |
+format). The canonical index lives at [`adr/README.md`](adr/README.md) —
+it lists every ADR with status, and the numbers are stable once merged.
 
 ## Getting started
 
