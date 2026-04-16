@@ -16,18 +16,18 @@
     "compodoc": "compodoc --config config/.compodocrc.json",
     "compodoc:serve": "compodoc --config config/.compodocrc.json -s",
     "typedoc": "typedoc --options config/typedoc.json",
-    "sonar": "sonar-scanner",
+    "sonar": "sonar-scan -Dproject.settings=config/sonar-project.properties",
     "prepare": "cp scripts/pre-push-checks.sh .git/hooks/pre-push 2>/dev/null; chmod +x .git/hooks/pre-push 2>/dev/null || true"
   },
   "private": true,
   "packageManager": "npm@11.11.0",
   "dependencies": {
-    "@angular/common": "^21.2.0",
-    "@angular/compiler": "^21.2.0",
-    "@angular/core": "^21.2.0",
-    "@angular/forms": "^21.2.0",
-    "@angular/platform-browser": "^21.2.0",
-    "@angular/router": "^21.2.0",
+    "@angular/common": "^21.2.9",
+    "@angular/compiler": "^21.2.9",
+    "@angular/core": "^21.2.9",
+    "@angular/forms": "^21.2.9",
+    "@angular/platform-browser": "^21.2.9",
+    "@angular/router": "^21.2.9",
     "@auth0/auth0-angular": "^2.8.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
@@ -35,13 +35,13 @@
   "devDependencies": {
     "@angular/build": "^21.2.7",
     "@angular/cli": "^21.2.7",
-    "@angular/compiler-cli": "^21.2.0",
+    "@angular/compiler-cli": "^21.2.9",
     "@compodoc/compodoc": "^1.2.1",
-    "jsdom": "^28.0.0",
-    "prettier": "^3.8.1",
-    "sonar-scanner": "^3.1.0",
+    "@sonar/scan": "^4.3.0",
+    "jsdom": "^29.0.0",
+    "prettier": "^3.8.3",
     "typedoc": "^0.28.19",
-    "typescript": "~5.9.2",
-    "vitest": "^4.0.8"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.4"
   }
 }
