@@ -25,4 +25,4 @@ The server is intentionally bound to `localhost` only and has no authentication 
 ## See also
 
 - [Proxy configuration](proxy.md) — how the UI routes `/docker-api/*` to this server
-- [Dashboard — Docker service control](user-manual.md#dashboard) — the UI that drives these endpoints
+- [Dashboard — Docker service control](../guides/user-manual.md#dashboard) — the UI that drives these endpoints

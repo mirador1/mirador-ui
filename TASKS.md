@@ -22,7 +22,7 @@
       file (see conversation log).
 
 - [ ] **Tech glossary follow-up — verify uncertain entries** in
-      `docs/technologies.md`. Items the first-pass agent flagged:
+      `docs/reference/technologies.md`. Items the first-pass agent flagged:
       • Auth0 production-rollout status vs Keycloak-in-dev
       • ResizeObserver / `navigator.clipboard` specific call sites
       • Grafana-duplication ADR (listed as ADR-TBD — needs creation)
@@ -79,6 +79,6 @@
       release-please, Docker image security (SBOM, Grype, dockle, cosign).
 - [x] 5 ADRs under `docs/adr/` — zoneless, raw SVG, Vitest, standalone.
 - [x] Split monolithic README (557 lines) into docs/*.md per topic.
-- [x] 1200-line technology glossary in `docs/technologies.md`.
+- [x] 1200-line technology glossary in `docs/reference/technologies.md`.
 - [x] Bumped Angular patches, Vitest, Prettier, jsdom 28 → 29.
 - [x] Replaced archived `sonar-scanner` with `@sonar/scan`.
