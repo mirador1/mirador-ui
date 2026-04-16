@@ -1,8 +1,9 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "entryPointStrategy": "expand",
-  "entryPoints": ["src/app"],
-  "out": "docs/typedoc",
+  "entryPoints": ["../src/app"],
+  "tsconfig": "../tsconfig.app.json",
+  "out": "../docs/typedoc",
   "name": "Mirador UI — TypeScript API Docs",
   "readme": "none",
   "excludePrivate": true,

@@ -13,9 +13,9 @@
     "format": "prettier --write \"src/**/*.{ts,html,scss,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss,json}\"",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "compodoc": "compodoc -p tsconfig.app.json -d docs/compodoc --theme material --hideGenerator",
-    "compodoc:serve": "compodoc -p tsconfig.app.json -s -d docs/compodoc --theme material --hideGenerator",
-    "typedoc": "typedoc",
+    "compodoc": "compodoc --config config/.compodocrc.json",
+    "compodoc:serve": "compodoc --config config/.compodocrc.json -s",
+    "typedoc": "typedoc --options config/typedoc.json",
     "sonar": "sonar-scanner",
     "prepare": "cp scripts/pre-push-checks.sh .git/hooks/pre-push 2>/dev/null; chmod +x .git/hooks/pre-push 2>/dev/null || true"
   },

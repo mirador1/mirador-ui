@@ -120,7 +120,16 @@ customer-observability-ui/
 │   ├── docker-api.mjs                  # Node.js server — Docker control + Zipkin/Loki proxy
 │   └── pre-push-checks.sh             # Git pre-push quality gate
 ├── run.sh                              # Full-stack launcher (frontend + backend delegation)
-├── proxy.conf.json                     # Angular dev server proxy rules
+├── config/
+│   ├── proxy.conf.json                 # Angular dev server proxy rules
+│   ├── typedoc.json                    # TypeDoc config
+│   ├── .compodocrc.json                # Compodoc config
+│   └── sonar-project.properties        # SonarCloud config
+├── build/
+│   └── Dockerfile                      # Container build
+├── deploy/
+│   ├── nginx.conf                      # Runtime Nginx config
+│   └── kubernetes/                     # K8s manifests
 ├── angular.json                        # Angular CLI workspace config
 ├── tsconfig.json                       # TypeScript base config
 ├── tsconfig.app.json                   # App-specific TS config
@@ -446,7 +455,7 @@ Click the environment badge in the topbar to switch between Local, Docker, Stagi
 
 ## Proxy Configuration
 
-The Angular dev server proxies several routes to avoid CORS issues during development. Configured in `proxy.conf.json`:
+The Angular dev server proxies several routes to avoid CORS issues during development. Configured in `config/proxy.conf.json`:
 
 | Frontend Path | Target | Purpose |
 |---|---|---|

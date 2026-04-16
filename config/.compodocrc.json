@@ -1,6 +1,6 @@
 {
-  "tsconfig": "./tsconfig.app.json",
-  "output": "docs/compodoc",
+  "tsconfig": "../tsconfig.app.json",
+  "output": "../docs/compodoc",
   "theme": "material",
   "hideGenerator": true,
   "disableCoverage": false,

@@ -21,7 +21,7 @@ pre-commit:
         fi
 
     dockerfile-lint:
-      glob: "Dockerfile*"
+      glob: "build/Dockerfile*"
       run: |
         if command -v hadolint >/dev/null 2>&1; then
           hadolint {staged_files}

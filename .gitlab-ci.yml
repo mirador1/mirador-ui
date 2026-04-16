@@ -10,10 +10,10 @@ workflow:
         - "package-lock.json"
         - "angular.json"
         - "tsconfig*.json"
-        - "proxy.conf.json"
-        - "Dockerfile*"
+        - "config/proxy.conf.json"
+        - "build/Dockerfile*"
         - ".dockerignore"
-        - "nginx.conf"
+        - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
         - "public/**/*"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -23,10 +23,10 @@ workflow:
         - "package-lock.json"
         - "angular.json"
         - "tsconfig*.json"
-        - "proxy.conf.json"
-        - "Dockerfile*"
+        - "config/proxy.conf.json"
+        - "build/Dockerfile*"
         - ".dockerignore"
-        - "nginx.conf"
+        - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
         - "public/**/*"
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -229,7 +229,7 @@ sonarcloud:
 # The backend's generate-reports job can also invoke `npm run typedoc` as part
 # of a combined site that includes Maven site + Compodoc + TypeDoc.
 #
-# typedoc.json at the repo root controls entry points, output dir, and theme.
+# config/typedoc.json controls entry points, output dir, and theme.
 typedoc:
   stage: quality
   extends: .install
@@ -298,6 +298,7 @@ docker-build:
       docker pull "$CI_REGISTRY_IMAGE:main" || true
     - |
       docker build \
+        -f build/Dockerfile \
         --cache-from "$CI_REGISTRY_IMAGE:main" \
         --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
         --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
