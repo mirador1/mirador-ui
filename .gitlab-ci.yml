@@ -585,6 +585,38 @@ deploy:gke:
         --region "$GKE_REGION" --project "$GCP_PROJECT"
     - !reference [.kubectl-apply-ui, script]
 
+# ── smoke-test — k6 post-deploy smoke test ────────────────────────────────────
+# Runs against the public GKE endpoint AFTER deploy:gke. 30 s of light
+# read-only traffic at ~3 RPS, pass/fail on p95 < 500 ms and < 1 % errors.
+# Hits both the SPA shell (/, /favicon.ico, /manifest.json) and the
+# /api/* proxy paths so a broken ingress rewrite is caught here too.
+# See scripts/load-test/README.md for thresholds + how to run locally.
+smoke-test:
+  stage: deploy
+  image: grafana/k6:1.4.0
+  tags:
+    - macbook-local
+  needs:
+    - job: deploy:gke
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
+  environment:
+    name: production/gke
+    action: verify
+  variables:
+    # K8S_HOST is a protected CI var pointing at e.g. mirador1.duckdns.org.
+    # The smoke.js script reads __ENV.K8S_HOST.
+    K8S_HOST: "$K8S_HOST"
+  script:
+    - k6 run scripts/load-test/smoke.js
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - smoke-summary.json
+
 # ── AWS EKS — manual ──────────────────────────────────────────────────────────
 deploy:eks:
   stage: deploy
