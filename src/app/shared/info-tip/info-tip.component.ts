@@ -3,14 +3,31 @@
  *
  * Displays an "i" icon that shows a popup on hover or click with:
  * - Optional title (bold header)
- * - Text body (main explanation)
+ * - Text body — automatically formatted:
+ *     * single paragraph          → plain line
+ *     * contains `\n`             → each line becomes its own block
+ *     * lines like `Label: value` → rendered as a definition list with
+ *       bold key + monospace value, aligned in two columns. Makes the old
+ *       "Heap: jvm_memory_used_bytes / jvm_memory_max_bytes. CPU: ..." wall
+ *       of prose readable.
+ *     * lines starting with `-` or `•` → bullet list
  * - Optional command (monospace code block)
  * - Optional source attribution (italic footer)
  *
  * Used throughout the app to provide inline documentation for metrics,
  * features, and configuration values without cluttering the UI.
  */
-import { Component, Input, signal, ElementRef, inject } from '@angular/core';
+import { Component, Input, signal, ElementRef, inject, computed } from '@angular/core';
+
+/** One rendered entry inside the popup body. */
+interface TipLine {
+  /** Line type — controls which template block renders it. */
+  readonly kind: 'kv' | 'bullet' | 'text';
+  /** For kv: the key (left column). For bullet/text: the full line. */
+  readonly key: string;
+  /** For kv: the value (right column). Empty for bullet/text. */
+  readonly value: string;
+}
 
 @Component({
   selector: 'app-info-tip',
@@ -31,7 +48,24 @@ import { Component, Input, signal, ElementRef, inject } from '@angular/core';
           @if (title) {
             <strong class="info-title">{{ title }}</strong>
           }
-          <span class="info-body">{{ text }}</span>
+          <div class="info-body">
+            @for (line of parsedLines(); track $index) {
+              @switch (line.kind) {
+                @case ('kv') {
+                  <div class="info-kv">
+                    <span class="info-kv-key">{{ line.key }}</span>
+                    <span class="info-kv-value">{{ line.value }}</span>
+                  </div>
+                }
+                @case ('bullet') {
+                  <div class="info-bullet">• {{ line.key }}</div>
+                }
+                @default {
+                  <div class="info-text">{{ line.key }}</div>
+                }
+              }
+            }
+          </div>
           @if (command) {
             <code class="info-command">{{ command }}</code>
           }
@@ -94,16 +128,16 @@ import { Component, Input, signal, ElementRef, inject } from '@angular/core';
         padding: 0.65rem 0.85rem;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         z-index: 500;
-        min-width: 220px;
-        max-width: 320px;
+        min-width: 240px;
+        max-width: 360px;
         display: flex;
         flex-direction: column;
-        gap: 0.3rem;
+        gap: 0.35rem;
         animation: fade-in 0.15s ease-out;
 
         &.info-wide {
-          min-width: 300px;
-          max-width: 440px;
+          min-width: 320px;
+          max-width: 480px;
         }
 
         &::after {
@@ -145,9 +179,47 @@ import { Component, Input, signal, ElementRef, inject } from '@angular/core';
       }
 
       .info-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
         font-size: 0.78rem;
         color: var(--text-secondary);
         line-height: 1.4;
+      }
+
+      /* Plain paragraph line */
+      .info-text {
+        /* Default styling inherited from .info-body. */
+      }
+
+      /* Bullet-list item */
+      .info-bullet {
+        padding-left: 0.35rem;
+      }
+
+      /* key-value row — bold key on the left, value on the right,
+       * values wrap cleanly via the flex layout. A min-width on the key
+       * prevents long values from pushing short keys around. */
+      .info-kv {
+        display: flex;
+        gap: 0.5rem;
+        align-items: baseline;
+      }
+
+      .info-kv-key {
+        flex-shrink: 0;
+        font-weight: 600;
+        color: var(--text-primary);
+        min-width: 3.5rem;
+        max-width: 8rem;
+      }
+
+      .info-kv-value {
+        flex: 1 1 auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.72rem;
+        word-break: break-word;
+        color: var(--text-secondary);
       }
 
       .info-command {
@@ -184,7 +256,14 @@ import { Component, Input, signal, ElementRef, inject } from '@angular/core';
 export class InfoTipComponent {
   private readonly el = inject(ElementRef);
 
-  /** Required. Main explanation text shown in the popup body. */
+  /** Required. Main explanation text shown in the popup body.
+   *  Auto-formatting:
+   *    - lines starting with `-` or `•`        → bullet list
+   *    - lines matching /^[\w.\s/-]{1,30}:\s/   → key-value row (two columns)
+   *    - everything else                        → plain text line
+   *  Separate lines with `\n` OR `. ` when you want the auto-splitter to run
+   *  on a single-line string (e.g. prose-style "Heap: X. CPU: Y. Threads: Z.").
+   */
   @Input() text = '';
 
   /** Optional bold header displayed above the body text. */
@@ -200,7 +279,7 @@ export class InfoTipComponent {
   @Input() image = '';
 
   /**
-   * When true, the popup uses a wider min/max width (300–440px vs 220–320px).
+   * When true, the popup uses a wider min/max width (320–480px vs 240–360px).
    * Set this for popups with long text or an image to prevent wrapping.
    */
   @Input() wide = false;
@@ -225,12 +304,80 @@ export class InfoTipComponent {
   showBelow = signal(false);
 
   /**
+   * Parsed view of `text` as a list of TipLine rows.
+   * Split strategy:
+   *   1. If text contains `\n`, split on newlines.
+   *   2. Otherwise, heuristic split on ". " boundaries BETWEEN `Label: value`
+   *      pairs — this rescues legacy dashboards that built one-line prose
+   *      like "Heap: X / Y. CPU: Z. Threads: W.".
+   * Each line is then classified as kv | bullet | text.
+   */
+  parsedLines = computed<TipLine[]>(() => {
+    const raw = (this.text || '').trim();
+    if (!raw) return [];
+
+    const segments = raw.includes('\n')
+      ? raw.split(/\r?\n/)
+      : InfoTipComponent.splitPseudoSentences(raw);
+
+    return segments
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .map((segment) => InfoTipComponent.classify(segment));
+  });
+
+  /**
+   * Split a single-line prose string into logical segments when it contains
+   * multiple `Label:` markers. "Heap: X / Y. CPU: Z. Threads: W." → 3 chunks.
+   * Falls back to [raw] if the string has 0 or 1 label marker.
+   */
+  private static splitPseudoSentences(raw: string): string[] {
+    const labelMatches = [...raw.matchAll(/(?:^|\.\s+|\;\s+)([\w][\w .\/-]{0,28}):\s/g)];
+    if (labelMatches.length < 2) return [raw];
+
+    const chunks: string[] = [];
+    for (let i = 0; i < labelMatches.length; i++) {
+      const start = labelMatches[i].index ?? 0;
+      const end =
+        i + 1 < labelMatches.length ? (labelMatches[i + 1].index ?? raw.length) : raw.length;
+      let chunk = raw
+        .slice(start, end)
+        .replace(/^[.\s;]+/, '')
+        .trim();
+      // Strip trailing period + space left over from the split boundary.
+      chunk = chunk.replace(/[.\s;]+$/, '');
+      if (chunk) chunks.push(chunk);
+    }
+    return chunks;
+  }
+
+  /**
+   * Classify one trimmed segment into kv | bullet | text.
+   * - Bullet: starts with `-`, `•`, or `*` followed by whitespace.
+   * - kv: starts with a short label (≤30 chars of word/dot/slash/space/dash)
+   *       then `:` + whitespace + any value. Longer labels mean it's prose.
+   * - text: everything else.
+   */
+  private static classify(segment: string): TipLine {
+    const bulletMatch = /^[\-•*]\s+(.*)$/.exec(segment);
+    if (bulletMatch) {
+      return { kind: 'bullet', key: bulletMatch[1], value: '' };
+    }
+
+    const kvMatch = /^([\w][\w .\/-]{0,28}):\s+(.+)$/.exec(segment);
+    if (kvMatch) {
+      return { kind: 'kv', key: kvMatch[1].trim(), value: kvMatch[2].trim() };
+    }
+
+    return { kind: 'text', key: segment, value: '' };
+  }
+
+  /**
    * Handle mouse-enter: compute viewport position and update `showBelow`,
    * then set `hover` to true to show the popup.
    * If the icon is in the top 250px of the viewport, the popup opens below to avoid clipping.
    */
   onEnter(): void {
-    // If the element is in the top 250px of the viewport, show popup below instead of above
     const rect = this.el.nativeElement.getBoundingClientRect();
     this.showBelow.set(rect.top < 250);
     this.hover.set(true);

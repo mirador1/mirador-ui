@@ -208,8 +208,10 @@ sonarcloud:
     paths:
       - .sonar/cache
   script:
-    # sonar-project.properties provides org/projectKey; token from CI variable.
+    # config/sonar-project.properties provides org/projectKey; token from CI variable.
+    # -Dproject.settings points the scanner at the moved config file.
     - sonar-scanner
+        -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
   allow_failure: true    # SonarCloud outage must not block deployments
@@ -310,7 +312,11 @@ trivy:scan:
   # allow_failure:true — CVEs are tracked informationally, not build-blocking.
   stage: docker
   # aquasec/trivy no longer publishes :latest (since ~0.60). Pin a real tag.
-  image: aquasec/trivy:0.69.3
+  # entrypoint:[""] overrides `trivy` default entrypoint — GitLab CI wraps
+  # the script in `sh -c` which trivy rejects as `unknown command "sh"`.
+  image:
+    name: aquasec/trivy:0.69.3
+    entrypoint: [""]
   tags:
     # DinD is used to pull the image for scanning — requires privileged mode.
     - saas-linux-medium-amd64
@@ -381,7 +387,7 @@ trivy:scan:
         --namespace=app --dry-run=client -o yaml | kubectl apply -f -
     - |
       # Apply frontend manifests — envsubst replaces ${IMAGE_REGISTRY}, ${UI_IMAGE_TAG}
-      for f in k8s/frontend/deployment.yaml k8s/frontend/service.yaml; do
+      for f in deploy/kubernetes/frontend/deployment.yaml deploy/kubernetes/frontend/service.yaml; do
         [ -f "$f" ] && envsubst < "$f" | kubectl apply -f -
       done
     - kubectl rollout status deployment/customer-ui -n app --timeout=120s
