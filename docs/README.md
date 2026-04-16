@@ -10,9 +10,10 @@ under this tree.
 docs/
 ├── README.md               ← you are here (index)
 ├── adr/                    ← Architecture Decision Records (1 per decision)
+├── architecture/           ← tab-by-tab prose from the About page
 ├── getting-started/        ← first-time setup, env vars, run.sh
 ├── guides/                 ← UI user manual, shortcuts, theming
-├── reference/              ← architecture, ports, technology glossary
+├── reference/              ← architecture diagram, ports, technology glossary
 ├── ops/                    ← CI/CD, build, Docker control API, proxy
 ├── compodoc/               ← auto-generated (gitignored)
 └── typedoc/                ← auto-generated (gitignored)
@@ -47,6 +48,22 @@ it lists every ADR with status, and the numbers are stable once merged.
 | [`reference/architecture.md`](reference/architecture.md)           | Mermaid diagram of UI + backend + observability stack            |
 | [`reference/ports.md`](reference/ports.md)                         | Every local URL exposed by the full stack                        |
 | [`reference/technologies.md`](reference/technologies.md)           | Long-form technology glossary (~1200 lines, 209 entries)          |
+
+## Architecture (tab-by-tab)
+
+Prose content from the About page (`src/app/features/about/`) extracted so
+it's readable without running the UI. One file per tab — diagrams stay in
+the component because Markdown can't do SVG justice.
+
+| Doc                                                                | Tab                                           |
+| ------------------------------------------------------------------ | --------------------------------------------- |
+| [`architecture/README.md`](architecture/README.md)                 | Index with all 14 tabs                        |
+| [`architecture/overview.md`](architecture/overview.md)             | Full-stack summary                            |
+| [`architecture/infrastructure.md`](architecture/infrastructure.md) | Services, ports, `run.sh` reference           |
+| [`architecture/deployment.md`](architecture/deployment.md)         | Docker / Kubernetes / GCP side-by-side        |
+| [`architecture/observability.md`](architecture/observability.md)   | Traces, logs, metrics, profiles routing       |
+| [`architecture/security.md`](architecture/security.md)             | Auth modes, RBAC, vulnerable-demo endpoints   |
+| [`architecture/technology-stack.md`](architecture/technology-stack.md) | Short per-tech usage notes (the About tab)|
 
 ## Ops (running it in CI and production)
 

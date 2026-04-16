@@ -10,16 +10,16 @@
 
 ## Pending — Documentation extraction
 
-- [ ] **Extract `about.component.html` prose to `docs/architecture/*.md`.**
-      `src/app/features/about/about.component.html` is 2895 lines; roughly
-      2400 are pure documentation (tab content: Overview, Infrastructure,
-      Deployment, Technologies, Compatibility, Observability, Resilience,
-      Security, Messaging, Data, Testing, Docker). Split each tab into its
-      own `docs/architecture/<tab>.md`. The component should shrink to nav
-      + SVG diagrams + an iframe / markdown renderer pulling from `docs/`.
-      Keep the SVGs in the component — markdown doesn't express them well.
-      Agent inventory in earlier session mapped each section to target
-      file (see conversation log).
+- [~] **Extract `about.component.html` prose to `docs/architecture/*.md`.**
+      Phase 1 (done): 14 tab prose extracted to `docs/architecture/*.md`
+      (762 lines across 15 files including the README index). SVGs stay
+      in the component.
+      Phase 2 (todo): shrink `about.component.html` itself — load the
+      Markdown files at runtime (via an `<iframe>` or a lightweight
+      markdown-it renderer) and keep only the SVG diagrams + tab nav
+      in the component. This needs a new runtime dep (markdown renderer)
+      or build-time inlining; deferred because it's a user-visible
+      refactor and the About page already works.
 
 
 ## Pending — Industry-standard upgrades (from the "indus" shortlist)
@@ -39,20 +39,17 @@
       not versioned. Add `deploy/grafana/` with JSON exports + grizzly
       apply step in CI.
 
-- [ ] **k6 smoke test post-deploy.** After `deploy:gke`, run 30 s of
-      k6 traffic against `https://mirador1.duckdns.org`, validate
-      p95 < 500 ms, rollback the deploy if KO.
+## Pending — UI → Grafana migration
 
-## Pending — UI → Grafana migration audit
-
-- [ ] **Audit every UI view that duplicates a Grafana dashboard** and
-      move those to Grafana-as-Code. The `visualizations/` + parts of
-      `dashboard/` + `observability/` overlap with native Grafana
-      panels. Keep the UI's chaos/diagnostic/customers/request-builder
-      (actually interactive) features; move pure observability reads
-      to Grafana so we have one source of truth. Split criterion is
-      already recorded in [ADR-0006](docs/adr/0006-grafana-duplication.md) —
-      this task is the actual migration work.
+- [ ] **Execute the migration identified in the audit.** The audit
+      [`docs/architecture/ui-grafana-audit.md`](docs/architecture/ui-grafana-audit.md)
+      reviews all 17 features: 14 stay in the UI, 3 are partial
+      (`dashboard/`, `observability/`, `visualizations/`), 0 migrate
+      wholesale. Next step is to port the specific Prometheus-only
+      panels called out in the audit's "Recommended migration plan"
+      to Grafana-as-Code (grizzly/jsonnet) once that track lands.
+      Requires Grafana Cloud credentials + the Grafana-as-Code task
+      below.
 
 ## Pending — Deferred majors
 
@@ -63,6 +60,20 @@
 
 ## Recently completed (keep last 10 for context)
 
+- [x] k6 post-deploy smoke test for the UI — `scripts/load-test/smoke.js`
+      + CI `smoke-test` job running after `deploy:gke` on main. Hits
+      both SPA shell paths and `/api/*` proxy paths so a broken ingress
+      rewrite is caught. p95 < 500 ms + <1 % errors or the job fails.
+- [x] UI → Grafana migration audit published at
+      [`docs/architecture/ui-grafana-audit.md`](docs/architecture/ui-grafana-audit.md).
+      Verdict: 14 stay / 0 migrate wholesale / 3 partial.
+- [x] Extracted tab prose from `about.component.html` to
+      `docs/architecture/*.md` (15 files, 762 lines) — phase 1 of the
+      About-page docs split. SVGs and interactive bits kept in the
+      component; phase 2 (collapsing the component to a markdown
+      renderer) still pending.
+- [x] Icons + official URLs on every entry in
+      `docs/reference/technologies.md` (207 entries).
 - [x] ADR-0006 records the UI-vs-Grafana duplication criterion; resolves
       both ADR-TBD references in `docs/reference/technologies.md` and
       prunes two unused browser-API entries (ResizeObserver, clipboard)
