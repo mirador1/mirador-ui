@@ -1,0 +1,24 @@
+# =============================================================================
+# mise — tool version manifest (replaces asdf, nvm, jenv, etc.)
+#
+# Install mise once:
+#   curl https://mise.run | sh       # or `brew install mise`
+#
+# Then `cd` into this repo and every listed tool auto-activates at the
+# pinned version. No more "works on my machine" conflicts.
+#
+# Why a TOML file and not .tool-versions?
+#   TOML accepts inline comments + structured sections. mise reads both,
+#   so we pick the richer format.
+# =============================================================================
+
+[tools]
+# Node.js 22 LTS — the Angular 21 CLI targets Node 22. `nvm use` was fine
+# but drifted across contributors; mise pins it per repo.
+node = "22.12.0"
+
+# npm 11 — explicitly pinned because Angular CLI 21.2 ships lock format v3,
+# which only npm 9+ reliably writes. npm 11 is what package.json declares.
+npm = "11.0.0"
+
+# Stage ahead of Angular — when we bump Angular major, pin Node major first.

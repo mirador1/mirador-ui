@@ -20,6 +20,7 @@ for the meta-ADR explaining the format and criteria.
 | 0003  | Accepted | [Raw SVG for all visualizations, no charting library](0003-raw-svg-charts.md) |
 | 0004  | Accepted | [Vitest over Jest for unit tests](0004-vitest-over-jest.md)            |
 | 0005  | Accepted | [Standalone components, no NgModules](0005-standalone-components.md)   |
+| 0006  | Accepted | [Keep UI dashboards alongside Grafana (for now)](0006-grafana-duplication.md) |
 
 ## Template
 

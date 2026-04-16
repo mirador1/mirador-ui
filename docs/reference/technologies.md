@@ -571,16 +571,6 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 - **Usage here** — `deploy/nginx.conf` `location /` block: `try_files $uri $uri/ /index.html`.
 - **Why it's pertinent** — mandatory for client-side routing in production; without it every deep-link reload 404s.
 
-### `navigator.clipboard`
-- **What it is** — the async clipboard API.
-- **Usage here** — "copy to clipboard" actions (e.g., request-builder response panel).
-- **Why it's pertinent** — safer than `document.execCommand('copy')`, works over HTTPS and localhost.
-
-### ResizeObserver
-- **What it is** — a DOM API that fires callbacks when an element's box changes size.
-- **Usage here** — used by responsive SVG components to recompute viewBox dimensions.
-- **Why it's pertinent** — resizing on `window.resize` misses container changes from layout, sidebar collapse, or flex redistributions.
-
 ---
 
 ## Progressive Web App features
@@ -1011,12 +1001,12 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 ### Custom SVG dashboards
 - **What it is** — our in-repo dashboards that visualise backend metrics (implemented with raw SVG).
 - **Usage here** — `src/app/features/observability/`, `src/app/features/visualizations/`, `src/app/features/dashboard/`.
-- **Why it's pertinent** — embeds ops context into the app without requiring the user to open Grafana. Flagged for a future migration once we've validated the Grafana-duplication cost (ADR-TBD).
+- **Why it's pertinent** — embeds ops context into the app without requiring the user to open Grafana. Migration criterion recorded in [ADR-0006](../adr/0006-grafana-duplication.md).
 
 ### Grafana (not bundled)
 - **What it is** — the upstream dashboard platform.
 - **Usage here** — the backend ships Grafana via `docker-compose.observability.yml` (LGTM stack). Our UI duplicates some panels in-app.
-- **Why it's pertinent** — the ADR-TBD note captures that we know we're duplicating; future iteration may switch to embedding Grafana panels instead.
+- **Why it's pertinent** — [ADR-0006](../adr/0006-grafana-duplication.md) captures the criterion for keeping a view in-app vs migrating it to Grafana.
 
 ### `keyboard` / keyboard shortcuts module
 - **What it is** — our custom global-shortcuts service.
