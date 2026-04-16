@@ -30,7 +30,7 @@ pre-commit:
         fi
 
     k8s-dry-run:
-      glob: "k8s/**/*.yaml"
+      glob: "deploy/kubernetes/**/*.yaml"
       run: |
         if command -v kubectl >/dev/null 2>&1; then
           for f in {staged_files}; do kubectl apply --dry-run=client -f "$f" >/dev/null; done

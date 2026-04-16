@@ -208,8 +208,10 @@ sonarcloud:
     paths:
       - .sonar/cache
   script:
-    # sonar-project.properties provides org/projectKey; token from CI variable.
+    # config/sonar-project.properties provides org/projectKey; token from CI variable.
+    # -Dproject.settings points the scanner at the moved config file.
     - sonar-scanner
+        -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
   allow_failure: true    # SonarCloud outage must not block deployments
@@ -385,7 +387,7 @@ trivy:scan:
         --namespace=app --dry-run=client -o yaml | kubectl apply -f -
     - |
       # Apply frontend manifests — envsubst replaces ${IMAGE_REGISTRY}, ${UI_IMAGE_TAG}
-      for f in k8s/frontend/deployment.yaml k8s/frontend/service.yaml; do
+      for f in deploy/kubernetes/frontend/deployment.yaml deploy/kubernetes/frontend/service.yaml; do
         [ -f "$f" ] && envsubst < "$f" | kubectl apply -f -
       done
     - kubectl rollout status deployment/customer-ui -n app --timeout=120s
