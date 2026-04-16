@@ -10,16 +10,16 @@
 
 ## Pending — Documentation extraction
 
-- [ ] **Extract `about.component.html` prose to `docs/architecture/*.md`.**
-      `src/app/features/about/about.component.html` is 2895 lines; roughly
-      2400 are pure documentation (tab content: Overview, Infrastructure,
-      Deployment, Technologies, Compatibility, Observability, Resilience,
-      Security, Messaging, Data, Testing, Docker). Split each tab into its
-      own `docs/architecture/<tab>.md`. The component should shrink to nav
-      + SVG diagrams + an iframe / markdown renderer pulling from `docs/`.
-      Keep the SVGs in the component — markdown doesn't express them well.
-      Agent inventory in earlier session mapped each section to target
-      file (see conversation log).
+- [~] **Extract `about.component.html` prose to `docs/architecture/*.md`.**
+      Phase 1 (done): 14 tab prose extracted to `docs/architecture/*.md`
+      (762 lines across 15 files including the README index). SVGs stay
+      in the component.
+      Phase 2 (todo): shrink `about.component.html` itself — load the
+      Markdown files at runtime (via an `<iframe>` or a lightweight
+      markdown-it renderer) and keep only the SVG diagrams + tab nav
+      in the component. This needs a new runtime dep (markdown renderer)
+      or build-time inlining; deferred because it's a user-visible
+      refactor and the About page already works.
 
 
 ## Pending — Industry-standard upgrades (from the "indus" shortlist)
@@ -63,6 +63,13 @@
 
 ## Recently completed (keep last 10 for context)
 
+- [x] Extracted tab prose from `about.component.html` to
+      `docs/architecture/*.md` (15 files, 762 lines) — phase 1 of the
+      About-page docs split. SVGs and interactive bits kept in the
+      component; phase 2 (collapsing the component to a markdown
+      renderer) still pending.
+- [x] Icons + official URLs on every entry in
+      `docs/reference/technologies.md` (207 entries).
 - [x] ADR-0006 records the UI-vs-Grafana duplication criterion; resolves
       both ADR-TBD references in `docs/reference/technologies.md` and
       prunes two unused browser-API entries (ResizeObserver, clipboard)
