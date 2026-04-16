@@ -1,6 +1,6 @@
 # Port Map
 
-All local URLs exposed by the full stack (UI + backend + observability). Ports can be overridden via `.env` — see [environment.md](environment.md).
+All local URLs exposed by the full stack (UI + backend + observability). Ports can be overridden via `.env` — see [environment.md](../getting-started/environment.md).
 
 | Service | URL |
 |---|---|

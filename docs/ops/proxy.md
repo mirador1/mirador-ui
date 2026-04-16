@@ -20,4 +20,4 @@ In production, these routes are served by Nginx — see `deploy/nginx.conf`.
 ## See also
 
 - [Docker control API](docker-api.md) — the `/docker-api/*` target
-- [Ports](ports.md) — URLs of every proxied service
+- [Ports](../reference/ports.md) — URLs of every proxied service

@@ -44,5 +44,5 @@ bash workspace-modern/mirador-service/run.sh all
 
 - [run.sh reference](run-sh.md) — every subcommand of the launcher
 - [Environment configuration](environment.md) — customise ports via `.env`
-- [User manual](user-manual.md) — per-feature walkthrough of the UI
-- [Port map](ports.md) — full list of local URLs
+- [User manual](../guides/user-manual.md) — per-feature walkthrough of the UI
+- [Port map](../reference/ports.md) — full list of local URLs

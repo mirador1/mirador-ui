@@ -34,5 +34,5 @@ placeholder value) so new contributors get a working setup.
 
 ## See also
 
-- [Port map](ports.md) — the concrete URLs each variable maps to
-- [Theming / multi-environment](theming.md) — how the UI lets you switch backend URLs live
+- [Port map](../reference/ports.md) — the concrete URLs each variable maps to
+- [Theming / multi-environment](../guides/theming.md) — how the UI lets you switch backend URLs live

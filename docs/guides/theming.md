@@ -16,5 +16,5 @@ Because every `ApiService` call reads the signal at request time, the switch tak
 
 ## See also
 
-- [Environment configuration](environment.md) — `.env` variables that seed the default environment URLs.
-- [ADR 0002 — Zoneless change detection + Signals](adr/0002-zoneless-and-signals.md) — why these toggles use signals rather than `ngModel`.
+- [Environment configuration](../getting-started/environment.md) — `.env` variables that seed the default environment URLs.
+- [ADR 0002 — Zoneless change detection + Signals](../adr/0002-zoneless-and-signals.md) — why these toggles use signals rather than `ngModel`.

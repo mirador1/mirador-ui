@@ -12,19 +12,19 @@ the UI itself is the demo; the docs explain how to run it and what each page doe
 
 | Topic                                                            | What you get                                                               |
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [Architecture](docs/architecture.md)                             | Mermaid diagram of Angular + backend + observability stack; core services  |
-| [Quick start](docs/quick-start.md)                               | Prereqs, cloning both repos, first-time boot                               |
-| [`run.sh` reference](docs/run-sh.md)                             | Every subcommand of the launcher                                           |
-| [Environment configuration](docs/environment.md)                 | `.env` reference for every variable                                        |
-| [User manual](docs/user-manual.md)                               | Per-feature walkthrough (Dashboard, Customers, Diagnostic, Chaos, …)       |
-| [Keyboard shortcuts](docs/keyboard-shortcuts.md)                 | Vim-style `G`+key navigation, `D` for dark mode, `?` for help              |
-| [Theming & multi-environment](docs/theming.md)                   | Dark/light toggle and Local/Docker/Staging/Prod switching                  |
-| [Port map](docs/ports.md)                                        | Every local URL exposed by the full stack                                  |
-| [Proxy configuration](docs/proxy.md)                             | `config/proxy.conf.json` rules and rationale                               |
-| [Docker control API](docs/docker-api.md)                         | `scripts/docker-api.mjs` endpoints                                         |
-| [CI / CD](docs/ci-cd.md)                                         | GitLab pipeline jobs + pre-push hook                                       |
-| [Build & quality](docs/build-quality.md)                         | npm scripts + bundle budgets                                               |
-| [Technology glossary](docs/technologies.md)                      | *(in progress)* exhaustive reference of every dep used in this repo        |
+| [Architecture](docs/reference/architecture.md)                             | Mermaid diagram of Angular + backend + observability stack; core services  |
+| [Quick start](docs/getting-started/quick-start.md)                               | Prereqs, cloning both repos, first-time boot                               |
+| [`run.sh` reference](docs/getting-started/run-sh.md)                             | Every subcommand of the launcher                                           |
+| [Environment configuration](docs/getting-started/environment.md)                 | `.env` reference for every variable                                        |
+| [User manual](docs/guides/user-manual.md)                               | Per-feature walkthrough (Dashboard, Customers, Diagnostic, Chaos, …)       |
+| [Keyboard shortcuts](docs/guides/keyboard-shortcuts.md)                 | Vim-style `G`+key navigation, `D` for dark mode, `?` for help              |
+| [Theming & multi-environment](docs/guides/theming.md)                   | Dark/light toggle and Local/Docker/Staging/Prod switching                  |
+| [Port map](docs/reference/ports.md)                                        | Every local URL exposed by the full stack                                  |
+| [Proxy configuration](docs/ops/proxy.md)                             | `config/proxy.conf.json` rules and rationale                               |
+| [Docker control API](docs/ops/docker-api.md)                         | `scripts/docker-api.mjs` endpoints                                         |
+| [CI / CD](docs/ops/ci-cd.md)                                         | GitLab pipeline jobs + pre-push hook                                       |
+| [Build & quality](docs/ops/build-quality.md)                         | npm scripts + bundle budgets                                               |
+| [Technology glossary](docs/reference/technologies.md)                      | *(in progress)* exhaustive reference of every dep used in this repo        |
 
 ### Architecture decisions
 
@@ -94,7 +94,7 @@ git clone https://gitlab.com/benoit.besson/mirador-ui.git js/mirador-ui
 bash js/mirador-ui/run.sh
 ```
 
-Sign in with **admin / admin** at <http://localhost:4200>. See [docs/quick-start.md](docs/quick-start.md) for prerequisites and troubleshooting.
+Sign in with **admin / admin** at <http://localhost:4200>. See [docs/getting-started/quick-start.md](docs/getting-started/quick-start.md) for prerequisites and troubleshooting.
 
 ---
 
@@ -114,4 +114,4 @@ Sign in with **admin / admin** at <http://localhost:4200>. See [docs/quick-start
 | **PWA**           | Web manifest         | Standalone installable app                                                                      |
 | **Package manager** | npm 11             | Lockfile v3                                                                                     |
 
-> The exhaustive list (Kaniko, hadolint, Trivy, Buildx, Keycloak, Loki, Tempo, Pyroscope, PostgreSQL, Kafka, Redis, Ollama, …) — with *what it is*, *how we use it* and *why it's pertinent* for each entry — lives in [docs/technologies.md](docs/technologies.md) (work in progress).
+> The exhaustive list (Kaniko, hadolint, Trivy, Buildx, Keycloak, Loki, Tempo, Pyroscope, PostgreSQL, Kafka, Redis, Ollama, …) — with *what it is*, *how we use it* and *why it's pertinent* for each entry — lives in [docs/reference/technologies.md](docs/reference/technologies.md) (work in progress).
