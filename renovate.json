@@ -1,0 +1,76 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    ":separateMajorReleases",
+    ":prImmediately",
+    ":enableVulnerabilityAlertsWithLabel(security)",
+    "schedule:weekends"
+  ],
+  "timezone": "Europe/Paris",
+  "description": [
+    "Mirador UI — automated npm + Docker dependency updates.",
+    "Angular 21 is sensitive to cross-package version skew, so all @angular/*",
+    "packages are grouped and updated in lockstep. Node.js majors require",
+    "human review (may break Vitest / Angular CLI)."
+  ],
+  "labels": ["dependencies", "renovate"],
+  "platformAutomerge": true,
+  "rebaseWhen": "conflicted",
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "description": "Auto-merge patch + minor updates after CI green. Majors need human review.",
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Group all Angular packages — must upgrade together.",
+      "matchPackagePatterns": ["^@angular/"],
+      "groupName": "Angular",
+      "separateMinorPatch": true
+    },
+    {
+      "description": "Group all @auth0/* packages together.",
+      "matchPackagePatterns": ["^@auth0/"],
+      "groupName": "Auth0"
+    },
+    {
+      "description": "Group Vitest + jsdom — ecosystem moves together.",
+      "matchPackageNames": ["vitest", "jsdom"],
+      "groupName": "Vitest / jsdom"
+    },
+    {
+      "description": "Node.js major bumps need manual review (Angular CLI compat).",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["node"],
+      "matchUpdateTypes": ["major"],
+      "labels": ["major-upgrade", "manual-review"],
+      "automerge": false
+    },
+    {
+      "description": "Pin Docker image digests for reproducibility.",
+      "matchDatasources": ["docker"],
+      "pinDigests": true
+    },
+    {
+      "description": "Flag archived sonar-scanner so it gets replaced — don't silently update it.",
+      "matchPackageNames": ["sonar-scanner"],
+      "enabled": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security", "priority-high"],
+    "automerge": false,
+    "schedule": ["at any time"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  }
+}
