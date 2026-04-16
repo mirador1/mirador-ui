@@ -21,12 +21,6 @@
       Agent inventory in earlier session mapped each section to target
       file (see conversation log).
 
-- [ ] **Tech glossary follow-up — verify uncertain entries** in
-      `docs/reference/technologies.md`. Items the first-pass agent flagged:
-      • Auth0 production-rollout status vs Keycloak-in-dev
-      • ResizeObserver / `navigator.clipboard` specific call sites
-      • Grafana-duplication ADR (listed as ADR-TBD — needs creation)
-      • SCSS budget spot-check against current `angular.json` values.
 
 ## Pending — Industry-standard upgrades (from the "indus" shortlist)
 
@@ -49,10 +43,6 @@
       k6 traffic against `https://mirador1.duckdns.org`, validate
       p95 < 500 ms, rollback the deploy if KO.
 
-- [ ] **mise (or asdf) + `.tool-versions`.** Pin Node 22 + npm 11 +
-      Angular CLI locally per repo so "works on my machine" isn't
-      a support category.
-
 ## Pending — UI → Grafana migration audit
 
 - [ ] **Audit every UI view that duplicates a Grafana dashboard** and
@@ -60,8 +50,9 @@
       `dashboard/` + `observability/` overlap with native Grafana
       panels. Keep the UI's chaos/diagnostic/customers/request-builder
       (actually interactive) features; move pure observability reads
-      to Grafana so we have one source of truth. Write an ADR for the
-      split criterion.
+      to Grafana so we have one source of truth. Split criterion is
+      already recorded in [ADR-0006](docs/adr/0006-grafana-duplication.md) —
+      this task is the actual migration work.
 
 ## Pending — Deferred majors
 
@@ -72,6 +63,12 @@
 
 ## Recently completed (keep last 10 for context)
 
+- [x] ADR-0006 records the UI-vs-Grafana duplication criterion; resolves
+      both ADR-TBD references in `docs/reference/technologies.md` and
+      prunes two unused browser-API entries (ResizeObserver, clipboard)
+      that did not match the codebase.
+- [x] `.mise.toml` pins Node, npm, and Angular CLI at the repo root
+      (commit `3c758e3`).
 - [x] Reorganised root: `Dockerfile` → `build/`, `nginx.conf` → `deploy/`,
       `proxy.conf.json` / `typedoc.json` / `.compodocrc.json` → `config/`.
 - [x] Added READMEs in `build/`, `src/`, `src/app/`, `src/app/features/`.
