@@ -1,3 +1,37 @@
+workflow:
+  # Allowlist of paths that trigger the pipeline. Pure doc commits (**/*.md,
+  # docs/**) don't match → no pipeline created → no CI quota burned.
+  # To force a pipeline for a doc change: GitLab UI → "Run pipeline".
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "src/**/*"
+        - "package.json"
+        - "package-lock.json"
+        - "angular.json"
+        - "tsconfig*.json"
+        - "proxy.conf.json"
+        - "Dockerfile*"
+        - ".dockerignore"
+        - "nginx.conf"
+        - ".gitlab-ci.yml"
+        - "public/**/*"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "src/**/*"
+        - "package.json"
+        - "package-lock.json"
+        - "angular.json"
+        - "tsconfig*.json"
+        - "proxy.conf.json"
+        - "Dockerfile*"
+        - ".dockerignore"
+        - "nginx.conf"
+        - ".gitlab-ci.yml"
+        - "public/**/*"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: never
+
 stages:
   - validate
   - test
@@ -224,6 +258,7 @@ typedoc:
 #   $CI_COMMIT_REF_SLUG     — moving pointer (e.g. "main")
 docker-build:
   stage: docker
+  interruptible: false   # Expensive — don't restart mid-build on a new push.
   image: docker:28
   tags:
     # DinD requires privileged mode, only available on GitLab SaaS Linux runners.
@@ -353,6 +388,7 @@ trivy:scan:
 # ── GKE Autopilot — DEFAULT production (auto on main) ────────────────────────
 deploy:gke:
   stage: deploy
+  interruptible: false   # Active K8s apply — avoid mid-deploy interruption.
   image: google/cloud-sdk:alpine
   id_tokens:
     # GitLab OIDC token; audience matches the WIF provider configured in GCP.
