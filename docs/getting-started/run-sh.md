@@ -26,10 +26,10 @@ The `run.sh` script at the project root orchestrates the full stack. It delegate
 `./run.sh frontend` performs, in order:
 
 1. `npm ci` (if `node_modules/` is missing or out of date)
-2. Starts the Docker API server on port 3333 (see [docker-api.md](docker-api.md))
-3. Runs `ng serve` on port 4200 with the dev proxy applied (see [proxy.md](proxy.md))
+2. Starts the Docker API server on port 3333 (see [docker-api.md](../ops/docker-api.md))
+3. Runs `ng serve` on port 4200 with the dev proxy applied (see [proxy.md](../ops/proxy.md))
 
 ## See also
 
-- [CI/CD](ci-cd.md) — how `check*` subcommands map to the pre-push hook and GitLab jobs
+- [CI/CD](../ops/ci-cd.md) — how `check*` subcommands map to the pre-push hook and GitLab jobs
 - [Environment](environment.md) — the `.env` variables `run.sh` honours

@@ -24,4 +24,4 @@ Budgets are enforced both in the `build:production` CI job and in the `bundle-si
 ## See also
 
 - [CI/CD](ci-cd.md) — how these scripts run in the pipeline and in the pre-push hook
-- [ADR 0004 — Vitest over Jest for unit tests](adr/0004-vitest-over-jest.md) — why `npm test` uses Vitest
+- [ADR 0004 — Vitest over Jest for unit tests](../adr/0004-vitest-over-jest.md) — why `npm test` uses Vitest

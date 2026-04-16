@@ -14,7 +14,7 @@ Entries tagged `(rejected alternative)` document choices we considered and decli
 so the rationale survives across sessions.
 
 For deeper rationale on the load-bearing decisions (zoneless, signals, raw SVG,
-Vitest, standalone components), see [`docs/adr/`](adr/).
+Vitest, standalone components), see [`docs/adr/`](../adr/).
 
 ---
 
@@ -1154,13 +1154,13 @@ Vitest, standalone components), see [`docs/adr/`](adr/).
 ## Cross-reference
 
 - Backend glossary (Spring Boot, Postgres, Kafka, Redis, Ollama, Keycloak, Prometheus, Grafana, Tempo, Loki, Pyroscope, etc.): [mirador-service/docs/technologies.md](https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/technologies.md)
-- Architecture overview: [`docs/architecture.md`](architecture.md)
-- CI/CD details: [`docs/ci-cd.md`](ci-cd.md)
-- Environments: [`docs/environment.md`](environment.md)
-- Theming: [`docs/theming.md`](theming.md)
-- Ports used locally: [`docs/ports.md`](ports.md)
-- Architecture Decision Records: [`docs/adr/`](adr/)
-  - [ADR-0002 — Zoneless + Signals](adr/0002-zoneless-and-signals.md)
-  - [ADR-0003 — Raw SVG for charts](adr/0003-raw-svg-charts.md)
-  - [ADR-0004 — Vitest over Jest](adr/0004-vitest-over-jest.md)
-  - [ADR-0005 — Standalone components](adr/0005-standalone-components.md)
+- Architecture overview: [`docs/reference/architecture.md`](architecture.md)
+- CI/CD details: [`docs/ops/ci-cd.md`](../ops/ci-cd.md)
+- Environments: [`docs/getting-started/environment.md`](../getting-started/environment.md)
+- Theming: [`docs/guides/theming.md`](../guides/theming.md)
+- Ports used locally: [`docs/reference/ports.md`](ports.md)
+- Architecture Decision Records: [`docs/adr/`](../adr/)
+  - [ADR-0002 — Zoneless + Signals](../adr/0002-zoneless-and-signals.md)
+  - [ADR-0003 — Raw SVG for charts](../adr/0003-raw-svg-charts.md)
+  - [ADR-0004 — Vitest over Jest](../adr/0004-vitest-over-jest.md)
+  - [ADR-0005 — Standalone components](../adr/0005-standalone-components.md)

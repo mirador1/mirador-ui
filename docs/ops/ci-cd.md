@@ -54,5 +54,5 @@ deleted on merge.
 
 ## See also
 
-- [`run.sh` reference](run-sh.md) — the `check`, `check:quick`, `check:full` subcommands delegate to the same script.
+- [`run.sh` reference](../getting-started/run-sh.md) — the `check`, `check:quick`, `check:full` subcommands delegate to the same script.
 - [Build & quality](build-quality.md) — the npm scripts behind each check.

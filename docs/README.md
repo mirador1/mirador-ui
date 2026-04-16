@@ -1,91 +1,103 @@
-# `docs/` — Documentation index
+# Mirador UI — Documentation
 
-Every long-form doc for this repo lives here. The root `README.md` stays thin and links out
-to the files below. This file is the source of truth for documentation hand-written by
-humans; the auto-generated API reference lives under `compodoc/` and `typedoc/`.
+All long-form documentation for the Angular 21 frontend. The root
+`README.md` links here; everything more detailed than a paragraph lives
+under this tree.
 
-> **Note.** Component-embedded prose from `src/app/features/about/` is scheduled to be
-> extracted into `docs/architecture/*.md`. Tracked in `TASKS.md`.
+## Layout
 
-## Handwritten guides
+```
+docs/
+├── README.md               ← you are here (index)
+├── adr/                    ← Architecture Decision Records (1 per decision)
+├── getting-started/        ← first-time setup, env vars, run.sh
+├── guides/                 ← UI user manual, shortcuts, theming
+├── reference/              ← architecture, ports, technology glossary
+├── ops/                    ← CI/CD, build, Docker control API, proxy
+├── compodoc/               ← auto-generated (gitignored)
+└── typedoc/                ← auto-generated (gitignored)
+```
 
-| File                                       | Topic                                                                        |
-| ------------------------------------------ | ---------------------------------------------------------------------------- |
-| [architecture.md](architecture.md)         | Mermaid architecture diagram + core Angular services                         |
-| [quick-start.md](quick-start.md)           | Prereqs, cloning both repos, booting the stack                               |
-| [run-sh.md](run-sh.md)                     | Every `run.sh` subcommand and what it delegates to                           |
-| [environment.md](environment.md)           | `.env` / `.env.example` reference for every variable                         |
-| [user-manual.md](user-manual.md)           | Per-feature walkthrough of all 10 pages in the UI                            |
-| [keyboard-shortcuts.md](keyboard-shortcuts.md) | Global shortcuts (Vim-style `G` sequences, `D` for dark mode, …)         |
-| [theming.md](theming.md)                   | Dark/light mode + multi-environment switcher                                 |
-| [ports.md](ports.md)                       | Every local URL exposed by the stack                                         |
-| [proxy.md](proxy.md)                       | Angular dev-server proxy rules (`config/proxy.conf.json`)                    |
-| [docker-api.md](docker-api.md)             | `scripts/docker-api.mjs` — Docker control server + observability proxy       |
-| [ci-cd.md](ci-cd.md)                       | GitLab CI jobs + pre-push hook                                               |
-| [build-quality.md](build-quality.md)       | npm scripts + bundle budgets                                                 |
-| [technologies.md](technologies.md)         | **Placeholder** — long technology glossary (one entry per dep, in progress)  |
+## Architecture decisions
 
-## Architecture Decision Records
+Non-obvious architectural choices are captured in **ADRs** (Michael Nygard
+format). Start with the index: [`adr/README.md`](adr/README.md).
 
-See [`adr/`](adr/) for the full index. Current records:
+| ID   | Status    | Decision                                                           |
+| ---- | --------- | ------------------------------------------------------------------ |
+| 0001 | Accepted  | [Record architecture decisions](adr/0001-record-architecture-decisions.md)      |
+| 0002 | Accepted  | [Zoneless change detection + Signals](adr/0002-zoneless-and-signals.md)         |
+| 0003 | Accepted  | [Raw SVG for all visualizations](adr/0003-raw-svg-charts.md)                    |
+| 0004 | Accepted  | [Vitest over Jest for unit tests](adr/0004-vitest-over-jest.md)                 |
+| 0005 | Accepted  | [Standalone components, no NgModules](adr/0005-standalone-components.md)        |
 
-| ID   | Status   | Title                                                                                  |
-| ---- | -------- | -------------------------------------------------------------------------------------- |
-| 0001 | Accepted | [Record architecture decisions](adr/0001-record-architecture-decisions.md)             |
-| 0002 | Accepted | [Zoneless change detection + Signals](adr/0002-zoneless-and-signals.md)                |
-| 0003 | Accepted | [Raw SVG for all visualizations, no charting library](adr/0003-raw-svg-charts.md)      |
-| 0004 | Accepted | [Vitest over Jest for unit tests](adr/0004-vitest-over-jest.md)                        |
-| 0005 | Accepted | [Standalone components, no NgModules](adr/0005-standalone-components.md)               |
+## Getting started
+
+| Doc                                                                    | Topic                                                              |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [`getting-started/quick-start.md`](getting-started/quick-start.md)     | Prereqs, cloning both repos, first-time boot                       |
+| [`getting-started/run-sh.md`](getting-started/run-sh.md)               | Every subcommand of the launcher                                   |
+| [`getting-started/environment.md`](getting-started/environment.md)     | `.env` reference for every variable                                |
+
+## Guides (how to use the UI)
+
+| Doc                                                                      | Topic                                                            |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| [`guides/user-manual.md`](guides/user-manual.md)                         | Per-feature walkthrough of every page                            |
+| [`guides/keyboard-shortcuts.md`](guides/keyboard-shortcuts.md)           | Vim-style `G`+key navigation, `D` for dark mode, `?` for help   |
+| [`guides/theming.md`](guides/theming.md)                                 | Dark/light toggle + Local/Docker/Staging/Prod env switcher      |
+
+## Reference (what it is, in detail)
+
+| Doc                                                                | Topic                                                           |
+| ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| [`reference/architecture.md`](reference/architecture.md)           | Mermaid diagram of UI + backend + observability stack            |
+| [`reference/ports.md`](reference/ports.md)                         | Every local URL exposed by the full stack                        |
+| [`reference/technologies.md`](reference/technologies.md)           | Long-form technology glossary (~1200 lines, 209 entries)          |
+
+## Ops (running it in CI and production)
+
+| Doc                                                             | Topic                                                           |
+| --------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`ops/ci-cd.md`](ops/ci-cd.md)                                  | GitLab CI jobs + lefthook pre-commit/commit-msg/pre-push       |
+| [`ops/build-quality.md`](ops/build-quality.md)                  | npm scripts, bundle budgets, Prettier                           |
+| [`ops/docker-api.md`](ops/docker-api.md)                        | `scripts/docker-api.mjs` — Docker control + observability proxy |
+| [`ops/proxy.md`](ops/proxy.md)                                  | Angular dev-server proxy rules (`config/proxy.conf.json`)       |
 
 ## Auto-generated API docs
 
-This directory also holds HTML docs generated from the TypeScript source. Nothing in those
-sub-folders is hand-written — regenerate with the commands below. The generated HTML is
-served locally by the `mirador-service/infra/nginx/compodoc.conf` proxy at
-<http://localhost:8085>.
+HTML generated from the TypeScript source. Nothing hand-written lives
+there — regenerate any time. Both folders are **git-ignored**.
 
-| Directory                | Generator                                                                                                                     | Command                                        |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| [`compodoc/`](compodoc/) | [Compodoc](https://compodoc.app/) — Angular-aware API reference covering components, services, directives, pipes, and routes. | `npm run compodoc`                             |
-| [`typedoc/`](typedoc/)   | [TypeDoc](https://typedoc.org/) — generic TypeScript API reference; useful for non-Angular utility modules.                   | `npm run typedoc` (config in `config/typedoc.json`) |
-
-Both folders are **git-ignored** — their content is auto-generated and can be rebuilt
-anywhere at any time.
+| Directory                | Generator                                                                        | Command                                               |
+| ------------------------ | -------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| [`compodoc/`](compodoc/) | [Compodoc](https://compodoc.app/) — Angular-aware (components, services, routes) | `npm run compodoc` (config in `config/.compodocrc.json`) |
+| [`typedoc/`](typedoc/)   | [TypeDoc](https://typedoc.org/) — generic TypeScript API reference               | `npm run typedoc`  (config in `config/typedoc.json`)   |
 
 ### Why two generators?
 
-Compodoc understands Angular-specific constructs (`@Component`, `@Input`, router config) and
-produces a UI optimized for navigating a component tree. TypeDoc is purely TypeScript-aware
-— it gives richer coverage for regular interfaces, types, and helper functions that aren't
-Angular decorators. Neither fully replaces the other, so we ship both.
+Compodoc understands Angular-specific constructs (`@Component`, `@Input`,
+router config) and produces a UI optimised for navigating a component
+tree. TypeDoc is purely TypeScript-aware — richer coverage for
+utility modules that aren't Angular decorators. Neither fully replaces
+the other, so we ship both.
 
-### Serving
-
-For local dev:
-
-```bash
-npm run compodoc:serve   # opens http://localhost:8080
-npm run typedoc:serve    # opens http://localhost:8081
-```
-
-In the project-wide Docker stack:
+### Serve locally
 
 ```bash
-# from mirador-service repo root
-./run.sh obs             # also brings up the compodoc nginx proxy
-# browse to http://localhost:8085
+npm run compodoc:serve   # default port
+npm run typedoc          # static generation only
 ```
 
-### Publishing
+## Cross-repo
 
-In the GitLab CI `typedoc` job, the generated HTML is uploaded as a pipeline artifact for
-download. It is NOT deployed to production — the only "always-on" copy is the nginx
-compodoc container in the local stack.
+- Backend companion docs: `../../mirador-service/docs/` (same layout).
+- Technology glossary for the backend:
+  [mirador-service/docs/reference/technologies.md](https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/reference/technologies.md)
 
-### What NOT to put here
+## Follow-ups (see `../TASKS.md`)
 
-- Hand-written guides → already live in this `docs/` directory (see the table at the top).
-- Cross-repo human-facing documentation → the Spring Boot project's `docs/` is the
-  authoritative home for documentation that spans the whole system.
-- Screenshots for docs → `mirador-service/docs/screenshots/`.
-- Build output → `/dist/` (Angular production bundle).
+- Extract prose currently embedded in `src/app/features/about/` into
+  `docs/architecture/*.md` files.
+- UI → Grafana migration audit (observability views that duplicate
+  native Grafana dashboards).
