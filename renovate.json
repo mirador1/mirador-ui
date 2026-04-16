@@ -31,19 +31,19 @@
     },
     {
       "description": "Group all Angular packages — must upgrade together.",
-      "matchPackagePatterns": ["^@angular/"],
       "groupName": "Angular",
-      "separateMinorPatch": true
+      "separateMinorPatch": true,
+      "matchPackageNames": ["/^@angular\\//"]
     },
     {
       "description": "Group all @auth0/* packages together.",
-      "matchPackagePatterns": ["^@auth0/"],
-      "groupName": "Auth0"
+      "groupName": "Auth0",
+      "matchPackageNames": ["/^@auth0\\//"]
     },
     {
       "description": "Group Vitest + jsdom — ecosystem moves together.",
-      "matchPackageNames": ["vitest", "jsdom"],
-      "groupName": "Vitest / jsdom"
+      "groupName": "Vitest / jsdom",
+      "matchPackageNames": ["vitest", "jsdom"]
     },
     {
       "description": "Node.js major bumps need manual review (Angular CLI compat).",
