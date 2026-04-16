@@ -43,16 +43,17 @@
       k6 traffic against `https://mirador1.duckdns.org`, validate
       p95 < 500 ms, rollback the deploy if KO.
 
-## Pending — UI → Grafana migration audit
+## Pending — UI → Grafana migration
 
-- [ ] **Audit every UI view that duplicates a Grafana dashboard** and
-      move those to Grafana-as-Code. The `visualizations/` + parts of
-      `dashboard/` + `observability/` overlap with native Grafana
-      panels. Keep the UI's chaos/diagnostic/customers/request-builder
-      (actually interactive) features; move pure observability reads
-      to Grafana so we have one source of truth. Split criterion is
-      already recorded in [ADR-0006](docs/adr/0006-grafana-duplication.md) —
-      this task is the actual migration work.
+- [ ] **Execute the migration identified in the audit.** The audit
+      [`docs/architecture/ui-grafana-audit.md`](docs/architecture/ui-grafana-audit.md)
+      reviews all 17 features: 14 stay in the UI, 3 are partial
+      (`dashboard/`, `observability/`, `visualizations/`), 0 migrate
+      wholesale. Next step is to port the specific Prometheus-only
+      panels called out in the audit's "Recommended migration plan"
+      to Grafana-as-Code (grizzly/jsonnet) once that track lands.
+      Requires Grafana Cloud credentials + the Grafana-as-Code task
+      below.
 
 ## Pending — Deferred majors
 
@@ -63,6 +64,9 @@
 
 ## Recently completed (keep last 10 for context)
 
+- [x] UI → Grafana migration audit published at
+      [`docs/architecture/ui-grafana-audit.md`](docs/architecture/ui-grafana-audit.md).
+      Verdict: 14 stay / 0 migrate wholesale / 3 partial.
 - [x] Extracted tab prose from `about.component.html` to
       `docs/architecture/*.md` (15 files, 762 lines) — phase 1 of the
       About-page docs split. SVGs and interactive bits kept in the
