@@ -1,12 +1,18 @@
-# lefthook.yml — Git hooks for customer-observability-ui
-# Run `npx lefthook install` once to register the hooks.
-# Docs: https://github.com/evilmartians/lefthook
+# =============================================================================
+# lefthook.yml — Git hooks for mirador-ui
+#
+# Install: `npx lefthook install` (wires hooks into .git/hooks/)
+# Bypass:  `LEFTHOOK=0 git commit / push` (emergency only)
+#
+# Mirrors the sibling mirador-service/lefthook.yml. Every hook degrades
+# gracefully when the underlying tool isn't installed.
+# =============================================================================
 
 pre-commit:
-  parallel: false
+  parallel: true
   commands:
     prettier:
-      glob: "src/**/*.{ts,html,scss,json}"
+      glob: "{src,config}/**/*.{ts,html,scss,json}"
       run: npx prettier --write {staged_files}
       stage_fixed: true
 
@@ -21,22 +27,84 @@ pre-commit:
         fi
 
     dockerfile-lint:
-      glob: "Dockerfile*"
+      # --failure-threshold error: warnings don't block (matches CI policy).
+      glob: "build/Dockerfile*"
       run: |
         if command -v hadolint >/dev/null 2>&1; then
-          hadolint {staged_files}
+          hadolint --failure-threshold error {staged_files}
         else
-          echo "⚠️  hadolint not installed — skipping Dockerfile lint"
+          echo "⚠️  hadolint not installed — skipping Dockerfile lint. Install: brew install hadolint"
         fi
 
     k8s-dry-run:
+      # kustomization.yaml files go through `kubectl kustomize` (can't dry-run
+      # Kind:Kustomization directly). Other manifests go through dry-run -f.
       glob: "deploy/kubernetes/**/*.yaml"
       run: |
-        if command -v kubectl >/dev/null 2>&1; then
-          for f in {staged_files}; do kubectl apply --dry-run=client -f "$f" >/dev/null; done
-        else
+        if ! command -v kubectl >/dev/null 2>&1; then
           echo "⚠️  kubectl not installed — skipping k8s dry-run"
+          exit 0
         fi
+        kustomize_dirs=""
+        other_files=""
+        for f in {staged_files}; do
+          if [[ "$(basename "$f")" == "kustomization.yaml" ]]; then
+            kustomize_dirs="$kustomize_dirs $(dirname "$f")"
+          else
+            other_files="$other_files $f"
+          fi
+        done
+        for d in $(printf '%s\n' $kustomize_dirs | sort -u); do
+          kubectl kustomize "$d" | kubectl apply --dry-run=client -f - >/dev/null
+        done
+        for f in $other_files; do
+          [ -f "$f" ] && kubectl apply --dry-run=client -f "$f" >/dev/null
+        done
+
+    gitleaks:
+      # Scan staged changes for hardcoded secrets (AWS/GCP keys, JWTs,
+      # high-entropy tokens, etc.). Config in .gitleaks.toml covers
+      # demo credentials + test fixtures as allowlisted entries.
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks protect --staged --config .gitleaks.toml --no-banner
+        else
+          echo "⚠️  gitleaks not installed — skipping secret scan. Install: brew install gitleaks"
+        fi
+      fail_text: "Secret-looking content detected. If false positive, add to .gitleaks.toml allowlist."
+
+commit-msg:
+  commands:
+    conventional-commits:
+      # Pure-bash Conventional Commits enforcement. No npm install needed —
+      # this is a frontend repo but the check is simple enough to not warrant
+      # the commitlint package + its deps just for a regex match.
+      # Mirrors the regex used in mirador-service/lefthook.yml.
+      run: |
+        msg_file="{1}"
+        first_line=$(head -n1 "$msg_file" | tr -d '\r')
+        case "$first_line" in
+          "Merge "*|"Revert "*|"fixup! "*|"squash! "*|"amend! "*) exit 0 ;;
+        esac
+        if ! printf '%s' "$first_line" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9/_.-]+\))?!?: .+'; then
+          echo "Commit message doesn't follow Conventional Commits."
+          echo "  First line was: $first_line"
+          echo ""
+          echo "Expected: <type>(<optional scope>)!?: <subject>"
+          echo "Types: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+          echo "Examples:"
+          echo "  feat(dashboard): add live metrics chart"
+          echo "  fix(auth): handle expired JWT on refresh"
+          echo "  chore(deps): bump @angular/* to 21.2.9"
+          exit 1
+        fi
+        len=${#first_line}
+        if [ "$len" -gt 72 ]; then
+          echo "Commit subject is $len chars — must be ≤72."
+          echo "  $first_line"
+          exit 1
+        fi
+      fail_text: "Fix the commit message and retry."
 
 pre-push:
   parallel: false
