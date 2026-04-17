@@ -156,6 +156,94 @@
     </div>
   }
 
+  <!--
+    Error timeline — session-local OK/err stacked bar chart. Moved here
+    from the retired visualizations page because it's only meaningful
+    in tandem with the chaos actions elsewhere in the UI.
+  -->
+  <div class="section-header">
+    <h3>
+      💥 Error timeline
+      <app-info-tip
+        text="Live error-rate monitor. Every 3 s, fires 5 GET /customers?page=0&size=1 probe requests and charts OK (green) vs errors (red). Use while running chaos actions to see the impact."
+        [wide]="true"
+      />
+    </h3>
+    <div class="header-actions">
+      <button class="refresh-btn" [class.active]="errorPolling()" (click)="toggleErrorPolling()">
+        {{ errorPolling() ? '⏹ Stop' : '▶ Start (3 s)' }}
+      </button>
+      <button class="refresh-btn" (click)="generateErrors()" [disabled]="errorsGenerating()">
+        {{ errorsGenerating() ? '…' : '💥 Generate errors' }}
+      </button>
+    </div>
+  </div>
+  @if (errorSamples().length) {
+    <div class="error-chart-container">
+      <svg viewBox="0 0 400 100" preserveAspectRatio="none" class="error-svg">
+        @for (bar of errorChartBars(); track $index) {
+          <rect
+            [attr.x]="bar.x"
+            [attr.y]="100 - bar.okH - bar.errH"
+            [attr.width]="8"
+            [attr.height]="bar.okH"
+            rx="1"
+            fill="#4ade80"
+            opacity="0.8"
+          />
+          @if (bar.errH > 0) {
+            <rect
+              [attr.x]="bar.x"
+              [attr.y]="100 - bar.errH"
+              [attr.width]="8"
+              [attr.height]="bar.errH"
+              rx="1"
+              fill="#f87171"
+              opacity="0.8"
+            />
+          }
+        }
+      </svg>
+      <div class="error-legend">
+        <span class="legend-ok">OK (2xx)</span>
+        <span class="legend-err">Error (4xx/5xx)</span>
+      </div>
+    </div>
+  } @else {
+    <p class="muted">Click Start to begin polling, or Generate errors to trigger a burst.</p>
+  }
+
+  <!--
+    Bundle treemap — Angular lazy-chunk size breakdown. Static reference
+    from `npm run build`; not Prometheus-fed.
+  -->
+  <div class="section-header">
+    <h3>
+      📦 Bundle breakdown
+      <app-info-tip
+        text="Angular bundle size by lazy-loaded chunk. Each block is a feature module. Larger blocks = heavier JS shipped to the browser. Refresh the in-code approximation after significant build output changes."
+        [wide]="true"
+      />
+    </h3>
+    <button class="refresh-btn" (click)="analyzeBundleFromBuild()">▶ Load breakdown</button>
+  </div>
+  @if (bundleChunks().length) {
+    <div class="treemap">
+      @for (chunk of bundleChunks(); track chunk.name; let i = $index) {
+        <div
+          class="treemap-cell"
+          [style.flex-grow]="chunk.size"
+          [style.background]="treemapColor(i)"
+          [title]="chunk.name + ': ' + chunk.size + 'kB (' + chunk.pct + '%)'"
+        >
+          <span class="treemap-name">{{ chunk.name }}</span>
+          <span class="treemap-size">{{ chunk.size }}kB</span>
+          <span class="treemap-pct">{{ chunk.pct }}%</span>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Code Quality Summary -->
   <section class="section">
     <div class="section-header">

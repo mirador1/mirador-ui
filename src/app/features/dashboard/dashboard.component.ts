@@ -25,6 +25,15 @@ import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
+// ── Error timeline (moved from retired visualizations/ feature) ─────────────
+
+/** One sample in the error timeline chart — stacked OK (green) + errors (red). */
+interface ErrorSample {
+  time: Date;
+  ok: number;
+  errors: number;
+}
+
 /**
  * Service port/URL registry — single source of truth for all local service addresses.
  * Referenced by both `knownContainers` (services panel) and `topoNodes` (topology graph)
@@ -231,6 +240,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    this.stopErrorPolling();
     if (this._dockerRetryTimer) {
       clearInterval(this._dockerRetryTimer);
       this._dockerRetryTimer = null;
@@ -239,6 +249,141 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private _onRefresh = () => this.refresh();
+
+  // ── Error timeline ──────────────────────────────────────────────────────
+  // Moved from the retired visualizations/ page. Session-local: polls 5
+  // probe requests every 3 s and stacks OK vs error responses. Used in
+  // tandem with chaos actions elsewhere in the UI — Grafana can't show
+  // that correlation because the spike is ephemeral.
+
+  errorSamples = signal<ErrorSample[]>([]);
+  errorPolling = signal(false);
+  errorsGenerating = signal(false);
+  private _errorTimer: ReturnType<typeof setInterval> | null = null;
+
+  toggleErrorPolling(): void {
+    if (this.errorPolling()) {
+      this.stopErrorPolling();
+      return;
+    }
+    this.errorPolling.set(true);
+    this.errorSamples.set([]);
+    this.sampleErrors();
+    this._errorTimer = setInterval(() => this.sampleErrors(), 3000);
+  }
+
+  /** Fire a burst of requests that provoke errors — validation, 404, rate limit, Kafka timeout. */
+  generateErrors(): void {
+    this.errorsGenerating.set(true);
+    const base = this.env.baseUrl();
+    const errorRequests = [
+      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
+      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
+      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
+      this.http.get(`${base}/customers/999999`).pipe(catchError(() => of(null))),
+      this.http.get(`${base}/customers/999999/bio`).pipe(catchError(() => of(null))),
+      this.http.get(`${base}/customers/1/enrich`).pipe(catchError(() => of(null))),
+      ...Array.from({ length: 15 }, () =>
+        this.http.get(`${base}/customers?page=0&size=1`).pipe(catchError(() => of(null))),
+      ),
+    ];
+    let done = 0;
+    for (const req$ of errorRequests) {
+      req$.subscribe(() => {
+        done++;
+        if (done === errorRequests.length) this.errorsGenerating.set(false);
+      });
+    }
+  }
+
+  private stopErrorPolling(): void {
+    this.errorPolling.set(false);
+    if (this._errorTimer) {
+      clearInterval(this._errorTimer);
+      this._errorTimer = null;
+    }
+  }
+
+  private sampleErrors(): void {
+    const base = this.env.baseUrl();
+    let errors = 0;
+    let done = 0;
+    const total = 5;
+    for (let i = 0; i < total; i++) {
+      this.http
+        .get(`${base}/customers?page=0&size=1`)
+        .pipe(
+          catchError(() => {
+            errors++;
+            return of(null);
+          }),
+        )
+        .subscribe(() => {
+          done++;
+          if (done === total) {
+            const ok = total - errors;
+            this.errorSamples.update((s) => [...s.slice(-39), { time: new Date(), ok, errors }]);
+          }
+        });
+    }
+  }
+
+  errorChartBars(): Array<{ x: number; okH: number; errH: number }> {
+    const s = this.errorSamples();
+    if (!s.length) return [];
+    const max = Math.max(1, ...s.map((x) => x.ok + x.errors));
+    const barW = 400 / 40;
+    return s.map((x, i) => ({
+      x: i * barW,
+      okH: (x.ok / max) * 80,
+      errH: (x.errors / max) * 80,
+    }));
+  }
+
+  // ── Bundle treemap ──────────────────────────────────────────────────────
+  // Angular lazy-chunk size breakdown. Reads nothing from Prometheus — kept
+  // in the UI as a static reference for the team. The `analyzeBundleFromBuild`
+  // method seeds the treemap from a hardcoded approximation of the current
+  // `npm run build` output; refresh the numbers when they drift.
+
+  bundleChunks = signal<Array<{ name: string; size: number; pct: number }>>([]);
+
+  analyzeBundleFromBuild(): void {
+    const chunks = [
+      { name: 'main (core)', size: 45 },
+      { name: 'dashboard', size: 15 },
+      { name: 'customers', size: 12 },
+      { name: 'diagnostic', size: 11 },
+      { name: 'observability', size: 10 },
+      { name: 'chaos', size: 9 },
+      { name: 'request-builder', size: 7 },
+      { name: 'settings', size: 6 },
+      { name: 'pipelines', size: 4 },
+      { name: 'activity', size: 4 },
+      { name: 'login', size: 2 },
+      { name: 'polyfills', size: 1 },
+    ];
+    const total = chunks.reduce((s, c) => s + c.size, 0);
+    this.bundleChunks.set(chunks.map((c) => ({ ...c, pct: Math.round((c.size / total) * 100) })));
+  }
+
+  treemapColor(index: number): string {
+    const colors = [
+      '#3b82f6',
+      '#8b5cf6',
+      '#06b6d4',
+      '#10b981',
+      '#f59e0b',
+      '#ef4444',
+      '#ec4899',
+      '#6366f1',
+      '#14b8a6',
+      '#f97316',
+      '#84cc16',
+      '#94a3b8',
+    ];
+    return colors[index % colors.length];
+  }
 
   refresh(): void {
     this.error.set('');

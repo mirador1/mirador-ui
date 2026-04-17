@@ -58,13 +58,10 @@ export const routes: Routes = [
         (m) => m.RequestBuilderComponent,
       ),
   },
-  {
-    path: 'visualizations',
-    loadComponent: () =>
-      import('./features/visualizations/visualizations.component').then(
-        (m) => m.VisualizationsComponent,
-      ),
-  },
+  // /visualizations retired in ADR-0007 — Error Timeline + Bundle treemap
+  // moved to the dashboard. The legacy path redirects so old bookmarks /
+  // deep-links keep working.
+  { path: 'visualizations', redirectTo: '', pathMatch: 'full' },
   {
     path: 'chaos',
     loadComponent: () => import('./features/chaos/chaos.component').then((m) => m.ChaosComponent),
