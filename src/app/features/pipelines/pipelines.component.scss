@@ -1,0 +1,292 @@
+// Small self-contained stylesheet — reuses global --color-*, --bg-* tokens
+// from src/styles.scss so the dark/light toggle just works.
+
+:host {
+  display: block;
+  padding: 1.25rem 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  .page-icon {
+    font-size: 1.8rem;
+  }
+  h2 {
+    margin: 0;
+  }
+  .subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.seg {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+
+  button {
+    background: transparent;
+    border: 0;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+
+    &.active {
+      background: var(--color-accent);
+      color: white;
+    }
+  }
+}
+
+.interval {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+
+  select {
+    background: var(--bg-main);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+.refresh-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent);
+    color: white;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.small {
+  font-size: 0.8rem;
+}
+.muted {
+  color: var(--text-secondary);
+}
+
+.error-banner {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  color: #dc2626;
+  padding: 0.6rem 0.85rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.status-strip {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+// Status colour tokens — used both on the strip chips and on the per-row
+// badges below. `data-status` is the GitLab status string verbatim.
+$status-colors: (
+  success: #10b981,
+  failed: #dc2626,
+  running: #3b82f6,
+  pending: #f59e0b,
+  canceled: #6b7280,
+  canceling: #6b7280,
+  skipped: #9ca3af,
+  manual: #8b5cf6,
+  created: #64748b,
+  preparing: #64748b,
+  scheduled: #64748b,
+);
+
+.chip {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+  background: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  @each $s, $c in $status-colors {
+    &[data-status='#{$s}'] {
+      background: $c;
+    }
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: white;
+  background: #64748b;
+  text-transform: uppercase;
+
+  @each $s, $c in $status-colors {
+    &[data-status='#{$s}'] {
+      background: $c;
+    }
+  }
+}
+
+.pipeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pipeline-row {
+  padding: 0;
+  overflow: hidden;
+
+  &.open .row-header {
+    background: var(--bg-hover);
+  }
+
+  .row-header {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto // status
+      60px // #iid
+      minmax(110px, 160px) // ref
+      110px // sha
+      100px // source
+      80px // duration
+      140px // created
+      auto // external
+      auto; // caret
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.85rem;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    text-align: left;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
+  .iid {
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+  .sha {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  .ref {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .source {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .duration {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .created {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+  }
+  .external {
+    text-decoration: none;
+    color: var(--color-accent);
+    padding: 0 0.3rem;
+    font-size: 1.05rem;
+  }
+  .caret {
+    color: var(--text-secondary);
+  }
+}
+
+.jobs {
+  padding: 0.5rem 0.85rem 0.85rem;
+  border-top: 1px dashed var(--border-subtle);
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 0.35rem 0.5rem;
+  }
+  th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  tr + tr td {
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .tag.allow-failure {
+    color: #f59e0b;
+    margin-left: 0.3rem;
+  }
+  .local-runner {
+    font-weight: 600;
+  }
+  .local-dot {
+    color: #10b981;
+    margin-left: 0.35rem;
+    font-size: 1.1em;
+    vertical-align: middle;
+  }
+}
