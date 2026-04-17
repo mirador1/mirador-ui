@@ -127,228 +127,32 @@
     </div>
   }
 
-  <!-- Real-time requests chart -->
+  <!--
+    Prometheus-fed sections (live HTTP throughput, latency history,
+    JVM/CPU/heap/HikariCP/HTTP cards) moved to Grafana per ADR-0006.
+    The customer-count card below used the same wrapper; extracted so
+    it keeps rendering without a Prometheus dependency.
+  -->
   <div class="section-header">
     <h3>
-      Real-time HTTP Throughput
+      Runtime metrics
       <app-info-tip
-        text="Bar chart showing requests/second. Computed by comparing http_server_requests_seconds_count between two polls (every 3s). Chart data persists across page navigation."
-        command="delta(http_server_requests_seconds_count) / 3"
-        source="MetricsService (singleton)"
+        text="Live HTTP throughput, latency percentiles and JVM/system gauges now live in Grafana (LGTM bundle, default home dashboard). The dashboard page focuses on health probes, service orchestration and code quality — signals Grafana cannot express."
+        [wide]="true"
       />
     </h3>
-    <button class="refresh-btn" (click)="toggleChart()">
-      {{ metricsService.running() ? '⏹ Stop' : '▶ Start' }} live chart
-    </button>
+    @if (env.grafanaUrl(); as g) {
+      <a [href]="g" target="_blank" rel="noopener" class="quality-full-link"> Open Grafana → </a>
+    }
   </div>
 
-  @if (metricsService.samples().length > 1) {
-    <div class="chart-container">
-      <div class="chart-y-axis">
-        <span>{{ chartMaxRps() | number: '1.1-1' }} rps</span>
-        <span>0</span>
-      </div>
-      <svg viewBox="0 0 300 100" class="bar-chart" preserveAspectRatio="none">
-        @for (bar of chartBars(); track $index) {
-          <rect
-            [attr.x]="bar.x"
-            [attr.y]="100 - bar.height"
-            [attr.width]="6"
-            [attr.height]="bar.height"
-            rx="1"
-            fill="var(--color-accent)"
-            opacity="0.8"
-          >
-            <title>{{ bar.rps | number: '1.1-1' }} req/s</title>
-          </rect>
-        }
-      </svg>
-    </div>
-  } @else if (metricsService.running()) {
-    <p class="muted">Collecting samples...</p>
-  }
-
-  <!-- Latency history chart -->
-  @if (metricsService.samples().length > 1) {
-    <div class="section-header">
-      <h3>
-        HTTP Latency History
-        <app-info-tip
-          text="Polyline chart showing p50/p95/p99 response latency (ms) over the last ~2 minutes. Computed from http_server_requests_seconds_bucket histogram using linear interpolation. Same sample window as the throughput chart."
-          command="quantile(0.99, http_server_requests_seconds_bucket)"
-          source="/actuator/prometheus (histogram buckets)"
-        />
-      </h3>
-    </div>
-    <div class="chart-container">
-      <div class="chart-y-axis">
-        <span>{{ latencyChartLines().maxMs | number: '1.0-0' }} ms</span>
-        <span>0</span>
-      </div>
-      <svg viewBox="0 0 300 100" class="bar-chart" preserveAspectRatio="none">
-        <!-- p99 (outermost / slowest) — red -->
-        <polyline
-          [attr.points]="latencyChartLines().p99"
-          fill="none"
-          stroke="#ef4444"
-          stroke-width="1.2"
-          opacity="0.7"
-          vector-effect="non-scaling-stroke"
-        />
-        <!-- p95 — orange -->
-        <polyline
-          [attr.points]="latencyChartLines().p95"
-          fill="none"
-          stroke="#f59e0b"
-          stroke-width="1.2"
-          opacity="0.8"
-          vector-effect="non-scaling-stroke"
-        />
-        <!-- p50 (median / fastest) — green -->
-        <polyline
-          [attr.points]="latencyChartLines().p50"
-          fill="none"
-          stroke="#22c55e"
-          stroke-width="1.5"
-          opacity="0.9"
-          vector-effect="non-scaling-stroke"
-        />
-      </svg>
-      <div class="latency-legend">
-        <span class="leg-p50">p50</span>
-        <span class="leg-p95">p95</span>
-        <span class="leg-p99">p99</span>
-      </div>
-    </div>
-  }
-
-  <!-- JVM & System metrics -->
-  @if (metricsService.latestMetrics(); as m) {
-    <div class="section-header">
-      <h3>
-        JVM & System
-        <app-info-tip
-          text="Live JVM and OS metrics from /actuator/prometheus. Heap: jvm_memory_used_bytes{area=heap} / jvm_memory_max_bytes. CPU: process_cpu_usage (fraction of available CPU time used by the JVM process). Threads: jvm_threads_live_threads."
-          command="GET /actuator/prometheus"
-          source="jvm_memory_*, process_cpu_usage, jvm_threads_live_threads"
-        />
-      </h3>
-    </div>
-    <div class="jvm-grid">
-      <!-- Heap usage -->
-      <div class="jvm-card">
-        <div class="jvm-card-title">💾 Heap</div>
-        <div class="jvm-bar-track">
-          <div
-            class="jvm-bar-fill"
-            [style.width.%]="heapPercent()"
-            [class.jvm-bar-warn]="heapPercent() > 70"
-            [class.jvm-bar-crit]="heapPercent() > 90"
-          ></div>
-        </div>
-        <div class="jvm-bar-label">
-          {{ heapUsedMb() }} MB / {{ heapMaxMb() }} MB
-          <span class="jvm-pct" [class.warn]="heapPercent() > 70">{{ heapPercent() }}%</span>
-        </div>
-      </div>
-      <!-- CPU usage -->
-      <div class="jvm-card">
-        <div class="jvm-card-title">⚡ CPU</div>
-        <div class="jvm-bar-track">
-          <div
-            class="jvm-bar-fill"
-            [style.width.%]="cpuPercent()"
-            [class.jvm-bar-warn]="cpuPercent() > 60"
-            [class.jvm-bar-crit]="cpuPercent() > 85"
-          ></div>
-        </div>
-        <div class="jvm-bar-label">
-          Process: <span class="jvm-pct" [class.warn]="cpuPercent() > 60">{{ cpuPercent() }}%</span>
-        </div>
-      </div>
-      <!-- Thread count -->
+  @if (customerCount() !== null) {
+    <div class="jvm-grid single-card">
       <div class="jvm-card jvm-card-stat">
-        <div class="jvm-card-title">🧵 Threads</div>
-        <div class="jvm-stat-value">{{ m.threads }}</div>
-        <div class="jvm-stat-label">live threads</div>
+        <div class="jvm-card-title">👥 Customers</div>
+        <div class="jvm-stat-value">{{ customerCount() | number }}</div>
+        <div class="jvm-stat-label">total in DB</div>
       </div>
-      <!-- HikariCP pool -->
-      <div class="jvm-card jvm-card-pool">
-        <div class="jvm-card-title">
-          🏊 DB Pool
-          <app-info-tip
-            text="HikariCP JDBC connection pool state. Active = connections currently executing a query. Idle = connections available for use. Pending = threads waiting for a connection (non-zero means pool is saturated)."
-            source="hikaricp_connections_{active,idle,pending}"
-          />
-        </div>
-        <div class="pool-bars">
-          <div class="pool-row">
-            <span class="pool-label">Active</span>
-            <div class="pool-track">
-              <div
-                class="pool-fill pool-active"
-                [style.width.%]="(m.hikariActive / (m.hikariActive + m.hikariIdle + 1)) * 100"
-              ></div>
-            </div>
-            <span class="pool-count">{{ m.hikariActive }}</span>
-          </div>
-          <div class="pool-row">
-            <span class="pool-label">Idle</span>
-            <div class="pool-track">
-              <div
-                class="pool-fill pool-idle"
-                [style.width.%]="(m.hikariIdle / (m.hikariActive + m.hikariIdle + 1)) * 100"
-              ></div>
-            </div>
-            <span class="pool-count">{{ m.hikariIdle }}</span>
-          </div>
-          <div class="pool-row">
-            <span class="pool-label">Pending</span>
-            <div class="pool-track">
-              <div
-                class="pool-fill pool-pending"
-                [style.width.%]="m.hikariPending > 0 ? 100 : 0"
-              ></div>
-            </div>
-            <span class="pool-count" [class.warn]="m.hikariPending > 0">{{ m.hikariPending }}</span>
-          </div>
-        </div>
-      </div>
-      <!-- HTTP stats -->
-      <div class="jvm-card jvm-card-stat">
-        <div class="jvm-card-title">📊 HTTP</div>
-        <div class="jvm-stat-value">{{ m.httpRequestsTotal | number }}</div>
-        <div class="jvm-stat-label">total requests</div>
-        <div class="jvm-stat-sub">
-          Error rate: <span [class.warn]="errorRatePercent() > 1">{{ errorRatePercent() }}%</span>
-        </div>
-      </div>
-      <!-- Latency snapshot -->
-      <div class="jvm-card jvm-card-latency">
-        <div class="jvm-card-title">⏱ Latency</div>
-        <div class="latency-table">
-          <div class="lat-row">
-            <span class="lat-pct leg-p50">p50</span
-            ><span class="lat-val">{{ m.httpLatencyP50 | number: '1.1-1' }} ms</span>
-          </div>
-          <div class="lat-row">
-            <span class="lat-pct leg-p95">p95</span
-            ><span class="lat-val">{{ m.httpLatencyP95 | number: '1.1-1' }} ms</span>
-          </div>
-          <div class="lat-row">
-            <span class="lat-pct leg-p99">p99</span
-            ><span class="lat-val">{{ m.httpLatencyP99 | number: '1.1-1' }} ms</span>
-          </div>
-        </div>
-      </div>
-      <!-- Customer count -->
-      @if (customerCount() !== null) {
-        <div class="jvm-card jvm-card-stat">
-          <div class="jvm-card-title">👥 Customers</div>
-          <div class="jvm-stat-value">{{ customerCount() | number }}</div>
-          <div class="jvm-stat-label">total in DB</div>
-        </div>
-      }
     </div>
   }
 

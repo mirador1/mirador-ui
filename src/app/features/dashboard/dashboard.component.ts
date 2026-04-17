@@ -3,13 +3,15 @@
  *
  * Features:
  * - Health probes: /actuator/health, /readiness, /liveness with UP/DOWN badges
- * - Live throughput chart: RPS bar chart (delegates to MetricsService singleton)
  * - Auto-refresh: configurable polling interval (1s / 5s / 10s / 30s)
  * - Health change detection: toasts on UP/DOWN transitions
  * - Docker service control: list/start/stop/restart containers via Docker Engine API proxy
  * - Dependency graph: SVG graph of backend services with health status colors
  * - Request heatmap: 24h traffic distribution grid
- * - Observability links: one-click access to Grafana, Prometheus, Zipkin, etc.
+ * - Code-quality summary strip sourced from /actuator/quality
+ *
+ * Prometheus-fed RPS/latency charts and JVM/CPU/heap cards were retired
+ * per ADR-0006 — those duplicates now live in Grafana.
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
@@ -21,7 +23,6 @@ import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
-import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 /**
@@ -97,7 +98,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
-  readonly metricsService = inject(MetricsService);
 
   /** Signal: raw JSON from `/actuator/health`. Null until first poll. Shape: `{status, components}`. */
   health = signal<unknown>(null);
@@ -186,9 +186,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.refresh();
     this.setAutoRefresh(this.autoRefreshInterval());
     this.loadContainers();
-    // Auto-start Prometheus polling so JVM/latency/throughput sections are immediately
-    // populated without requiring the user to click "Start live chart" first.
-    this.metricsService.start();
     this.loadQualitySummary();
     window.addEventListener('app:refresh', this._onRefresh);
   }
@@ -312,93 +309,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Real-time chart (delegates to MetricsService) ──────────────────────────
-  toggleChart(): void {
-    this.metricsService.toggle();
-  }
-
-  chartBars(): Array<{ x: number; height: number; rps: number }> {
-    const samples = this.metricsService.samples();
-    if (samples.length < 2) return [];
-    const maxRps = Math.max(1, ...samples.map((s) => s.rps));
-    const barWidth = 300 / 40;
-    return samples.map((s, i) => ({
-      x: i * barWidth,
-      height: (s.rps / maxRps) * 80,
-      rps: s.rps,
-    }));
-  }
-
-  chartMaxRps(): number {
-    const samples = this.metricsService.samples();
-    return Math.max(1, ...samples.map((s) => s.rps));
-  }
-
-  // ── Latency history chart ────────────────────────────────────────────────────
-  // Renders an SVG polyline for each of p50/p95/p99 over the sample window.
-  // The chart uses the same 300×100 viewBox as the throughput bar chart.
-
-  latencyChartLines(): {
-    p50: string;
-    p95: string;
-    p99: string;
-    maxMs: number;
-  } {
-    const samples = this.metricsService.samples();
-    if (samples.length < 2) return { p50: '', p95: '', p99: '', maxMs: 0 };
-    const maxMs = Math.max(
-      1,
-      ...samples.map((s) => Math.max(s.latencyP50, s.latencyP95, s.latencyP99)),
-    );
-    const w = 300;
-    const h = 80; // chart height in viewBox units
-    const toPoint = (i: number, val: number) => {
-      const x = (i / (samples.length - 1)) * w;
-      const y = h - (val / maxMs) * h;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    };
-    return {
-      p50: samples.map((s, i) => toPoint(i, s.latencyP50)).join(' '),
-      p95: samples.map((s, i) => toPoint(i, s.latencyP95)).join(' '),
-      p99: samples.map((s, i) => toPoint(i, s.latencyP99)).join(' '),
-      maxMs,
-    };
-  }
-
-  // ── JVM heap gauge ─────────────────────────────────────────────────────────
-
-  /**
-   * Heap usage as a percentage 0–100. Returns 0 if metrics are not yet available
-   * or if heap max is unknown (-1, which happens for some GC configurations).
-   */
-  heapPercent(): number {
-    const m = this.metricsService.latestMetrics();
-    if (!m || m.heapMaxBytes <= 0) return 0;
-    return Math.round((m.heapUsedBytes / m.heapMaxBytes) * 100);
-  }
-
-  heapUsedMb(): number {
-    const m = this.metricsService.latestMetrics();
-    return m ? Math.round(m.heapUsedBytes / 1_048_576) : 0;
-  }
-
-  heapMaxMb(): number {
-    const m = this.metricsService.latestMetrics();
-    return m && m.heapMaxBytes > 0 ? Math.round(m.heapMaxBytes / 1_048_576) : 0;
-  }
-
-  /** CPU usage as an integer percentage 0–100. */
-  cpuPercent(): number {
-    const m = this.metricsService.latestMetrics();
-    return m ? Math.round(m.cpuProcess * 100) : 0;
-  }
-
-  /** Error rate as a percentage 0–100 (errors / total requests * 100). */
-  errorRatePercent(): number {
-    const m = this.metricsService.latestMetrics();
-    if (!m || m.httpRequestsTotal === 0) return 0;
-    return Math.round((m.httpErrorCount / m.httpRequestsTotal) * 100 * 10) / 10;
-  }
+  // Prometheus-fed charts and JVM/CPU/heap gauges that used to live here
+  // were retired per ADR-0006: they duplicated Grafana panels fed by the
+  // same metrics, without any UI interaction Grafana couldn't express.
+  // Health probes + Docker service control + code-quality summary remain
+  // because they're either /actuator/health polls or action-triggering
+  // buttons — neither is a pure Prometheus read.
 
   // ── Docker service control ─────────────────────────────────────────────────
   // Calls the Docker Engine API via the CORS proxy (localhost:2375)
