@@ -70,6 +70,7 @@ the component because Markdown can't do SVG justice.
 | Doc                                                             | Topic                                                           |
 | --------------------------------------------------------------- | --------------------------------------------------------------- |
 | [`ops/ci-cd.md`](ops/ci-cd.md)                                  | GitLab CI jobs + lefthook pre-commit/commit-msg/pre-push       |
+| [`ops/ci-timings.md`](ops/ci-timings.md)                        | Measured per-job + per-stage CI/CD durations (median over 5 MR pipelines) |
 | [`ops/build-quality.md`](ops/build-quality.md)                  | npm scripts, bundle budgets, Prettier                           |
 | [`ops/docker-api.md`](ops/docker-api.md)                        | `scripts/docker-api.mjs` — Docker control + observability proxy |
 | [`ops/proxy.md`](ops/proxy.md)                                  | Angular dev-server proxy rules (`config/proxy.conf.json`)       |
