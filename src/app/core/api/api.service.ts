@@ -202,7 +202,9 @@ export class ApiService {
 
   /**
    * Fetch the raw Prometheus text exposition from `/actuator/prometheus`.
-   * Returns plain text (not JSON) — parsed by `MetricsService.parsePrometheus()`.
+   * Returns plain text (not JSON). Kept because health / quality views still
+   * surface the endpoint; the former in-UI parser (`MetricsService`) was
+   * retired in ADR-0007 in favour of Grafana.
    *
    * @returns Observable of the raw Prometheus scrape text.
    */
