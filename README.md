@@ -36,6 +36,7 @@ Non-obvious choices are justified in ADRs under [`docs/adr/`](docs/adr/README.md
 - [0004 — Vitest over Jest for unit tests](docs/adr/0004-vitest-over-jest.md)
 - [0005 — Standalone components, no NgModules](docs/adr/0005-standalone-components.md)
 - [0006 — Keep UI dashboards alongside Grafana (for now)](docs/adr/0006-grafana-duplication.md)
+- [0007 — Retire Prometheus-fed UI visualisations in favour of Grafana](docs/adr/0007-retire-prometheus-ui-visualisations.md)
 
 ### Auto-generated API reference
 
