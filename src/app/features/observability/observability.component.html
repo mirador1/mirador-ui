@@ -5,9 +5,13 @@
       <h2>Observability</h2>
       <p class="subtitle">
         Passive telemetry — observe what the backend does in real time without triggering anything:
-        distributed traces, structured logs, latency distribution, SSE event stream.
+        distributed traces, Spring logger controls, structured logs. Latency histograms and the live
+        SSE / endpoint-activity feeds moved to Grafana (ADR-0007).
       </p>
     </div>
+    @if (env.grafanaUrl(); as g) {
+      <a [href]="g" target="_blank" rel="noopener" class="grafana-deep-link">Open Grafana →</a>
+    }
   </div>
 
   @if (!auth.isAuthenticated()) {
@@ -24,12 +28,6 @@
       </button>
       <button [class.tab-active]="activeTab() === 'logs'" (click)="switchTab('logs')">
         <span class="tab-icon">📜</span> Logs <small>Loki</small>
-      </button>
-      <button [class.tab-active]="activeTab() === 'latency'" (click)="switchTab('latency')">
-        <span class="tab-icon">📊</span> Latency <small>Prometheus</small>
-      </button>
-      <button [class.tab-active]="activeTab() === 'live'" (click)="switchTab('live')">
-        <span class="tab-icon">📡</span> Live Feeds
       </button>
     </div>
 
@@ -66,34 +64,6 @@
               rel="noopener"
               title="CustomerService Overview dashboard on LGTM Grafana — logs, traces, metrics in one place."
               >🔍 Grafana Loki</a
-            >
-          </div>
-        }
-        @case ('live') {
-          <span class="tab-desc-text"
-            >SSE customer creation events (push) and HTTP endpoint activity (Prometheus
-            polling)</span
-          >
-        }
-        @case ('latency') {
-          <span class="tab-desc-text"
-            >Each bar = number of requests that responded within that time bucket. Tall bars left =
-            fast. Bars right = slow outliers.</span
-          >
-          <div class="tab-links">
-            <a
-              href="http://localhost:3000/explore?schemaVersion=1&panes=%7B%22metrics%22%3A%7B%22datasource%22%3A%22mimir%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22histogram_quantile(0.95%2Crate(http_server_requests_seconds_bucket%5B5m%5D))%22%7D%5D%7D%7D&orgId=1"
-              target="_blank"
-              rel="noopener"
-              title="Grafana Explore — run the same p95 PromQL query against Mimir. Change the quantile (0.5, 0.95, 0.99) to see different percentiles."
-              >📊 Grafana Explore</a
-            >
-            <a
-              href="http://localhost:3000"
-              target="_blank"
-              rel="noopener"
-              title="Grafana LGTM dashboards — traces, logs, and metrics in one place with full correlation."
-              >📊 Grafana</a
             >
           </div>
         }
@@ -345,176 +315,6 @@
           </div>
         } @else if (!logsLoading() && !logsError()) {
           <p class="empty-text">Click "Query" to fetch logs from Loki.</p>
-        }
-      </div>
-    }
-
-    <!-- ── Latency tab ─────────────────────────────────────────────────── -->
-    @if (activeTab() === 'latency') {
-      <div class="tab-content">
-        <div class="controls-row">
-          <button class="run-btn" (click)="fetchLatencyHistogram()" [disabled]="latencyLoading()">
-            {{ latencyLoading() ? 'Loading...' : '▶ Fetch histogram' }}
-          </button>
-          <span class="hint"
-            >from <code>/actuator/prometheus</code> http_server_requests_seconds_bucket</span
-          >
-        </div>
-
-        @if (histogramBars().length) {
-          <div class="histogram-container">
-            <div class="histogram-y-axis">
-              <span>Requests</span>
-            </div>
-            <div class="histogram-chart">
-              @for (bar of histogramBars(); track bar.label; let i = $index) {
-                <div
-                  class="histogram-col"
-                  [title]="bar.count + ' requests responded in ≤ ' + bar.label"
-                >
-                  <span class="histogram-count">{{ bar.count }}</span>
-                  <div class="histogram-bar" [style.height.%]="bar.height"></div>
-                  <span class="histogram-label">≤{{ bar.label }}</span>
-                </div>
-              }
-            </div>
-          </div>
-          <div class="histogram-x-label">Response time (bucket upper bound)</div>
-        } @else if (!latencyLoading()) {
-          <p class="empty-text">
-            Click "Fetch histogram" to load latency distribution from Prometheus metrics.
-          </p>
-        }
-      </div>
-    }
-
-    <!-- ── Live Feeds tab ────────────────────────────────────────────────── -->
-    @if (activeTab() === 'live') {
-      <div class="tab-content">
-        <!-- Sub-tabs -->
-        <div class="live-subtabs">
-          <button
-            class="live-subtab"
-            [class.active]="liveSub() === 'sse'"
-            (click)="liveSub.set('sse')"
-          >
-            📡 SSE — Customer Events
-          </button>
-          <button
-            class="live-subtab"
-            [class.active]="liveSub() === 'activity'"
-            (click)="liveSub.set('activity')"
-          >
-            📊 Endpoint Activity
-          </button>
-        </div>
-
-        @if (liveSub() === 'sse') {
-          <div class="controls-row">
-            <div class="sse-status-row">
-              <span class="sse-pill" [class]="sseStatusClass(sseStatus())">{{
-                sseStatusLabel(sseStatus())
-              }}</span>
-              @if (sseStatus() === 'disconnected') {
-                <button class="run-btn" (click)="reconnectSse()">Connect</button>
-              }
-              @if (sseStatus() === 'reconnecting') {
-                <button class="run-btn sse-btn-stop" (click)="stopSse()">Stop</button>
-              }
-              @if (sseStatus() === 'connected') {
-                <button class="run-btn sse-btn-stop" (click)="stopSse()">Disconnect</button>
-              }
-            </div>
-            <button
-              class="run-btn"
-              (click)="generateSseTraffic(3)"
-              [disabled]="sseTrafficRunning()"
-              title="POST /customers 3 times with random names to trigger SSE events"
-            >
-              {{ sseTrafficRunning() ? 'Creating...' : '⚡ Generate traffic (3 customers)' }}
-            </button>
-          </div>
-
-          @if (sseEvents().length === 0) {
-            <p class="empty-text">
-              Waiting for customer events… click "Generate traffic" or create a customer from the
-              Customers page.
-            </p>
-          } @else {
-            <div class="sse-list">
-              @for (ev of sseEvents(); track ev.id) {
-                <div class="sse-item" [class.sse-new]="ev.isNew">
-                  <div class="sse-dot"></div>
-                  <div class="sse-card">
-                    <div class="sse-card-header">
-                      <span class="sse-name">{{ ev.name }}</span>
-                      @if (ev.isNew) {
-                        <span class="sse-badge">NEW</span>
-                      }
-                    </div>
-                    <div class="sse-meta">
-                      <span>{{ ev.email }}</span>
-                      <span class="sse-sep">·</span>
-                      <span>{{ ev.createdAt | date: 'HH:mm:ss' }}</span>
-                      <span class="sse-sep">·</span>
-                      <span>ID #{{ ev.id }}</span>
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        }
-
-        @if (liveSub() === 'activity') {
-          <div class="info-banner">
-            <strong>⚠️ This uses polling, not SSE.</strong> Every 2 s the UI calls
-            <code>GET /actuator/prometheus</code>, parses the Prometheus text format to extract HTTP
-            request counters per endpoint/method/status, then shows only endpoints with new traffic.
-            <br /><br />
-            <strong>Color coding:</strong> 🟢 2xx &nbsp; 🟠 4xx &nbsp; 🔴 5xx
-          </div>
-          <div class="controls-row">
-            <button
-              class="run-btn"
-              [class.active-poll]="activityPolling()"
-              (click)="toggleActivityPolling()"
-            >
-              {{ activityPolling() ? '⏹ Stop' : '▶ Start' }} live feed
-            </button>
-            <button
-              class="run-btn"
-              (click)="generateActivityTraffic()"
-              [disabled]="activityTrafficRunning()"
-              title="Send 10 varied GET requests to generate visible activity"
-            >
-              {{ activityTrafficRunning() ? 'Generating...' : '⚡ Generate traffic' }}
-            </button>
-            <span class="hint">Polls <code>/actuator/prometheus</code> every 2s</span>
-          </div>
-          @if (activityFeed().length) {
-            <div class="log-panel">
-              @for (entry of activityFeed(); track $index) {
-                <div
-                  class="log-entry"
-                  [class]="
-                    entry.status.startsWith('2')
-                      ? 'log-info'
-                      : entry.status.startsWith('4')
-                        ? 'log-warn'
-                        : 'log-error'
-                  "
-                >
-                  <span class="log-ts">{{ entry.time }}</span>
-                  <span class="feed-method">{{ entry.method }}</span>
-                  <span class="feed-uri">{{ entry.uri }}</span>
-                  <span class="feed-status">{{ entry.status }}</span>
-                </div>
-              }
-            </div>
-          } @else if (!activityPolling()) {
-            <p class="empty-text">Click "Start live feed" to monitor backend requests.</p>
-          }
         }
       </div>
     }
