@@ -35,6 +35,13 @@ export interface Environment {
    * Used to build dashboard links and probe availability in the quality page.
    */
   sonarUrl?: string;
+  /**
+   * Base URL of the Grafana instance (LGTM container on port 3001 locally,
+   * Grafana Cloud URL in production). Deep-links in the nav + feature pages
+   * jump into Grafana dashboards for Prometheus-fed metrics after the
+   * ADR-0006 migration retired the in-app metric visualisations.
+   */
+  grafanaUrl?: string;
 }
 
 /**
@@ -52,6 +59,8 @@ const ENVIRONMENTS: Environment[] = [
     compodocUrl: 'http://localhost:8085',
     // SonarQube Community Edition via docker compose up -d sonarqube (first startup ~2 min)
     sonarUrl: 'http://localhost:9000',
+    // LGTM container — includes Grafana at :3001 (./run.sh obs to start)
+    grafanaUrl: 'http://localhost:3001',
   },
 ];
 
@@ -77,6 +86,9 @@ export class EnvService {
 
   /** Computed signal for the SonarQube base URL, or null if not configured for this environment. */
   readonly sonarUrl = computed(() => this._current().sonarUrl ?? null);
+
+  /** Computed signal for the Grafana base URL, or null if not configured for this environment. */
+  readonly grafanaUrl = computed(() => this._current().grafanaUrl ?? null);
 
   /**
    * Switch to a different backend environment.
