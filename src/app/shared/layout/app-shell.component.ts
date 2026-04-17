@@ -320,6 +320,21 @@ export class AppShellComponent {
       adminOnly: true,
     },
     {
+      id: 'pipelines',
+      label: 'Pipelines',
+      icon: '🚦',
+      path: '/pipelines',
+      tip: 'Live GitLab CI/CD pipeline monitor — fetched from the local docker-api.mjs proxy so the Spring Boot backend is not involved',
+      children: [
+        { label: 'Project switch', tip: 'Toggle between mirador-service and mirador-ui' },
+        { label: 'Auto-refresh', tip: 'Off / 10 s / 30 s / 60 s polling' },
+        {
+          label: 'Job drill-down',
+          tip: 'Click a pipeline to see jobs, runner, and duration — highlights macbook-local runner',
+        },
+      ],
+    },
+    {
       id: 'about',
       icon: '📖',
       label: 'About',

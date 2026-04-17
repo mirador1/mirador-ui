@@ -98,5 +98,10 @@ export const routes: Routes = [
     path: 'about',
     loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
   },
+  {
+    path: 'pipelines',
+    loadComponent: () =>
+      import('./features/pipelines/pipelines.component').then((m) => m.PipelinesComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

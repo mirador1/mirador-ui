@@ -1,0 +1,143 @@
+<section>
+  <div class="page-header">
+    <span class="page-icon">🚦</span>
+    <div>
+      <h2>Pipelines</h2>
+      <p class="subtitle">
+        Live GitLab CI/CD pipeline view — read through the local docker-api.mjs proxy so the Spring
+        Boot backend is not involved.
+      </p>
+    </div>
+  </div>
+
+  <div class="toolbar card">
+    <div class="seg">
+      <button
+        [class.active]="project() === 'service'"
+        (click)="setProject('service')"
+        title="mirador-service (Spring Boot backend)"
+      >
+        mirador-service
+      </button>
+      <button
+        [class.active]="project() === 'ui'"
+        (click)="setProject('ui')"
+        title="mirador-ui (Angular frontend)"
+      >
+        mirador-ui
+      </button>
+    </div>
+
+    <label class="interval">
+      Auto-refresh
+      <select (change)="setInterval($any($event.target).value)">
+        <option value="0" [selected]="interval() === 0">off</option>
+        <option value="10" [selected]="interval() === 10">10 s</option>
+        <option value="30" [selected]="interval() === 30">30 s</option>
+        <option value="60" [selected]="interval() === 60">60 s</option>
+      </select>
+    </label>
+
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading()">
+      {{ loading() ? '…' : '↻ Refresh' }}
+    </button>
+
+    @if (lastFetchedAt()) {
+      <span class="muted small"> Last: {{ lastFetchedAt()! | date: 'HH:mm:ss' }} </span>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">⚠️ {{ error() }}</div>
+  }
+
+  <!-- Status strip -->
+  <div class="status-strip">
+    @for (entry of statusCounts() | keyvalue; track entry.key) {
+      <span class="chip" [attr.data-status]="entry.key"> {{ entry.key }} · {{ entry.value }} </span>
+    }
+    @if (!pipelines().length && !loading()) {
+      <span class="muted small">No pipelines yet — hit Refresh or check the proxy.</span>
+    }
+  </div>
+
+  <!-- Pipeline list -->
+  <div class="pipeline-list">
+    @for (p of pipelines(); track p.id) {
+      <article class="pipeline-row card" [class.open]="openPipelineId() === p.id">
+        <button class="row-header" (click)="togglePipeline(p)">
+          <span class="status-badge" [attr.data-status]="p.status">{{ p.status }}</span>
+          <span class="iid">#{{ p.iid }}</span>
+          <span class="ref" [title]="p.ref">{{ niceRef(p.ref) }}</span>
+          <span class="sha" [title]="p.sha">{{ p.sha.slice(0, 8) }}</span>
+          <span class="source">{{ p.source }}</span>
+          <span class="duration">{{ niceDuration(p.duration) }}</span>
+          <span class="created">{{ p.created_at | date: 'short' }}</span>
+          <a
+            class="external"
+            [href]="p.web_url"
+            target="_blank"
+            rel="noopener"
+            (click)="$event.stopPropagation()"
+            title="Open in GitLab"
+            >↗</a
+          >
+          <span class="caret">{{ openPipelineId() === p.id ? '▾' : '▸' }}</span>
+        </button>
+
+        @if (openPipelineId() === p.id) {
+          <div class="jobs">
+            @if (jobsLoading()) {
+              <p class="muted small">Loading jobs…</p>
+            } @else if (!openJobs().length) {
+              <p class="muted small">No jobs for this pipeline.</p>
+            } @else {
+              <table>
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Stage</th>
+                    <th>Status</th>
+                    <th>Runner</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (j of openJobs(); track j.id) {
+                    <tr>
+                      <td>
+                        <a [href]="j.web_url" target="_blank" rel="noopener">{{ j.name }}</a>
+                        @if (j.allow_failure) {
+                          <span class="tag allow-failure" title="allow_failure: true">⚠</span>
+                        }
+                      </td>
+                      <td>{{ j.stage }}</td>
+                      <td>
+                        <span class="status-badge" [attr.data-status]="j.status">{{
+                          j.status
+                        }}</span>
+                      </td>
+                      <td>
+                        @if (j.runner) {
+                          <span [class.local-runner]="isLocalJob(j)">
+                            {{ j.runner.description }}
+                            @if (isLocalJob(j)) {
+                              <span class="local-dot" title="macbook-local runner">●</span>
+                            }
+                          </span>
+                        } @else {
+                          <span class="muted">—</span>
+                        }
+                      </td>
+                      <td>{{ niceDuration(j.duration) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+      </article>
+    }
+  </div>
+</section>
