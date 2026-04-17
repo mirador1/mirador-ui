@@ -15,7 +15,7 @@
 
 | Directory           | Purpose                                                                                                        |
 | ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [`core/`](core/)      | Singleton services provided in root — `ApiService`, `AuthService`, `EnvService`, `ThemeService`, `ToastService`, `KeyboardService`, `ActivityService`, `MetricsService`. |
+| [`core/`](core/)      | Singleton services provided in root — `ApiService`, `AuthService`, `EnvService`, `ThemeService`, `ToastService`, `KeyboardService`, `ActivityService`. |
 | [`features/`](features/) | Routed pages. One directory per feature, lazy-loaded. See `features/README.md` for the full list.         |
 | [`shared/`](shared/)    | Reusable UI components — `layout/app-shell` (topbar, nav, theme switcher), `info-tip`, etc. No routed pages. |
 
