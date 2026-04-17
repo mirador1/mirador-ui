@@ -50,6 +50,80 @@ function uuid(): string {
   return crypto.randomUUID();
 }
 
+// Fixed name pool used by `addRandomCustomer()` below. Kept inline (not in a
+// data file) because this is a demo convenience feature and the list is
+// short — a JSON resource would just be indirection.
+const RANDOM_FIRST_NAMES = [
+  'Alice',
+  'Bob',
+  'Charlie',
+  'Diana',
+  'Evan',
+  'Fiona',
+  'Gabriel',
+  'Hannah',
+  'Isaac',
+  'Julia',
+  'Kevin',
+  'Laura',
+  'Marc',
+  'Nora',
+  'Oliver',
+  'Paula',
+  'Quentin',
+  'Rachel',
+  'Samir',
+  'Tara',
+  'Ugo',
+  'Vera',
+  'William',
+  'Xavier',
+  'Yasmine',
+  'Zoe',
+];
+
+const RANDOM_LAST_NAMES = [
+  'Martin',
+  'Bernard',
+  'Dubois',
+  'Thomas',
+  'Robert',
+  'Richard',
+  'Petit',
+  'Durand',
+  'Leroy',
+  'Moreau',
+  'Simon',
+  'Laurent',
+  'Lefebvre',
+  'Michel',
+  'Garcia',
+  'David',
+  'Bertrand',
+  'Roux',
+  'Vincent',
+  'Fournier',
+];
+
+/**
+ * Produce a random { name, email } pair suitable for the Create Customer flow.
+ * Keeps the email address in the `example.com` TLD so generated demo data
+ * never collides with a real inbox. Randomness uses `Math.random()` — this
+ * is purely a UX convenience, not a security-sensitive path.
+ */
+function randomCustomer(): { name: string; email: string } {
+  const first = RANDOM_FIRST_NAMES[Math.floor(Math.random() * RANDOM_FIRST_NAMES.length)];
+  const last = RANDOM_LAST_NAMES[Math.floor(Math.random() * RANDOM_LAST_NAMES.length)];
+  // Short random suffix keeps the email unique across clicks — avoids the
+  // backend's duplicate-email rejection when the same name pair is drawn
+  // twice in the same session.
+  const suffix = Math.floor(Math.random() * 10000).toString(36);
+  return {
+    name: `${first} ${last}`,
+    email: `${first.toLowerCase()}.${last.toLowerCase()}.${suffix}@example.com`,
+  };
+}
+
 /** Per-customer detail panel tab identifier. */
 type DetailTab = 'bio' | 'todos' | 'enrich';
 
@@ -440,6 +514,34 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
   resetIdempotencyKey(): void {
     this.idempotencyKey.set(uuid());
+  }
+
+  /**
+   * Create a customer with a randomly-generated name + email in one click.
+   * Useful for demos, soak-tests, and seeding the list without retyping.
+   * Reuses the same API call + toast + activity log as the manual create
+   * path, and refreshes the list on success.
+   */
+  addRandomCustomer(): void {
+    const { name, email } = randomCustomer();
+    this.createLoading.set(true);
+    this.createError.set('');
+    this.createSuccess.set(null);
+
+    const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
+    this.api.createCustomer({ name, email }, key).subscribe({
+      next: (c) => {
+        this.createSuccess.set(c);
+        this.createLoading.set(false);
+        this.toast.show(`Random customer "${c.name}" created (ID ${c.id})`, 'success');
+        this.activity.log('customer-create', `Random-created "${c.name}" (ID ${c.id})`);
+        this.loadCustomers();
+      },
+      error: (err) => {
+        this.createError.set(httpError(err));
+        this.createLoading.set(false);
+      },
+    });
   }
 
   // ── Edit ───────────────────────────────────────────────────────────────────
