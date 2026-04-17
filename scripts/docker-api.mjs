@@ -11,9 +11,15 @@
  *   POST /containers/:name/restart — restart a container
  *   GET  /zipkin/*                  — proxy to Zipkin (localhost:9411)
  *   GET  /loki/*                    — proxy to Loki (localhost:3100)
+ *   GET  /gitlab/*                  — proxy to GitLab REST API with
+ *                                     PRIVATE-TOKEN injected from env
+ *                                     (GITLAB_API_TOKEN). Keeps the token
+ *                                     out of the browser. Used by the
+ *                                     Pipelines feature.
  */
 
 import { createServer, request as httpRequest } from 'http';
+import { request as httpsRequest } from 'https';
 import { execSync } from 'child_process';
 
 const PORT = parseInt(process.env.DOCKER_API_PORT || '3333', 10);
@@ -100,11 +106,66 @@ const server = createServer((req, res) => {
     return proxy('localhost', 3100, '/loki', req, res);
   }
 
+  // GitLab REST API proxy — injects PRIVATE-TOKEN so the browser never
+  // sees it. Any path after /gitlab/ is forwarded verbatim to
+  // gitlab.com/api/v4/. Example: GET /gitlab/projects/mirador1%2Fmirador-ui/pipelines
+  // hits https://gitlab.com/api/v4/projects/mirador1%2Fmirador-ui/pipelines.
+  if (url.pathname.startsWith('/gitlab/')) {
+    return gitlabProxy(req, res);
+  }
+
   json(res, 404, { error: 'Not found' });
 });
+
+/**
+ * Forwards /gitlab/<anything> to https://gitlab.com/api/v4/<anything>.
+ *
+ * Strips the local Host/Origin/Referer headers that GitLab would reject
+ * as non-matching and injects the `PRIVATE-TOKEN` header from the
+ * GITLAB_API_TOKEN env var (falls back to anonymous access — works for
+ * public projects, rate-limited at 10 req/min/IP).
+ */
+function gitlabProxy(req, res) {
+  const targetPath = '/api/v4' + req.url.replace(/^\/gitlab/, '');
+  const headers = {
+    Accept: 'application/json',
+    'User-Agent': 'mirador-ui-docker-api/1.0',
+  };
+  if (process.env.GITLAB_API_TOKEN) {
+    headers['PRIVATE-TOKEN'] = process.env.GITLAB_API_TOKEN;
+  }
+  const proxyReq = httpsRequest(
+    {
+      hostname: 'gitlab.com',
+      port: 443,
+      path: targetPath,
+      method: req.method,
+      headers,
+      timeout: 10000,
+    },
+    (proxyRes) => {
+      // Strip gitlab.com's CORS headers and replace with our permissive ones
+      // (the browser hits us, not gitlab.com, so this is our call to make).
+      const { 'access-control-allow-origin': _1, 'access-control-allow-methods': _2,
+              'access-control-allow-headers': _3, ...passThrough } = proxyRes.headers;
+      res.writeHead(proxyRes.statusCode, { ...passThrough, ...CORS });
+      proxyRes.pipe(res);
+    }
+  );
+  proxyReq.on('error', (e) => {
+    json(res, 502, { error: `GitLab proxy failed: ${e.message}` });
+  });
+  proxyReq.on('timeout', () => {
+    proxyReq.destroy();
+    json(res, 504, { error: 'GitLab request timed out' });
+  });
+  proxyReq.end();
+}
 
 server.listen(PORT, () => {
   console.log(`[docker-api] API listening on http://localhost:${PORT}`);
   console.log(`[docker-api] Docker: GET /containers, POST /containers/:name/(stop|start|restart)`);
   console.log(`[docker-api] Proxy:  /zipkin/* -> localhost:9411, /loki/* -> localhost:3100`);
+  console.log(`[docker-api] Proxy:  /gitlab/* -> gitlab.com/api/v4/* ` +
+    (process.env.GITLAB_API_TOKEN ? '(authenticated)' : '(anonymous — public projects only)'));
 });
