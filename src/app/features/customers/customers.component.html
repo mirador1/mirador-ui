@@ -98,9 +98,19 @@
           }
         </div>
 
-        <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
-          {{ createLoading() ? 'Creating...' : '+ Create' }}
-        </button>
+        <div class="create-actions">
+          <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
+            {{ createLoading() ? 'Creating...' : '+ Create' }}
+          </button>
+          <button
+            class="secondary-btn"
+            (click)="addRandomCustomer()"
+            [disabled]="createLoading()"
+            title="Create a customer with a random name + email (demo helper)"
+          >
+            🎲 Add random customer
+          </button>
+        </div>
 
         @if (createError()) {
           <p class="error-text">{{ createError() }}</p>
