@@ -29,14 +29,21 @@
 
 ## Pending — Post-ADR-0025 follow-up
 
-- [ ] **Phase 2 — replace hardcoded `localhost:<port>` URLs with EnvService
-      signals** across `dashboard`, `about`, `database`, `observability`,
-      `pipelines` components. Inventory: localhost:5050 (pgAdmin → drop,
-      replaced by CloudBeaver 8978), localhost:9090 (keycloak → use
-      `env.keycloakUrl()`), localhost:9080 (kafka-ui → use `env.kafkaUiUrl()`),
-      localhost:5540 (redisinsight → use `env.redisInsightUrl()`),
-      localhost:8084 / 8085 / 9000 (already use EnvService). Phase 1
-      (EnvService refactor + topbar selector) landed.
+- [ ] **Phase 2b — strip the SQL Explorer from `database.component`.**
+      The pgweb REST API the explorer called is gone (mirador-service MR 77)
+      and a SQL proxy BFF is explicitly rejected (security smell — we don't
+      want to re-invent pgweb's attack surface in Spring). Drop the SQL
+      execution path + health checks that depend on it; keep the VACUUM
+      button (goes through Spring Boot `/actuator/maintenance`, not arbitrary
+      SQL) and keep the preset queries as copy-paste templates for CloudBeaver.
+      ~600 LOC to delete.
+
+- [ ] **Phase 2c — migrate remaining hardcoded `localhost:<port>` URLs
+      to EnvService signals** across the Observability component
+      (localhost:3000 Grafana iframes + Tempo datasource proxy). Tempo
+      queries should go through the backend BFF that already exists
+      (mirador-service `/obs/tempo/traces/{id}` — ADR-0024). Loki
+      similarly. Deep-link buttons use `env.grafanaUrl()`.
 
 - [ ] **Desktop deep-link buttons** from mirador-service
       `docs/getting-started/dev-tooling.md`. Add `<a href="vscode://…">` /
