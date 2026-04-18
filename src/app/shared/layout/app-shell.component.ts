@@ -14,7 +14,6 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { EnvService, Environment } from '../../core/env/env.service';
-import { FeatureFlagService } from '../../core/feature-flags/feature-flag.service';
 import { ToastService } from '../../core/toast/toast.service';
 @Component({
   selector: 'app-shell',
@@ -32,14 +31,6 @@ export class AppShellComponent {
 
   /** Provides `current` environment info for display in the topbar. */
   readonly env = inject(EnvService);
-
-  /**
-   * Feature flags from unleash-proxy. Used to gate operator-only sidebar
-   * entries behind the `mirador.ui.ops-mode` flag. Defaults to "visible"
-   * when the flag is unavailable (Local compose env, or not yet loaded)
-   * so the dev experience is never degraded by a slow proxy fetch.
-   */
-  readonly flags = inject(FeatureFlagService);
 
   /** Provides `toasts` signal rendered in the toast container overlay. */
   readonly toast = inject(ToastService);
@@ -150,7 +141,6 @@ export class AppShellComponent {
     },
     {
       id: 'telemetry',
-      opsOnly: true,
       icon: '🔍',
       label: 'Observability',
       path: '/observability',
@@ -174,7 +164,6 @@ export class AppShellComponent {
     // direct Grafana link for operators who want time-series charts.
     {
       id: 'database',
-      opsOnly: true,
       icon: '🐘',
       label: 'Database',
       path: '/database',
@@ -199,7 +188,6 @@ export class AppShellComponent {
     },
     {
       id: 'diagnostic',
-      opsOnly: true,
       icon: '🧪',
       label: 'Diagnostic',
       path: '/diagnostic',
@@ -242,7 +230,6 @@ export class AppShellComponent {
     },
     {
       id: 'chaos',
-      opsOnly: true,
       icon: '💥',
       label: 'Chaos & Traffic',
       path: '/chaos',
@@ -279,7 +266,6 @@ export class AppShellComponent {
     },
     {
       id: 'settings',
-      opsOnly: true,
       icon: '⚙️',
       label: 'Settings',
       path: '/settings',
@@ -328,7 +314,6 @@ export class AppShellComponent {
     },
     {
       id: 'pipelines',
-      opsOnly: true,
       label: 'Pipelines',
       icon: '🚦',
       path: '/pipelines',

@@ -332,14 +332,16 @@
         </div>
 
         <div class="tabs">
-          <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
-            🤖 AI Bio <small>Ollama</small>
-            <app-info-tip
-              text="Generates a fictional biography using Ollama (llama3.2 model). Protected by a Resilience4j circuit breaker — returns fallback text if Ollama is down."
-              command="GET /customers/{id}/bio"
-              source="Ollama + CircuitBreaker"
-            />
-          </button>
+          @if (bioEnabled()) {
+            <button [class.tab-active]="activeTab() === 'bio'" (click)="switchTab('bio')">
+              🤖 AI Bio <small>Ollama</small>
+              <app-info-tip
+                text="Generates a fictional biography using Ollama (llama3.2 model). Protected by a Resilience4j circuit breaker — returns fallback text if Ollama is down. Hide this tab via the `mirador.bio.enabled` Unleash flag when the LLM pod is unhealthy."
+                command="GET /customers/{id}/bio"
+                source="Ollama + CircuitBreaker + Unleash flag"
+              />
+            </button>
+          }
           <button [class.tab-active]="activeTab() === 'todos'" (click)="switchTab('todos')">
             ✅ Todos <small>JSONPlaceholder</small>
             <app-info-tip
