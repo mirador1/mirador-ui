@@ -1,19 +1,22 @@
 /**
  * ObservabilityComponent — Live backend telemetry with 3 tabs.
  *
- * Traces: Queries Tempo via the Grafana datasource proxy (http://localhost:3000).
- *   Supports TraceQL and tag-based search. Each trace links to Grafana Explore.
- *   Displays expandable span waterfall on row click.
+ * All external calls are env-aware via EnvService:
+ *   compose :3000  /  kind :13000  /  prod :23000  (Grafana)
+ *   compose :8080  /  kind :18080  /  prod :28080  (Spring Boot)
  *
- * Loggers: Lists Spring Boot loggers from /actuator/loggers and lets the
- *   operator tune levels live.
+ * Traces: queries Tempo through the Grafana datasource proxy — the UI
+ *   never talks to Tempo directly (ADR-0026 in mirador-service).
+ *   Supports TraceQL and tag-based search; each trace deep-links into
+ *   Grafana Explore.
  *
- * Logs: Queries Loki directly via Nginx CORS proxy on port 3100.
- *   Color-coded by level (ERROR/WARN/INFO/DEBUG). Optional 5s live polling.
+ * Loggers: Spring Boot `/actuator/loggers` — live level tuning.
  *
- * The previous Latency-histogram and Live-Feeds tabs were retired in
- * ADR-0007 (docs/adr/0007-retire-prometheus-ui-visualisations.md) because
- * they polled /actuator/prometheus — Grafana now owns that view.
+ * Logs: queries Loki through the Grafana datasource proxy too (same
+ *   pattern as Tempo). Drops the old Nginx CORS proxy dependency.
+ *
+ * Retired tabs (ADR-0007 in this repo): Latency-histogram + Live-Feeds
+ * used to poll /actuator/prometheus — Grafana now owns that view.
  */
 import { Component, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
