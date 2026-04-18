@@ -484,18 +484,15 @@ export class AboutComponent {
       category: 'App',
       note: 'Dev server → API on :8080 (not kind). Use :8090 for the kind cluster.',
     },
+    // Kubernetes access: ADR-0025 in mirador-service dropped the kind
+    // ingress entirely — kind and GKE are now reached through kubectl
+    // port-forward (bin/pf-prod.sh), same tunnel port map for both.
     {
-      port: 8090,
-      name: 'kind ingress (HTTP)',
+      port: 18080,
+      name: 'Backend (prod tunnel)',
       category: 'App',
-      note: 'nginx-ingress: frontend + /api — full stack in Kubernetes',
-      url: 'http://localhost:8090',
-    },
-    {
-      port: 8443,
-      name: 'kind ingress (HTTPS)',
-      category: 'App',
-      note: 'TLS termination in kind (self-signed cert)',
+      note: 'bin/pf-prod.sh — backend reached through kubectl port-forward',
+      url: 'http://localhost:18080',
     },
     // Databases
     {
@@ -520,20 +517,15 @@ export class AboutComponent {
       note: 'OAuth2/OIDC — admin / admin',
       url: 'http://localhost:9090',
     },
-    // Admin Tools
+    // Admin Tools. pgAdmin + pgweb + Redis Commander were dropped in
+    // favour of CloudBeaver (one SQL client instead of two) + RedisInsight
+    // (one Redis UI instead of two). See mirador-service MR 77.
     {
-      port: 5050,
-      name: 'pgAdmin',
+      port: 8978,
+      name: 'CloudBeaver',
       category: 'Admin',
-      note: 'PostgreSQL UI (desktop mode, no login)',
-      url: 'http://localhost:5050',
-    },
-    {
-      port: 8081,
-      name: 'pgweb',
-      category: 'Admin',
-      note: 'Lightweight SQL client + REST API',
-      url: 'http://localhost:8081',
+      note: 'DBeaver web — set admin password on first visit, register the db connection',
+      url: 'http://localhost:8978',
     },
     {
       port: 9080,
@@ -548,13 +540,6 @@ export class AboutComponent {
       category: 'Admin',
       note: 'Redis key browser, memory analysis',
       url: 'http://localhost:5540',
-    },
-    {
-      port: 8082,
-      name: 'Redis Commander',
-      category: 'Admin',
-      note: 'Live command monitor, auto-connects',
-      url: 'http://localhost:8082',
     },
     // CI/CD
     {
