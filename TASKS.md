@@ -29,21 +29,12 @@
 
 ## Pending — Post-ADR-0025 follow-up
 
-- [ ] **Phase 2b — strip the SQL Explorer from `database.component`.**
-      The pgweb REST API the explorer called is gone (mirador-service MR 77)
-      and a SQL proxy BFF is explicitly rejected (security smell — we don't
-      want to re-invent pgweb's attack surface in Spring). Drop the SQL
-      execution path + health checks that depend on it; keep the VACUUM
-      button (goes through Spring Boot `/actuator/maintenance`, not arbitrary
-      SQL) and keep the preset queries as copy-paste templates for CloudBeaver.
-      ~600 LOC to delete.
-
-- [ ] **Phase 2c — migrate remaining hardcoded `localhost:<port>` URLs
-      to EnvService signals** across the Observability component
-      (localhost:3000 Grafana iframes + Tempo datasource proxy). Tempo
-      queries should go through the backend BFF that already exists
-      (mirador-service `/obs/tempo/traces/{id}` — ADR-0024). Loki
-      similarly. Deep-link buttons use `env.grafanaUrl()`.
+<!-- Phase 2b (strip SQL Explorer): reverted — user rejected the BFF for
+     DB calls and preferred pgweb-local + pgweb-prod + pgweb-kind
+     containers. Database page restored with env.pgwebUrl() gating.
+     Phase 2c (Observability env-aware): done in mirror-ui f8a3124 — all
+     Tempo / Loki calls now route through Grafana datasource proxy via
+     env.grafanaUrl(). ops-mode feature-flag gate dropped on user feedback. -->
 
 - [ ] **Desktop deep-link buttons** from mirador-service
       `docs/getting-started/dev-tooling.md`. Add `<a href="vscode://…">` /
