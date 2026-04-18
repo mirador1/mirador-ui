@@ -1,25 +1,17 @@
 import { Component, signal } from '@angular/core';
 
 /**
- * AboutComponent — Architecture documentation and project reference.
+ * AboutComponent — Architecture documentation shell.
  *
- * Thirteen tabs providing a comprehensive reference for the full stack:
- * - Overview: quick-start commands and architecture summary
- * - Infrastructure: all Docker services and ports
- * - Deployment (overview): architecture diagram and target comparison table
- * - Local: kind cluster setup with ./run.sh k8s-local
- * - Google Cloud: GKE Autopilot + Terraform + managed services (Cloud SQL, Redis, Kafka)
- * - Technologies: full stack listing with usage notes for each technology
- * - Compatibility: Spring Boot/Java version matrix
- * - Observability: tracing, metrics, logs, and profiling architecture
- * - Resilience: circuit breaker, retry, rate limit, and bulkhead patterns
- * - Security: authentication, authorization, and security headers
- * - Messaging: Kafka topics, consumer groups, and request-reply pattern
- * - Data Layer: JPA, Redis, Flyway, and data flow overview
- * - Testing: unit, integration, mutation testing strategy
- *
- * This component is a pure documentation page — it has no HTTP calls.
- * All content is statically defined in `technologies`, `portMap`, and other arrays.
+ * Phase 2 of the About-page trim (ADR-0008 industrial pass): the template
+ * used to inline ~2 900 lines of prose across 14 tabs. All prose now lives
+ * in versioned Markdown under `docs/architecture/*.md`, rendered by GitLab.
+ * The component keeps what is genuinely interactive:
+ *   - 'overview' — hero SVG + tech-badges banner + link to overview.md
+ *   - 'infra'    — port map + run.sh quick-start + external services grid
+ *   - 'tech'     — sortable list of 207 technologies (driven by `technologies`)
+ * Every other tab is a compact "doc pane" that links out to its Markdown
+ * counterpart on GitLab. No HTTP calls, no runtime data fetching.
  */
 @Component({
   selector: 'app-about',
@@ -649,4 +641,12 @@ curl -s -X POST http://localhost:8080/customers \\
   portsByCategory(cat: string) {
     return this.portMap.filter((p) => p.category === cat);
   }
+
+  /**
+   * Root URL for architecture docs on GitLab. Tabs link here instead of
+   * inlining prose — the component is a UI shell around a set of Markdown
+   * pages that are rendered natively by GitLab (and versioned in-repo, so
+   * deep-links survive refactors unlike the old inline copy).
+   */
+  readonly docsBase = 'https://gitlab.com/mirador1/mirador-ui/-/blob/main/docs/architecture';
 }

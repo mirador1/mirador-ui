@@ -768,3 +768,46 @@ ol.checklist {
     line-height: 1.4;
   }
 }
+
+// ── Doc-pane (ADR-0008 About trim Phase 2) ──────────────────────────────────
+// Compact panel that replaces a page of prose with a link to the versioned
+// Markdown doc on GitLab. The wordy architecture explanations used to live
+// here inline — they were hard to keep in sync with the code and invisible
+// to `git log` on docs/.
+.doc-pane {
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    text-transform: none; // h3 is already uppercase in global .card — override for readability
+    letter-spacing: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+
+  .doc-pane-summary {
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 1rem;
+  }
+
+  .doc-pane-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: var(--color-accent);
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition:
+      background 0.15s,
+      transform 0.1s;
+
+    &:hover {
+      background: var(--color-accent-dark, var(--color-accent));
+      transform: translateY(-1px);
+    }
+  }
+}

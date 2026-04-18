@@ -29,41 +29,27 @@
 
 ## Pending — Post-ADR-0025 follow-up
 
-- [ ] **Phase 2b — strip the SQL Explorer from `database.component`.**
-      The pgweb REST API the explorer called is gone (mirador-service MR 77)
-      and a SQL proxy BFF is explicitly rejected (security smell — we don't
-      want to re-invent pgweb's attack surface in Spring). Drop the SQL
-      execution path + health checks that depend on it; keep the VACUUM
-      button (goes through Spring Boot `/actuator/maintenance`, not arbitrary
-      SQL) and keep the preset queries as copy-paste templates for CloudBeaver.
-      ~600 LOC to delete.
+<!-- Phase 2b (strip SQL Explorer): reverted — user rejected the BFF for
+     DB calls and preferred pgweb-local + pgweb-prod + pgweb-kind
+     containers. Database page restored with env.pgwebUrl() gating.
+     Phase 2c (Observability env-aware): done in mirror-ui f8a3124 — all
+     Tempo / Loki calls now route through Grafana datasource proxy via
+     env.grafanaUrl(). ops-mode feature-flag gate dropped on user feedback. -->
 
-- [ ] **Phase 2c — migrate remaining hardcoded `localhost:<port>` URLs
-      to EnvService signals** across the Observability component
-      (localhost:3000 Grafana iframes + Tempo datasource proxy). Tempo
-      queries should go through the backend BFF that already exists
-      (mirador-service `/obs/tempo/traces/{id}` — ADR-0024). Loki
-      similarly. Deep-link buttons use `env.grafanaUrl()`.
-
-- [ ] **Desktop deep-link buttons** from mirador-service
-      `docs/getting-started/dev-tooling.md`. Add `<a href="vscode://…">` /
-      `idea://…` / `docker-desktop://…` buttons on the Architecture,
-      Database, and Quality pages where relevant. Fails silently if the
-      target app isn't installed (the browser just does nothing — no
-      feature-detection needed).
-
-- [ ] **Move the UI image pipeline to a `test-image` stage**. The image
-      is still built + pushed (useful for CI integration tests +
-      prod-like local run without `npm install`) but is no longer a
-      deploy artefact (ADR-0025). Tag `:main-<sha>` only, no `:latest`.
+<!-- Deep-link plumbing landed (DeepLinkService + Dashboard Docker Desktop
+     button in commit dca8d38 / followup). vscode:// / idea:// helpers
+     exposed in the service for future consumers (stack-trace links,
+     source-code navigation). -->
 
 
-## Pending — Deferred majors
+<!-- Image pipeline renamed to `test-image` stage; deploy:gke + smoke-test
+     retired. Only :$CI_COMMIT_SHA tag pushed (no :latest, no :main).
+     Remaining deploy:* jobs are when:manual showcases. -->
 
-- [ ] `@auth0/auth0-angular` — no 3.x published yet (latest is 2.8.1).
-      Revisit once a 3.x line appears on npm.
-- [ ] `typescript` 5 → 6 — hold until Angular 21 officially supports
-      it. Renovate will flag when safe.
+
+<!-- auth0-angular 3.x + TypeScript 6 upgrade notes moved into code
+     comments (src/app/app.config.ts, tsconfig.json). Renovate will
+     flag upstream availability; no standing task needed here. -->
 
 ## Recently completed (keep last 10 for context)
 

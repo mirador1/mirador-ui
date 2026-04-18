@@ -37,8 +37,8 @@ stages:
   - test
   - build
   - quality
-  - docker    # Build + push Docker image (main branch + tags only)
-  - deploy    # Deploy to Kubernetes / PaaS (6 targets — see bottom of file)
+  - test-image    # Build + push Docker image (validation artefact — UI is not deployed to K8s per ADR-0025)
+  - deploy    # Legacy PaaS deploy targets — kept manual; UI runs only on the developer laptop
 
 variables:
   NODE_VERSION: "22"
@@ -257,15 +257,16 @@ typedoc:
 # GitLab Container Registry. Runs only on main and version tags — not on MRs
 # to avoid flooding the registry with images that are never deployed.
 #
-# Two tags pushed:
-#   $CI_COMMIT_SHA          — immutable (used by deploy jobs)
-#   $CI_COMMIT_REF_SLUG     — moving pointer (e.g. "main")
+# One tag pushed: $CI_COMMIT_SHA (immutable, traceable).
+# Per ADR-0025 the UI is never deployed to Kubernetes, so there is no
+# Argo CD puller that would consume a moving :main tag. The downstream
+# scan jobs (trivy, syft, dockle, cosign) all reference :$CI_COMMIT_SHA.
 docker-build:
   # Runs on macbook-local (Apple Silicon arm64) with host Docker socket + buildx.
   # Cross-compile to amd64 via QEMU so the image matches GKE node arch.
   # Never uses SaaS shared runners (CI quota policy, see ADR-0004 in the
   # sibling service repo).
-  stage: docker
+  stage: test-image
   interruptible: false   # Expensive — don't restart mid-build on a new push.
   image: docker:28
   tags:
@@ -290,7 +291,6 @@ docker-build:
         -f build/Dockerfile \
         --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
-        --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
         --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
         --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE:cache" \
@@ -301,7 +301,7 @@ docker-build:
 trivy:scan:
   # Scans the freshly built frontend Docker image for OS + CVEs using Trivy.
   # allow_failure:true — CVEs are tracked informationally, not build-blocking.
-  stage: docker
+  stage: test-image
   # aquasec/trivy no longer publishes :latest (since ~0.60). Pin a real tag.
   # entrypoint:[""] overrides `trivy` default entrypoint — GitLab CI wraps
   # the script in `sh -c` which trivy rejects as `unknown command "sh"`.
@@ -380,7 +380,7 @@ renovate-lint:
 
 # ── SBOM (syft) — CycloneDX + SPDX ────────────────────────────────────────────
 sbom:syft:
-  stage: docker
+  stage: test-image
   image:
     name: anchore/syft:v1.18.1
     entrypoint: [""]
@@ -410,7 +410,7 @@ sbom:syft:
 
 # ── Grype CVE scan (reads SBOM) ───────────────────────────────────────────────
 grype:scan:
-  stage: docker
+  stage: test-image
   image:
     name: anchore/grype:v0.87.0
     entrypoint: [""]
@@ -434,7 +434,7 @@ grype:scan:
 
 # ── Dockle — container policy checks (CIS Docker, non-root, no secrets) ──────
 dockle:
-  stage: docker
+  stage: test-image
   image:
     name: goodwithtech/dockle:v0.4.15
     entrypoint: [""]
@@ -461,7 +461,7 @@ dockle:
 
 # ── cosign keyless signing via GitLab OIDC + Sigstore Fulcio ──────────────────
 cosign:sign:
-  stage: docker
+  stage: test-image
   image:
     name: gcr.io/projectsigstore/cosign:v2.5.0
     entrypoint: [""]
@@ -544,78 +544,14 @@ release-please:
       done
     - kubectl rollout status deployment/customer-ui -n app --timeout=120s
 
-# ── GKE Autopilot — DEFAULT production (auto on main) ────────────────────────
-deploy:gke:
-  stage: deploy
-  interruptible: false   # Active K8s apply — avoid mid-deploy interruption.
-  image: google/cloud-sdk:alpine
-  id_tokens:
-    # GitLab OIDC token; audience matches the WIF provider configured in GCP.
-    GCP_OIDC_TOKEN:
-      aud: "https://iam.googleapis.com/$GCP_WIF_PROVIDER"
-  needs:
-    - job: docker-build
-      artifacts: false
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  environment:
-    name: production/gke
-    url: "https://$K8S_HOST"
-  before_script:
-    # google/cloud-sdk:alpine ships without kubectl, gke-gcloud-auth-plugin, and envsubst.
-    # - kubectl + gke-gcloud-auth-plugin: authenticate kubectl to GKE via WIF
-    # - gettext: provides envsubst (used to expand ${K8S_HOST}, ${IMAGE_TAG}, etc. in manifests)
-    - apk add --no-cache gettext
-    - gcloud components install kubectl gke-gcloud-auth-plugin --quiet
-  script:
-    - echo "$GCP_OIDC_TOKEN" > /tmp/gcp_oidc_token.txt
-    - |
-      cat > /tmp/gcp_credentials.json <<EOF
-      {
-        "type": "external_account",
-        "audience": "//iam.googleapis.com/${GCP_WIF_PROVIDER}",
-        "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
-        "token_url": "https://sts.googleapis.com/v1/token",
-        "credential_source": {"file": "/tmp/gcp_oidc_token.txt", "format": {"type": "text"}},
-        "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SERVICE_ACCOUNT}:generateAccessToken"
-      }
-      EOF
-    - gcloud auth login --cred-file=/tmp/gcp_credentials.json --quiet
-    - gcloud container clusters get-credentials "$GKE_CLUSTER"
-        --region "$GKE_REGION" --project "$GCP_PROJECT"
-    - !reference [.kubectl-apply-ui, script]
-
-# ── smoke-test — k6 post-deploy smoke test ────────────────────────────────────
-# Runs against the public GKE endpoint AFTER deploy:gke. 30 s of light
-# read-only traffic at ~3 RPS, pass/fail on p95 < 500 ms and < 1 % errors.
-# Hits both the SPA shell (/, /favicon.ico, /manifest.json) and the
-# /api/* proxy paths so a broken ingress rewrite is caught here too.
-# See scripts/load-test/README.md for thresholds + how to run locally.
-smoke-test:
-  stage: deploy
-  image: grafana/k6:1.4.0
-  tags:
-    - macbook-local
-  needs:
-    - job: deploy:gke
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - if: $CI_COMMIT_BRANCH == "main"
-  environment:
-    name: production/gke
-    action: verify
-  variables:
-    # K8S_HOST is a protected CI var pointing at e.g. mirador1.duckdns.org.
-    # The smoke.js script reads __ENV.K8S_HOST.
-    K8S_HOST: "$K8S_HOST"
-  script:
-    - k6 run scripts/load-test/smoke.js
-  artifacts:
-    when: always
-    expire_in: 30 days
-    paths:
-      - smoke-summary.json
+# deploy:gke + smoke-test retired with mirador-service ADR-0025 + ADR-0027:
+# the UI is no longer deployed to any Kubernetes cluster — it runs on the
+# developer's laptop and reaches the cluster through bin/pf-prod.sh tunnels.
+# The image is still built and scanned (test-image stage above) as a
+# validation artefact.
+#
+# If you ever need a one-off manual push, the remaining deploy:* jobs
+# (EKS, AKS, Cloud Run, Fly, k3s) are all when:manual.
 
 # ── AWS EKS — manual ──────────────────────────────────────────────────────────
 deploy:eks:

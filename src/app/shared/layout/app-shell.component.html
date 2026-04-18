@@ -90,22 +90,47 @@
         <nav class="sidebar-nav">
           @for (section of navTree; track section.id) {
             @if (!$any(section)['adminOnly'] || auth.isAdmin()) {
-              <div class="nav-section" [class.nav-active]="isActive(section.path)">
+              <div class="nav-section" [class.nav-active]="isActive($any(section).path)">
                 <div
                   class="nav-header"
                   (click)="section.children.length ? toggleSection(section.id) : null"
                 >
-                  <a
-                    [routerLink]="section.path"
-                    class="nav-link"
-                    [class.active]="isActive(section.path)"
-                    [title]="sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip"
-                  >
-                    <span class="nav-icon">{{ section.icon }}</span>
-                    @if (!sidebarCollapsed()) {
-                      <span class="nav-label">{{ section.label }}</span>
+                  @if ($any(section).externalHref; as hrefFn) {
+                    <!-- ADR-0008: external nav entries (Grafana Explore) render
+                         as <a target="_blank">. The href is computed from the
+                         active environment's grafanaUrl; hidden entirely when
+                         Grafana is not configured for the current env. -->
+                    @if (externalHref($any(section)); as url) {
+                      <a
+                        [href]="url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="nav-link"
+                        [title]="
+                          sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip
+                        "
+                      >
+                        <span class="nav-icon">{{ section.icon }}</span>
+                        @if (!sidebarCollapsed()) {
+                          <span class="nav-label">{{ section.label }} ↗</span>
+                        }
+                      </a>
                     }
-                  </a>
+                  } @else {
+                    <a
+                      [routerLink]="$any(section).path"
+                      class="nav-link"
+                      [class.active]="isActive($any(section).path)"
+                      [title]="
+                        sidebarCollapsed() ? section.label + ': ' + section.tip : section.tip
+                      "
+                    >
+                      <span class="nav-icon">{{ section.icon }}</span>
+                      @if (!sidebarCollapsed()) {
+                        <span class="nav-label">{{ section.label }}</span>
+                      }
+                    </a>
+                  }
                   @if (section.children.length && !sidebarCollapsed()) {
                     <button
                       class="nav-expand"
