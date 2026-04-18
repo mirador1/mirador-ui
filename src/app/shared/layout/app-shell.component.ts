@@ -80,12 +80,8 @@ export class AppShellComponent {
       icon: '🏠',
       label: 'Dashboard',
       path: '/',
-      tip: 'Stats cards, live throughput chart, before/after comparator, health probes, architecture map with 22 services, start/stop Docker containers',
+      tip: 'Health probes, architecture map with 22 services, Docker start/stop, code-quality summary, session-local error timeline, Angular bundle treemap. Time-series metrics live in Grafana (ADR-0007).',
       children: [
-        {
-          label: 'Stats & Comparator',
-          tip: 'Customer count, HTTP requests, latency p50/p95/p99, before/after snapshot diff',
-        },
         {
           label: 'Health Probes',
           tip: 'Composite health, readiness (Kubernetes), liveness — with sparkline history',
@@ -93,6 +89,22 @@ export class AppShellComponent {
         {
           label: 'Architecture & Services',
           tip: '22 services in 6 columns with live UP/DOWN, Open, Stop/Start',
+        },
+        {
+          label: 'Code Quality',
+          tip: 'Last mvn verify snapshot — tests, coverage (unit-only jacoco.csv), SpotBugs, Sonar ratings',
+        },
+        {
+          label: 'Error Timeline',
+          tip: 'Session-local stacked bar chart — OK vs error responses over 5-probe/3s polls, used alongside chaos actions',
+        },
+        {
+          label: 'Bundle Treemap',
+          tip: 'Angular lazy-chunk size breakdown — static approximation of `npm run build` output',
+        },
+        {
+          label: 'Grafana →',
+          tip: 'Opens the LGTM-bundled Grafana in a new tab (http://localhost:3001) for JVM / HTTP / Kafka / system metrics',
         },
       ],
     },
@@ -123,7 +135,7 @@ export class AppShellComponent {
       icon: '🔍',
       label: 'Observability',
       path: '/observability',
-      tip: 'Traces (Zipkin/Tempo/Jaeger), Logs (Loki/LogQL), Latency histogram, Live SSE feed — all with traffic generation buttons',
+      tip: 'In-session trace + log inspection: Tempo drill-down and Loki LogQL. Histogram and Prometheus live-feed tabs were retired (ADR-0007) — Grafana owns time-series now.',
       children: [
         {
           label: 'Traces (Tempo)',
@@ -131,44 +143,16 @@ export class AppShellComponent {
         },
         { label: 'Logs (Loki)', tip: 'LogQL queries, color-coded by level, live polling every 5s' },
         {
-          label: 'Latency Histogram',
-          tip: 'HTTP response time distribution in 12 human-readable buckets',
-        },
-        {
           label: 'Activity',
           path: '/activity',
           tip: 'Session event timeline — all client-side actions in this browser session',
         },
-        {
-          label: 'Live Feeds',
-          tip: 'SSE customer creation events (real-time push) + HTTP endpoint activity (Prometheus polling)',
-        },
       ],
     },
-    {
-      id: 'metrics',
-      icon: '📊',
-      label: 'Metrics',
-      path: '/visualizations',
-      tip: '78 configurable Prometheus metric cards (Golden Signals), 55 JVM gauges, Sankey flow, Waterfall, Error timeline, Kafka lag, Slow queries, Bundle analysis',
-      children: [
-        {
-          label: 'Golden Signals (78)',
-          tip: '78 configurable cards: HTTP, JVM, GC, DB, Redis, Kafka, Security, System',
-        },
-        {
-          label: 'JVM Gauges (55)',
-          tip: '55 circular gauges: memory, CPU, threads, HikariCP, disk, with categories',
-        },
-        { label: 'Error Timeline', tip: 'Live stacked bar chart OK vs errors, polls every 3s' },
-        {
-          label: 'Kafka Lag',
-          tip: 'Consumer lag line chart, polls every 5s, with traffic generator',
-        },
-        { label: 'Slow Queries', tip: 'Spring Data repository invocation times from Prometheus' },
-        { label: 'Bundle', tip: 'Angular lazy chunk sizes as treemap' },
-      ],
-    },
+    // ADR-0007: Prometheus-fed metric pages retired — moved to Grafana.
+    // Only the two session-local widgets (Error Timeline, Bundle treemap)
+    // remain, and they live on the dashboard now. The dropdown keeps a
+    // direct Grafana link for operators who want time-series charts.
     {
       id: 'database',
       icon: '🐘',
@@ -441,11 +425,8 @@ export class AppShellComponent {
       path: '/observability',
       keywords: 'telemetry observability traces logs latency zipkin loki tempo flame histogram',
     },
-    {
-      label: '📊 Metrics',
-      path: '/visualizations',
-      keywords: 'metrics visualizations golden signals gauges waterfall sankey kafka lag jvm',
-    },
+    // /visualizations retired in ADR-0007 — session-local widgets live on
+    // the dashboard; time-series metrics moved to Grafana.
     {
       label: '🛠️ API Client',
       path: '/request-builder',

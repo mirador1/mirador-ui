@@ -1,7 +1,22 @@
 ![Mirador UI](public/banner.svg)
 
-> Angular 21 frontend for the [`mirador-service`](https://gitlab.com/mirador1/mirador-service) Spring Boot backend.
-> Full observability, management, diagnostics, chaos testing, and advanced visualizations — all from the browser.
+> **Mirador** — Spanish for *watchtower* — is exactly what this project is:
+> a vantage point over a real running system that lets you observe, in one
+> place, **the code, the runtime metrics, the CI/CD pipelines, and the
+> industrial tooling** wired around it. The UI is the front-row seat:
+> health probes, traces, logs, quality reports, pipeline state, chaos
+> actions, and live operational drill-down into the backend — backed by
+> Grafana / Tempo / Loki / Prometheus for time-series observability.
+>
+> The repository is also a **concrete study in how far AI-assisted
+> integration can go**. Every ADR, every CI hardening step, every
+> supply-chain scanner, the K8s baseline, the observability wiring, the
+> technology glossary and this README were authored in close
+> collaboration with an LLM — the same technique keeps the docs, tests,
+> and configuration in lockstep as the system grows.
+>
+> This repository is the **Angular 21 frontend**. The Spring Boot 4
+> backend lives at [`mirador-service`](https://gitlab.com/mirador1/mirador-service).
 
 ---
 
@@ -36,6 +51,7 @@ Non-obvious choices are justified in ADRs under [`docs/adr/`](docs/adr/README.md
 - [0004 — Vitest over Jest for unit tests](docs/adr/0004-vitest-over-jest.md)
 - [0005 — Standalone components, no NgModules](docs/adr/0005-standalone-components.md)
 - [0006 — Keep UI dashboards alongside Grafana (for now)](docs/adr/0006-grafana-duplication.md)
+- [0007 — Retire Prometheus-fed UI visualisations in favour of Grafana](docs/adr/0007-retire-prometheus-ui-visualisations.md)
 
 ### Auto-generated API reference
 
