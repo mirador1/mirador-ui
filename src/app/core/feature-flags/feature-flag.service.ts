@@ -63,6 +63,21 @@ export class FeatureFlagService {
    */
   readonly isAvailable = computed(() => this.env.unleashProxyUrl() !== null);
 
+  /**
+   * Convenience accessor for `mirador.ui.ops-mode` — controls whether
+   * operator-only UI (Observability, Database, Diagnostic, Chaos, Settings,
+   * Pipelines) is visible. Semantics:
+   *   • Local (no proxy)  → true  (full dev view)
+   *   • Kind / Prod, flag missing or still loading → true (optimistic;
+   *     the "customer view" has to be explicitly opted into)
+   *   • Kind / Prod, flag present → whatever Unleash says
+   */
+  readonly opsMode = computed(() => {
+    if (!this.isAvailable()) return true;
+    const map = this._flags();
+    return 'mirador.ui.ops-mode' in map ? map['mirador.ui.ops-mode'] : true;
+  });
+
   private pollHandle: ReturnType<typeof setInterval> | null = null;
 
   constructor() {

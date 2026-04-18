@@ -89,7 +89,10 @@
       <aside class="sidebar">
         <nav class="sidebar-nav">
           @for (section of navTree; track section.id) {
-            @if (!$any(section)['adminOnly'] || auth.isAdmin()) {
+            @if (
+              (!$any(section)['adminOnly'] || auth.isAdmin()) &&
+              (!$any(section)['opsOnly'] || flags.opsMode())
+            ) {
               <div class="nav-section" [class.nav-active]="isActive(section.path)">
                 <div
                   class="nav-header"
