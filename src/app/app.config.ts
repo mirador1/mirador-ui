@@ -9,6 +9,7 @@
  */
 import {
   ApplicationConfig,
+  ErrorHandler,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
@@ -21,6 +22,7 @@ import { provideAuth0 } from '@auth0/auth0-angular';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
+import { AppErrorHandler } from './core/telemetry/app-error-handler';
 
 /**
  * Root `ApplicationConfig` passed to `bootstrapApplication()` in `main.ts`.
@@ -32,6 +34,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     /** Registers global browser error handlers (unhandled rejections, uncaught errors). */
     provideBrowserGlobalErrorListeners(),
+    /**
+     * Custom ErrorHandler (ADR-0009) — routes uncaught exceptions through
+     * TelemetryService + a rate-limited toast + the Activity timeline so
+     * users see failures instead of silent DevTools errors.
+     */
+    { provide: ErrorHandler, useClass: AppErrorHandler },
     /** Enables Angular 21 zoneless change detection — no Zone.js, signals drive updates. */
     provideZonelessChangeDetection(),
     /** Configure the router with lazy-loaded feature routes. */

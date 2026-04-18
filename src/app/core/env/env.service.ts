@@ -80,6 +80,15 @@ export interface Environment {
   kafkaUiUrl?: string;
   /** RedisInsight (port 5540 in compose). */
   redisInsightUrl?: string;
+
+  /**
+   * OTLP HTTP endpoint for browser telemetry (ADR-0009 Phase B).
+   * The LGTM bundle exposes OTLP on :4318 but without CORS — this URL
+   * points at a Nginx CORS proxy that forwards to :4318. Ports follow
+   * the same offset policy: 4319 local, 14319 kind, 24319 prod.
+   * `undefined` while the backend MR that adds the proxy is pending.
+   */
+  otlpUrl?: string;
 }
 
 /**
@@ -173,6 +182,7 @@ export class EnvService {
   readonly pgwebUrl = computed(() => this._current().pgwebUrl ?? null);
   readonly kafkaUiUrl = computed(() => this._current().kafkaUiUrl ?? null);
   readonly redisInsightUrl = computed(() => this._current().redisInsightUrl ?? null);
+  readonly otlpUrl = computed(() => this._current().otlpUrl ?? null);
 
   /**
    * Switch to a different backend environment.
