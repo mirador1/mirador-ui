@@ -1,17 +1,21 @@
 /**
  * DashboardComponent — Home page with backend health overview.
  *
- * Features:
- * - Health probes: /actuator/health, /readiness, /liveness with UP/DOWN badges
+ * Kept deliberately lean (ADR-0008 "industrial" pass): only shows signals
+ * Grafana cannot express natively.
+ *
+ * - Health probes: /actuator/health, /readiness, /liveness current status
+ *   with UP/DOWN badges + toasts on transitions
  * - Auto-refresh: configurable polling interval (1s / 5s / 10s / 30s)
- * - Health change detection: toasts on UP/DOWN transitions
- * - Docker service control: list/start/stop/restart containers via Docker Engine API proxy
- * - Dependency graph: SVG graph of backend services with health status colors
- * - Request heatmap: 24h traffic distribution grid
+ * - Docker service control: list/start/stop/restart via Docker Engine API proxy
+ * - Dependency graph: SVG graph of backend services with health-colour nodes
  * - Code-quality summary strip sourced from /actuator/quality
  *
- * Prometheus-fed RPS/latency charts and JVM/CPU/heap cards were retired
- * per ADR-0006 — those duplicates now live in Grafana.
+ * Removed in this pass: error-timeline stacked bars, Angular bundle treemap,
+ * customer-count stat card, UP/DOWN history sparkline — they either live in
+ * Grafana (rate/error gauges via Golden Signals) or are build-time artefacts
+ * (`ng build --stats-json`). Prometheus-fed RPS/latency charts and JVM/CPU
+ * cards were already retired in ADR-0006.
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
@@ -25,15 +29,6 @@ import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
 import { DeepLinkService } from '../../core/deep-link/deep-link.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
-
-// ── Error timeline (moved from retired visualizations/ feature) ─────────────
-
-/** One sample in the error timeline chart — stacked OK (green) + errors (red). */
-interface ErrorSample {
-  time: Date;
-  ok: number;
-  errors: number;
-}
 
 /**
  * Service port/URL registry — single source of truth for all local service addresses.
@@ -53,21 +48,6 @@ const SVC = {
   lgtm: { port: '3000', url: 'http://localhost:3000/' },
   api: { port: '8080', url: 'http://localhost:8080' },
 } as const;
-
-/**
- * A snapshot of all three health probe statuses taken at a single point in time.
- * Accumulated in `healthHistory` to render sparkline charts showing status over time.
- */
-interface HealthSnapshot {
-  /** Wall-clock time of the snapshot. */
-  time: Date;
-  /** Composite health status string: `'UP'`, `'DOWN'`, or `'UNREACHABLE'`. */
-  health: string;
-  /** Kubernetes readiness probe status. */
-  readiness: string;
-  /** Kubernetes liveness probe status. */
-  liveness: string;
-}
 
 /**
  * Minimal shape of the Spring Boot `/actuator/health` JSON response.
@@ -125,16 +105,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   /** Signal: timestamp of the last successful refresh cycle. Displayed in the topbar. */
   lastRefresh = signal<Date | null>(null);
-
-  // ── Health history ─────────────────────────────────────────────────────────
-
-  /** Signal: rolling history of health probe snapshots used to render sparklines. */
-  healthHistory = signal<HealthSnapshot[]>([]);
-
-  // ── Customer count ─────────────────────────────────────────────────────────
-
-  /** Signal: total customer count from the database. Null until first successful API call. */
-  customerCount = signal<number | null>(null);
 
   // ── Code Quality Summary ────────────────────────────────────────────────────
 
@@ -243,7 +213,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
-    this.stopErrorPolling();
     if (this._dockerRetryTimer) {
       clearInterval(this._dockerRetryTimer);
       this._dockerRetryTimer = null;
@@ -252,141 +221,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private _onRefresh = () => this.refresh();
-
-  // ── Error timeline ──────────────────────────────────────────────────────
-  // Moved from the retired visualizations/ page. Session-local: polls 5
-  // probe requests every 3 s and stacks OK vs error responses. Used in
-  // tandem with chaos actions elsewhere in the UI — Grafana can't show
-  // that correlation because the spike is ephemeral.
-
-  errorSamples = signal<ErrorSample[]>([]);
-  errorPolling = signal(false);
-  errorsGenerating = signal(false);
-  private _errorTimer: ReturnType<typeof setInterval> | null = null;
-
-  toggleErrorPolling(): void {
-    if (this.errorPolling()) {
-      this.stopErrorPolling();
-      return;
-    }
-    this.errorPolling.set(true);
-    this.errorSamples.set([]);
-    this.sampleErrors();
-    this._errorTimer = setInterval(() => this.sampleErrors(), 3000);
-  }
-
-  /** Fire a burst of requests that provoke errors — validation, 404, rate limit, Kafka timeout. */
-  generateErrors(): void {
-    this.errorsGenerating.set(true);
-    const base = this.env.baseUrl();
-    const errorRequests = [
-      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
-      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
-      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
-      this.http.get(`${base}/customers/999999`).pipe(catchError(() => of(null))),
-      this.http.get(`${base}/customers/999999/bio`).pipe(catchError(() => of(null))),
-      this.http.get(`${base}/customers/1/enrich`).pipe(catchError(() => of(null))),
-      ...Array.from({ length: 15 }, () =>
-        this.http.get(`${base}/customers?page=0&size=1`).pipe(catchError(() => of(null))),
-      ),
-    ];
-    let done = 0;
-    for (const req$ of errorRequests) {
-      req$.subscribe(() => {
-        done++;
-        if (done === errorRequests.length) this.errorsGenerating.set(false);
-      });
-    }
-  }
-
-  private stopErrorPolling(): void {
-    this.errorPolling.set(false);
-    if (this._errorTimer) {
-      clearInterval(this._errorTimer);
-      this._errorTimer = null;
-    }
-  }
-
-  private sampleErrors(): void {
-    const base = this.env.baseUrl();
-    let errors = 0;
-    let done = 0;
-    const total = 5;
-    for (let i = 0; i < total; i++) {
-      this.http
-        .get(`${base}/customers?page=0&size=1`)
-        .pipe(
-          catchError(() => {
-            errors++;
-            return of(null);
-          }),
-        )
-        .subscribe(() => {
-          done++;
-          if (done === total) {
-            const ok = total - errors;
-            this.errorSamples.update((s) => [...s.slice(-39), { time: new Date(), ok, errors }]);
-          }
-        });
-    }
-  }
-
-  errorChartBars(): Array<{ x: number; okH: number; errH: number }> {
-    const s = this.errorSamples();
-    if (!s.length) return [];
-    const max = Math.max(1, ...s.map((x) => x.ok + x.errors));
-    const barW = 400 / 40;
-    return s.map((x, i) => ({
-      x: i * barW,
-      okH: (x.ok / max) * 80,
-      errH: (x.errors / max) * 80,
-    }));
-  }
-
-  // ── Bundle treemap ──────────────────────────────────────────────────────
-  // Angular lazy-chunk size breakdown. Reads nothing from Prometheus — kept
-  // in the UI as a static reference for the team. The `analyzeBundleFromBuild`
-  // method seeds the treemap from a hardcoded approximation of the current
-  // `npm run build` output; refresh the numbers when they drift.
-
-  bundleChunks = signal<Array<{ name: string; size: number; pct: number }>>([]);
-
-  analyzeBundleFromBuild(): void {
-    const chunks = [
-      { name: 'main (core)', size: 45 },
-      { name: 'dashboard', size: 15 },
-      { name: 'customers', size: 12 },
-      { name: 'diagnostic', size: 11 },
-      { name: 'observability', size: 10 },
-      { name: 'chaos', size: 9 },
-      { name: 'request-builder', size: 7 },
-      { name: 'settings', size: 6 },
-      { name: 'pipelines', size: 4 },
-      { name: 'activity', size: 4 },
-      { name: 'login', size: 2 },
-      { name: 'polyfills', size: 1 },
-    ];
-    const total = chunks.reduce((s, c) => s + c.size, 0);
-    this.bundleChunks.set(chunks.map((c) => ({ ...c, pct: Math.round((c.size / total) * 100) })));
-  }
-
-  treemapColor(index: number): string {
-    const colors = [
-      '#3b82f6',
-      '#8b5cf6',
-      '#06b6d4',
-      '#10b981',
-      '#f59e0b',
-      '#ef4444',
-      '#ec4899',
-      '#6366f1',
-      '#14b8a6',
-      '#f97316',
-      '#84cc16',
-      '#94a3b8',
-    ];
-    return colors[index % colors.length];
-  }
 
   refresh(): void {
     this.error.set('');
@@ -406,7 +240,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this._previousHealthStatus = newStatus;
         this.health.set(v);
         this.lastRefresh.set(new Date());
-        this.recordHistory();
       },
       error: () => {
         if (this._previousHealthStatus && this._previousHealthStatus !== 'UNREACHABLE') {
@@ -416,7 +249,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this._previousHealthStatus = 'UNREACHABLE';
         this.health.set({ status: 'UNREACHABLE' });
         this.error.set(`Backend not reachable at ${this.env.baseUrl()}`);
-        this.recordHistory();
       },
     });
 
@@ -428,12 +260,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.api.getLiveness().subscribe({
       next: (v) => this.liveness.set(v),
       error: () => this.liveness.set({ status: 'UNREACHABLE' }),
-    });
-
-    // Customer count — lightweight page request (size=1) just to get totalElements
-    this.api.getCustomers(0, 1).subscribe({
-      next: (page) => this.customerCount.set(page.totalElements),
-      error: () => {},
     });
 
     // Refresh dependency graph and Docker containers alongside health probes
@@ -1170,19 +996,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  private recordHistory(): void {
-    const snap: HealthSnapshot = {
-      time: new Date(),
-      health: this.extractStatus(this.health()),
-      readiness: this.extractStatus(this.readiness()),
-      liveness: this.extractStatus(this.liveness()),
-    };
-    this.healthHistory.update((h) => [...h.slice(-29), snap]);
-  }
-
-  private extractStatus(data: unknown): string {
-    return (data as { status?: string })?.status ?? '?';
-  }
 
   statusClass(data: unknown): string {
     const d = data as { status?: string } | null;
@@ -1195,55 +1008,5 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const d = data as { status?: string } | null;
     if (!d) return '...';
     return d.status ?? '?';
-  }
-
-  /** Generate SVG path data for the health status sparkline (UP=top, DOWN=bottom) */
-  sparklinePath(): string {
-    const history = this.healthHistory();
-    if (history.length < 2) return '';
-    const w = 200;
-    const h = 30;
-    const step = w / (history.length - 1);
-    return history
-      .map((s, i) => {
-        const y = s.health === 'UP' ? 5 : h - 5;
-        return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
-      })
-      .join(' ');
-  }
-
-  /**
-   * Compute evenly-spaced x-axis labels (relative seconds) for the health history sparkline.
-   * The rightmost label is "0s" (now), earlier points show "-Xs" relative to the last snapshot.
-   * Returns up to 5 labels with their percentage position along the x-axis.
-   */
-  sparklineXLabels(): { pct: number; label: string }[] {
-    const history = this.healthHistory();
-    if (history.length < 2) return [];
-    const count = Math.min(5, history.length);
-    const step = (history.length - 1) / (count - 1);
-    return Array.from({ length: count }, (_, i) => {
-      const idx = Math.round(i * step);
-      const t = history[idx].time;
-      const label = t.toTimeString().slice(0, 8); // HH:MM:SS
-      const pct = (idx / (history.length - 1)) * 100;
-      return { pct, label };
-    });
-  }
-
-  /** Area fill path — same as sparklinePath but closed at the bottom */
-  sparklineAreaPath(): string {
-    const history = this.healthHistory();
-    if (history.length < 2) return '';
-    const w = 200;
-    const h = 30;
-    const step = w / (history.length - 1);
-    const line = history
-      .map((s, i) => {
-        const y = s.health === 'UP' ? 5 : h - 5;
-        return `${i === 0 ? 'M' : 'L'}${i * step},${y}`;
-      })
-      .join(' ');
-    return `${line} L${w},${h} L0,${h} Z`;
   }
 }
