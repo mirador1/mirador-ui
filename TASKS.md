@@ -43,10 +43,9 @@
       target app isn't installed (the browser just does nothing — no
       feature-detection needed).
 
-- [ ] **Move the UI image pipeline to a `test-image` stage**. The image
-      is still built + pushed (useful for CI integration tests +
-      prod-like local run without `npm install`) but is no longer a
-      deploy artefact (ADR-0025). Tag `:main-<sha>` only, no `:latest`.
+<!-- Image pipeline renamed to `test-image` stage; deploy:gke + smoke-test
+     retired. Only :$CI_COMMIT_SHA tag pushed (no :latest, no :main).
+     Remaining deploy:* jobs are when:manual showcases. -->
 
 
 ## Pending — Deferred majors
