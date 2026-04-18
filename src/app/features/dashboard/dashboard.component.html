@@ -573,6 +573,24 @@
                       >Open ↗</a
                     >
                   }
+                  @if (node.container) {
+                    <!--
+                      docker-desktop:// deep-link. Falls through silently if
+                      Docker Desktop is not installed (the OS doesn't route
+                      the scheme anywhere). Per mirador-service
+                      docs/getting-started/dev-tooling.md.
+                    -->
+                    <a
+                      class="docker-btn docker-link"
+                      [href]="deepLink.dockerContainer(node.container)"
+                      [title]="
+                        'Open ' +
+                        node.container +
+                        ' in Docker Desktop (silent no-op if not installed)'
+                      "
+                      >🐳 DD</a
+                    >
+                  }
                   @if (topoContainer(node); as c) {
                     @if (c.running) {
                       <button

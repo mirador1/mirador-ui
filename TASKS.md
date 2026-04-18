@@ -36,12 +36,11 @@
      Tempo / Loki calls now route through Grafana datasource proxy via
      env.grafanaUrl(). ops-mode feature-flag gate dropped on user feedback. -->
 
-- [ ] **Desktop deep-link buttons** from mirador-service
-      `docs/getting-started/dev-tooling.md`. Add `<a href="vscode://…">` /
-      `idea://…` / `docker-desktop://…` buttons on the Architecture,
-      Database, and Quality pages where relevant. Fails silently if the
-      target app isn't installed (the browser just does nothing — no
-      feature-detection needed).
+<!-- Deep-link plumbing landed (DeepLinkService + Dashboard Docker Desktop
+     button in commit dca8d38 / followup). vscode:// / idea:// helpers
+     exposed in the service for future consumers (stack-trace links,
+     source-code navigation). -->
+
 
 <!-- Image pipeline renamed to `test-image` stage; deploy:gke + smoke-test
      retired. Only :$CI_COMMIT_SHA tag pushed (no :latest, no :main).

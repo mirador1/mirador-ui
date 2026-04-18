@@ -23,6 +23,7 @@ import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
+import { DeepLinkService } from '../../core/deep-link/deep-link.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 // ── Error timeline (moved from retired visualizations/ feature) ─────────────
@@ -107,6 +108,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
+  /** Desktop deep-link helpers (docker-desktop://, vscode://, idea://). */
+  readonly deepLink = inject(DeepLinkService);
 
   /** Signal: raw JSON from `/actuator/health`. Null until first poll. Shape: `{status, components}`. */
   health = signal<unknown>(null);
