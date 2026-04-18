@@ -46,6 +46,14 @@ export interface Environment {
   unleashUrl?: string;
   /** Argo CD UI (tunnelled 18081 in prod; not in compose by design). */
   argocdUrl?: string;
+  /**
+   * Unleash front-end proxy (`unleash-proxy` Deployment in the `infra`
+   * namespace of the K8s clusters). The browser calls this with a
+   * pre-shared front-end token; the proxy handles the Unleash admin API
+   * on the backend side. Per mirador-service ADR-0026, Spring Boot is not
+   * on this path.
+   */
+  unleashProxyUrl?: string;
   /** Chaos Mesh dashboard (tunnelled 12333 in prod; not in compose — CRDs don't exist). */
   chaosMeshUrl?: string;
   /** Pyroscope continuous profiling (port 4040 in compose, tunnelled 14040 in prod). */
@@ -108,6 +116,7 @@ const ENVIRONMENTS: Environment[] = [
     grafanaUrl: 'http://localhost:13000',
     keycloakUrl: 'http://localhost:19090',
     unleashUrl: 'http://localhost:14242',
+    unleashProxyUrl: 'http://localhost:14243',
     argocdUrl: 'http://localhost:18081',
     chaosMeshUrl: 'http://localhost:12333',
     pyroscopeUrl: 'http://localhost:14040',
@@ -125,6 +134,7 @@ const ENVIRONMENTS: Environment[] = [
     grafanaUrl: 'http://localhost:23000',
     keycloakUrl: 'http://localhost:29090',
     unleashUrl: 'http://localhost:24242',
+    unleashProxyUrl: 'http://localhost:24243',
     argocdUrl: 'http://localhost:28081',
     chaosMeshUrl: 'http://localhost:22333',
     pyroscopeUrl: 'http://localhost:24040',
@@ -156,6 +166,7 @@ export class EnvService {
   readonly keycloakUrl = computed(() => this._current().keycloakUrl ?? null);
   readonly unleashUrl = computed(() => this._current().unleashUrl ?? null);
   readonly argocdUrl = computed(() => this._current().argocdUrl ?? null);
+  readonly unleashProxyUrl = computed(() => this._current().unleashProxyUrl ?? null);
   readonly chaosMeshUrl = computed(() => this._current().chaosMeshUrl ?? null);
   readonly pyroscopeUrl = computed(() => this._current().pyroscopeUrl ?? null);
   readonly cloudbeaverUrl = computed(() => this._current().cloudbeaverUrl ?? null);
