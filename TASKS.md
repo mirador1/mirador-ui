@@ -22,22 +22,40 @@
       refactor and the About page already works.
 
 
-## Pending — Industry-standard upgrades (from the "indus" shortlist)
+<!-- GitOps / ESO / Grafana-as-Code entries removed — per ADR-0025 in
+     mirador-service the UI is no longer deployed to Kubernetes, so
+     UI-side Argo CD / ESO / dashboards-as-code tasks don't apply.
+     The backend holds the GitOps + ESO + dashboards machinery. -->
 
-- [ ] **GitOps via Argo CD (or Flux).** Currently deploys are push-based
-      from `.gitlab-ci.yml`. Industry pattern: CI pushes image, Argo CD
-      pulls manifests from `main`. Rollback = `git revert`. Kustomize
-      overlay is already in place; Argo just needs an `Application` CR
-      pointing at `deploy/kubernetes/overlays/gke`.
+## Pending — Post-ADR-0025 follow-up
 
-- [ ] **External Secrets Operator + Google Secret Manager.** Replace
-      CI-injected `kubectl create secret` with ExternalSecret CRDs.
-      Eliminates secrets in CI variable storage.
+- [ ] **Phase 2b — strip the SQL Explorer from `database.component`.**
+      The pgweb REST API the explorer called is gone (mirador-service MR 77)
+      and a SQL proxy BFF is explicitly rejected (security smell — we don't
+      want to re-invent pgweb's attack surface in Spring). Drop the SQL
+      execution path + health checks that depend on it; keep the VACUUM
+      button (goes through Spring Boot `/actuator/maintenance`, not arbitrary
+      SQL) and keep the preset queries as copy-paste templates for CloudBeaver.
+      ~600 LOC to delete.
 
-- [ ] **Grafana-as-Code** with grizzly or jsonnet. Backend already emits
-      OTLP to Grafana Cloud; dashboards are currently hand-clicked +
-      not versioned. Add `deploy/grafana/` with JSON exports + grizzly
-      apply step in CI.
+- [ ] **Phase 2c — migrate remaining hardcoded `localhost:<port>` URLs
+      to EnvService signals** across the Observability component
+      (localhost:3000 Grafana iframes + Tempo datasource proxy). Tempo
+      queries should go through the backend BFF that already exists
+      (mirador-service `/obs/tempo/traces/{id}` — ADR-0024). Loki
+      similarly. Deep-link buttons use `env.grafanaUrl()`.
+
+- [ ] **Desktop deep-link buttons** from mirador-service
+      `docs/getting-started/dev-tooling.md`. Add `<a href="vscode://…">` /
+      `idea://…` / `docker-desktop://…` buttons on the Architecture,
+      Database, and Quality pages where relevant. Fails silently if the
+      target app isn't installed (the browser just does nothing — no
+      feature-detection needed).
+
+- [ ] **Move the UI image pipeline to a `test-image` stage**. The image
+      is still built + pushed (useful for CI integration tests +
+      prod-like local run without `npm install`) but is no longer a
+      deploy artefact (ADR-0025). Tag `:main-<sha>` only, no `:latest`.
 
 
 ## Pending — Deferred majors

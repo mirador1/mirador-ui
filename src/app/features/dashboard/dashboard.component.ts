@@ -45,7 +45,7 @@ const SVC = {
   'maven-site': { port: '8084', url: 'http://localhost:8084' },
   compodoc: { port: '8086', url: 'http://localhost:8086' },
   gitlab: { port: '9081', url: 'http://localhost:9081' },
-  pgadmin: { port: '5050', url: 'http://localhost:5050' },
+  cloudbeaver: { port: '8978', url: 'http://localhost:8978' },
   'kafka-ui': { port: '9080', url: 'http://localhost:9080' },
   redisinsight: { port: '5540', url: 'http://localhost:5540' },
   keycloak: { port: '9090', url: 'http://localhost:9090/admin' },
@@ -550,24 +550,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '3001',
       url: 'http://localhost:3000/dashboards',
     },
-    pgweb: {
-      icon: '🔬',
-      label: 'pgweb',
-      description: 'SQL client + REST API',
+    // pgweb + pgAdmin retired together in mirador-service MR 77. CloudBeaver
+    // replaces both — one SQL client, same DBeaver UI as the desktop app.
+    cloudbeaver: {
+      icon: '🐘',
+      label: 'CloudBeaver',
+      description: 'Web SQL browser',
       detail:
-        'Lightweight PostgreSQL web client with REST API. Read-only mode, CORS enabled. The Angular frontend calls GET /api/query for the SQL Explorer in Settings.',
-      port: '8081',
-      url: 'http://localhost:8081',
-    },
-    pgadmin: {
-      icon: '🛢️',
-      label: 'pgAdmin',
-      description: 'PostgreSQL web UI',
-      detail:
-        'pgAdmin 4 — web-based PostgreSQL administration tool. Connect to postgres-demo:5432 (user: postgres, password: postgres, db: customerdb). Useful for inspecting the customer table, running ad-hoc SQL, and checking Flyway migrations.',
-      image: 'images/tools/pgadmin.png',
-      port: '5050',
-      url: 'http://localhost:5050',
+        'CloudBeaver — web edition of DBeaver. On first visit set an admin password, then register a Postgres connection (host db, db customer-service, user demo, password demo). Replaces pgAdmin + pgweb from the pre-MR-77 stack.',
+      image: 'images/tools/pgadmin.png', // reusing until a cloudbeaver.png asset lands
+      port: '8978',
+      url: 'http://localhost:8978',
     },
     'kafka-ui': {
       icon: '📋',
@@ -579,15 +572,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       port: '9080',
       url: 'http://localhost:9080',
     },
-    'redis-commander': {
-      icon: '📟',
-      label: 'Redis Commander',
-      description: 'Redis web UI + live monitor',
-      detail:
-        'Lightweight Redis web UI with live command monitoring. Auto-connects to Redis. Shows real-time command stream — useful for watching idempotency keys and rate limit buckets change.',
-      port: '8082',
-      url: 'http://localhost:8082',
-    },
+    // Redis Commander removed with mirador-service MR 77 — RedisInsight is
+    // the single Redis UI now.
     redisinsight: {
       icon: '🔎',
       label: 'RedisInsight',
@@ -899,33 +885,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
       detail:
         'Ollama runs the llama3.2 model locally. Powers /customers/{id}/bio via Spring AI ChatClient. Protected by Resilience4j circuit breaker — 10 failed calls in 60s trips the breaker, returns 503 fallback immediately for 30s before half-opening.',
     },
-    // Col 3 — Data Tools
+    // Col 3 — Data Tools. Single CloudBeaver tile replaces the former
+    // pgAdmin + pgweb split (mirador-service MR 77).
     {
-      id: 'pgadmin',
-      label: 'pgAdmin',
+      id: 'cloudbeaver',
+      label: 'CloudBeaver',
       col: 3,
       row: 0,
-      icon: '🛢️',
-      port: '5050',
-      container: 'pgadmin',
-      url: 'http://localhost:5050',
-      tip: 'PostgreSQL admin UI',
+      icon: '🐘',
+      port: '8978',
+      container: 'cloudbeaver',
+      url: 'http://localhost:8978',
+      tip: 'Web SQL browser',
       detail:
-        'pgAdmin 4 — full PostgreSQL administration: browse schemas, run SQL, inspect Flyway migrations, monitor connections, view ERD diagrams, backup/restore. Desktop mode (no login). Server pre-configured: db:5432, user demo, database customer-service.',
-      image: 'images/tools/pgadmin.png',
-    },
-    {
-      id: 'pgweb',
-      label: 'pgweb',
-      col: 3,
-      row: 1,
-      icon: '🔬',
-      port: '8081',
-      container: 'pgweb',
-      url: 'http://localhost:8081',
-      tip: 'SQL client + REST API',
-      detail:
-        'Lightweight PostgreSQL web client (15MB Go binary). Read-only mode, CORS enabled. The Angular Settings page calls its REST API (GET /api/query?query=SELECT...) for the SQL Explorer and PostgreSQL diagnostics (table sizes, index usage, cache hit ratio, bloat).',
+        'CloudBeaver — DBeaver web edition, one container. Set admin password on first visit, register a Postgres connection (host db, db customer-service, user demo, password demo). ERD + SQL editor + history survive via the cloudbeaver_data volume.',
+      image: 'images/tools/pgadmin.png', // reusing asset until a cloudbeaver.png lands
     },
     {
       id: 'redisinsight',
@@ -941,19 +915,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'RedisInsight — visual Redis explorer. Browse keys (idempotency keys with TTL, recent customer ring buffer, rate limit buckets), inspect data types, monitor memory usage, run Redis commands. Connect to redis-demo:6379.',
       image: 'images/tools/redisinsight.png',
     },
-    {
-      id: 'redis-commander',
-      label: 'Redis Cmdr',
-      col: 3,
-      row: 3,
-      icon: '📟',
-      port: '8082',
-      container: 'redis-commander',
-      url: 'http://localhost:8082',
-      tip: 'Redis live monitor',
-      detail:
-        'Redis Commander — lightweight alternative to RedisInsight. Auto-connects to Redis. Key feature: live command monitor showing every Redis command in real-time. Useful for watching idempotency key creation, ring buffer LPUSH/LTRIM, and rate limit INCR.',
-    },
+    // Redis Commander node removed with mirador-service MR 77 cleanup.
     {
       id: 'consumer',
       label: 'Kafka Consumer',
@@ -1054,10 +1016,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { from: 'api', to: 'kafka' },
     { from: 'api', to: 'ollama' },
     // Col 2 → 3 (data stores → their tools)
-    { from: 'pg', to: 'pgadmin' },
-    { from: 'pg', to: 'pgweb' },
+    { from: 'pg', to: 'cloudbeaver' },
     { from: 'redis', to: 'redisinsight' },
-    { from: 'redis', to: 'redis-commander' },
     { from: 'kafka', to: 'consumer' },
     { from: 'kafka', to: 'kafka-ui' },
     // Col 5 CI/CD → quality tools
@@ -1098,9 +1058,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'kafka-demo': 'kafka',
       ollama: 'ollama',
       keycloak: 'keycloak',
-      pgweb: 'pgweb',
-      'redis-commander': 'redis-commander',
-      pgadmin: 'pgadmin',
+      cloudbeaver: 'cloudbeaver',
       'kafka-ui': 'kafka-ui',
       redisinsight: 'redisinsight',
       'customerservice-lgtm': 'loki',
@@ -1161,10 +1119,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     redis: 'Spring Boot health component "redis" inside /actuator/health/components.',
     kafka: 'Docker container state via Docker Engine API (container running = UP).',
     ollama: 'Docker container state via Docker Engine API (container running = UP).',
-    pgadmin: 'Docker container state via Docker Engine API (container running = UP).',
-    pgweb: 'Docker container state via Docker Engine API (container running = UP).',
+    cloudbeaver: 'Docker container state via Docker Engine API (container running = UP).',
     redisinsight: 'Docker container state via Docker Engine API (container running = UP).',
-    'redis-commander': 'Docker container state via Docker Engine API (container running = UP).',
     consumer: 'Inferred from Kafka container state — shown as UP when kafka-demo is running.',
     'kafka-ui': 'Docker container state via Docker Engine API (container running = UP).',
     loki: 'Docker container state via Docker Engine API (container running = UP).',

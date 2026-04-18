@@ -44,6 +44,25 @@
 
     <div class="topbar-actions">
       @if (auth.isAuthenticated()) {
+        <!--
+          Environment selector. `Local` = compose defaults (8080, 3000, …);
+          `Prod tunnel` = GKE reached through bin/pf-prod.sh (18080, 13000, …).
+          See docs/architecture/env-service.md in this repo and
+          mirador-service/docs/adr/0025-ui-local-only-no-public-prod-ingress.md.
+          Selection persists in localStorage; signals downstream recompute.
+        -->
+        <select
+          class="env-selector"
+          [ngModel]="env.current()"
+          (ngModelChange)="env.select($event)"
+          [compareWith]="envCompare"
+          title="Switch environment — compose vs GKE port-forward tunnel"
+          aria-label="Environment"
+        >
+          @for (e of env.environments; track e.name) {
+            <option [ngValue]="e">{{ e.name }}</option>
+          }
+        </select>
         <button
           class="theme-btn"
           (click)="theme.toggle()"
