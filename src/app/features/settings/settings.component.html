@@ -27,6 +27,45 @@
       }
     </div>
 
+    <!-- Feature flags — only meaningful on envs with unleash-proxy (Kind + Prod) -->
+    @if (flags.isAvailable()) {
+      <article class="card">
+        <h3>Feature flags <small>via unleash-proxy</small></h3>
+        <p class="card-desc">
+          Read directly from <code>unleash-proxy</code> — the Angular UI does not go through Spring
+          Boot (<a
+            href="https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/adr/0026-spring-boot-scope-limit-no-third-party-tool-awareness.md"
+            target="_blank"
+            rel="noopener"
+            >ADR-0026</a
+          >). Polling every 30 s; last fetch
+          @if (flags.loaded()) {
+            <span class="badge-ok">loaded</span>
+          } @else if (flags.error()) {
+            <span class="badge-err">{{ flags.error() }}</span>
+          } @else {
+            <span>pending…</span>
+          }
+        </p>
+        @if (flags.loaded()) {
+          <ul class="flag-list">
+            @for (name of flagNames(); track name) {
+              <li>
+                <code>{{ name }}</code>
+                @if (flags.isOn(name)) {
+                  <span class="badge-ok">on</span>
+                } @else {
+                  <span class="badge-off">off</span>
+                }
+              </li>
+            } @empty {
+              <li class="muted">No flags defined yet — create them in the Unleash admin UI.</li>
+            }
+          </ul>
+        }
+      </article>
+    }
+
     <!-- Actuator endpoint explorer -->
     <article class="card">
       <h3>Actuator Endpoint Explorer</h3>

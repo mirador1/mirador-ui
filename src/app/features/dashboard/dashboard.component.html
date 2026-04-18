@@ -128,16 +128,19 @@
   }
 
   <!--
-    Prometheus-fed sections (live HTTP throughput, latency history,
-    JVM/CPU/heap/HikariCP/HTTP cards) moved to Grafana per ADR-0006.
-    The customer-count card below used the same wrapper; extracted so
-    it keeps rendering without a Prometheus dependency.
+    ADR-0006/0007/0008 aftermath. Prometheus-fed HTTP/JVM gauges, the
+    error-timeline stacked bars, the Angular bundle treemap and the
+    single "customer count" stat card were all retired — Grafana owns
+    time-series now, and the bundle size is a build artefact better
+    read from `ng build --stats-json`. The dashboard now focuses on the
+    three things Grafana cannot express: health-probe current state,
+    Docker service control, and the Maven quality snapshot.
   -->
   <div class="section-header">
     <h3>
       Runtime metrics
       <app-info-tip
-        text="Live HTTP throughput, latency percentiles and JVM/system gauges now live in Grafana (LGTM bundle, default home dashboard). The dashboard page focuses on health probes, service orchestration and code quality — signals Grafana cannot express."
+        text="HTTP throughput, latency percentiles, JVM/system gauges, error-rate charts and bundle size now live in Grafana (LGTM bundle, default home dashboard) or in the build output. The dashboard page only surfaces signals that are session-local or absent from Grafana."
         [wide]="true"
       />
     </h3>
@@ -145,104 +148,6 @@
       <a [href]="g" target="_blank" rel="noopener" class="quality-full-link"> Open Grafana → </a>
     }
   </div>
-
-  @if (customerCount() !== null) {
-    <div class="jvm-grid single-card">
-      <div class="jvm-card jvm-card-stat">
-        <div class="jvm-card-title">👥 Customers</div>
-        <div class="jvm-stat-value">{{ customerCount() | number }}</div>
-        <div class="jvm-stat-label">total in DB</div>
-      </div>
-    </div>
-  }
-
-  <!--
-    Error timeline — session-local OK/err stacked bar chart. Moved here
-    from the retired visualizations page because it's only meaningful
-    in tandem with the chaos actions elsewhere in the UI.
-  -->
-  <div class="section-header">
-    <h3>
-      💥 Error timeline
-      <app-info-tip
-        text="Live error-rate monitor. Every 3 s, fires 5 GET /customers?page=0&size=1 probe requests and charts OK (green) vs errors (red). Use while running chaos actions to see the impact."
-        [wide]="true"
-      />
-    </h3>
-    <div class="header-actions">
-      <button class="refresh-btn" [class.active]="errorPolling()" (click)="toggleErrorPolling()">
-        {{ errorPolling() ? '⏹ Stop' : '▶ Start (3 s)' }}
-      </button>
-      <button class="refresh-btn" (click)="generateErrors()" [disabled]="errorsGenerating()">
-        {{ errorsGenerating() ? '…' : '💥 Generate errors' }}
-      </button>
-    </div>
-  </div>
-  @if (errorSamples().length) {
-    <div class="error-chart-container">
-      <svg viewBox="0 0 400 100" preserveAspectRatio="none" class="error-svg">
-        @for (bar of errorChartBars(); track $index) {
-          <rect
-            [attr.x]="bar.x"
-            [attr.y]="100 - bar.okH - bar.errH"
-            [attr.width]="8"
-            [attr.height]="bar.okH"
-            rx="1"
-            fill="#4ade80"
-            opacity="0.8"
-          />
-          @if (bar.errH > 0) {
-            <rect
-              [attr.x]="bar.x"
-              [attr.y]="100 - bar.errH"
-              [attr.width]="8"
-              [attr.height]="bar.errH"
-              rx="1"
-              fill="#f87171"
-              opacity="0.8"
-            />
-          }
-        }
-      </svg>
-      <div class="error-legend">
-        <span class="legend-ok">OK (2xx)</span>
-        <span class="legend-err">Error (4xx/5xx)</span>
-      </div>
-    </div>
-  } @else {
-    <p class="muted">Click Start to begin polling, or Generate errors to trigger a burst.</p>
-  }
-
-  <!--
-    Bundle treemap — Angular lazy-chunk size breakdown. Static reference
-    from `npm run build`; not Prometheus-fed.
-  -->
-  <div class="section-header">
-    <h3>
-      📦 Bundle breakdown
-      <app-info-tip
-        text="Angular bundle size by lazy-loaded chunk. Each block is a feature module. Larger blocks = heavier JS shipped to the browser. Refresh the in-code approximation after significant build output changes."
-        [wide]="true"
-      />
-    </h3>
-    <button class="refresh-btn" (click)="analyzeBundleFromBuild()">▶ Load breakdown</button>
-  </div>
-  @if (bundleChunks().length) {
-    <div class="treemap">
-      @for (chunk of bundleChunks(); track chunk.name; let i = $index) {
-        <div
-          class="treemap-cell"
-          [style.flex-grow]="chunk.size"
-          [style.background]="treemapColor(i)"
-          [title]="chunk.name + ': ' + chunk.size + 'kB (' + chunk.pct + '%)'"
-        >
-          <span class="treemap-name">{{ chunk.name }}</span>
-          <span class="treemap-size">{{ chunk.size }}kB</span>
-          <span class="treemap-pct">{{ chunk.pct }}%</span>
-        </div>
-      }
-    </div>
-  }
 
   <!-- Code Quality Summary -->
   <section class="section">
@@ -370,48 +275,10 @@
     />
   </h3>
 
-  <!-- Health history sparkline -->
-  @if (healthHistory().length > 1) {
-    <div class="sparkline-container">
-      <span class="sparkline-label">Health history ({{ healthHistory().length }} checks)</span>
-      <div class="sparkline-wrapper">
-        <svg viewBox="0 0 200 30" class="sparkline" preserveAspectRatio="none">
-          <!-- fill area under the line -->
-          <path [attr.d]="sparklineAreaPath()" fill="var(--color-accent)" opacity="0.15" />
-          <!-- line -->
-          <path
-            [attr.d]="sparklinePath()"
-            fill="none"
-            stroke="var(--color-accent)"
-            stroke-width="1.5"
-            vector-effect="non-scaling-stroke"
-          />
-        </svg>
-        <!-- round dots overlaid as CSS spans so they stay circular (not squished by SVG stretch) -->
-        @for (snap of healthHistory(); track $index; let i = $index) {
-          <span
-            class="sparkline-dot"
-            [class.dot-up]="snap.health === 'UP'"
-            [class.dot-down]="snap.health !== 'UP'"
-            [style.left.%]="
-              healthHistory().length > 1 ? (i / (healthHistory().length - 1)) * 100 : 50
-            "
-            [style.top.%]="snap.health === 'UP' ? 16.7 : 83.3"
-          ></span>
-        }
-      </div>
-      <!-- X-axis time labels (HH:MM) positioned proportionally -->
-      <div class="sparkline-xaxis" aria-hidden="true">
-        @for (lbl of sparklineXLabels(); track lbl.label) {
-          <span class="sparkline-xaxis-label" [style.left.%]="lbl.pct">{{ lbl.label }}</span>
-        }
-      </div>
-      <div class="sparkline-legend">
-        <span class="legend-up">UP</span>
-        <span class="legend-down">DOWN</span>
-      </div>
-    </div>
-  }
+  <!-- ADR-0008 aftermath: the UP/DOWN sparkline was client-side-only and
+       duplicated (weakly) the "up" Micrometer metric that Grafana plots in
+       the Golden Signals dashboard. The three probe cards below show the
+       current status — history lives in Grafana. -->
 
   <div class="probes-grid">
     <article class="card">
@@ -571,6 +438,24 @@
                         'Open ' + node.label + ' in a new browser tab (localhost:' + node.port + ')'
                       "
                       >Open ↗</a
+                    >
+                  }
+                  @if (node.container) {
+                    <!--
+                      docker-desktop:// deep-link. Falls through silently if
+                      Docker Desktop is not installed (the OS doesn't route
+                      the scheme anywhere). Per mirador-service
+                      docs/getting-started/dev-tooling.md.
+                    -->
+                    <a
+                      class="docker-btn docker-link"
+                      [href]="deepLink.dockerContainer(node.container)"
+                      [title]="
+                        'Open ' +
+                        node.container +
+                        ' in Docker Desktop (silent no-op if not installed)'
+                      "
+                      >🐳 DD</a
                     >
                   }
                   @if (topoContainer(node); as c) {

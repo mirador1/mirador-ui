@@ -8,13 +8,14 @@
  *
  * SQL Explorer has moved to DatabaseComponent (/database).
  */
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { FeatureFlagService } from '../../core/feature-flags/feature-flag.service';
 import { RouterLink } from '@angular/router';
 
 /**
@@ -67,6 +68,11 @@ export class SettingsComponent implements OnInit {
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
+  /** Feature flags from unleash-proxy — isAvailable() false on Local compose. */
+  readonly flags = inject(FeatureFlagService);
+
+  /** Flag names sorted alphabetically for deterministic rendering. */
+  readonly flagNames = computed(() => Object.keys(this.flags.flags()).sort());
 
   // ── Actuator info ──────────────────────────────────────────────────────────
 

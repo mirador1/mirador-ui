@@ -38,6 +38,7 @@ import { EnvService } from '../../core/env/env.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
+import { FeatureFlagService } from '../../core/feature-flags/feature-flag.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
 
 /**
@@ -146,6 +147,21 @@ export class CustomersComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
+  /** Feature flags — used to gate the Bio tab on `mirador.bio.enabled`. */
+  readonly flags = inject(FeatureFlagService);
+
+  /**
+   * Is the Bio tab available? Kill-switch semantics via Unleash:
+   *   - Local (no proxy) → true (always show in dev)
+   *   - Kind/Prod with flag `mirador.bio.enabled = false` → hide the tab
+   *   - Kind/Prod, flag missing or loading → true (default on: Ollama is
+   *     part of the customer-facing product so we stay optimistic)
+   */
+  readonly bioEnabled = computed(() => {
+    if (!this.flags.isAvailable()) return true;
+    const map = this.flags.flags();
+    return 'mirador.bio.enabled' in map ? map['mirador.bio.enabled'] : true;
+  });
 
   // ── List state ─────────────────────────────────────────────────────────────
 

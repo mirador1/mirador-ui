@@ -44,13 +44,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/activity/activity.component').then((m) => m.ActivityComponent),
   },
-  {
-    path: 'observability',
-    loadComponent: () =>
-      import('./features/observability/observability.component').then(
-        (m) => m.ObservabilityComponent,
-      ),
-  },
+  // /observability retired in ADR-0008 — Grafana Explore owns TraceQL / LogQL
+  // consumption now. Loggers management moved to /settings (existed already).
+  // Redirect old bookmarks to home; sidebar now deep-links to Grafana directly.
+  { path: 'observability', redirectTo: '', pathMatch: 'full' },
   {
     path: 'request-builder',
     loadComponent: () =>
@@ -71,7 +68,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },
   { path: 'audit', redirectTo: 'security', pathMatch: 'full' },
-  { path: 'timeline', redirectTo: 'observability', pathMatch: 'full' },
+  { path: 'timeline', redirectTo: '', pathMatch: 'full' },
   {
     path: 'security',
     loadComponent: () =>

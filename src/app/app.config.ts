@@ -9,15 +9,20 @@
  */
 import {
   ApplicationConfig,
+  ErrorHandler,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+// `@auth0/auth0-angular` pinned to 2.x. No 3.x line published on npm as of
+// 2026-04-19 — Renovate will flag when one appears. Revisit then (breaking
+// changes around provideAuth0 signature are expected but unknown).
 import { provideAuth0 } from '@auth0/auth0-angular';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
+import { AppErrorHandler } from './core/telemetry/app-error-handler';
 
 /**
  * Root `ApplicationConfig` passed to `bootstrapApplication()` in `main.ts`.
@@ -29,6 +34,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     /** Registers global browser error handlers (unhandled rejections, uncaught errors). */
     provideBrowserGlobalErrorListeners(),
+    /**
+     * Custom ErrorHandler (ADR-0009) — routes uncaught exceptions through
+     * TelemetryService + a rate-limited toast + the Activity timeline so
+     * users see failures instead of silent DevTools errors.
+     */
+    { provide: ErrorHandler, useClass: AppErrorHandler },
     /** Enables Angular 21 zoneless change detection — no Zone.js, signals drive updates. */
     provideZonelessChangeDetection(),
     /** Configure the router with lazy-loaded feature routes. */
