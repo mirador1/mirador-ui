@@ -145,8 +145,14 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
 
   activeTab = signal<ObsTab>('traces');
 
-  // ── Traces (Tempo API via Grafana proxy) ──────────────────────────────────
-  private readonly TEMPO_BASE = 'http://localhost:3000/api/datasources/proxy/uid/tempo';
+  // ── Traces (Tempo API via Grafana datasource proxy) ──────────────────────
+  // Env-aware: compose :3000, kind :13000, prod :23000. Per ADR-0026 the UI
+  // talks to Grafana's built-in datasource proxy directly — no Spring Boot
+  // BFF hop.
+  private tempoBase(): string | null {
+    const g = this.env.grafanaUrl();
+    return g ? `${g}/api/datasources/proxy/uid/tempo` : null;
+  }
 
   tempoSummaries = signal<TempoTraceSummary[]>([]);
   tempoLoading = signal(false);
@@ -250,40 +256,51 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
    * The filters array uses scope="resource" + tag="service.name" so results appear
    * immediately without any manual input from the user.
    */
-  private readonly TEMPO_SEARCH_URL =
-    'http://localhost:3000/explore?schemaVersion=1&panes=' +
-    encodeURIComponent(
-      JSON.stringify({
-        t: {
-          datasource: 'tempo',
-          queries: [
-            {
-              refId: 'A',
-              datasource: { type: 'tempo', uid: 'tempo' },
-              queryType: 'traceqlSearch',
-              limit: 20,
-              tableType: 'traces',
-              filters: [
-                {
-                  id: 'svc',
-                  operator: '=',
-                  scope: 'resource',
-                  tag: 'service.name',
-                  value: 'customer-service',
-                },
-              ],
-              metricsQueryType: 'range',
-              serviceMapUseNativeHistograms: false,
-            },
-          ],
-          range: { from: 'now-1h', to: 'now' },
-          compact: false,
-        },
-      }),
-    ) +
-    '&orgId=1';
+  /**
+   * Deep-link into Grafana Explore for Tempo. Prefix is computed at call
+   * site so env changes (topbar selector) don't invalidate a cached URL.
+   */
+  private tempoSearchUrl(): string {
+    const g = this.env.grafanaUrl();
+    return (
+      (g ?? 'http://localhost:3000') +
+      '/explore?schemaVersion=1&panes=' +
+      encodeURIComponent(
+        JSON.stringify({
+          t: {
+            datasource: 'tempo',
+            queries: [
+              {
+                refId: 'A',
+                datasource: { type: 'tempo', uid: 'tempo' },
+                queryType: 'traceqlSearch',
+                limit: 20,
+                tableType: 'traces',
+                filters: [
+                  {
+                    id: 'svc',
+                    operator: '=',
+                    scope: 'resource',
+                    tag: 'service.name',
+                    value: 'customer-service',
+                  },
+                ],
+                metricsQueryType: 'range',
+                serviceMapUseNativeHistograms: false,
+              },
+            ],
+            range: { from: 'now-1h', to: 'now' },
+            compact: false,
+          },
+        }),
+      ) +
+      '&orgId=1'
+    );
+  }
 
   tempoExploreUrl(traceId?: string): string {
+    const g = this.env.grafanaUrl();
+    const base = g ?? 'http://localhost:3000';
     if (traceId) {
       const panes = encodeURIComponent(
         JSON.stringify({
@@ -301,9 +318,9 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
           },
         }),
       );
-      return `http://localhost:3000/explore?schemaVersion=1&panes=${panes}&orgId=1`;
+      return `${base}/explore?schemaVersion=1&panes=${panes}&orgId=1`;
     }
-    return this.TEMPO_SEARCH_URL;
+    return this.tempoSearchUrl();
   }
 
   fetchTempoSearch(): void {
@@ -339,25 +356,31 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
       params['tags'] = 'service.name=customer-service';
     }
 
-    this.http
-      .get<{ traces?: TempoTraceSummary[] }>(`${this.TEMPO_BASE}/api/search`, { params })
-      .subscribe({
-        next: (r) => {
-          this.tempoSummaries.set(r.traces ?? []);
-          this.tempoLoading.set(false);
-        },
-        error: (e) => {
-          this.tempoError.set(
-            `Tempo unreachable (Grafana proxy http://localhost:3000) — ${e.status || 'check that LGTM is running'}.`,
-          );
-          this.tempoLoading.set(false);
-        },
-      });
+    const tempo = this.tempoBase();
+    if (!tempo) {
+      this.tempoError.set('Grafana not configured in this environment.');
+      this.tempoLoading.set(false);
+      return;
+    }
+    this.http.get<{ traces?: TempoTraceSummary[] }>(`${tempo}/api/search`, { params }).subscribe({
+      next: (r) => {
+        this.tempoSummaries.set(r.traces ?? []);
+        this.tempoLoading.set(false);
+      },
+      error: (e) => {
+        this.tempoError.set(
+          `Tempo unreachable via ${tempo} — ${e.status || 'check that LGTM is running'}.`,
+        );
+        this.tempoLoading.set(false);
+      },
+    });
   }
 
   loadTempoTags(): void {
+    const tempo = this.tempoBase();
+    if (!tempo) return;
     this.http
-      .get<{ tagNames?: string[] }>(`${this.TEMPO_BASE}/api/search/tags`)
+      .get<{ tagNames?: string[] }>(`${tempo}/api/search/tags`)
       .subscribe({ next: (r) => this.tempoTags.set(r.tagNames ?? []) });
   }
 
@@ -367,9 +390,11 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
       this.tempoSelectedTrace.set(null);
       return;
     }
+    const tempo = this.tempoBase();
+    if (!tempo) return;
     this.tempoSelectedId.set(id);
     this.tempoDetailLoading.set(true);
-    this.http.get<OtlpTrace>(`${this.TEMPO_BASE}/api/traces/${id}`).subscribe({
+    this.http.get<OtlpTrace>(`${tempo}/api/traces/${id}`).subscribe({
       next: (otlp) => {
         this.tempoSelectedTrace.set(this.parseOtlpTrace(id, otlp));
         this.tempoDetailLoading.set(false);
@@ -498,12 +523,21 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
     this.logsError.set('');
     this.logsQueried.set(true);
 
-    // Call Loki directly — CORS enabled via Nginx proxy in docker-compose
+    // Route Loki queries through Grafana's datasource proxy instead of hitting
+    // Loki directly. This handles CORS for us (Grafana is same-origin with the
+    // proxy endpoints) and keeps Loki's URL invisible to the browser — same
+    // pattern as Tempo above, consistent with ADR-0026.
+    const grafana = this.env.grafanaUrl();
+    if (!grafana) {
+      this.logsError.set('Grafana not configured in this environment.');
+      this.logsLoading.set(false);
+      return;
+    }
     const end = Date.now() * 1e6; // nanoseconds
     const start = (Date.now() - 3600000) * 1e6; // 1 hour ago
 
     this.http
-      .get<LokiQueryResult>('http://localhost:3100/loki/api/v1/query_range', {
+      .get<LokiQueryResult>(`${grafana}/api/datasources/proxy/uid/loki/loki/api/v1/query_range`, {
         params: {
           query: this.lokiQuery,
           limit: this.lokiLimit.toString(),
@@ -530,7 +564,7 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
         },
         error: (e) => {
           this.logsError.set(
-            `Could not fetch logs from Loki (localhost:3100) — ${e.status || 'unreachable'}. Is Loki running?`,
+            `Could not fetch logs from Loki via Grafana (${grafana}) — ${e.status || 'unreachable'}.`,
           );
           this.logsLoading.set(false);
         },
