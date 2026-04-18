@@ -26,12 +26,33 @@ h2 {
 }
 
 .page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
   margin-bottom: 1.25rem;
 }
 .subtitle {
   margin: 0;
   color: var(--text-label);
   font-size: 0.9rem;
+}
+
+// Grafana deep-link — surfaces the retired-tab destination (ADR-0007) at the
+// top of the page so users know where latency/live-feed views moved.
+.grafana-deep-link {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  border: 1px solid var(--color-accent);
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  align-self: center;
+  &:hover {
+    background: var(--color-accent);
+    color: #fff;
+  }
 }
 
 .alert-warn {
@@ -373,86 +394,6 @@ h2 {
   color: #cbd5e1;
 }
 
-// ── Latency histogram ───────────────────────────────────────────────────────
-.histogram-container {
-  display: flex;
-  align-items: stretch;
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 1.25rem;
-  box-shadow: var(--shadow-card);
-}
-
-.histogram-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.25rem;
-  height: 200px;
-  padding-bottom: 1.5rem;
-  position: relative;
-}
-
-.histogram-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-  justify-content: flex-end;
-}
-
-.histogram-count {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  margin-bottom: 0.2rem;
-  font-family: monospace;
-}
-
-.histogram-bar {
-  width: 100%;
-  max-width: 40px;
-  background: var(--color-accent);
-  border-radius: 3px 3px 0 0;
-  min-height: 2px;
-  opacity: 0.8;
-  transition: height 0.3s;
-}
-
-.histogram-label {
-  font-size: 0.62rem;
-  color: var(--text-muted);
-  margin-top: 0.3rem;
-  font-family: monospace;
-  white-space: nowrap;
-}
-
-.histogram-y-axis {
-  display: flex;
-  align-items: center;
-  padding-right: 0.5rem;
-
-  span {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-size: 0.68rem;
-    color: var(--text-muted);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-}
-
-.histogram-x-label {
-  text-align: center;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
-}
-
-.histogram-col {
-  cursor: help;
-}
-
 // ── Flame graph ─────────────────────────────────────────────────────────────
 // Link that opens a specific trace directly in Grafana Explore
 .trace-grafana-link {
@@ -555,29 +496,6 @@ h2 {
   text-overflow: ellipsis;
 }
 
-// ── Live feed ───────────────────────────────────────────────────────────────
-.feed-method {
-  font-weight: 700;
-  font-size: 0.72rem;
-  min-width: 40px;
-  color: #93c5fd;
-}
-
-.feed-uri {
-  flex: 1;
-  color: #cbd5e1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.feed-status {
-  font-weight: 700;
-  font-size: 0.72rem;
-  min-width: 30px;
-  color: #86efac;
-}
-
 // ── Loggers ──────────────────────────────────────────────────────────────────
 .logger-filter {
   padding: 0.35rem 0.6rem;
@@ -665,187 +583,6 @@ h2 {
   color: var(--text-secondary);
   line-height: 1.4;
 }
-
-// ── Live Feeds tab ────────────────────────────────────────────────────────────
-.live-subtabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid var(--border-default);
-  margin-bottom: 1rem;
-}
-.live-subtab {
-  padding: 0.35rem 0.85rem;
-  font-size: 0.82rem;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 4px 4px 0 0;
-  margin-bottom: -1px;
-  &:hover {
-    color: var(--text-primary);
-  }
-  &.active {
-    color: var(--color-accent);
-    border-bottom-color: var(--color-accent);
-    font-weight: 600;
-  }
-}
-
-// SSE list
-.sse-status-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.sse-pill {
-  display: inline-block;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-}
-.sse-connected {
-  background: #14532d;
-  color: #86efac;
-  border-color: #16a34a;
-}
-.sse-connecting {
-  background: #1c3d5a;
-  color: #7dd3fc;
-  border-color: #0284c7;
-}
-.sse-reconnecting {
-  background: #422006;
-  color: #fcd34d;
-  border-color: #d97706;
-  animation: sse-pulse 1.2s ease-in-out infinite;
-}
-.sse-disconnected {
-  background: #1f2937;
-  color: #9ca3af;
-  border-color: #374151;
-}
-@keyframes sse-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-.sse-btn-stop {
-  background: #450a0a;
-  color: #fca5a5;
-  border-color: #b91c1c;
-  &:hover {
-    background: #7f1d1d;
-  }
-}
-
-.sse-list {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--border-default);
-  }
-}
-.sse-item {
-  display: flex;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  &.sse-new .sse-card {
-    border-color: var(--color-accent);
-    box-shadow:
-      0 0 0 1px var(--color-accent),
-      0 2px 8px rgba(99, 102, 241, 0.2);
-  }
-  &:first-child {
-    animation: sse-slide 0.3s ease-out;
-  }
-}
-@keyframes sse-slide {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.sse-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  border: 2px solid var(--bg-card);
-  flex-shrink: 0;
-  margin-top: 0.6rem;
-  z-index: 1;
-}
-.sse-card {
-  flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 0.55rem 0.9rem;
-  transition:
-    border-color 0.3s,
-    box-shadow 0.3s;
-}
-.sse-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.2rem;
-}
-.sse-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-.sse-badge {
-  background: var(--color-accent);
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  animation: sse-fade 5s ease-out forwards;
-}
-@keyframes sse-fade {
-  0%,
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-.sse-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-  font-family: monospace;
-}
-.sse-sep {
-  opacity: 0.4;
-}
-
-// Activity feed (reuse log-panel / feed-* already defined above)
 
 // ── Source toggle (Tempo / Zipkin) ────────────────────────────────────────────
 .source-toggle {

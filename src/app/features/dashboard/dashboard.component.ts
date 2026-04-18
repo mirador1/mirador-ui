@@ -3,13 +3,15 @@
  *
  * Features:
  * - Health probes: /actuator/health, /readiness, /liveness with UP/DOWN badges
- * - Live throughput chart: RPS bar chart (delegates to MetricsService singleton)
  * - Auto-refresh: configurable polling interval (1s / 5s / 10s / 30s)
  * - Health change detection: toasts on UP/DOWN transitions
  * - Docker service control: list/start/stop/restart containers via Docker Engine API proxy
  * - Dependency graph: SVG graph of backend services with health status colors
  * - Request heatmap: 24h traffic distribution grid
- * - Observability links: one-click access to Grafana, Prometheus, Zipkin, etc.
+ * - Code-quality summary strip sourced from /actuator/quality
+ *
+ * Prometheus-fed RPS/latency charts and JVM/CPU/heap cards were retired
+ * per ADR-0006 — those duplicates now live in Grafana.
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
@@ -21,8 +23,16 @@ import { ApiService } from '../../core/api/api.service';
 import { EnvService } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityService } from '../../core/activity/activity.service';
-import { MetricsService } from '../../core/metrics/metrics.service';
 import { InfoTipComponent } from '../../shared/info-tip/info-tip.component';
+
+// ── Error timeline (moved from retired visualizations/ feature) ─────────────
+
+/** One sample in the error timeline chart — stacked OK (green) + errors (red). */
+interface ErrorSample {
+  time: Date;
+  ok: number;
+  errors: number;
+}
 
 /**
  * Service port/URL registry — single source of truth for all local service addresses.
@@ -97,7 +107,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
-  readonly metricsService = inject(MetricsService);
 
   /** Signal: raw JSON from `/actuator/health`. Null until first poll. Shape: `{status, components}`. */
   health = signal<unknown>(null);
@@ -186,9 +195,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.refresh();
     this.setAutoRefresh(this.autoRefreshInterval());
     this.loadContainers();
-    // Auto-start Prometheus polling so JVM/latency/throughput sections are immediately
-    // populated without requiring the user to click "Start live chart" first.
-    this.metricsService.start();
     this.loadQualitySummary();
     window.addEventListener('app:refresh', this._onRefresh);
   }
@@ -234,6 +240,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    this.stopErrorPolling();
     if (this._dockerRetryTimer) {
       clearInterval(this._dockerRetryTimer);
       this._dockerRetryTimer = null;
@@ -242,6 +249,141 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private _onRefresh = () => this.refresh();
+
+  // ── Error timeline ──────────────────────────────────────────────────────
+  // Moved from the retired visualizations/ page. Session-local: polls 5
+  // probe requests every 3 s and stacks OK vs error responses. Used in
+  // tandem with chaos actions elsewhere in the UI — Grafana can't show
+  // that correlation because the spike is ephemeral.
+
+  errorSamples = signal<ErrorSample[]>([]);
+  errorPolling = signal(false);
+  errorsGenerating = signal(false);
+  private _errorTimer: ReturnType<typeof setInterval> | null = null;
+
+  toggleErrorPolling(): void {
+    if (this.errorPolling()) {
+      this.stopErrorPolling();
+      return;
+    }
+    this.errorPolling.set(true);
+    this.errorSamples.set([]);
+    this.sampleErrors();
+    this._errorTimer = setInterval(() => this.sampleErrors(), 3000);
+  }
+
+  /** Fire a burst of requests that provoke errors — validation, 404, rate limit, Kafka timeout. */
+  generateErrors(): void {
+    this.errorsGenerating.set(true);
+    const base = this.env.baseUrl();
+    const errorRequests = [
+      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
+      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
+      this.http.post(`${base}/customers`, {}).pipe(catchError(() => of(null))),
+      this.http.get(`${base}/customers/999999`).pipe(catchError(() => of(null))),
+      this.http.get(`${base}/customers/999999/bio`).pipe(catchError(() => of(null))),
+      this.http.get(`${base}/customers/1/enrich`).pipe(catchError(() => of(null))),
+      ...Array.from({ length: 15 }, () =>
+        this.http.get(`${base}/customers?page=0&size=1`).pipe(catchError(() => of(null))),
+      ),
+    ];
+    let done = 0;
+    for (const req$ of errorRequests) {
+      req$.subscribe(() => {
+        done++;
+        if (done === errorRequests.length) this.errorsGenerating.set(false);
+      });
+    }
+  }
+
+  private stopErrorPolling(): void {
+    this.errorPolling.set(false);
+    if (this._errorTimer) {
+      clearInterval(this._errorTimer);
+      this._errorTimer = null;
+    }
+  }
+
+  private sampleErrors(): void {
+    const base = this.env.baseUrl();
+    let errors = 0;
+    let done = 0;
+    const total = 5;
+    for (let i = 0; i < total; i++) {
+      this.http
+        .get(`${base}/customers?page=0&size=1`)
+        .pipe(
+          catchError(() => {
+            errors++;
+            return of(null);
+          }),
+        )
+        .subscribe(() => {
+          done++;
+          if (done === total) {
+            const ok = total - errors;
+            this.errorSamples.update((s) => [...s.slice(-39), { time: new Date(), ok, errors }]);
+          }
+        });
+    }
+  }
+
+  errorChartBars(): Array<{ x: number; okH: number; errH: number }> {
+    const s = this.errorSamples();
+    if (!s.length) return [];
+    const max = Math.max(1, ...s.map((x) => x.ok + x.errors));
+    const barW = 400 / 40;
+    return s.map((x, i) => ({
+      x: i * barW,
+      okH: (x.ok / max) * 80,
+      errH: (x.errors / max) * 80,
+    }));
+  }
+
+  // ── Bundle treemap ──────────────────────────────────────────────────────
+  // Angular lazy-chunk size breakdown. Reads nothing from Prometheus — kept
+  // in the UI as a static reference for the team. The `analyzeBundleFromBuild`
+  // method seeds the treemap from a hardcoded approximation of the current
+  // `npm run build` output; refresh the numbers when they drift.
+
+  bundleChunks = signal<Array<{ name: string; size: number; pct: number }>>([]);
+
+  analyzeBundleFromBuild(): void {
+    const chunks = [
+      { name: 'main (core)', size: 45 },
+      { name: 'dashboard', size: 15 },
+      { name: 'customers', size: 12 },
+      { name: 'diagnostic', size: 11 },
+      { name: 'observability', size: 10 },
+      { name: 'chaos', size: 9 },
+      { name: 'request-builder', size: 7 },
+      { name: 'settings', size: 6 },
+      { name: 'pipelines', size: 4 },
+      { name: 'activity', size: 4 },
+      { name: 'login', size: 2 },
+      { name: 'polyfills', size: 1 },
+    ];
+    const total = chunks.reduce((s, c) => s + c.size, 0);
+    this.bundleChunks.set(chunks.map((c) => ({ ...c, pct: Math.round((c.size / total) * 100) })));
+  }
+
+  treemapColor(index: number): string {
+    const colors = [
+      '#3b82f6',
+      '#8b5cf6',
+      '#06b6d4',
+      '#10b981',
+      '#f59e0b',
+      '#ef4444',
+      '#ec4899',
+      '#6366f1',
+      '#14b8a6',
+      '#f97316',
+      '#84cc16',
+      '#94a3b8',
+    ];
+    return colors[index % colors.length];
+  }
 
   refresh(): void {
     this.error.set('');
@@ -312,93 +454,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Real-time chart (delegates to MetricsService) ──────────────────────────
-  toggleChart(): void {
-    this.metricsService.toggle();
-  }
-
-  chartBars(): Array<{ x: number; height: number; rps: number }> {
-    const samples = this.metricsService.samples();
-    if (samples.length < 2) return [];
-    const maxRps = Math.max(1, ...samples.map((s) => s.rps));
-    const barWidth = 300 / 40;
-    return samples.map((s, i) => ({
-      x: i * barWidth,
-      height: (s.rps / maxRps) * 80,
-      rps: s.rps,
-    }));
-  }
-
-  chartMaxRps(): number {
-    const samples = this.metricsService.samples();
-    return Math.max(1, ...samples.map((s) => s.rps));
-  }
-
-  // ── Latency history chart ────────────────────────────────────────────────────
-  // Renders an SVG polyline for each of p50/p95/p99 over the sample window.
-  // The chart uses the same 300×100 viewBox as the throughput bar chart.
-
-  latencyChartLines(): {
-    p50: string;
-    p95: string;
-    p99: string;
-    maxMs: number;
-  } {
-    const samples = this.metricsService.samples();
-    if (samples.length < 2) return { p50: '', p95: '', p99: '', maxMs: 0 };
-    const maxMs = Math.max(
-      1,
-      ...samples.map((s) => Math.max(s.latencyP50, s.latencyP95, s.latencyP99)),
-    );
-    const w = 300;
-    const h = 80; // chart height in viewBox units
-    const toPoint = (i: number, val: number) => {
-      const x = (i / (samples.length - 1)) * w;
-      const y = h - (val / maxMs) * h;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    };
-    return {
-      p50: samples.map((s, i) => toPoint(i, s.latencyP50)).join(' '),
-      p95: samples.map((s, i) => toPoint(i, s.latencyP95)).join(' '),
-      p99: samples.map((s, i) => toPoint(i, s.latencyP99)).join(' '),
-      maxMs,
-    };
-  }
-
-  // ── JVM heap gauge ─────────────────────────────────────────────────────────
-
-  /**
-   * Heap usage as a percentage 0–100. Returns 0 if metrics are not yet available
-   * or if heap max is unknown (-1, which happens for some GC configurations).
-   */
-  heapPercent(): number {
-    const m = this.metricsService.latestMetrics();
-    if (!m || m.heapMaxBytes <= 0) return 0;
-    return Math.round((m.heapUsedBytes / m.heapMaxBytes) * 100);
-  }
-
-  heapUsedMb(): number {
-    const m = this.metricsService.latestMetrics();
-    return m ? Math.round(m.heapUsedBytes / 1_048_576) : 0;
-  }
-
-  heapMaxMb(): number {
-    const m = this.metricsService.latestMetrics();
-    return m && m.heapMaxBytes > 0 ? Math.round(m.heapMaxBytes / 1_048_576) : 0;
-  }
-
-  /** CPU usage as an integer percentage 0–100. */
-  cpuPercent(): number {
-    const m = this.metricsService.latestMetrics();
-    return m ? Math.round(m.cpuProcess * 100) : 0;
-  }
-
-  /** Error rate as a percentage 0–100 (errors / total requests * 100). */
-  errorRatePercent(): number {
-    const m = this.metricsService.latestMetrics();
-    if (!m || m.httpRequestsTotal === 0) return 0;
-    return Math.round((m.httpErrorCount / m.httpRequestsTotal) * 100 * 10) / 10;
-  }
+  // Prometheus-fed charts and JVM/CPU/heap gauges that used to live here
+  // were retired per ADR-0006: they duplicated Grafana panels fed by the
+  // same metrics, without any UI interaction Grafana couldn't express.
+  // Health probes + Docker service control + code-quality summary remain
+  // because they're either /actuator/health polls or action-triggering
+  // buttons — neither is a pure Prometheus read.
 
   // ── Docker service control ─────────────────────────────────────────────────
   // Calls the Docker Engine API via the CORS proxy (localhost:2375)

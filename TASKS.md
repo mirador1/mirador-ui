@@ -39,27 +39,40 @@
       not versioned. Add `deploy/grafana/` with JSON exports + grizzly
       apply step in CI.
 
-## Pending — UI → Grafana migration
-
-- [ ] **Execute the migration identified in the audit.** The audit
-      [`docs/architecture/ui-grafana-audit.md`](docs/architecture/ui-grafana-audit.md)
-      reviews all 17 features: 14 stay in the UI, 3 are partial
-      (`dashboard/`, `observability/`, `visualizations/`), 0 migrate
-      wholesale. Next step is to port the specific Prometheus-only
-      panels called out in the audit's "Recommended migration plan"
-      to Grafana-as-Code (grizzly/jsonnet) once that track lands.
-      Requires Grafana Cloud credentials + the Grafana-as-Code task
-      below.
 
 ## Pending — Deferred majors
 
-- [ ] `@auth0/auth0-angular` 2.8 → 3 — major release; Angular 18+
-      compat touches the provider shape.
+- [ ] `@auth0/auth0-angular` — no 3.x published yet (latest is 2.8.1).
+      Revisit once a 3.x line appears on npm.
 - [ ] `typescript` 5 → 6 — hold until Angular 21 officially supports
       it. Renovate will flag when safe.
 
 ## Recently completed (keep last 10 for context)
 
+- [x] ADR-0007 executed: retired every Prometheus-fed UI visualisation.
+      `/visualizations` feature deleted (930 LOC); Error Timeline and
+      Bundle treemap moved onto the dashboard; observability lost its
+      Latency Histogram + Live Feeds tabs; `MetricsService` deleted; nav
+      refreshed (stale "Golden Signals (78)" / "JVM Gauges (55)" labels
+      gone); `EnvService.grafanaUrl` added for in-UI deep-links.
+      ~2 600 LOC removed; observability chunk 52.89 kB → 36.17 kB,
+      visualizations chunk gone. Commits `1fb787e`…`259faa3`.
+- [x] Word-cloud banners (`public/banner.svg` + matching
+      `docs/assets/banner.svg` on mirador-service) with watchtower
+      silhouette + trending-axes word cloud (platform · languages ·
+      observability · data · supply chain · AI-assisted integration).
+- [x] README reframed around *Mirador = watchtower* + AI-assisted
+      integration on both repos.
+- [x] GitLab project: `infrastructure_access_level=disabled` on
+      mirador-ui so the legacy `/-/google_cloud/configuration` page no
+      longer shows up — the UI repo has no Terraform / GCP resources to
+      manage (only mirador-service does).
+- [x] Pipeline monitor feature at `/pipelines` — lists the last 20
+      pipelines with project switch + auto-refresh + job drill-down
+      (● badge on `macbook-local` runner jobs). Reads through
+      `scripts/docker-api.mjs` `/gitlab/*` proxy so the Spring Boot
+      backend is not involved.
+- [x] "Add random customer" button on the Customers page.
 - [x] k6 post-deploy smoke test for the UI — `scripts/load-test/smoke.js`
       + CI `smoke-test` job running after `deploy:gke` on main. Hits
       both SPA shell paths and `/api/*` proxy paths so a broken ingress

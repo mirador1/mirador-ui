@@ -1,22 +1,23 @@
 /**
- * ObservabilityComponent — Live backend telemetry with 4 tabs.
+ * ObservabilityComponent — Live backend telemetry with 3 tabs.
  *
  * Traces: Queries Tempo via the Grafana datasource proxy (http://localhost:3000).
  *   Supports TraceQL and tag-based search. Each trace links to Grafana Explore.
  *   Displays expandable span waterfall on row click.
  *
+ * Loggers: Lists Spring Boot loggers from /actuator/loggers and lets the
+ *   operator tune levels live.
+ *
  * Logs: Queries Loki directly via Nginx CORS proxy on port 3100.
  *   Color-coded by level (ERROR/WARN/INFO/DEBUG). Optional 5s live polling.
  *
- * Latency: Parses Prometheus histogram buckets to render a latency distribution
- *   bar chart. Converts cumulative buckets to differential counts.
- *
- * Live Feed: Polls /actuator/prometheus every 2s and extracts HTTP request
- *   metrics to display a scrolling feed of method/URI/status entries.
+ * The previous Latency-histogram and Live-Feeds tabs were retired in
+ * ADR-0007 (docs/adr/0007-retire-prometheus-ui-visualisations.md) because
+ * they polled /actuator/prometheus — Grafana now owns that view.
  */
 import { Component, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
@@ -99,27 +100,6 @@ interface LogEntry {
 }
 
 /**
- * One bucket in the Prometheus HTTP latency histogram, used to build the bar chart.
- * Converted from cumulative to differential counts before rendering.
- */
-interface LatencyBucket {
-  /** Upper bound label (e.g., `'50ms'`, `'200ms'`, `'+Inf'`). */
-  le: string;
-  /** Differential request count for this bucket range (not cumulative). */
-  count: number;
-}
-
-interface LiveCustomer {
-  id: number;
-  name: string;
-  email: string;
-  createdAt: string;
-  isNew: boolean;
-}
-
-type SseStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
-
-/**
  * Minimal OTLP ResourceSpans shape returned by Tempo GET /api/traces/:id.
  * Only the fields actually parsed in parseOtlpTrace() are typed here.
  */
@@ -148,16 +128,12 @@ interface LokiQueryResult {
   data?: { result?: Array<{ values?: [string, string][] }> };
 }
 
-const MAX_SSE_EVENTS = 50;
-const NEW_BADGE_MS = 5_000;
-const RECONNECT_DELAY_MS = 3_000;
-
-type ObsTab = 'traces' | 'logger' | 'logs' | 'latency' | 'live';
+type ObsTab = 'traces' | 'logger' | 'logs';
 
 @Component({
   selector: 'app-observability',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink],
+  imports: [FormsModule, DecimalPipe, RouterLink],
   templateUrl: './observability.component.html',
   styleUrl: './observability.component.scss',
 })
@@ -194,27 +170,6 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
   lokiLimit = 100;
   logsPolling = signal(false);
   private _logsTimer: ReturnType<typeof setInterval> | null = null;
-
-  // ── Latency histograms ────────────────────────────────────────────────────
-  latencyBuckets = signal<LatencyBucket[]>([]);
-  latencyLoading = signal(false);
-
-  // ── Live Feeds ────────────────────────────────────────────────────────────
-  liveSub = signal<'sse' | 'activity'>('sse');
-
-  // SSE
-  sseEvents = signal<LiveCustomer[]>([]);
-  sseStatus = signal<SseStatus>('disconnected');
-  sseTrafficRunning = signal(false);
-  private _es: EventSource | null = null;
-  private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private _badgeTimers = new Map<number, ReturnType<typeof setTimeout>>();
-
-  // Endpoint Activity (Prometheus polling)
-  activityFeed = signal<Array<{ time: string; method: string; uri: string; status: string }>>([]);
-  activityPolling = signal(false);
-  activityTrafficRunning = signal(false);
-  private _activityTimer: ReturnType<typeof setInterval> | null = null;
 
   // ── Loggers ───────────────────────────────────────────────────────────────
   loggersList = signal<Array<{ name: string; level: string }>>([]);
@@ -262,20 +217,16 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
       .slice(0, 50);
   }
 
-  // ── Flame graph ───────────────────────────────────────────────────────────
+  // ── Flame graph (trace-scoped, triggered only via Traces tab) ─────────────
   flameViewTrace = signal<Trace | null>(null);
 
   ngOnInit(): void {
-    // Pre-connect SSE so it's ready by the time the user opens the Live tab
-    this.connectSse();
     // Pre-load Tempo tag list for the search autocomplete
     this.loadTempoTags();
   }
 
   ngOnDestroy(): void {
     this.stopLogsPolling();
-    this.cleanupSse();
-    this.stopActivityPolling();
   }
 
   switchTab(tab: ObsTab): void {
@@ -285,9 +236,6 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
     }
     if (tab === 'traces' && this.tempoTags().length === 0) {
       this.loadTempoTags();
-    }
-    if (tab === 'live' && this._es === null && this.sseStatus() === 'disconnected') {
-      this.connectSse();
     }
   }
 
@@ -662,268 +610,6 @@ export class ObservabilityComponent implements OnInit, OnDestroy {
       default:
         return 'log-default';
     }
-  }
-
-  // ── Live Feeds — SSE ─────────────────────────────────────────────────────
-  private connectSse(): void {
-    this.cleanupSse();
-    this.sseStatus.set('connecting');
-    const url = `${this.env.baseUrl()}/customers/stream`;
-    try {
-      this._es = new EventSource(url);
-      this._es.addEventListener('customer', (e: MessageEvent) => {
-        this.sseStatus.set('connected');
-        try {
-          const c = JSON.parse(e.data) as LiveCustomer;
-          c.isNew = true;
-          this.sseEvents.update((prev) => [c, ...prev].slice(0, MAX_SSE_EVENTS));
-          const t = setTimeout(() => {
-            this.sseEvents.update((prev) =>
-              prev.map((ev) => (ev.id === c.id ? { ...ev, isNew: false } : ev)),
-            );
-            this._badgeTimers.delete(c.id);
-          }, NEW_BADGE_MS);
-          this._badgeTimers.set(c.id, t);
-        } catch {
-          /* ignore */
-        }
-      });
-      this._es.addEventListener('ping', () => this.sseStatus.set('connected'));
-      this._es.onopen = () => this.sseStatus.set('connected');
-      this._es.onerror = () => {
-        if (!this._es) return;
-        if (this._es.readyState === EventSource.CLOSED) {
-          // Connection truly closed — manual reconnect needed.
-          this.sseStatus.set('reconnecting');
-          this._es.close();
-          this._es = null;
-          this._reconnectTimer = setTimeout(() => this.connectSse(), RECONNECT_DELAY_MS);
-        }
-        // readyState === CONNECTING: browser is already auto-reconnecting.
-        // Don't touch the status — onopen will fire when it succeeds.
-      };
-    } catch {
-      this.sseStatus.set('disconnected');
-    }
-  }
-
-  reconnectSse(): void {
-    this.connectSse();
-  }
-
-  stopSse(): void {
-    this.cleanupSse();
-    this.sseStatus.set('disconnected');
-  }
-
-  private cleanupSse(): void {
-    if (this._reconnectTimer) {
-      clearTimeout(this._reconnectTimer);
-      this._reconnectTimer = null;
-    }
-    this._badgeTimers.forEach((t) => clearTimeout(t));
-    this._badgeTimers.clear();
-    if (this._es) {
-      this._es.close();
-      this._es = null;
-    }
-  }
-
-  sseStatusLabel(s: SseStatus): string {
-    switch (s) {
-      case 'connected':
-        return '● Connected';
-      case 'connecting':
-        return '◌ Connecting…';
-      case 'reconnecting':
-        return '⟳ Reconnecting…';
-      case 'disconnected':
-        return '○ Disconnected';
-    }
-  }
-
-  sseStatusClass(s: SseStatus): string {
-    switch (s) {
-      case 'connected':
-        return 'sse-connected';
-      case 'connecting':
-        return 'sse-connecting';
-      case 'reconnecting':
-        return 'sse-reconnecting';
-      case 'disconnected':
-        return 'sse-disconnected';
-    }
-  }
-
-  generateSseTraffic(count = 3): void {
-    this.sseTrafficRunning.set(true);
-    const firstNames = ['Alice', 'Bob', 'Carlos', 'Diana', 'Eve', 'Frank', 'Grace', 'Hiro'];
-    const lastNames = ['Smith', 'Jones', 'Tanaka', 'Müller', 'Dupont', 'Kim', 'Rossi', 'Patel'];
-    const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-    const base = this.env.baseUrl();
-    let done = 0;
-    for (let i = 0; i < count; i++) {
-      const first = rand(firstNames);
-      const last = rand(lastNames);
-      const suffix = Math.floor(Math.random() * 9000 + 1000);
-      this.http
-        .post(`${base}/customers`, {
-          firstName: first,
-          lastName: last,
-          email: `${first.toLowerCase()}.${last.toLowerCase()}${suffix}@demo.dev`,
-        })
-        .pipe(catchError(() => of(null)))
-        .subscribe(() => {
-          done++;
-          if (done === count) {
-            this.sseTrafficRunning.set(false);
-            this.toast.show(`${count} customer(s) created — SSE events incoming`, 'success');
-          }
-        });
-    }
-  }
-
-  // ── Live Feeds — Endpoint Activity ────────────────────────────────────────
-  toggleActivityPolling(): void {
-    if (this.activityPolling()) {
-      this.stopActivityPolling();
-    } else {
-      this.activityPolling.set(true);
-      this.pollActivity();
-      this._activityTimer = setInterval(() => this.pollActivity(), 2000);
-    }
-  }
-
-  private stopActivityPolling(): void {
-    this.activityPolling.set(false);
-    if (this._activityTimer) {
-      clearInterval(this._activityTimer);
-      this._activityTimer = null;
-    }
-  }
-
-  private pollActivity(): void {
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        const entries: Array<{ time: string; method: string; uri: string; status: string }> = [];
-        const regex =
-          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let m;
-        while ((m = regex.exec(text)) !== null) {
-          entries.push({
-            time: new Date().toISOString().slice(11, 23),
-            method: m[1],
-            uri: m[3],
-            status: m[2],
-          });
-        }
-        if (entries.length > 0) {
-          this.activityFeed.update((f) => [...entries.slice(0, 5), ...f].slice(0, 100));
-        }
-      },
-      error: () => {},
-    });
-  }
-
-  generateActivityTraffic(): void {
-    this.activityTrafficRunning.set(true);
-    const base = this.env.baseUrl();
-    const urls = [
-      `${base}/customers?page=0&size=10`,
-      `${base}/customers?page=0&size=10`,
-      `${base}/actuator/health`,
-      `${base}/customers/recent`,
-      `${base}/customers/summary?page=0&size=5`,
-      `${base}/customers/aggregate`,
-      `${base}/customers/1/todos`,
-      `${base}/customers/1/enrich`,
-      `${base}/customers?page=999&size=1`,
-      `${base}/actuator/info`,
-    ];
-    let done = 0;
-    for (const url of urls) {
-      this.http
-        .get(url)
-        .pipe(catchError(() => of(null)))
-        .subscribe(() => {
-          done++;
-          if (done === urls.length) this.activityTrafficRunning.set(false);
-        });
-    }
-  }
-
-  // ── Latency histograms ────────────────────────────────────────────────────
-  /** Human-readable bucket boundaries (in seconds) to group Micrometer's fine-grained buckets */
-  private readonly displayBuckets = [
-    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
-  ];
-
-  fetchLatencyHistogram(): void {
-    this.latencyLoading.set(true);
-
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        // Parse all raw cumulative buckets, aggregated across URIs/methods/statuses
-        const rawMap = new Map<number, number>();
-        const regex =
-          /http_server_requests_seconds_bucket\{[^}]*le="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-          const le = parseFloat(match[1]);
-          if (isFinite(le)) {
-            rawMap.set(le, (rawMap.get(le) || 0) + parseFloat(match[2]));
-          }
-        }
-
-        if (rawMap.size === 0) {
-          this.latencyBuckets.set([]);
-          this.latencyLoading.set(false);
-          return;
-        }
-
-        // Sort raw buckets by le value
-        const rawSorted = [...rawMap.entries()].sort((a, b) => a[0] - b[0]);
-
-        // Interpolate cumulative count at each display boundary
-        const cumulativeAt = (target: number): number => {
-          for (const [le, count] of rawSorted) {
-            if (le >= target) return count;
-          }
-          return rawSorted[rawSorted.length - 1][1];
-        };
-
-        // Build display buckets with differential counts
-        const result: LatencyBucket[] = [];
-        let prevCount = 0;
-        for (const boundary of this.displayBuckets) {
-          const cumulative = cumulativeAt(boundary);
-          const diff = cumulative - prevCount;
-          if (diff > 0) {
-            const label = boundary < 1 ? `${boundary * 1000}` : `${boundary}`;
-            result.push({ le: label, count: diff });
-          }
-          prevCount = cumulative;
-        }
-
-        this.latencyBuckets.set(result);
-        this.latencyLoading.set(false);
-      },
-      error: () => {
-        this.toast.show('Could not fetch Prometheus metrics', 'error');
-        this.latencyLoading.set(false);
-      },
-    });
-  }
-
-  histogramBars(): Array<{ label: string; height: number; count: number }> {
-    const buckets = this.latencyBuckets();
-    if (!buckets.length) return [];
-    const max = Math.max(1, ...buckets.map((b) => b.count));
-    return buckets.map((b) => ({
-      label: parseFloat(b.le) >= 1000 ? `${(parseFloat(b.le) / 1000).toFixed(1)}s` : `${b.le}ms`,
-      height: (b.count / max) * 100,
-      count: b.count,
-    }));
   }
 
   // ── Flame graph ───────────────────────────────────────────────────────────
