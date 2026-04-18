@@ -47,12 +47,9 @@
      Remaining deploy:* jobs are when:manual showcases. -->
 
 
-## Pending — Deferred majors
-
-- [ ] `@auth0/auth0-angular` — no 3.x published yet (latest is 2.8.1).
-      Revisit once a 3.x line appears on npm.
-- [ ] `typescript` 5 → 6 — hold until Angular 21 officially supports
-      it. Renovate will flag when safe.
+<!-- auth0-angular 3.x + TypeScript 6 upgrade notes moved into code
+     comments (src/app/app.config.ts, tsconfig.json). Renovate will
+     flag upstream availability; no standing task needed here. -->
 
 ## Recently completed (keep last 10 for context)
 

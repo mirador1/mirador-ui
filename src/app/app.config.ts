@@ -14,6 +14,9 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+// `@auth0/auth0-angular` pinned to 2.x. No 3.x line published on npm as of
+// 2026-04-19 — Renovate will flag when one appears. Revisit then (breaking
+// changes around provideAuth0 signature are expected but unknown).
 import { provideAuth0 } from '@auth0/auth0-angular';
 
 import { routes } from './app.routes';
