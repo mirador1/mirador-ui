@@ -139,24 +139,49 @@ export class AppShellComponent {
         },
       ],
     },
+    // ADR-0008: Observability page retired. The nav entry is now a deep-link
+    // into Grafana Explore (external target, opens in a new tab). The
+    // session-local Activity timeline moves up to a top-level entry since
+    // it has no natural parent anymore.
     {
       id: 'telemetry',
       icon: '🔍',
       label: 'Observability',
-      path: '/observability',
-      tip: 'In-session trace + log inspection: Tempo drill-down and Loki LogQL. Histogram and Prometheus live-feed tabs were retired (ADR-0007) — Grafana owns time-series now.',
-      children: [
-        {
-          label: 'Traces (Tempo)',
-          tip: 'Search traces by service, expand span waterfall, flame graph view',
-        },
-        { label: 'Logs (Loki)', tip: 'LogQL queries, color-coded by level, live polling every 5s' },
-        {
-          label: 'Activity',
-          path: '/activity',
-          tip: 'Session event timeline — all client-side actions in this browser session',
-        },
-      ],
+      externalHref: (grafanaUrl: string | null) =>
+        grafanaUrl
+          ? `${grafanaUrl}/explore?left=` +
+            encodeURIComponent(
+              JSON.stringify({
+                datasource: 'tempo',
+                queries: [
+                  {
+                    refId: 'A',
+                    queryType: 'traceqlSearch',
+                    filters: [
+                      {
+                        id: 'svc',
+                        operator: '=',
+                        scope: 'resource',
+                        tag: 'service.name',
+                        value: 'mirador',
+                      },
+                    ],
+                  },
+                ],
+                range: { from: 'now-1h', to: 'now' },
+              }),
+            )
+          : null,
+      tip: 'Jump straight into Grafana Explore — TraceQL, LogQL, metrics. The in-UI page was retired (ADR-0008).',
+      children: [],
+    },
+    {
+      id: 'activity',
+      icon: '⏱️',
+      label: 'Activity',
+      path: '/activity',
+      tip: 'Session event timeline — all client-side actions in this browser session.',
+      children: [],
     },
     // ADR-0007: Prometheus-fed metric pages retired — moved to Grafana.
     // Only the two session-local widgets (Error Timeline, Bundle treemap)
@@ -388,10 +413,28 @@ export class AppShellComponent {
    *
    * @param path Route path (e.g., `'/'`, `'/customers'`).
    */
-  isActive(path: string): boolean {
+  isActive(path: string | undefined): boolean {
+    if (!path) return false;
     const url = this.router.url.split('?')[0].split('#')[0];
     if (path === '/') return url === '/';
     return url.startsWith(path);
+  }
+
+  /**
+   * Resolves a nav section's external URL at render time. ADR-0008 introduced
+   * `externalHref` functions on nav entries so they can deep-link into Grafana
+   * Explore (or other env-aware targets) without hard-coding the URL at build
+   * time — it's computed from `EnvService.grafanaUrl()` which changes as the
+   * user flips between Local / Kind / Prod in the topbar.
+   *
+   * Returns `null` when the entry has no external href or when Grafana is
+   * not configured for the current environment — in that case the template
+   * hides the link entirely rather than rendering a broken anchor.
+   */
+  externalHref(section: {
+    externalHref?: (grafanaUrl: string | null) => string | null;
+  }): string | null {
+    return section.externalHref?.(this.env.grafanaUrl()) ?? null;
   }
 
   /** Current search query bound to the search overlay input field. */
@@ -420,22 +463,16 @@ export class AppShellComponent {
       keywords: 'customers list create manage crud import export',
     },
     {
-      label: '📡 Live Feeds',
-      path: '/timeline',
-      keywords: 'live feed timeline sse stream customers realtime prometheus polling activity',
-    },
-    {
       label: '🧪 Diagnostic',
       path: '/diagnostic',
       keywords: 'diagnostic test scenarios versioning idempotency rate limit kafka stress',
     },
-    {
-      label: '🔍 Observability',
-      path: '/observability',
-      keywords: 'telemetry observability traces logs latency zipkin loki tempo flame histogram',
-    },
+    // /observability retired in ADR-0008 — search no longer points at an
+    // in-UI page. Operators search for "traces" / "logs" and jump straight
+    // to Grafana Explore via the sidebar's external nav entry.
     // /visualizations retired in ADR-0007 — session-local widgets live on
     // the dashboard; time-series metrics moved to Grafana.
+    // /timeline retired too — redirected to '/' at the router level.
     {
       label: '🛠️ API Client',
       path: '/request-builder',
