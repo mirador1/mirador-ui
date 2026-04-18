@@ -10,6 +10,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth/auth.service';
+import { EnvService } from '../../core/env/env.service';
 import { RouterLink } from '@angular/router';
 
 /** Active tab in the Database page explorer. */
@@ -73,6 +74,13 @@ interface HealthCheck {
 export class DatabaseComponent {
   private readonly http = inject(HttpClient);
   readonly auth = inject(AuthService);
+  /**
+   * Env-aware URLs for the DB admin buttons. `cloudbeaverUrl()` is only set on
+   * the Local environment (compose) — in Prod tunnel mode the button is hidden.
+   * Ad-hoc SQL in prod goes through a local CloudBeaver pointed at
+   * `kubectl port-forward svc/postgresql 15432:5432`.
+   */
+  readonly env = inject(EnvService);
 
   /** Signal: currently active tab in the Database page. */
   activeTab = signal<DbTab>('health');

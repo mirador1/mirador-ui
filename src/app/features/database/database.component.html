@@ -3,15 +3,26 @@
     <span class="page-icon">🐘</span>
     <div>
       <h2>Database</h2>
-      <p class="subtitle">PostgreSQL explorer — read-only SQL via pgweb (port 8081)</p>
+      <p class="subtitle">
+        PostgreSQL health + preset queries. SQL explorer runs in compose mode only.
+      </p>
     </div>
     <div class="header-links">
-      <a href="http://localhost:8081" target="_blank" rel="noopener" class="ext-link-btn">
-        🐘 pgweb
-      </a>
-      <a href="http://localhost:5050" target="_blank" rel="noopener" class="ext-link-btn">
-        🛢️ pgAdmin
-      </a>
+      @if (env.cloudbeaverUrl(); as cbUrl) {
+        <a [href]="cbUrl" target="_blank" rel="noopener" class="ext-link-btn">🐘 CloudBeaver</a>
+      } @else {
+        <!--
+          Prod tunnel mode: run CloudBeaver locally from the compose stack and
+          connect it to the tunnelled Postgres. The backend tunnels Postgres on
+          port 15432 via bin/pf-prod.sh (ADR-0025).
+        -->
+        <span
+          class="ext-link-hint"
+          title="Start CloudBeaver locally and connect to localhost:15432 (prod tunnel)"
+        >
+          🐘 CloudBeaver (local + tunnel)
+        </span>
+      }
     </div>
   </div>
 
@@ -181,8 +192,8 @@
       <div class="sql-panel-header">
         <span class="sql-panel-title">🐘 SQL Explorer</span>
         <span class="sql-panel-hint">
-          Read-only via <a href="http://localhost:8081" target="_blank" rel="noopener">pgweb</a> —
-          click a preset above or type your own query
+          Read-only, compose-only. Click a preset above or type your own query. Prod tunnel: run
+          CloudBeaver against the port-forwarded Postgres (localhost:15432).
         </span>
       </div>
       <div class="sql-editor">
