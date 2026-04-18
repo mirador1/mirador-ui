@@ -53,8 +53,18 @@ export interface Environment {
 
   // Database admin — compose-only; prod uses CloudBeaver locally + port-forward to Postgres.
 
-  /** CloudBeaver web SQL client (port 8978 in compose). Replaces pgAdmin + pgweb. */
+  /** CloudBeaver web SQL client (port 8978 in compose). Replaces pgAdmin. */
   cloudbeaverUrl?: string;
+
+  /**
+   * pgweb HTTP ↔ Postgres bridge. The Database page's SQL Explorer + health
+   * checks call this directly (no BFF — see mirador-service ADR-0026).
+   * Compose defines a `pgweb-local` container on 8081 pointing at db:5432.
+   * Prod tunnel uses a second `pgweb-prod` container on 8082 pointing at
+   * host.docker.internal:15432 (the port-forwarded cluster Postgres).
+   * Start the prod one with `bin/pgweb-prod-up.sh` in mirador-service.
+   */
+  pgwebUrl?: string;
 
   // Messaging admin — compose-only.
 
@@ -83,6 +93,7 @@ const ENVIRONMENTS: Environment[] = [
     keycloakUrl: 'http://localhost:9090',
     pyroscopeUrl: 'http://localhost:4040',
     cloudbeaverUrl: 'http://localhost:8978',
+    pgwebUrl: 'http://localhost:8081',
     kafkaUiUrl: 'http://localhost:9080',
     redisInsightUrl: 'http://localhost:5540',
     // Unleash / Argo CD / Chaos Mesh are cluster-only; undefined here.
@@ -99,9 +110,12 @@ const ENVIRONMENTS: Environment[] = [
     argocdUrl: 'http://localhost:18081',
     chaosMeshUrl: 'http://localhost:12333',
     pyroscopeUrl: 'http://localhost:14040',
+    // pgweb-prod container in compose profile `prod-tunnel` — see
+    // mirador-service/bin/pgweb-prod-up.sh. Points at host.docker.internal:15432
+    // (the laptop's kubectl port-forward to the cluster Postgres).
+    pgwebUrl: 'http://localhost:8082',
     // Maven site / Compodoc / Sonar / CloudBeaver / Kafka UI / RedisInsight
-    // have no prod counterpart — they stay compose-only. DB access in prod
-    // is a local CloudBeaver against `kubectl port-forward svc/postgresql 15432:5432`.
+    // have no prod counterpart — they stay compose-only.
   },
 ];
 
@@ -130,6 +144,7 @@ export class EnvService {
   readonly chaosMeshUrl = computed(() => this._current().chaosMeshUrl ?? null);
   readonly pyroscopeUrl = computed(() => this._current().pyroscopeUrl ?? null);
   readonly cloudbeaverUrl = computed(() => this._current().cloudbeaverUrl ?? null);
+  readonly pgwebUrl = computed(() => this._current().pgwebUrl ?? null);
   readonly kafkaUiUrl = computed(() => this._current().kafkaUiUrl ?? null);
   readonly redisInsightUrl = computed(() => this._current().redisInsightUrl ?? null);
 

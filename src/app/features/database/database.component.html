@@ -4,7 +4,7 @@
     <div>
       <h2>Database</h2>
       <p class="subtitle">
-        PostgreSQL health + preset queries. SQL explorer runs in compose mode only.
+        PostgreSQL health + preset queries + read-only SQL Explorer (via pgweb).
       </p>
     </div>
     <div class="header-links">
@@ -192,8 +192,8 @@
       <div class="sql-panel-header">
         <span class="sql-panel-title">🐘 SQL Explorer</span>
         <span class="sql-panel-hint">
-          Read-only, compose-only. Click a preset above or type your own query. Prod tunnel: run
-          CloudBeaver against the port-forwarded Postgres (localhost:15432).
+          Read-only, through pgweb. Local → db:5432, Prod tunnel → cluster Postgres via the :15432
+          tunnel. Click a preset above or type your own.
         </span>
       </div>
       <div class="sql-editor">

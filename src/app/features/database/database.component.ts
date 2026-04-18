@@ -118,9 +118,10 @@ export class DatabaseComponent {
     this.vacuumRunning.set(true);
     this.vacuumResult.set(null);
     this.vacuumError.set('');
-    // Calls the custom Spring Boot actuator endpoint (POST /actuator/maintenance)
+    // Calls the custom Spring Boot actuator endpoint (POST /actuator/maintenance).
+    // Base URL is env-aware — Local = :8080, Prod tunnel = :18080.
     this.http
-      .post<MaintenanceResult>('http://localhost:8080/actuator/maintenance', { operation })
+      .post<MaintenanceResult>(`${this.env.baseUrl()}/actuator/maintenance`, { operation })
       .subscribe({
         next: (r) => {
           this.vacuumResult.set(r);
@@ -273,9 +274,17 @@ export class DatabaseComponent {
       this.healthChecks.map((c) => ({ check: c, status: 'loading', detail: '…', rows: [] })),
     );
     let done = 0;
+    const pgweb = this.env.pgwebUrl();
+    if (!pgweb) {
+      // Belt-and-braces: the template already gates the "Run Diagnostic" button on
+      // `@if (env.pgwebUrl())`, but keep a runtime check so a future code path
+      // that forgets the template guard cannot silently 404.
+      this.healthRunning.set(false);
+      return;
+    }
     for (const check of this.healthChecks) {
       this.http
-        .get<SqlQueryResult>('http://localhost:8081/api/query', { params: { query: check.query } })
+        .get<SqlQueryResult>(`${pgweb}/api/query`, { params: { query: check.query } })
         .subscribe({
           next: (res) => {
             const rows: string[][] = (res.rows ?? []).map((r) =>
@@ -586,14 +595,26 @@ export class DatabaseComponent {
     },
   ];
 
-  /** Calls pgweb REST API (read-only SQL proxy on port 8081) */
+  /**
+   * Calls pgweb REST API — read-only SQL proxy. The endpoint is env-aware:
+   *   Local       → http://localhost:8081  (pgweb-local → compose `db:5432`)
+   *   Prod tunnel → http://localhost:8082  (pgweb-prod  → host.docker.internal:15432)
+   * Per ADR-0026 in mirador-service, Spring Boot is not on this path.
+   */
   executeSql(): void {
+    const pgweb = this.env.pgwebUrl();
+    if (!pgweb) {
+      this.sqlError.set(
+        'SQL Explorer is unavailable in this environment. Start pgweb (bin/pgweb-prod-up.sh) or use CloudBeaver locally.',
+      );
+      return;
+    }
     this.sqlLoading.set(true);
     this.sqlError.set('');
     this.sqlResult.set(null);
 
     this.http
-      .get<SqlQueryResult>('http://localhost:8081/api/query', {
+      .get<SqlQueryResult>(`${pgweb}/api/query`, {
         params: { query: this.sqlQuery },
       })
       .subscribe({
@@ -614,7 +635,7 @@ export class DatabaseComponent {
         },
         error: (e) => {
           this.sqlError.set(
-            `pgweb not available (${e.status || 'error'}). Start it with: docker compose up -d pgweb`,
+            `pgweb not available at ${pgweb} (${e.status || 'error'}). Start it with: docker compose up -d pgweb-local  — or for Prod tunnel: bin/pgweb-prod-up.sh`,
           );
           this.sqlLoading.set(false);
         },
