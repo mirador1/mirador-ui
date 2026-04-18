@@ -77,10 +77,12 @@ export interface Environment {
 /**
  * Available backend environments.
  *
- * `Local` targets the docker-compose stack at default ports.
- * `Prod tunnel` targets the GKE cluster via `bin/pf-prod.sh` tunnels. The
- * port map is fixed in
- * <https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/adr/0025-ui-local-only-no-public-prod-ingress.md>.
+ * Three-env port policy (decided 2026-04-18): Local uses upstream defaults,
+ * Kind adds `+10000`, Prod adds `+20000`. Each env has its own 5-digit
+ * decade, so all three can coexist on the laptop simultaneously.
+ *
+ * Port map and rationale:
+ * <https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/architecture/environments-and-flows.md>
  */
 const ENVIRONMENTS: Environment[] = [
   {
@@ -99,23 +101,36 @@ const ENVIRONMENTS: Environment[] = [
     // Unleash / Argo CD / Chaos Mesh are cluster-only; undefined here.
   },
   {
-    name: 'Prod tunnel',
-    // Ports prefixed with "1" to coexist with a running compose stack on
-    // the same laptop. Start the tunnels with `bin/pf-prod.sh --daemon`
-    // in the mirador-service checkout.
+    name: 'Kind',
+    // Kind = local Kubernetes-in-Docker cluster. Tunnels opened by
+    // `bin/pf-kind.sh --daemon` in the mirador-service checkout.
     baseUrl: 'http://localhost:18080',
     grafanaUrl: 'http://localhost:13000',
-    keycloakUrl: 'http://localhost:19091',
+    keycloakUrl: 'http://localhost:19090',
     unleashUrl: 'http://localhost:14242',
     argocdUrl: 'http://localhost:18081',
     chaosMeshUrl: 'http://localhost:12333',
     pyroscopeUrl: 'http://localhost:14040',
-    // pgweb-prod container in compose profile `prod-tunnel` — see
-    // mirador-service/bin/pgweb-prod-up.sh. Points at host.docker.internal:15432
-    // (the laptop's kubectl port-forward to the cluster Postgres).
+    // pgweb-kind container (compose profile `kind-tunnel`) on :8082,
+    // connected through host.docker.internal:15432 to the kind Postgres.
     pgwebUrl: 'http://localhost:8082',
     // Maven site / Compodoc / Sonar / CloudBeaver / Kafka UI / RedisInsight
-    // have no prod counterpart — they stay compose-only.
+    // stay compose-only — not deployed inside kind for the demo.
+  },
+  {
+    name: 'Prod tunnel',
+    // GKE Autopilot cluster via `bin/pf-prod.sh --daemon`. +20000 offset so
+    // it can coexist with Kind (+10000) and Compose (0) on the laptop.
+    baseUrl: 'http://localhost:28080',
+    grafanaUrl: 'http://localhost:23000',
+    keycloakUrl: 'http://localhost:29090',
+    unleashUrl: 'http://localhost:24242',
+    argocdUrl: 'http://localhost:28081',
+    chaosMeshUrl: 'http://localhost:22333',
+    pyroscopeUrl: 'http://localhost:24040',
+    // pgweb-prod container (compose profile `prod-tunnel`) on :8083,
+    // connected through host.docker.internal:25432 to the GKE Postgres.
+    pgwebUrl: 'http://localhost:8083',
   },
 ];
 
