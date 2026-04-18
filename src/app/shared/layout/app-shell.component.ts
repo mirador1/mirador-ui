@@ -13,7 +13,7 @@ import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
-import { EnvService } from '../../core/env/env.service';
+import { EnvService, Environment } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
 @Component({
   selector: 'app-shell',
@@ -49,6 +49,15 @@ export class AppShellComponent {
 
   /** Signal: true when the sidebar is collapsed to icon-only mode. */
   sidebarCollapsed = signal(false);
+
+  /**
+   * Equality helper for the env `<select>` dropdown. `ngModel` compares by
+   * reference by default; localStorage deserialisation creates new object
+   * instances, so we compare by `name` to keep the selected option in sync
+   * across reloads.
+   */
+  readonly envCompare = (a: Environment | null, b: Environment | null): boolean =>
+    !!a && !!b && a.name === b.name;
 
   /**
    * Signal: set of nav section IDs that are currently expanded (accordion behavior).

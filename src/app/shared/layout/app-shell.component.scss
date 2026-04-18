@@ -278,6 +278,28 @@
   }
 }
 
+// Environment selector — matches the topbar button palette so it looks
+// like one unified row of controls. The native <select> arrow is left as
+// is: cross-browser styling of <select> chrome is a rabbit hole and this
+// project has zero UI-kit dep by design.
+.env-selector {
+  background: transparent;
+  border: 1px solid #4a6a8a;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: #93b4d8;
+
+  &:hover,
+  &:focus-visible {
+    background: #15294a;
+    color: white;
+    outline: none;
+  }
+}
+
 .logout-btn {
   background: transparent;
   border: 1px solid #4a6a8a;

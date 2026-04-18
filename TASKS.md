@@ -22,22 +22,33 @@
       refactor and the About page already works.
 
 
-## Pending — Industry-standard upgrades (from the "indus" shortlist)
+<!-- GitOps / ESO / Grafana-as-Code entries removed — per ADR-0025 in
+     mirador-service the UI is no longer deployed to Kubernetes, so
+     UI-side Argo CD / ESO / dashboards-as-code tasks don't apply.
+     The backend holds the GitOps + ESO + dashboards machinery. -->
 
-- [ ] **GitOps via Argo CD (or Flux).** Currently deploys are push-based
-      from `.gitlab-ci.yml`. Industry pattern: CI pushes image, Argo CD
-      pulls manifests from `main`. Rollback = `git revert`. Kustomize
-      overlay is already in place; Argo just needs an `Application` CR
-      pointing at `deploy/kubernetes/overlays/gke`.
+## Pending — Post-ADR-0025 follow-up
 
-- [ ] **External Secrets Operator + Google Secret Manager.** Replace
-      CI-injected `kubectl create secret` with ExternalSecret CRDs.
-      Eliminates secrets in CI variable storage.
+- [ ] **Phase 2 — replace hardcoded `localhost:<port>` URLs with EnvService
+      signals** across `dashboard`, `about`, `database`, `observability`,
+      `pipelines` components. Inventory: localhost:5050 (pgAdmin → drop,
+      replaced by CloudBeaver 8978), localhost:9090 (keycloak → use
+      `env.keycloakUrl()`), localhost:9080 (kafka-ui → use `env.kafkaUiUrl()`),
+      localhost:5540 (redisinsight → use `env.redisInsightUrl()`),
+      localhost:8084 / 8085 / 9000 (already use EnvService). Phase 1
+      (EnvService refactor + topbar selector) landed.
 
-- [ ] **Grafana-as-Code** with grizzly or jsonnet. Backend already emits
-      OTLP to Grafana Cloud; dashboards are currently hand-clicked +
-      not versioned. Add `deploy/grafana/` with JSON exports + grizzly
-      apply step in CI.
+- [ ] **Desktop deep-link buttons** from mirador-service
+      `docs/getting-started/dev-tooling.md`. Add `<a href="vscode://…">` /
+      `idea://…` / `docker-desktop://…` buttons on the Architecture,
+      Database, and Quality pages where relevant. Fails silently if the
+      target app isn't installed (the browser just does nothing — no
+      feature-detection needed).
+
+- [ ] **Move the UI image pipeline to a `test-image` stage**. The image
+      is still built + pushed (useful for CI integration tests +
+      prod-like local run without `npm install`) but is no longer a
+      deploy artefact (ADR-0025). Tag `:main-<sha>` only, no `:latest`.
 
 
 ## Pending — Deferred majors
