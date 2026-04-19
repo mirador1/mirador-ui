@@ -3,8 +3,8 @@
 <!-- Build / release status — GitLab canonical, GitHub mirror for visibility. -->
 [![pipeline](https://gitlab.com/mirador1/mirador-ui/badges/main/pipeline.svg)](https://gitlab.com/mirador1/mirador-ui/-/pipelines)
 [![latest release](https://gitlab.com/mirador1/mirador-ui/-/badges/release.svg)](https://gitlab.com/mirador1/mirador-ui/-/releases)
-[![CodeQL](https://github.com/Beennnn/mirador-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/Beennnn/mirador-ui/actions/workflows/codeql.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Beennnn/mirador-ui/badge)](https://scorecard.dev/viewer/?uri=github.com/Beennnn/mirador-ui)
+[![CodeQL](https://github.com/mirador1/mirador-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/mirador1/mirador-ui/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mirador1/mirador-ui/badge)](https://scorecard.dev/viewer/?uri=github.com/mirador1/mirador-ui)
 
 <!-- Tech badges grouped by concern. Mirrors docs/reference/technologies.md
      and the banner SVG. Any bump here should also update both. -->
