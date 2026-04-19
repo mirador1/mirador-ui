@@ -49,6 +49,8 @@
 # Mirador UI — front-row seat
 
 > **Watch. Understand. Act.**
+>
+> _Built with the right tools and the right methods._
 
 > **Mirador** — Spanish for *watchtower* — is exactly what this project is:
 > a vantage point over a real running system that lets you observe, in one
