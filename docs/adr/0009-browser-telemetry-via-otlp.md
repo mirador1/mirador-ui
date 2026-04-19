@@ -1,6 +1,6 @@
 # ADR-0009 — Browser telemetry via OpenTelemetry → OTLP → Tempo
 
-- **Status**: Accepted (Phase A landed in MR 30; Phase B pending backend MR)
+- **Status**: Accepted (Phase A landed in MR 29 commit 352106b; Phase B landed in MR 30 / mirador-service ce001f7)
 - **Date**: 2026-04-19
 - **Refines**: [ADR-0006](0006-grafana-duplication.md), [ADR-0007](0007-retire-prometheus-ui-visualisations.md), [ADR-0008](0008-retire-observability-ui-in-favour-of-grafana.md)
 - **Related (backend)**: mirador-service ADR-0026 (Spring Boot scope limit)
@@ -73,29 +73,30 @@ half the receivers don't accept them yet.
   network tab clean.
 - No new runtime deps in Phase A — this is an in-UI refactor.
 
-### Phase B — needs mirador-service MR (backend repo)
+### Phase B — landed in MR 30 (UI) + mirador-service ce001f7
 
-The browser cannot POST directly to `:4318` — no CORS headers on the
-LGTM bundle's OTLP receiver. Phase B adds:
+All four items delivered:
 
-1. **Nginx CORS proxy** (`mirador-service/infra/observability/cors-proxy.conf`)
-   — new server block on `:4319` forwarding to `:4318` with the
-   existing `Access-Control-Allow-Origin: http://localhost:4200`
-   headers (same pattern as the Loki proxy).
-2. **Compose port exposure** — add `"4319:4319"` to the nginx-cors
-   service in `docker-compose.observability.yml`.
-3. **UI npm deps** — `@opentelemetry/sdk-trace-web`,
-   `context-zone`, `exporter-trace-otlp-http`,
-   `instrumentation-fetch`, `instrumentation-xml-http-request`,
-   `resources`, `semantic-conventions` (all pinned via Renovate).
-4. **Wire the exporter** — `TelemetryService.initOtel()` builds a
-   `WebTracerProvider`, registers the fetch / xhr auto-instrumentations
-   with a propagator allowlist (`/^http:\/\/localhost:(8080|18080|28080)/`),
-   exports to `env.otlpUrl() + '/v1/traces'`.
-
-Phase B is a separate MR because it touches both repos and because the
-backend change lands independently (the existing UI keeps working
-without it — just no browser spans).
+1. **Nginx CORS proxy** — `cors-proxy.conf` gained a `:4319` server
+   block forwarding to `customerservice-lgtm:4318`, with
+   `Access-Control-Allow-Origin: http://localhost:4200` and
+   `client_max_body_size 8m` to absorb OTel's default 512-span batch.
+2. **Compose port exposure** — `docker-compose.observability.yml`
+   maps `"4319:4319"` on the shared `customerservice-cors-proxy`
+   container (same container that already fronts Loki + Docker API).
+3. **UI npm deps** — all 9 `@opentelemetry/*` packages pinned at the
+   current major line. Renovate flags upstreams.
+4. **Wire the exporter** — `TelemetryService.ensureOtel()` builds a
+   `WebTracerProvider` + `BatchSpanProcessor`, registers
+   `FetchInstrumentation` + `XMLHttpRequestInstrumentation` with a
+   `propagateTraceHeaderCorsUrls` allowlist scoped to our own
+   backends (8080/18080/28080 + Grafana 3000/13000/23000). An
+   `effect()` on `env.otlpUrl()` rewires the provider when the env
+   selector flips — idempotent via a `lastOtlpUrl` cache. Each
+   `warn` / `error` in `TelemetryService.push()` emits a dedicated
+   `log.warn` / `log.error` span carrying the severity, message,
+   and flattened context attributes + `span.recordException()` for
+   Error-typed failures.
 
 ## Consequences
 
@@ -115,11 +116,17 @@ without it — just no browser spans).
   OTel browser doesn't. Added in Phase B via the `web-vitals` lib
   emitting span events, session-replay declined (privacy + bundle
   cost).
-- **Browser bundle grows by ~40 kB gzipped** (Phase B) — acceptable
-  given the initial-total budget still sits at 143 kB after MR 1-3
-  LOC cuts.
-- **Phase B requires a backend MR** — noted in TASKS.md; the UI side
-  of Phase B is idempotent (no-op until the proxy is up).
+- **Browser bundle grows by ~25 kB gzipped** (Phase B actual, lower
+  than the ~40 kB predicted). The initial-total raw size went from
+  522 kB to 639 kB. The `angular.json` initial warning budget was
+  raised 560 → 800 kB; the 1 MB error ceiling was not touched.
+- **`protobufjs/minimal` ships as CJS** — whitelisted in
+  `allowedCommonJsDependencies` to silence the Angular bailout
+  warning. Revisit if protobufjs ships an ESM build (tracked
+  upstream at github.com/protobufjs/protobuf.js#1762).
+- **Phase B requires a backend MR** — delivered in mirador-service
+  ce001f7. The UI side remains idempotent: `ensureOtel()` no-ops in
+  dev mode and when `env.otlpUrl()` is null.
 
 ## Revisit this when
 

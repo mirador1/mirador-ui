@@ -115,6 +115,7 @@ const ENVIRONMENTS: Environment[] = [
     pgwebUrl: 'http://localhost:8081',
     kafkaUiUrl: 'http://localhost:9080',
     redisInsightUrl: 'http://localhost:5540',
+    otlpUrl: 'http://localhost:4319',
     // Unleash / Argo CD / Chaos Mesh are cluster-only; undefined here.
   },
   {
@@ -132,6 +133,7 @@ const ENVIRONMENTS: Environment[] = [
     // pgweb-kind container (compose profile `kind-tunnel`) on :8082,
     // connected through host.docker.internal:15432 to the kind Postgres.
     pgwebUrl: 'http://localhost:8082',
+    otlpUrl: 'http://localhost:14319',
     // Maven site / Compodoc / Sonar / CloudBeaver / Kafka UI / RedisInsight
     // stay compose-only — not deployed inside kind for the demo.
   },
@@ -150,6 +152,7 @@ const ENVIRONMENTS: Environment[] = [
     // pgweb-prod container (compose profile `prod-tunnel`) on :8083,
     // connected through host.docker.internal:25432 to the GKE Postgres.
     pgwebUrl: 'http://localhost:8083',
+    otlpUrl: 'http://localhost:24319',
   },
 ];
 

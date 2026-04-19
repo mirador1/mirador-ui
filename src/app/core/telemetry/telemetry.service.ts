@@ -12,8 +12,18 @@
  * CORS proxy :4319) each `error()` / `warn()` call also emits a span
  * event to Tempo. Call sites don't change.
  */
-import { Injectable, inject, isDevMode, signal } from '@angular/core';
+import { Injectable, effect, inject, isDevMode, signal } from '@angular/core';
 import { ActivityService } from '../activity/activity.service';
+import { EnvService } from '../env/env.service';
+import { trace, type Tracer } from '@opentelemetry/api';
+import { WebTracerProvider, BatchSpanProcessor } from '@opentelemetry/sdk-trace-web';
+import { ZoneContextManager } from '@opentelemetry/context-zone';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
+import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 /** Severity level for a single telemetry entry. Maps 1:1 to OTel log severity. */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -38,6 +48,7 @@ const HISTORY_CAP = 500;
 @Injectable({ providedIn: 'root' })
 export class TelemetryService {
   private readonly activity = inject(ActivityService);
+  private readonly env = inject(EnvService);
 
   /**
    * Bounded in-memory history. Consumers (Activity page, future debug panel)
@@ -47,6 +58,95 @@ export class TelemetryService {
 
   /** Dev mode short-circuit — we still mirror to the real console then. */
   private readonly dev = isDevMode();
+
+  /**
+   * OpenTelemetry tracer for manual spans + error events. Null until
+   * {@link initOtel} is called from `bootstrapApplication`. Manual code
+   * paths that would log a span event when available can null-check this.
+   */
+  private tracer: Tracer | null = null;
+
+  /**
+   * The OTel provider (retained so we can call `shutdown()` if the app
+   * ever needs to drain spans on teardown — not wired today).
+   */
+  private provider: WebTracerProvider | null = null;
+  /** Remember the last-initialised OTLP URL for the idempotency check. */
+  private lastOtlpUrl: string | null = null;
+
+  constructor() {
+    // Re-init the exporter when the user flips env — each env has its own
+    // `otlpUrl` and we don't want spans emitted from "Prod tunnel" landing
+    // in the local LGTM. Effects run in the injection context.
+    effect(() => {
+      const url = this.env.otlpUrl();
+      if (url) this.ensureOtel(url);
+    });
+  }
+
+  /**
+   * Initialise the OpenTelemetry Web SDK and wire auto-instrumentations
+   * for `fetch` + `XMLHttpRequest`. Idempotent — safe to call multiple
+   * times (each call replaces the previous provider).
+   *
+   * @param otlpUrl base URL of the CORS-proxied OTLP HTTP receiver
+   *                (e.g. `http://localhost:4319`). The exporter appends
+   *                `/v1/traces` itself.
+   */
+  private ensureOtel(otlpUrl: string): void {
+    // Dev-mode opt-out: OTel spans in every fetch blow up the DevTools
+    // network tab and slow HMR. Skip until we genuinely need them locally.
+    if (this.dev) return;
+    // Cheap guard — repeat calls with the same URL are no-ops.
+    if (this.lastOtlpUrl === otlpUrl) return;
+
+    // Tear down any previous provider so we don't double-emit when the
+    // env selector toggles. `shutdown()` flushes the batch before
+    // disposing — Promises not awaited, rejects ignored (best-effort).
+    this.provider?.shutdown().catch(() => undefined);
+
+    const resource = resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: 'mirador-ui',
+      [ATTR_SERVICE_VERSION]: '0.0.0',
+      'deployment.environment': this.env.current().name.toLowerCase(),
+      // Informational — helps diff spans across env switches in one session.
+      'otlp.url': otlpUrl,
+    });
+
+    const exporter = new OTLPTraceExporter({ url: `${otlpUrl}/v1/traces` });
+
+    const provider = new WebTracerProvider({
+      resource,
+      spanProcessors: [new BatchSpanProcessor(exporter)],
+    });
+
+    // ZoneContextManager is still the recommended manager for the browser
+    // even under zoneless Angular — it isolates span context across async
+    // boundaries (timers, promises) without requiring Zone.js to be present.
+    provider.register({ contextManager: new ZoneContextManager() });
+
+    registerInstrumentations({
+      tracerProvider: provider,
+      instrumentations: [
+        new FetchInstrumentation({
+          // Scope trace-context propagation to our own backends so we don't
+          // leak traceparent to Sonar, Auth0, Grafana plugin CDNs, etc.
+          propagateTraceHeaderCorsUrls: [
+            /^http:\/\/localhost:(8080|18080|28080)/,
+            /^http:\/\/localhost:(3000|13000|23000)/,
+          ],
+        }),
+        new XMLHttpRequestInstrumentation({
+          propagateTraceHeaderCorsUrls: [/^http:\/\/localhost:(8080|18080|28080)/],
+        }),
+      ],
+    });
+
+    this.provider = provider;
+    this.lastOtlpUrl = otlpUrl;
+    this.tracer = trace.getTracer('mirador-ui');
+    this.info('otel.init', { otlpUrl, env: this.env.current().name });
+  }
 
   /** Debug — dropped in production builds. Use for verbose traces only. */
   debug(message: string, context?: Record<string, unknown>): void {
@@ -109,7 +209,29 @@ export class TelemetryService {
       console.error(entry.message, entry.error ?? entry.context ?? '');
     }
 
-    // Phase B hook — when OTLP wiring lands, this is where we'll emit a
-    // span event via `tracer.startSpan(...).addEvent(...).end()`.
+    // Phase B: emit a span event for warn / error so a dev can jump from
+    // a Loki log line into the browser-side trace in Grafana Explore.
+    // Info / debug stay in-memory to avoid flooding Tempo with noise.
+    if (this.tracer && (entry.level === 'error' || entry.level === 'warn')) {
+      const span = this.tracer.startSpan(`log.${entry.level}`);
+      span.setAttribute('log.severity', entry.level);
+      span.setAttribute('log.message', entry.message);
+      if (entry.error) {
+        span.recordException(entry.error);
+        span.setAttribute('exception.type', entry.error.name);
+      }
+      if (entry.context) {
+        for (const [k, v] of Object.entries(entry.context)) {
+          if (v === null || v === undefined) continue;
+          span.setAttribute(
+            `app.${k}`,
+            typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+              ? v
+              : JSON.stringify(v),
+          );
+        }
+      }
+      span.end();
+    }
   }
 }
