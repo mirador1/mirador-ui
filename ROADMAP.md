@@ -271,6 +271,21 @@ team senior qui valorise la reproductibilité > la customisation rapide.
 
 ---
 
+## Livrés hors roadmap (extensions post-facto)
+
+Items qui n'étaient pas dans le plan initial des 3 tiers ci-dessus mais
+qui ont émergé en cours de route et justifient d'être documentés ici
+pour la traçabilité :
+
+- ✅ **Budget-kill auto-destroy** (2026-04-19). Quand la facture GCP
+  atteint 100 % du cap (€10/mois par défaut), la Cloud Function
+  `budget-kill` supprime automatiquement le cluster GKE via Pub/Sub.
+  Implémentation complète dans `deploy/cloud-functions/budget-kill/`
+  côté mirador-service, documenté dans
+  [`docs/ops/cost-control.md`](https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/ops/cost-control.md).
+  Était en "Roadmap — future" dans la doc originale ; passé en live
+  quand l'utilisateur a demandé de blinder le budget contre la dérive.
+
 ## Tier 3 — Explicitement rejetés (Too much pour un portfolio demo)
 
 Ces items sont mentionnés **pour être écartés avec justification**. Les
