@@ -1,5 +1,43 @@
 ![Mirador UI](public/banner.svg)
 
+<!-- Tech badges grouped by concern. Mirrors docs/reference/technologies.md
+     and the banner SVG. Any bump here should also update both. -->
+
+**Frontend**
+![Angular 21](https://img.shields.io/badge/Angular-21_zoneless-DD0031?logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Signals](https://img.shields.io/badge/Signals-no_Zone.js-e2e8f0)
+![Raw SVG](https://img.shields.io/badge/Raw_SVG-no_chart_lib-FFB13B)
+![SCSS](https://img.shields.io/badge/SCSS-custom_properties-CC6699?logo=sass&logoColor=white)
+
+**Observability (browser-side)**
+![OpenTelemetry Web](https://img.shields.io/badge/OpenTelemetry-Web_SDK-7F52FF?logo=opentelemetry&logoColor=white)
+![OTLP HTTP](https://img.shields.io/badge/OTLP_HTTP-:4319_CORS_proxy-7F52FF)
+![Grafana Tempo](https://img.shields.io/badge/Grafana_Tempo-browser_traces-F46800?logo=grafana&logoColor=white)
+
+**Backend (consumed)**
+![Spring Boot 4](https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=springio&logoColor=white)
+![Java 25](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)
+![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-KRaft-231F20?logo=apachekafka&logoColor=white)
+![Redis 7](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Auth0 + Keycloak](https://img.shields.io/badge/Auth0_+_Keycloak-OIDC-EB5424?logo=auth0&logoColor=white)
+![Unleash](https://img.shields.io/badge/Unleash-feature_flags-000000)
+
+**Quality**
+![Vitest](https://img.shields.io/badge/Vitest-unit_zoneless-6E9F18?logo=vitest&logoColor=white)
+![SonarCloud](https://img.shields.io/badge/SonarCloud-static_analysis-F3702A?logo=sonarcloud&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-NG8113_zero-4B32C3?logo=eslint&logoColor=white)
+![Prettier](https://img.shields.io/badge/Prettier-formatted-F7B93E?logo=prettier&logoColor=white)
+
+**CI / release**
+![GitLab CI](https://img.shields.io/badge/GitLab_CI-local_runner-FC6D26?logo=gitlab&logoColor=white)
+![lefthook](https://img.shields.io/badge/lefthook-pre--push_gates-000000)
+![commitlint](https://img.shields.io/badge/Conventional_Commits-enforced-FE5196)
+![Renovate](https://img.shields.io/badge/Renovate-bump_bot-1A1F6C?logo=renovatebot&logoColor=white)
+![release-please](https://img.shields.io/badge/release--please-CHANGELOG_+_semver-4285F4)
+![gitleaks](https://img.shields.io/badge/gitleaks-secret_scan-FD7014)
+
 > **Mirador** — Spanish for *watchtower* — is exactly what this project is:
 > a vantage point over a real running system that lets you observe, in one
 > place, **the code, the runtime metrics, the CI/CD pipelines, and the
