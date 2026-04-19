@@ -49,7 +49,13 @@ const GRAFANA = 'http://localhost:3000';
 const KAFKA_UI = 'http://localhost:9080';
 const SWAGGER = 'http://localhost:8080/swagger-ui/index.html';
 const ACTUATOR = 'http://localhost:8080/actuator';
-// Grafana's built-in Pyroscope explore route — bundled in LGTM per ADR-0012.
+// Grafana Drilldown apps — bundled in LGTM; preferred over the provisioned
+// dashboard because they auto-discover metrics / logs / traces from the
+// datasources without needing a JSON panel config to exist, which makes
+// them more predictable across Grafana + LGTM image minor bumps.
+const METRICS_DRILLDOWN = 'http://localhost:3000/a/grafana-metricsdrilldown-app/';
+const TRACES_DRILLDOWN = 'http://localhost:3000/a/grafana-exploretraces-app/';
+const LOGS_DRILLDOWN = 'http://localhost:3000/a/grafana-lokiexplore-app/';
 const PYROSCOPE_EXPLORE = 'http://localhost:3000/a/grafana-pyroscope-app/explore';
 const REDIS_COMMANDER = 'http://localhost:8082';
 
@@ -133,53 +139,36 @@ test.describe('Demo recording for README @demo', () => {
     await page.waitForTimeout(6000);
 
     // ═══════════════════════════════════════════════════════════════
-    // 5. GRAFANA DASHBOARD — "the request passes through"
+    // 5. GRAFANA METRICS DRILLDOWN — "the request passes through"
     // ═══════════════════════════════════════════════════════════════
-    await page.goto(GRAFANA, { waitUntil: 'domcontentloaded' });
-    // Anonymous auth is enabled on the LGTM container (GF_AUTH_ANONYMOUS_ENABLED)
-    // so no login prompt; the default home dashboard provisions from
-    // /otel-lgtm/dashboards/demo.json with live request-rate + p99 panels.
-    await page.waitForTimeout(5500);
+    // Drilldown is more predictable than a provisioned dashboard: it
+    // auto-discovers every Prometheus metric and groups them by service,
+    // so the viewer sees the request-rate / p99 panels even if the JSON
+    // dashboard is absent or renamed in a future LGTM image bump
+    // (user feedback: dashboards blurred past, drilldown is clearer).
+    await page.goto(METRICS_DRILLDOWN, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(10_000);
 
     // ═══════════════════════════════════════════════════════════════
-    // 6. GRAFANA EXPLORE → Tempo trace → span → logs
+    // 6. GRAFANA TRACES DRILLDOWN → trace → span → logs
     // ═══════════════════════════════════════════════════════════════
-    // TraceQL search for recent mirador POST /customers spans. The
-    // `{ resource.service.name="mirador" }` filter gives the backend's
-    // own traces; Grafana ranks them by start time desc so the freshest
-    // trace from the traffic burst above shows first.
-    const traceqlQuery = encodeURIComponent(
-      JSON.stringify({
-        datasource: 'tempo',
-        queries: [
-          {
-            refId: 'A',
-            queryType: 'traceqlSearch',
-            filters: [
-              {
-                id: 'svc',
-                operator: '=',
-                scope: 'resource',
-                tag: 'service.name',
-                value: 'mirador',
-              },
-            ],
-          },
-        ],
-        range: { from: 'now-15m', to: 'now' },
-      }),
-    );
-    await page.goto(`${GRAFANA}/explore?left=${traceqlQuery}`, {
-      waitUntil: 'domcontentloaded',
-    });
-    await page.waitForTimeout(4000); // let trace table render
+    // Traces Drilldown pre-filters by service automatically — more
+    // predictable than crafting a TraceQL query URL that breaks when
+    // Grafana's Explore pane schema changes (LGTM 0.22 → 0.25 moved
+    // several keys).
+    await page.goto(TRACES_DRILLDOWN, { waitUntil: 'domcontentloaded' });
+    // 8 s so the traces list populates visibly.
+    await page.waitForTimeout(8000);
 
     // Click the first trace-id link in the result table to open the
     // waterfall view. Trace IDs are 32 hex chars.
     const firstTrace = page.locator('a').filter({ hasText: /^[0-9a-f]{32}$/ }).first();
     if (await firstTrace.isVisible().catch(() => false)) {
       await firstTrace.click();
-      await page.waitForTimeout(3500); // waterfall unfolds
+      // Waterfall unfolds — 5 s so the viewer can count the spans
+      // and see which layers the trace passed through (Tomcat → JPA →
+      // Kafka producer etc.).
+      await page.waitForTimeout(5000);
       // Click the first span row so the detail panel (tags + logs button) appears.
       await page
         .locator('[data-testid^="span-"], .span-row, .TraceTimelineViewer .span')
@@ -188,15 +177,27 @@ test.describe('Demo recording for README @demo', () => {
         .catch(() => {
           /* layout varies across Grafana minor versions — don't hard fail */
         });
-      await page.waitForTimeout(2500);
+      // 4 s so the span-detail pane (attributes, events, process) is
+      // legible — this is the core "span-level observability" moment.
+      await page.waitForTimeout(4000);
       // "Logs for this span" button — Grafana adds it when Tempo dataset
       // has trace-to-logs mapping in datasources.yaml (we override it).
       const logsBtn = page.getByRole('button', { name: /Logs for this span|Related logs|Logs/ });
       if (await logsBtn.first().isVisible().catch(() => false)) {
         await logsBtn.first().click();
-        await page.waitForTimeout(3500); // Loki logs panel renders
+        // 5 s so the Loki logs panel renders + the viewer sees the
+        // trace_id-correlated log lines — the PAYOFF of the drill-down.
+        await page.waitForTimeout(5000);
       }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 6b. GRAFANA LOGS DRILLDOWN — standalone log exploration
+    // ═══════════════════════════════════════════════════════════════
+    // Separate from the trace→log correlation above: show the raw Loki
+    // log volume by service, label filters, live log lines.
+    await page.goto(LOGS_DRILLDOWN, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(6000);
 
     // ═══════════════════════════════════════════════════════════════
     // 7. KAFKA UI — the messaging side (customer.created topic)

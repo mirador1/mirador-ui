@@ -86,12 +86,14 @@ info "Converting $WEBM → $OUT_GIF (ffmpeg 2-pass palette)…"
 
 # Two-pass palette is the canonical way to produce a small, dither-free GIF
 # from a video — pass 1 computes an optimal 256-color palette, pass 2
-# applies it. `fps=12` is enough for a demo loop without ballooning file
-# size; at 1280x720 a 30 s clip lands around 6-10 MB.
+# applies it. `fps=8` + width 1100 is the sweet spot tuned against the
+# v3 ~2-minute walkthrough: readable on a README (still crisp text in
+# Grafana panels) while staying around 13 MB. Raise to fps=12 and
+# 1280-wide if the demo is short (≤ 45 s) and you want smoother motion.
 PALETTE="$(mktemp -d)/palette.png"
-ffmpeg -y -i "$WEBM" -vf "fps=12,scale=1280:-1:flags=lanczos,palettegen" "$PALETTE" 2>/dev/null
+ffmpeg -y -i "$WEBM" -vf "fps=8,scale=1100:-1:flags=lanczos,palettegen" "$PALETTE" 2>/dev/null
 ffmpeg -y -i "$WEBM" -i "$PALETTE" \
-  -filter_complex "fps=12,scale=1280:-1:flags=lanczos[x];[x][1:v]paletteuse" \
+  -filter_complex "fps=8,scale=1100:-1:flags=lanczos[x];[x][1:v]paletteuse" \
   "$OUT_GIF" 2>/dev/null
 
 SIZE=$(du -h "$OUT_GIF" | cut -f1)
