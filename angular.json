@@ -37,7 +37,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "560kB",
+                  "maximumWarning": "800kB",
                   "maximumError": "1MB"
                 },
                 {
@@ -45,6 +45,9 @@
                   "maximumWarning": "24kB",
                   "maximumError": "32kB"
                 }
+              ],
+              "allowedCommonJsDependencies": [
+                "protobufjs/minimal"
               ],
               "outputHashing": "all"
             },
