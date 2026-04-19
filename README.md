@@ -1,5 +1,7 @@
 ![Mirador UI](public/banner.svg)
 
+<sub>**English** · [Français](README.fr.md)</sub>
+
 <!-- Build / release status — GitLab canonical, GitHub mirror for visibility. -->
 [![pipeline](https://gitlab.com/mirador1/mirador-ui/badges/main/pipeline.svg)](https://gitlab.com/mirador1/mirador-ui/-/pipelines)
 [![latest release](https://gitlab.com/mirador1/mirador-ui/-/badges/release.svg)](https://gitlab.com/mirador1/mirador-ui/-/releases)

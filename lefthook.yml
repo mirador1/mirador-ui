@@ -11,6 +11,23 @@
 pre-commit:
   parallel: true
   commands:
+    readme-i18n-sync:
+      # Keep README.md ↔ README.fr.md in sync — see mirador-service's
+      # lefthook.yml for the rationale. Skippable via LEFTHOOK=0.
+      glob: "{README.md,README.fr.md}"
+      run: |
+        staged_en=$(git diff --cached --name-only | grep -c "^README\.md$" || true)
+        staged_fr=$(git diff --cached --name-only | grep -c "^README\.fr\.md$" || true)
+        if [[ "$staged_en" -eq 1 && "$staged_fr" -eq 0 ]]; then
+          echo "⚠️  README.md changed but README.fr.md wasn't touched."
+          exit 1
+        elif [[ "$staged_fr" -eq 1 && "$staged_en" -eq 0 ]]; then
+          echo "⚠️  README.fr.md changed but README.md wasn't touched."
+          exit 1
+        fi
+        echo "OK: README i18n pair in sync."
+      fail_text: "README i18n pair drifted."
+
     prettier:
       glob: "{src,config}/**/*.{ts,html,scss,json}"
       run: npx prettier --write {staged_files}
