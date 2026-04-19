@@ -49,7 +49,10 @@
               "allowedCommonJsDependencies": [
                 "protobufjs/minimal"
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "extractLicenses": false,
+              "sourceMap": false,
+              "namedChunks": false
             },
             "development": {
               "optimization": false,

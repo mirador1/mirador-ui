@@ -117,6 +117,11 @@ AppShellComponent (layout: topbar + sidebar + router-outlet)
 - [ ] **Root hygiene**: no new file added to repo root that belongs under
       `config/`, `build/`, `docs/`, or `deploy/`. See
       ~/.claude/CLAUDE.md → "Root file hygiene" for the authoritative list.
+- [ ] **Pipelines green**: `glab ci list` on `main` shows `success`
+      for the last run. Any failed job (even `allow_failure: true`)
+      counts as a task. Warnings (bundle budget, deprecations,
+      `allow_failure` shields) are fix-now unless carried by a dated
+      follow-up. See ~/.claude/CLAUDE.md → "Pipelines stay green".
 
 ## Docker Cleanup
 

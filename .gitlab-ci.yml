@@ -131,27 +131,26 @@ build:production:
   extends: .install
   # Route to macbook-local so the build has the full host RAM available
   # instead of being confined to the shared-runner container memory tier.
-  # Pipeline #264 SIGKILL'd (exit 137) despite NODE_OPTIONS=--max-old-space-size=4096:
-  # the cgroup's hard limit on the alpine runner was the ceiling, not Node.
-  # Retry on runner_system_failure for Docker daemon transient issues.
+  # Pipeline #264 SIGKILL'd (exit 137) on the shared runner; macbook-local
+  # gets the host's full 8 GB Docker Desktop allocation.
   tags:
     - macbook-local
   retry:
     max: 1
     when: runner_system_failure
-  # Temporary allow_failure: macbook-local Docker Desktop VM's 4 GB memory
-  # is contended between this build, the local mirador stack (LGTM +
-  # Kafka + Postgres + Redis), and the GitLab runner itself. Pipeline
-  # #265 still OOM-killed `ng build --production` at 37 s. Pending a
-  # dedicated ADR (CI memory budget for UI), `allow_failure: true`
-  # keeps the rest of the pipeline green — the ng build regressions
-  # are caught by local dev workflow (`npm run build` pre-push).
-  allow_failure: true
+  # `resource_group: heavy-build` serialises with docker-build (also
+  # macbook-local + memory-heavy) so we never run two memory-hungry
+  # jobs concurrently on the same runner — pipeline #265 OOM-killed
+  # because build:production + something else were both fighting for
+  # the same 4 GB cgroup.
+  resource_group: heavy-build
   variables:
-    # Angular 21 production build on this tree peaks around 2.4 GB during
-    # tree-shaking + CSS extraction. 4 GB heap leaves room for bundle
-    # analyzer in --full mode without hitting the cgroup ceiling.
-    NODE_OPTIONS: "--max-old-space-size=4096"
+    # Angular 21 production build with sourceMap=false + extractLicenses=false
+    # + namedChunks=false (set in angular.json) brings peak heap from
+    # ~2.4 GB down to ~1.6 GB. NODE_OPTIONS=2048 forces Node's GC to
+    # kick in earlier — ironically lower limits help the OS-level OOM
+    # avoidance because Node releases memory to the cgroup more often.
+    NODE_OPTIONS: "--max-old-space-size=2048"
   script:
     - |
       BUILD_OUT=$(npx ng build --configuration production 2>&1)
