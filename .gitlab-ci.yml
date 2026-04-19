@@ -231,7 +231,16 @@ e2e:kind:
     E2E_BASE_URL: "http://localhost:4200"
   before_script:
     # Install Java 25 + Maven (Playwright image is Debian jammy-based).
-    - apt-get update -qq && apt-get install -y -qq curl openjdk-21-jdk-headless maven
+    # Also docker CLI + compose plugin: the runner mounts /var/run/docker.sock
+    # but the Playwright image ships no docker client, so any `docker compose`
+    # invocation in the script fails with `command not found`. We use the
+    # official Docker apt repo for compose v2 (Ubuntu's docker.io ships only
+    # docker-compose v1 which is EOL).
+    - apt-get update -qq && apt-get install -y -qq curl gnupg openjdk-21-jdk-headless maven
+    - install -m 0755 -d /etc/apt/keyrings
+    - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
+    - apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin
     - npm ci --prefer-offline
   script:
     - |
@@ -349,10 +358,17 @@ sonarcloud:
   script:
     # config/sonar-project.properties provides org/projectKey; token from CI variable.
     # -Dproject.settings points the scanner at the moved config file.
+    # sonar.javascript.node.maxspace=4096 + node.timeout=600 — the JS bridge
+    # subprocess (analyses .ts/.js) needs ≥2GB heap for our codebase and
+    # the default 300s startup timeout is too tight on a busy macbook-local
+    # runner; pipeline #271 failed with "Failed to start the bridge server
+    # (300s timeout)" before we landed on these values.
     - sonar-scanner
         -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
+        -Dsonar.javascript.node.maxspace=4096
+        -Dsonar.javascript.node.timeout=600
   allow_failure: true    # SonarCloud outage must not block deployments
   rules:
     - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
@@ -515,16 +531,19 @@ renovate-lint:
   script:
     - npx --yes --package renovate renovate-config-validator --strict renovate.json
 
-# ── SBOM (syft) — CycloneDX + SPDX ────────────────────────────────────────────
+# ── SBOM (Trivy) — CycloneDX + SPDX ───────────────────────────────────────────
+# Switched from anchore/syft to aquasec/trivy because syft's amd64
+# Go binary panics deterministically under QEMU emulation on the
+# arm64 macbook-local runner (`fatal error: lfstack.push` during
+# the javascript cataloger init — see project_lgtm_pitfalls memory
+# file). Trivy generates the same SBOM formats and is already
+# pinned in `trivy:scan` for CVE work — one tool, two outputs.
+# Job name kept as `sbom:syft` to avoid renaming `needs:` chains
+# in grype:scan + downstream; comment captures the actual tool.
 sbom:syft:
   stage: test-image
   image:
-    # `-debug` ships /bin/sh (busybox); the non-debug tag is fully
-    # distroless and GitLab's runner script wrapper needs `sh` — without
-    # it the job dies with `exec: "sh": executable file not found` before
-    # the syft command even runs (root cause of pipeline #249 red).
-    # `syft` lives at `/syft` inside the image; PATH is set in script.
-    name: anchore/syft:v1.18.1-debug
+    name: aquasec/trivy:0.69.3
     entrypoint: [""]
   tags:
     - macbook-local
@@ -533,20 +552,13 @@ sbom:syft:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
-  # Same Go-runtime/QEMU flake as the sibling service repo — multi-arch
-  # syft binary occasionally panics on the arm64 runner. Two retries.
   retry:
-    max: 2
+    max: 1
     when: runner_system_failure
   script:
-    - |
-      export PATH="/:$PATH"
-      syft "registry:$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
-        --registry-username "$CI_REGISTRY_USER" \
-        --registry-password "$CI_REGISTRY_PASSWORD" \
-        -o cyclonedx-json=bom.cdx.json \
-        -o spdx-json=bom.spdx.json \
-        -o table
+    - trivy registry login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
+    - trivy image --format cyclonedx --output bom.cdx.json "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - trivy image --format spdx-json --output bom.spdx.json "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
   artifacts:
     when: always
     expire_in: 90 days
@@ -604,9 +616,13 @@ dockle:
     DOCKLE_PASSWORD: "$CI_REGISTRY_PASSWORD"
     DOCKLE_PLATFORM: "linux/amd64"
   script:
-    - dockle --exit-code 0 --image-platform linux/amd64 --format json --output dockle-report.json
+    # dockle v0.4.15 doesn't support --image-platform (added in a later
+    # release we haven't pinned to yet). Since `docker-build` produces
+    # a single-platform image (linux/amd64 via buildx), dockle picks
+    # the correct manifest automatically.
+    - dockle --exit-code 0 --format json --output dockle-report.json
           "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-    - dockle --exit-code 0 --image-platform linux/amd64 "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - dockle --exit-code 0 "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
   artifacts:
     when: always
     expire_in: 30 days

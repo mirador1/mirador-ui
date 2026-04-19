@@ -31,6 +31,22 @@
 #      Desktop, `--network=host` is a no-op, hence the optional
 #      `HOST_GATEWAY` override for `localhost` → `host.docker.internal`).
 #
+# Known issue (2026-04-19): on Mac Docker Desktop the Angular Vite
+# dev-server's SockJS/HMR URL is baked at build-time as
+# `ws://localhost:4200`. From inside the container, Chromium loads
+# the HTML over `host.docker.internal:4200` but the bundled JS still
+# tries to open WebSocket on `localhost:4200` — fails, the SPA never
+# bootstraps, the visual specs see an empty `<app-root>` and time
+# out. Workarounds (try in this order):
+#   1. Build a static UI bundle first (`npm run build`) and serve it
+#      via `npx http-server dist/mirador-ui/browser -p 4200`. No HMR
+#      socket → no localhost-baked URL → the container is happy.
+#   2. Or: run this script on a Linux dev box where `--network=host`
+#      means localhost actually IS the host (Mac Docker Desktop runs
+#      Linux in a VM so `--network=host` is a no-op).
+# Until either workaround ships, the macOS-generated visual baselines
+# in e2e/visual.spec.ts-snapshots/ remain Linux-CI-incompatible.
+#
 # Why not a CI job that auto-generates + commits on first run?
 # - That would require a push-capable token in CI → security tradeoff.
 # - A manual "run once per Playwright minor bump" from a dev machine

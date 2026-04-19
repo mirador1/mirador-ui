@@ -38,7 +38,7 @@ fi
 mkdir -p "$OUT_DIR"
 
 # Find ship.sh — it lives in the sibling service repo
-SHIP_SH="../../workspace-modern/mirador-service/bin/ship.sh"
+SHIP_SH="../../workspace-modern/mirador-service/bin/ship/ship.sh"
 if [[ ! -x "$SHIP_SH" ]]; then
   echo "✗ ship.sh not found at $SHIP_SH" >&2
   exit 1
