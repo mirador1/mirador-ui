@@ -40,22 +40,31 @@ import { test } from '@playwright/test';
 // 1280x720 is a good balance: readable at 12 fps without ballooning GIF size.
 test.use({ video: 'on', viewport: { width: 1280, height: 720 } });
 
-// The demo spec navigates cross-origin (Grafana :3000, Kafka UI :9080)
-// and takes ~45 s; raise the per-test timeout well above the 30 s default.
-test.setTimeout(120_000);
+// The v4 demo navigates cross-origin (Grafana :3000, Kafka UI :9080,
+// Swagger, Actuator, Redis Commander) through 11 sidebar tabs +
+// Drilldown + traces + logs — total ~120-140 s of dwells. Raise the
+// per-test timeout to 3 min so the cumulative deliberate waits don't
+// trip Playwright's default 30 s.
+test.setTimeout(180_000);
 
 const UI = 'http://localhost:4200';
 const GRAFANA = 'http://localhost:3000';
 const KAFKA_UI = 'http://localhost:9080';
 const SWAGGER = 'http://localhost:8080/swagger-ui/index.html';
 const ACTUATOR = 'http://localhost:8080/actuator';
-// Grafana Drilldown apps — bundled in LGTM; preferred over the provisioned
-// dashboard because they auto-discover metrics / logs / traces from the
-// datasources without needing a JSON panel config to exist, which makes
-// them more predictable across Grafana + LGTM image minor bumps.
-const METRICS_DRILLDOWN = 'http://localhost:3000/a/grafana-metricsdrilldown-app/';
-const TRACES_DRILLDOWN = 'http://localhost:3000/a/grafana-exploretraces-app/';
-const LOGS_DRILLDOWN = 'http://localhost:3000/a/grafana-lokiexplore-app/';
+// Grafana Drilldown apps — bundled in LGTM. Each URL includes
+// `var-ds` + `var-filters=<label>|=|<value>` so the Drilldown opens
+// on an actionable view (not the empty "select a datasource"
+// landing) — user feedback: "les vues drilldown n'affichent rien".
+// Format matches Grafana Scenes' URL sync.
+const METRICS_DRILLDOWN =
+  'http://localhost:3000/a/grafana-metricsdrilldown-app/trail?var-ds=prometheus' +
+  '&var-filters=service_name%7C%3D%7Cmirador';
+const TRACES_DRILLDOWN =
+  'http://localhost:3000/a/grafana-exploretraces-app/explore?var-ds=tempo' +
+  '&var-filters=resource.service.name%7C%3D%7Cmirador';
+const LOGS_DRILLDOWN =
+  'http://localhost:3000/a/grafana-lokiexplore-app/explore/service/mirador/logs';
 const PYROSCOPE_EXPLORE = 'http://localhost:3000/a/grafana-pyroscope-app/explore';
 const REDIS_COMMANDER = 'http://localhost:8082';
 
@@ -77,11 +86,11 @@ test.describe('Demo recording for README @demo', () => {
     // ═══════════════════════════════════════════════════════════════
     // 2. SIDEBAR SWEEP — establish the scope of the UI
     // ═══════════════════════════════════════════════════════════════
-    // Tabs visited in order, ~1.5 s each: Dashboard, Activity,
-    // Database, Diagnostic, Chaos & Traffic, API Client (request-
-    // builder), Settings, Security, Code Report (quality), Pipelines,
-    // About. Customers is intentionally last so the sweep rolls
-    // naturally into section 3.
+    // Each tab visited with an explicit scrollIntoView + hover +
+    // 2.5 s dwell so the viewer sees the page title land before the
+    // next click. User feedback: 1.5 s was too short — the navigation
+    // was invisible. Customers is intentionally last so the sweep
+    // rolls naturally into section 3.
     const sidebarOrder: RegExp[] = [
       /Dashboard/,
       /Activity/,
@@ -96,10 +105,18 @@ test.describe('Demo recording for README @demo', () => {
       /About/,
     ];
     for (const re of sidebarOrder) {
-      const link = page.getByRole('link', { name: re }).first();
-      if (await link.isVisible().catch(() => false)) {
-        await link.click();
-        await page.waitForTimeout(1500);
+      // Scope to the `<nav>` element so we don't catch other links with
+      // the same text elsewhere on the page (e.g. inline help / breadcrumbs).
+      const navLink = page
+        .locator('nav a.nav-link, nav a.nav-child')
+        .filter({ hasText: re })
+        .first();
+      if (await navLink.isVisible().catch(() => false)) {
+        await navLink.scrollIntoViewIfNeeded().catch(() => {});
+        await navLink.hover().catch(() => {});
+        await page.waitForTimeout(250); // hover-state flash
+        await navLink.click();
+        await page.waitForTimeout(2500); // dwell long enough to read page
       }
     }
 
