@@ -48,3 +48,9 @@ Thumbs.db
 /docs/compodoc/
 /docs/typedoc/
 .claude/
+
+# Playwright E2E — generated artifacts (ADR-0033).
+# `e2e/` itself (spec files) IS tracked; the outputs below are not.
+/test-results/
+/playwright-report/
+/playwright/.cache/
