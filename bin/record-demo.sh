@@ -49,7 +49,15 @@ fail()  { echo -e "${RED}✗${NC} $*" >&2; exit 1; }
 BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
 E2E_BASE_URL="${E2E_BASE_URL:-http://localhost:4200}"
 OUT_DIR="docs/media"
-OUT_GIF="$OUT_DIR/demo.gif"
+# TEASER=1 produces the short top-of-README preview from teaser.spec.ts
+# instead of the full demo. Default = full demo.
+if [[ "${TEASER:-0}" == "1" ]]; then
+  OUT_GIF="$OUT_DIR/teaser.gif"
+  GREP_TAG="@teaser"
+else
+  OUT_GIF="$OUT_DIR/demo.gif"
+  GREP_TAG="@demo"
+fi
 VIDEO_DIR="test-results/demo-spec-Demo-recording-for-README-chromium"
 
 # ─── 1. Prereqs ───────────────────────────────────────────────────────────────
@@ -91,7 +99,7 @@ info "Recording demo flow via Playwright (≈30 s)…"
 PWTEST_VIDEO=on \
 PWTEST_VIEWPORT_WIDTH=1280 \
 PWTEST_VIEWPORT_HEIGHT=720 \
-npx playwright test --grep @demo --workers=1 --reporter=list \
+npx playwright test --grep "$GREP_TAG" --workers=1 --reporter=list \
   || fail "Playwright demo spec failed — see test-results/"
 
 # Find the produced webm (path contains the spec + project name).
