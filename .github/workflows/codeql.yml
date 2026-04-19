@@ -1,0 +1,56 @@
+# =============================================================================
+# CodeQL — GitHub's native SAST, JavaScript/TypeScript flavour.
+#
+# Same rationale as the service side: GitHub-native SAST that runs
+# nowhere else without extra setup. See docs/ops/github-mirror.md
+# in mirador-service for the philosophy.
+#
+# Narrow by design — no build, no tests. Unit tests + integration run
+# on GitLab CI (canonical).
+# =============================================================================
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.ts'
+      - '**/*.js'
+      - '**/*.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.ts'
+      - '**/*.js'
+      - '**/*.html'
+      - 'package.json'
+  schedule:
+    - cron: '15 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: CodeQL JS/TS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
