@@ -683,7 +683,8 @@ github-mirror:
   script:
     - |
       mkdir -p ~/.ssh && chmod 700 ~/.ssh
-      echo "$GITHUB_MIRROR_SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+      # printf avoids the trailing newline echo adds (corrupts base64).
+      printf '%s' "$GITHUB_MIRROR_SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
       chmod 600 ~/.ssh/id_ed25519
       ssh-keyscan -t ed25519,ecdsa-sha2-nistp256 github.com >> ~/.ssh/known_hosts 2>/dev/null
     - |
