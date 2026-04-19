@@ -1,0 +1,7 @@
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1776631774,"idle_time_limit":2.0,"command":"../../workspace-modern/mirador-service/bin/ship/ship.sh --dry-run","title":"bin/ship.sh — one-command dev → main shipping","env":{"SHELL":"/bin/zsh"}}
+[0.298, "o", "\u001b[34m▸\u001b[0m 1/5 Preconditions\r\n"]
+[0.019, "o", "  \u001b[32m✓\u001b[0m on dev\r\n"]
+[0.047, "o", "\u001b[34m▸\u001b[0m 2/5 Push dev to origin\r\n  \u001b[33m[dry]\u001b[0m git push origin dev --force-with-lease\r\n  \u001b[32m✓\u001b[0m pushed\r\n"]
+[0.000, "o", "\u001b[34m▸\u001b[0m 3/5 Find or create MR\r\n"]
+[0.812, "o", "  \u001b[32m✓\u001b[0m reusing MR !93\r\n\u001b[34m▸\u001b[0m 4/5 Arm auto-merge on MR !93 (squash=true)\r\n  \u001b[33m[dry]\u001b[0m glab api PUT merge_requests/93/merge merge_when_pipeline_succeeds=true\r\n\r\n  \u001b[32m✓\u001b[0m Shipped. MR !93 will auto-merge when the pipeline goes green.\r\n  \u001b[32m✓\u001b[0m https://gitlab.com/mirador1/mirador-service/-/merge_requests/93\r\n"]
+[0.001, "x", "0"]
