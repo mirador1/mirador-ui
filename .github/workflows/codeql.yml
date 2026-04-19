@@ -29,6 +29,9 @@ on:
       - 'package.json'
   schedule:
     - cron: '15 6 * * 1'
+  # Manual trigger — useful after adding a new query suite or debugging
+  # an analysis config change without waiting for the next push.
+  workflow_dispatch: {}
 
 permissions:
   contents: read
