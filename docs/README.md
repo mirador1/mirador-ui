@@ -48,6 +48,7 @@ it lists every ADR with status, and the numbers are stable once merged.
 | [`reference/architecture.md`](reference/architecture.md)           | Mermaid diagram of UI + backend + observability stack            |
 | [`reference/ports.md`](reference/ports.md)                         | Every local URL exposed by the full stack                        |
 | [`reference/technologies.md`](reference/technologies.md)           | Long-form technology glossary (~1200 lines, 209 entries)          |
+| [`reference/prometheus-metrics-ui.md`](reference/prometheus-metrics-ui.md) | Catalogue of every Prom metric the UI reads + which page consumes it. |
 
 ## Architecture (tab-by-tab)
 
@@ -55,15 +56,25 @@ Prose content from the About page (`src/app/features/about/`) extracted so
 it's readable without running the UI. One file per tab — diagrams stay in
 the component because Markdown can't do SVG justice.
 
-| Doc                                                                | Tab                                           |
-| ------------------------------------------------------------------ | --------------------------------------------- |
-| [`architecture/README.md`](architecture/README.md)                 | Index with all 14 tabs                        |
-| [`architecture/overview.md`](architecture/overview.md)             | Full-stack summary                            |
-| [`architecture/infrastructure.md`](architecture/infrastructure.md) | Services, ports, `run.sh` reference           |
-| [`architecture/deployment.md`](architecture/deployment.md)         | Docker / Kubernetes / GCP side-by-side        |
-| [`architecture/observability.md`](architecture/observability.md)   | Traces, logs, metrics, profiles routing       |
-| [`architecture/security.md`](architecture/security.md)             | Auth modes, RBAC, vulnerable-demo endpoints   |
-| [`architecture/technology-stack.md`](architecture/technology-stack.md) | Short per-tech usage notes (the About tab)|
+| Doc                                                                          | Tab                                           |
+| ---------------------------------------------------------------------------- | --------------------------------------------- |
+| [`architecture/README.md`](architecture/README.md)                           | Index with all 14 tabs                        |
+| [`architecture/overview.md`](architecture/overview.md)                       | Full-stack summary                            |
+| [`architecture/infrastructure.md`](architecture/infrastructure.md)           | Services, ports, `run.sh` reference           |
+| [`architecture/deployment.md`](architecture/deployment.md)                   | Top-level deployment overview                 |
+| [`architecture/deployment-docker.md`](architecture/deployment-docker.md)     | Docker Compose deep-dive (every service).     |
+| [`architecture/deployment-kubernetes.md`](architecture/deployment-kubernetes.md) | K8s manifests + Argo CD reconciliation.   |
+| [`architecture/deployment-gcp.md`](architecture/deployment-gcp.md)           | GCP-specific GKE Autopilot + WIF + GSM.       |
+| [`architecture/observability.md`](architecture/observability.md)             | Traces, logs, metrics, profiles routing       |
+| [`architecture/security.md`](architecture/security.md)                       | Auth modes, RBAC, vulnerable-demo endpoints   |
+| [`architecture/messaging.md`](architecture/messaging.md)                     | Kafka topics + request-reply pattern.         |
+| [`architecture/data.md`](architecture/data.md)                               | Postgres schema + Flyway migration policy.    |
+| [`architecture/resilience.md`](architecture/resilience.md)                   | Resilience4j circuit breaker / retry / bulkhead. |
+| [`architecture/testing.md`](architecture/testing.md)                         | Unit / integration / E2E / visual / mutation pyramid. |
+| [`architecture/compatibility.md`](architecture/compatibility.md)             | SB3/SB4 × Java 17/21/25 compatibility matrix. |
+| [`architecture/ui-grafana-audit.md`](architecture/ui-grafana-audit.md)       | What the UI duplicates from Grafana — audit + retirement plan. |
+| [`architecture/ui-prom-removal-impact.md`](architecture/ui-prom-removal-impact.md) | Impact analysis: removing the in-UI Prometheus calls. |
+| [`architecture/technology-stack.md`](architecture/technology-stack.md)       | Short per-tech usage notes (the About tab).   |
 
 ## Ops (running it in CI and production)
 
@@ -99,6 +110,12 @@ the other, so we ship both.
 npm run compodoc:serve   # default port
 npm run typedoc          # static generation only
 ```
+
+## Roadmap
+
+| Doc                                             | Topic                                                              |
+| ----------------------------------------------- | ------------------------------------------------------------------ |
+| [`ROADMAP.md`](ROADMAP.md)                      | Tier-1 / Tier-2 ROADMAP — moved out of repo root per root hygiene. |
 
 ## Cross-repo
 

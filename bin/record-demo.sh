@@ -59,6 +59,23 @@ command -v npx    >/dev/null 2>&1 || fail "npx not found (npm installed?)"
 
 curl -sSf "$BACKEND_URL/actuator/health" >/dev/null 2>&1 \
   || fail "Backend not reachable at $BACKEND_URL — start with ./run.sh app in the service repo"
+
+# Full-stack health pre-flight via the sibling service repo's
+# bin/healthcheck-all.sh — this avoids the v3-iteration pattern of
+# launching record-demo only to discover mid-run that LGTM crashed
+# or Kafka stopped (cost: 10 wasted recordings this session).
+SVC_HEALTHCHECK="../../workspace-modern/mirador-service/bin/healthcheck-all.sh"
+if [[ -x "$SVC_HEALTHCHECK" ]]; then
+  info "Running full-stack healthcheck…"
+  if ! "$SVC_HEALTHCHECK" >/tmp/record-demo-healthcheck.log 2>&1; then
+    warn "healthcheck-all reports a degraded stack — see /tmp/record-demo-healthcheck.log"
+    warn "(continuing anyway; non-required services down is OK for the demo)"
+  else
+    ok "Full stack healthy"
+  fi
+else
+  warn "healthcheck-all.sh not found at $SVC_HEALTHCHECK — skipping pre-flight"
+fi
 curl -sSf "$E2E_BASE_URL" >/dev/null 2>&1 \
   || fail "UI dev server not reachable at $E2E_BASE_URL — start with npm start"
 
