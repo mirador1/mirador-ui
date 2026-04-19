@@ -48,9 +48,14 @@ npm test                                       # unit tests
 ```
 
 Budget limits in `angular.json`:
-- Initial JS: 500 kB warning / 1 MB error
-- Component SCSS: **24 kB** warning / 32 kB error  
+- Initial JS: **800 kB** warning / 1 MB error
+  _(raised from 560 kB in ADR-0009 Phase B — the OpenTelemetry Web SDK
+  + `protobufjs/minimal` add ~80 kB raw, ~25 kB gzipped. Lower back to
+  560 kB if OTel is ever swapped for a lighter exporter.)_
+- Component SCSS: **24 kB** warning / 32 kB error
   _(dashboard.component.scss and observability.component.scss legitimately exceed 12 kB — budget was raised intentionally)_
+- `allowedCommonJsDependencies`: `protobufjs/minimal` (transitive via
+  `@opentelemetry/otlp-transformer`, not ESM yet).
 
 ## Git workflow
 
