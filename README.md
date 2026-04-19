@@ -46,6 +46,10 @@
 ![release-please](https://img.shields.io/badge/release--please-CHANGELOG_+_semver-4285F4)
 ![gitleaks](https://img.shields.io/badge/gitleaks-secret_scan-FD7014)
 
+# Mirador UI — front-row seat
+
+> **Watch. Understand. Act.**
+
 > **Mirador** — Spanish for *watchtower* — is exactly what this project is:
 > a vantage point over a real running system that lets you observe, in one
 > place, **the code, the runtime metrics, the CI/CD pipelines, and the

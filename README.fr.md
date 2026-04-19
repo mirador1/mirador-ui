@@ -9,6 +9,8 @@
 
 # Mirador UI — le siège au premier rang
 
+> **Observer. Comprendre. Agir.**
+
 **Mirador** — *watchtower* en espagnol — c'est exactement ce qu'est
 ce projet : un point d'observation d'un système réel qui tourne,
 qui te permet d'observer en un seul endroit **le code, les métriques
