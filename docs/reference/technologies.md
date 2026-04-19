@@ -58,7 +58,7 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 
 ### 📦 [ECMAScript modules (ESM)](https://nodejs.org/api/esm.html)
 - **What it is** — the standard `import`/`export` module format.
-- **Usage here** — `"type": "module"` semantics via `.mjs` for scripts (`scripts/docker-api.mjs`, `commitlint.config.mjs`); the Angular bundle is tree-shaken ESM.
+- **Usage here** — `"type": "module"` semantics via `.mjs` for scripts (`scripts/docker-api.mjs`, `config/commitlint.config.mjs`); the Angular bundle is tree-shaken ESM.
 - **Why it's pertinent** — ESM is a prerequisite for esbuild's tree-shaking and for top-level `await` in Node scripts.
 
 ### 🟩 [Node.js 22 (LTS)](https://nodejs.org/)
@@ -833,12 +833,12 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 
 ### 📝 [Conventional Commits](https://www.conventionalcommits.org/)
 - **What it is** — a commit-message convention (`<type>(<scope>)!?: <subject>`).
-- **Usage here** — pure-bash regex enforcement in `lefthook.yml` (commit-msg hook); `commitlint.config.mjs` documents the intent.
+- **Usage here** — pure-bash regex enforcement in `lefthook.yml` (commit-msg hook); `config/commitlint.config.mjs` documents the intent.
 - **Why it's pertinent** — machine-parseable history powers release-please's automatic semver bumps and CHANGELOG sections.
 
 ### 🧹 [commitlint (documentary)](https://commitlint.js.org/)
 - **What it is** — a Node-based commit-message linter.
-- **Usage here** — `commitlint.config.mjs` documents the ruleset; actual enforcement is the bash regex in lefthook to avoid adding a dependency and Node install step to a frontend repo that already installs plenty.
+- **Usage here** — `config/commitlint.config.mjs` documents the ruleset; actual enforcement is the bash regex in lefthook to avoid adding a dependency and Node install step to a frontend repo that already installs plenty.
 - **Why it's pertinent** — having the `commitlint` file makes IDE integrations pick it up while keeping CI lightweight.
 
 ### 🧹 [hadolint](https://github.com/hadolint/hadolint)

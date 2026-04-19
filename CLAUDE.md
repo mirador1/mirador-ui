@@ -114,6 +114,9 @@ AppShellComponent (layout: topbar + sidebar + router-outlet)
 - [ ] No `*ngIf`/`*ngFor` directives (use `@if`/`@for`)
 - [ ] Error handlers are not silently empty
 - [ ] New services are added to the correct `imports` or `providers` array
+- [ ] **Root hygiene**: no new file added to repo root that belongs under
+      `config/`, `build/`, `docs/`, or `deploy/`. See
+      ~/.claude/CLAUDE.md → "Root file hygiene" for the authoritative list.
 
 ## Docker Cleanup
 
