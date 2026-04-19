@@ -39,7 +39,6 @@ stages:
   - quality
   - test-image    # Build + push Docker image (validation artefact — UI is not deployed to K8s per ADR-0025)
   - deploy    # Legacy PaaS deploy targets — kept manual; UI runs only on the developer laptop
-  - mirror    # Push main to the read-only GitHub mirror (ci-philosophy.md)
 
 variables:
   NODE_VERSION: "22"
@@ -664,33 +663,3 @@ deploy:k3s:
       kubectl config use-context default
     - !reference [.kubectl-apply-ui, script]
 
-# ── stage: mirror — read-only push to GitHub mirror ──────────────────────────
-# Paired with mirador-service's mirror job. See docs/ops/ci-philosophy.md
-# (in the service repo) for the master/slave rationale.
-github-mirror:
-  stage: mirror
-  image: alpine:3.20
-  tags:
-    - macbook-local
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $GITHUB_MIRROR_SSH_KEY != ""'
-  needs: []
-  interruptible: false
-  variables:
-    GITHUB_REPO: "mirador1/mirador-ui"
-  before_script:
-    - apk add --no-cache git openssh-client
-  script:
-    - |
-      mkdir -p ~/.ssh && chmod 700 ~/.ssh
-      # printf avoids the trailing newline echo adds (corrupts base64).
-      printf '%s' "$GITHUB_MIRROR_SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
-      chmod 600 ~/.ssh/id_ed25519
-      ssh-keyscan -t ed25519,ecdsa-sha2-nistp256 github.com >> ~/.ssh/known_hosts 2>/dev/null
-    - |
-      git clone --mirror "$CI_REPOSITORY_URL" mirror.git
-      cd mirror.git
-      git remote set-url --push origin "git@github.com:${GITHUB_REPO}.git"
-      git push --mirror
-  allow_failure: true
-  timeout: 3 minutes
