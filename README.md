@@ -52,6 +52,10 @@
 >
 > _Built with the right tools and the right methods._
 
+![Mirador UI demo — login, customer CRUD, dashboard](docs/media/demo.gif)
+
+<sub>Regenerate with `bin/record-demo.sh` (needs ffmpeg + the local stack up).</sub>
+
 > **Mirador** — Spanish for *watchtower* — is exactly what this project is:
 > a vantage point over a real running system that lets you observe, in one
 > place, **the code, the runtime metrics, the CI/CD pipelines, and the
