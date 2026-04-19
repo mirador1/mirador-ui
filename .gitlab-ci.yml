@@ -16,6 +16,10 @@ workflow:
         - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
         - "public/**/*"
+        # E2E spec changes retrigger CI so Playwright runs against the
+        # updated flow. `playwright.config.ts` + `e2e/**` tracked here.
+        - "playwright.config.ts"
+        - "e2e/**/*"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - "src/**/*"
@@ -29,6 +33,10 @@ workflow:
         - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
         - "public/**/*"
+        # E2E spec changes retrigger CI so Playwright runs against the
+        # updated flow. `playwright.config.ts` + `e2e/**` tracked here.
+        - "playwright.config.ts"
+        - "e2e/**/*"
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - when: never
 
@@ -36,6 +44,7 @@ stages:
   - validate
   - test
   - build
+  - e2e           # Playwright browser E2E against a live backend (ADR-0033)
   - quality
   - test-image    # Build + push Docker image (validation artefact — UI is not deployed to K8s per ADR-0025)
   - deploy    # Legacy PaaS deploy targets — kept manual; UI runs only on the developer laptop
@@ -107,6 +116,13 @@ unit-tests:node20:
 build:production:
   stage: build
   extends: .install
+  variables:
+    # Angular 21 production build on this tree peaks around 2.4 GB during
+    # tree-shaking + CSS extraction. Node's default heap (~1.4 GB on the
+    # GitLab node:22-alpine runner) would OOM and SIGKILL the process
+    # (exit 137). 4 GB gives headroom + room for the bundle analyzer in
+    # --full mode without raising the runner's memory tier.
+    NODE_OPTIONS: "--max-old-space-size=4096"
   script:
     - |
       BUILD_OUT=$(npx ng build --configuration production 2>&1)
@@ -142,6 +158,99 @@ lint:circular-deps:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: e2e ───────────────────────────────────────────────────────────────
+# Playwright browser suite against a live backend. Rationale + scope:
+# `docs/adr/0033-playwright-e2e-in-kind-in-ci.md` in the mirador-service
+# repo.
+#
+# Topology: the backend runs inside this job (docker-compose from the
+# sibling service repo), not inside the kind cluster. The ADR chose
+# option A (compose-up) over option B (multi-arch kind image): the E2E
+# asserts the user-visible contract, not the deployment topology, and
+# the ADR-0028 kind job already validates manifests separately.
+#
+# `allow_failure: true` initially — Playwright flakiness is real until
+# the suite has 10 green runs in a row, at which point we flip to
+# hard-fail per ADR-0033 "Revisit this when" clause.
+e2e:kind:
+  stage: e2e
+  # macbook-local gives us Docker-in-Docker so docker-compose works for
+  # the backend deps (postgres + redis + kafka). Shared GitLab runners
+  # don't expose /var/run/docker.sock.
+  tags:
+    - macbook-local
+  # Large image — Playwright + Chromium + Node + Java 25. We ship a
+  # custom image in a future iteration; for now use the official
+  # Playwright container (ships Chromium pre-installed) and add Java
+  # + Maven in the before_script.
+  image: mcr.microsoft.com/playwright:v1.59.1-jammy
+  needs:
+    - job: build:production
+      artifacts: true    # consume the dist/ artefact produced upstream
+  rules:
+    # MR pipelines + default branch + weekly schedule (detects slow
+    # upstream drift in Spring / Angular minor bumps).
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true    # see ADR-0033; flip to false after 10 green runs
+  variables:
+    # Backend service repo — cloned next to the UI checkout so we can
+    # run `./run.sh app` against postgres/kafka/redis in compose. Token
+    # is read-only, scoped to the `mirador-service` project.
+    SERVICE_REPO: "https://gitlab.com/mirador1/mirador-service.git"
+    E2E_BASE_URL: "http://localhost:4200"
+  before_script:
+    # Install Java 25 + Maven (Playwright image is Debian jammy-based).
+    - apt-get update -qq && apt-get install -y -qq curl openjdk-21-jdk-headless maven
+    - npm ci --prefer-offline
+  script:
+    - |
+      set -euxo pipefail
+
+      # 1. Bring up the backend's infra deps via the service repo's
+      #    docker-compose.yml. We only need postgres + kafka + redis —
+      #    the rest (observability, Keycloak) is demo eye candy.
+      git clone --depth=1 "$SERVICE_REPO" /tmp/svc
+      (cd /tmp/svc && docker compose -f docker-compose.yml up -d postgres kafka redis)
+
+      # 2. Compile + start the Spring Boot app in the background. The
+      #    `./run.sh app` script blocks on the foreground; we daemonise
+      #    with `nohup &` and wait for /actuator/health to return UP.
+      (cd /tmp/svc && nohup mvn -q -DskipTests spring-boot:run > /tmp/app.log 2>&1 &)
+      for i in $(seq 1 60); do
+        curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1 && break
+        sleep 2
+      done
+      curl -sSf http://localhost:8080/actuator/health || { tail -40 /tmp/app.log; exit 1; }
+
+      # 3. Serve the Angular production build on :4200 (http-server is
+      #    a transient dep — lighter than ng serve, static, fast).
+      npx --yes http-server dist/mirador-ui/browser -p 4200 -s &
+      for i in $(seq 1 30); do
+        curl -sSf http://localhost:4200 >/dev/null 2>&1 && break
+        sleep 1
+      done
+
+      # 4. Run the Playwright golden-path suite only. `@demo` is the
+      #    recording spec used by bin/record-demo.sh for the README
+      #    GIF and takes ~30 s of cosmetic delays — exclude in CI.
+      #    retries:2 + CI env var flips to CI mode (see playwright.config.ts).
+      CI=1 npx playwright test --grep @golden
+  after_script:
+    # Always stop compose — leaking postgres on the runner would
+    # accumulate disk. `|| true` because the job may fail before
+    # `docker compose up` ran.
+    - (cd /tmp/svc && docker compose down -v) || true
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    reports:
+      junit: playwright-report/results.xml
+    expire_in: 14 days
 
 # ── Stage: quality ───────────────────────────────────────────────────────────
 bundle-size-check:
@@ -382,7 +491,12 @@ renovate-lint:
 sbom:syft:
   stage: test-image
   image:
-    name: anchore/syft:v1.18.1
+    # `-debug` ships /bin/sh (busybox); the non-debug tag is fully
+    # distroless and GitLab's runner script wrapper needs `sh` — without
+    # it the job dies with `exec: "sh": executable file not found` before
+    # the syft command even runs (root cause of pipeline #249 red).
+    # `syft` lives at `/syft` inside the image; PATH is set in script.
+    name: anchore/syft:v1.18.1-debug
     entrypoint: [""]
   tags:
     - macbook-local
@@ -391,8 +505,14 @@ sbom:syft:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+  # Same Go-runtime/QEMU flake as the sibling service repo — multi-arch
+  # syft binary occasionally panics on the arm64 runner. Two retries.
+  retry:
+    max: 2
+    when: runner_system_failure
   script:
     - |
+      export PATH="/:$PATH"
       syft "registry:$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
         --registry-username "$CI_REGISTRY_USER" \
         --registry-password "$CI_REGISTRY_PASSWORD" \
@@ -433,6 +553,11 @@ grype:scan:
       - grype-report.json
 
 # ── Dockle — container policy checks (CIS Docker, non-root, no secrets) ──────
+# The UI image is built single-arch linux/amd64 (ADR-0023: GKE nodes are
+# amd64 only, arm64 build = wasted minutes). Runner is arm64; dockle
+# defaults to requesting the runner's arch and fails with
+# "no image found in image index for architecture arm64". We pass
+# `--image-platform linux/amd64` to force it to fetch the amd64 layer.
 dockle:
   stage: test-image
   image:
@@ -449,10 +574,11 @@ dockle:
   variables:
     DOCKLE_USERNAME: "$CI_REGISTRY_USER"
     DOCKLE_PASSWORD: "$CI_REGISTRY_PASSWORD"
+    DOCKLE_PLATFORM: "linux/amd64"
   script:
-    - dockle --exit-code 0 --format json --output dockle-report.json
+    - dockle --exit-code 0 --image-platform linux/amd64 --format json --output dockle-report.json
           "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-    - dockle --exit-code 0 "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - dockle --exit-code 0 --image-platform linux/amd64 "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
   artifacts:
     when: always
     expire_in: 30 days
@@ -460,11 +586,14 @@ dockle:
       - dockle-report.json
 
 # ── cosign keyless signing via GitLab OIDC + Sigstore Fulcio ──────────────────
+# Image choice: the upstream `gcr.io/projectsigstore/cosign:v2.5.0` is fully
+# distroless — no `sh` — so GitLab's runner wrapper fails instantly with
+# `exec: "sh": executable file not found` (pipeline #249 root cause).
+# Download the binary into a plain alpine container instead; this also
+# lets us pick the right arch automatically via `uname -m`.
 cosign:sign:
   stage: test-image
-  image:
-    name: gcr.io/projectsigstore/cosign:v2.5.0
-    entrypoint: [""]
+  image: alpine:3.22
   tags:
     - macbook-local
   needs:
@@ -479,6 +608,20 @@ cosign:sign:
   variables:
     COSIGN_YES: "true"
     COSIGN_EXPERIMENTAL: "1"
+    COSIGN_VERSION: "v2.5.0"
+  before_script:
+    - apk add --no-cache curl ca-certificates
+    - |
+      ARCH=$(uname -m)
+      case "$ARCH" in
+        aarch64) COSIGN_ARCH=arm64 ;;
+        x86_64)  COSIGN_ARCH=amd64 ;;
+        *) echo "unsupported arch $ARCH" && exit 1 ;;
+      esac
+      curl -sSLo /usr/local/bin/cosign \
+        "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${COSIGN_ARCH}"
+      chmod +x /usr/local/bin/cosign
+      cosign version
   script:
     - cosign login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
     - cosign sign --identity-token "$SIGSTORE_ID_TOKEN" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"

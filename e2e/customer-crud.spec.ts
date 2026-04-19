@@ -42,28 +42,43 @@ test.describe('Customer CRUD @golden', () => {
     // ---- create ----------------------------------------------------
     await page.getByPlaceholder(/ex: Alice Martin/).fill(name);
     await page.getByPlaceholder(/ex: alice@example.com/).fill(email);
-    await page.getByRole('button', { name: /^Create$/ }).click();
+    // Button label is "+ Create" (leading plus for affordance), flipping
+    // to "Creating..." mid-flight. The regex tolerates either.
+    await page.getByRole('button', { name: /(^|\s)Create(\s|$)/ }).click();
 
-    // The toast is the user-visible success signal. We assert on the
-    // toast text to prove the POST completed AND the UI saw the 201.
-    await expect(page.getByText(new RegExp(name))).toBeVisible({ timeout: 10_000 });
+    // Post-POST success signal: the UI prints `Created → ID <n>:` once
+    // the 201 round-trip returns. This is the tightest possible proof
+    // that the full chain ran (form → JWT → CORS → POST → backend →
+    // response → render) and is what the E2E actually guarantees.
+    await expect(page.getByText(/Created → ID \d+/)).toBeVisible({ timeout: 10_000 });
+
+    // ---- list refresh ---------------------------------------------
+    // The list is paginated 10/page and default-sorted by ID ascending,
+    // so a freshly-inserted row ends up on the LAST page. Search by
+    // email is the cheapest way to force it into the first page of
+    // results, and it doubles as a verification that the search endpoint
+    // also round-trips end-to-end.
+    await page.getByPlaceholder(/Search name or email/).fill(email);
+    await expect(page.getByText(email)).toBeVisible({ timeout: 10_000 });
 
     // ---- delete ----------------------------------------------------
-    // Soft-delete round-trip. Playwright's `scope.getByRole('row')`
-    // resolves each table row; we scope the delete click to the row
-    // carrying our freshly-created email.
-    const row = page.getByRole('row', { name: new RegExp(email) });
-    await row.getByRole('button', { name: /Delete/ }).click();
+    // Each <tr> is scoped by its email cell. Different UI iterations
+    // rendered the row-scoped delete as a trash icon or "×" button —
+    // we match either. `first()` guards against rare seed-data
+    // collision if the same fixture email already exists.
+    const row = page.getByRole('row').filter({ hasText: email });
+    await row.getByRole('button', { name: /Delete|×/ }).first().click();
 
-    // A confirm dialog typically sits in front of the destructive
-    // action. We click the primary action of that dialog.
-    const confirm = page.getByRole('button', { name: /^Delete$|Confirm/ });
+    // Optional confirm dialog — click its primary action if present.
+    const confirm = page.getByRole('button', { name: /^Delete$|Confirm|Yes/ });
     if (await confirm.isVisible().catch(() => false)) {
       await confirm.click();
     }
 
-    // The deleted customer must vanish from the list within 5 s (list
-    // refreshes either optimistically or on next poll).
+    // Re-apply the search filter to force a fresh GET /customers; the
+    // row must be gone. `toHaveCount(0)` is more robust than a negated
+    // `toBeVisible` when the DOM transitions through an empty-state.
+    await page.getByPlaceholder(/Search name or email/).fill(email);
     await expect(page.getByText(email)).toHaveCount(0, { timeout: 10_000 });
   });
 });

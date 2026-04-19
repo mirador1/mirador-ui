@@ -26,8 +26,12 @@ Ce repo est aussi une **étude concrète de jusqu'où l'intégration
 assistée par IA peut aller**. Chaque ADR, chaque étape de hardening
 CI, chaque scanner supply-chain, la baseline K8s, le câblage
 observabilité, le glossaire technologies et ce README ont été
-rédigés en collaboration étroite avec un LLM — la même technique
-garde docs, tests et configuration alignés quand le système grandit.
+rédigés en collaboration étroite avec un LLM — en l'occurrence
+[Claude Opus 4.7](https://www.anthropic.com/claude) d'Anthropic
+(fenêtre contextuelle d'un million de tokens), piloté depuis le CLI
+[Claude Code](https://docs.anthropic.com/claude/docs/claude-code).
+Chaque commit porte un trailer `Co-Authored-By:` qui nomme le modèle
+exact — le log git sert de piste d'audit.
 
 Ce repo est le **frontend Angular 21**. Le backend Spring Boot 4
 vit à [`mirador-service`](https://gitlab.com/mirador1/mirador-service).

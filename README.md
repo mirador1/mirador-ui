@@ -64,8 +64,12 @@
 > integration can go**. Every ADR, every CI hardening step, every
 > supply-chain scanner, the K8s baseline, the observability wiring, the
 > technology glossary and this README were authored in close
-> collaboration with an LLM — the same technique keeps the docs, tests,
-> and configuration in lockstep as the system grows.
+> collaboration with an LLM — specifically Anthropic's
+> [Claude Opus 4.7](https://www.anthropic.com/claude) (1 M-token
+> context), driven from the
+> [Claude Code](https://docs.anthropic.com/claude/docs/claude-code)
+> CLI. Each commit's `Co-Authored-By:` trailer names the exact model,
+> so the git log doubles as an audit trail.
 >
 > This repository is the **Angular 21 frontend**. The Spring Boot 4
 > backend lives at [`mirador-service`](https://gitlab.com/mirador1/mirador-service).
