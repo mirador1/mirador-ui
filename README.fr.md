@@ -13,6 +13,10 @@
 >
 > _Construit avec les bons outils et les bonnes méthodes._
 
+![Démo Mirador UI — login, CRUD client, dashboard](docs/media/demo.gif)
+
+<sub>Régénération : `bin/record-demo.sh` (nécessite ffmpeg + la stack locale allumée).</sub>
+
 **Mirador** — *watchtower* en espagnol — c'est exactement ce qu'est
 ce projet : un point d'observation d'un système réel qui tourne,
 qui te permet d'observer en un seul endroit **le code, les métriques

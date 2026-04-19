@@ -95,6 +95,14 @@ lint:format:
 unit-tests:
   stage: test
   extends: .install
+  # vitest's fork-pool workers can time out under runner CPU pressure when
+  # multiple pipelines schedule concurrently (pipeline #257 died with
+  # "Timeout waiting for worker to respond" after 60 s with zero tests run).
+  # One retry on runner_system_failure absorbs the flake; real test
+  # failures still exit 1 and won't loop.
+  retry:
+    max: 1
+    when: runner_system_failure
   script:
     - npx ng test --watch=false
   coverage: '/All files\s*\|\s*[\d.]+/'
@@ -107,6 +115,11 @@ unit-tests:node20:
   stage: test
   extends: .install
   image: node:20-alpine
+  # Same flake class as unit-tests above — vitest forks timing out on
+  # runner pressure. Identical retry policy.
+  retry:
+    max: 1
+    when: runner_system_failure
   script:
     - npx ng test --watch=false
   rules:
