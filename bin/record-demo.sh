@@ -116,6 +116,32 @@ ffmpeg -y -i "$WEBM" -i "$PALETTE" \
 SIZE=$(du -h "$OUT_GIF" | cut -f1)
 ok "Done — $OUT_GIF ($SIZE)"
 
+# ─── OTel span emission (proposal #9 — meta-observability) ────────────────────
+# Emit a single OTel span describing this recording so a future operator
+# searching Tempo for "service.name=record-demo" can see WHEN the README GIF
+# was last regenerated, on which Playwright version, and how big the output
+# was. Useful when investigating "why does main's GIF look stale": the trace
+# tells you the answer in one query.
+#
+# Skipped if the OTLP endpoint isn't reachable (e.g. CI runs without LGTM).
+OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
+if curl -sSf -m 2 "${OTLP_ENDPOINT}/v1/traces" -X POST -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || \
+   curl -sSf -m 2 "${OTLP_ENDPOINT}/v1/traces" -o /dev/null 2>&1; then
+  # Build a minimal OTLP-JSON trace payload. trace_id = 32 hex, span_id = 16 hex.
+  TRACE_ID=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)
+  SPAN_ID=$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | xxd -p)
+  START_NS=$(($(date +%s) * 1000000000))
+  END_NS=$START_NS  # zero-duration span — this is a marker, not a measurement
+  PW_VERSION=$(node -p "require('./node_modules/@playwright/test/package.json').version" 2>/dev/null || echo "unknown")
+  GIF_BYTES=$(stat -f%z "$OUT_GIF" 2>/dev/null || stat -c%s "$OUT_GIF")
+  curl -sSf -m 5 -X POST "${OTLP_ENDPOINT}/v1/traces" \
+    -H "Content-Type: application/json" \
+    -d '{"resourceSpans":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"record-demo"}},{"key":"service.version","value":{"stringValue":"'"${PW_VERSION}"'"}}]},"scopeSpans":[{"scope":{"name":"bin/record-demo.sh"},"spans":[{"traceId":"'"${TRACE_ID}"'","spanId":"'"${SPAN_ID}"'","name":"demo.gif.regenerated","kind":1,"startTimeUnixNano":"'"${START_NS}"'","endTimeUnixNano":"'"${END_NS}"'","attributes":[{"key":"output.path","value":{"stringValue":"'"${OUT_GIF}"'"}},{"key":"output.bytes","value":{"intValue":'"${GIF_BYTES}"'}},{"key":"playwright.version","value":{"stringValue":"'"${PW_VERSION}"'"}}]}]}]}]}' \
+    >/dev/null 2>&1 \
+      && info "OTel span emitted (trace_id=${TRACE_ID:0:8}…)" \
+      || warn "OTLP push failed (non-blocking)"
+fi
+
 # Warn if GIF is bigger than the "fast-scrolling recruiter" threshold.
 # GitHub-README readers lose interest past ~10 MB (slow cell connection).
 BYTES=$(stat -f%z "$OUT_GIF" 2>/dev/null || stat -c%s "$OUT_GIF")
