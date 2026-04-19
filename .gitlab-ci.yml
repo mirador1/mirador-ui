@@ -20,6 +20,11 @@ workflow:
         # updated flow. `playwright.config.ts` + `e2e/**` tracked here.
         - "playwright.config.ts"
         - "e2e/**/*"
+        # vitest.config.ts tunes the unit-test pool — changes affect
+        # every unit-test job, so we must rerun the suite. Pipeline #278
+        # would have caught the threads-vs-forks regression earlier
+        # if this path had been in the allowlist.
+        - "vitest.config.ts"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - "src/**/*"
@@ -37,6 +42,11 @@ workflow:
         # updated flow. `playwright.config.ts` + `e2e/**` tracked here.
         - "playwright.config.ts"
         - "e2e/**/*"
+        # vitest.config.ts tunes the unit-test pool — changes affect
+        # every unit-test job, so we must rerun the suite. Pipeline #278
+        # would have caught the threads-vs-forks regression earlier
+        # if this path had been in the allowlist.
+        - "vitest.config.ts"
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - when: never
 
