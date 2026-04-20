@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "UI dev (Angular :4200)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 4200
+    },
+    {
+      "name": "svc backend (Spring Boot :8080)",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd ../../workspace-modern/mirador-service && ./mvnw spring-boot:run"
+      ],
+      "port": 8080,
+      "autoPort": false
+    }
+  ]
+}
