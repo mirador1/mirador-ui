@@ -966,12 +966,12 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 
 ### 🚀 [`release-please`](https://github.com/googleapis/release-please)
 - **What it is** — Google's release automation tool that creates "release PRs" and tags.
-- **Usage here** — `release-please` CI job on main; config `release-please-config.json`; manifest `.release-please-manifest.json`.
+- **Usage here** — `release-please` CI job on main; config `config/release-please-config.json`; manifest `.release-please-manifest.json`.
 - **Why it's pertinent** — reads Conventional Commits, auto-generates CHANGELOG and semver bumps; no manual tag/changelog rituals.
 
 ### 🚀 [`release-please` changelog sections](https://github.com/googleapis/release-please/blob/main/docs/customizing.md#changelog-types)
 - **What it is** — config mapping commit types to CHANGELOG section headers.
-- **Usage here** — `release-please-config.json` hides `test`, `ci`, `chore`, `style`; exposes `feat`, `fix`, `perf`, `revert`, `docs`, `refactor`, `build`.
+- **Usage here** — `config/release-please-config.json` hides `test`, `ci`, `chore`, `style`; exposes `feat`, `fix`, `perf`, `revert`, `docs`, `refactor`, `build`.
 - **Why it's pertinent** — keeps the CHANGELOG readable by users, not noisy with CI/test noise.
 
 ### 🔐 **`RELEASE_PLEASE_TOKEN`**
