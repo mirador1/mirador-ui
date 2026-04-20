@@ -266,11 +266,25 @@ e2e:kind:
       # which doesn't exist in the fresh clone — we set sane defaults
       # so the warnings don't cause empty-string container args that
       # crash on first connection.
+      # svc's compose file pins container_names (postgres-demo,
+      # kafka-demo, redis-demo) — those are GLOBAL on the docker
+      # daemon and conflict with the developer's local dev stack
+      # (we share the host socket with macbook-local). Two flavours
+      # of conflict observed:
+      #   1. `Conflict. The container name "/redis-demo" is already
+      #      in use` → blocks the whole stack from starting.
+      #   2. Concurrent CI jobs racing on the same name.
+      # Fix: strip `container_name:` lines from the cloned compose
+      # file BEFORE invoking docker compose. Combined with `-p` for
+      # a unique project namespace, every CI job gets isolated
+      # containers that don't touch the host's local dev stack.
       git clone --depth=1 "$SERVICE_REPO" /tmp/svc
+      sed -i '/^[[:space:]]*container_name:/d' /tmp/svc/docker-compose.yml
+      COMPOSE_PROJECT="ci-${CI_JOB_ID}"
       (cd /tmp/svc && \
         DB_PORT=5432 DB_USER=mirador DB_PASSWORD=mirador DB_NAME=mirador \
         SERVER_PORT=8080 \
-        docker compose -f docker-compose.yml up -d db kafka redis)
+        docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d db kafka redis)
 
       # 2. Compile + start the Spring Boot app in the background. The
       #    `./run.sh app` script blocks on the foreground; we daemonise
@@ -298,8 +312,11 @@ e2e:kind:
   after_script:
     # Always stop compose — leaking postgres on the runner would
     # accumulate disk. `|| true` because the job may fail before
-    # `docker compose up` ran.
-    - (cd /tmp/svc && docker compose down -v) || true
+    # `docker compose up` ran. `-p ci-${CI_JOB_ID}` matches the
+    # project namespace from before_script so we tear down THIS
+    # job's stack only (no risk of nuking a parallel CI job's
+    # containers, nor the developer's local dev stack).
+    - (cd /tmp/svc && docker compose -p "ci-${CI_JOB_ID}" -f docker-compose.yml down -v) || true
   artifacts:
     when: always
     paths:
