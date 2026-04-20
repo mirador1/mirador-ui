@@ -257,10 +257,20 @@ e2e:kind:
       set -euxo pipefail
 
       # 1. Bring up the backend's infra deps via the service repo's
-      #    docker-compose.yml. We only need postgres + kafka + redis —
+      #    docker-compose.yml. We only need db + kafka + redis —
       #    the rest (observability, Keycloak) is demo eye candy.
+      # The Postgres service is named `db` in svc's compose file (not
+      # `postgres`); calling it by the wrong name fails fast with
+      # `no such service`.
+      # The compose file references DB_USER/DB_PASSWORD/etc from .env
+      # which doesn't exist in the fresh clone — we set sane defaults
+      # so the warnings don't cause empty-string container args that
+      # crash on first connection.
       git clone --depth=1 "$SERVICE_REPO" /tmp/svc
-      (cd /tmp/svc && docker compose -f docker-compose.yml up -d postgres kafka redis)
+      (cd /tmp/svc && \
+        DB_PORT=5432 DB_USER=mirador DB_PASSWORD=mirador DB_NAME=mirador \
+        SERVER_PORT=8080 \
+        docker compose -f docker-compose.yml up -d db kafka redis)
 
       # 2. Compile + start the Spring Boot app in the background. The
       #    `./run.sh app` script blocks on the foreground; we daemonise
