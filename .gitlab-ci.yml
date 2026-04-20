@@ -24,7 +24,7 @@ workflow:
         # every unit-test job, so we must rerun the suite. Pipeline #278
         # would have caught the threads-vs-forks regression earlier
         # if this path had been in the allowlist.
-        - "vitest.config.ts"
+        - "config/vitest.config.ts"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - "src/**/*"
@@ -46,7 +46,7 @@ workflow:
         # every unit-test job, so we must rerun the suite. Pipeline #278
         # would have caught the threads-vs-forks regression earlier
         # if this path had been in the allowlist.
-        - "vitest.config.ts"
+        - "config/vitest.config.ts"
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - when: never
 
@@ -362,6 +362,12 @@ e2e:kind:
     expire_in: 14 days
 
 # ── Stage: quality ───────────────────────────────────────────────────────────
+# Shield removed 2026-04-20 — the script itself never exits non-zero
+# (even when the bundle exceeds MAX_SIZE_KB it only echoes WARN and
+# returns 0), so `allow_failure: true` was redundant. Ran green 5+
+# consecutive pipelines on main. If we ever harden the check to exit 1
+# on budget-exceeded, that's a deliberate decision worth surfacing as
+# a red job; re-add the shield only with a dated exit ticket.
 bundle-size-check:
   stage: quality
   needs: ["build:production"]
@@ -380,7 +386,6 @@ bundle-size-check:
       else
         echo "OK: Bundle within budget"
       fi
-  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -457,6 +462,12 @@ sonarcloud:
 # of a combined site that includes Maven site + Compodoc + TypeDoc.
 #
 # config/typedoc.json controls entry points, output dir, and theme.
+# Shield removed 2026-04-20 — `npm run typedoc 2>&1 | tee` pipes through
+# tee which exits 0 regardless of typedoc's exit code, so the job was
+# already de-facto non-blocking (5+ consecutive green runs on main).
+# If typedoc itself breaks (config drift, TypeScript upgrade, missing
+# entry point), that's a real doc-build regression and should fail
+# loudly; relying on the shell pipe's 0-exit hid that signal.
 typedoc:
   stage: quality
   extends: .install
@@ -471,7 +482,6 @@ typedoc:
       - docs/typedoc/
     expire_in: 30 days
     when: always
-  allow_failure: true   # documentation failure must not block deployments
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -757,13 +767,13 @@ release-please:
         --token "$RELEASE_PLEASE_TOKEN" \
         --repo-url "$CI_PROJECT_URL" \
         --target-branch main \
-        --config-file release-please-config.json \
+        --config-file config/release-please-config.json \
         --manifest-file .release-please-manifest.json
       npx --yes release-please github-release \
         --token "$RELEASE_PLEASE_TOKEN" \
         --repo-url "$CI_PROJECT_URL" \
         --target-branch main \
-        --config-file release-please-config.json \
+        --config-file config/release-please-config.json \
         --manifest-file .release-please-manifest.json
   allow_failure: true
 

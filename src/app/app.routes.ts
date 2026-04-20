@@ -17,32 +17,32 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      import('./features/core-ux/dashboard/dashboard.component').then((m) => m.DashboardComponent),
   },
   {
     path: 'customers',
     loadComponent: () =>
-      import('./features/customers/customers.component').then((m) => m.CustomersComponent),
+      import('./features/customer/customers/customers.component').then((m) => m.CustomersComponent),
   },
   {
     path: 'diagnostic',
     loadComponent: () =>
-      import('./features/diagnostic/diagnostic.component').then((m) => m.DiagnosticComponent),
+      import('./features/obs/diagnostic/diagnostic.component').then((m) => m.DiagnosticComponent),
   },
   {
     path: 'database',
     loadComponent: () =>
-      import('./features/database/database.component').then((m) => m.DatabaseComponent),
+      import('./features/infra-ops/database/database.component').then((m) => m.DatabaseComponent),
   },
   {
     path: 'settings',
     loadComponent: () =>
-      import('./features/settings/settings.component').then((m) => m.SettingsComponent),
+      import('./features/core-ux/settings/settings.component').then((m) => m.SettingsComponent),
   },
   {
     path: 'activity',
     loadComponent: () =>
-      import('./features/activity/activity.component').then((m) => m.ActivityComponent),
+      import('./features/obs/activity/activity.component').then((m) => m.ActivityComponent),
   },
   // /observability retired in ADR-0008 — Grafana Explore owns TraceQL / LogQL
   // consumption now. Loggers management moved to /settings (existed already).
@@ -51,7 +51,7 @@ export const routes: Routes = [
   {
     path: 'request-builder',
     loadComponent: () =>
-      import('./features/request-builder/request-builder.component').then(
+      import('./features/customer/request-builder/request-builder.component').then(
         (m) => m.RequestBuilderComponent,
       ),
   },
@@ -61,41 +61,44 @@ export const routes: Routes = [
   { path: 'visualizations', redirectTo: '', pathMatch: 'full' },
   {
     path: 'chaos',
-    loadComponent: () => import('./features/chaos/chaos.component').then((m) => m.ChaosComponent),
+    loadComponent: () =>
+      import('./features/infra-ops/chaos/chaos.component').then((m) => m.ChaosComponent),
   },
   {
     path: 'login',
-    loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
+    loadComponent: () =>
+      import('./features/core-ux/login/login.component').then((m) => m.LoginComponent),
   },
   { path: 'audit', redirectTo: 'security', pathMatch: 'full' },
   { path: 'timeline', redirectTo: '', pathMatch: 'full' },
   {
     path: 'security',
     loadComponent: () =>
-      import('./features/security/security.component').then((m) => m.SecurityComponent),
+      import('./features/infra-ops/security/security.component').then((m) => m.SecurityComponent),
   },
   {
     path: 'quality',
     loadComponent: () =>
-      import('./features/quality/quality.component').then((m) => m.QualityComponent),
+      import('./features/obs/quality/quality.component').then((m) => m.QualityComponent),
   },
   {
     // Full-viewport Maven site viewer — use this instead of the quality page tab
     // when you need more vertical space for Javadoc, JaCoCo, or Pitest reports.
     path: 'quality/site',
     loadComponent: () =>
-      import('./features/maven-site/maven-site-full.component').then(
+      import('./features/obs/maven-site/maven-site-full.component').then(
         (m) => m.MavenSiteFullComponent,
       ),
   },
   {
     path: 'about',
-    loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
+    loadComponent: () =>
+      import('./features/core-ux/about/about.component').then((m) => m.AboutComponent),
   },
   {
     path: 'pipelines',
     loadComponent: () =>
-      import('./features/pipelines/pipelines.component').then((m) => m.PipelinesComponent),
+      import('./features/obs/pipelines/pipelines.component').then((m) => m.PipelinesComponent),
   },
   { path: '**', redirectTo: '' },
 ];
