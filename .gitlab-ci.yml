@@ -311,6 +311,12 @@ e2e:kind:
       #    SPRING_* env vars point at the compose service names,
       #    bypassing the default localhost: addresses that worked
       #    only on the developer's host-mode dev stack.
+      # `-Dcompat` activates the SB4+Java 21 profile in svc's pom.xml
+      # — the default profile targets Java 25 which the playwright
+      # image's openjdk-21 can't compile (release version 25 not
+      # supported). Installing JDK 25 in the container would add ~500
+      # MB and slow every CI run; -Dcompat is a 4-byte change with
+      # the same runtime behavior for our integration purposes.
       (cd /tmp/svc && \
         SPRING_DATASOURCE_URL="jdbc:postgresql://db:5432/mirador" \
         SPRING_DATASOURCE_USERNAME=mirador \
@@ -318,7 +324,7 @@ e2e:kind:
         SPRING_DATA_REDIS_HOST=redis \
         SPRING_DATA_REDIS_PORT=6379 \
         SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
-        nohup mvn -q -DskipTests spring-boot:run > /tmp/app.log 2>&1 &)
+        nohup mvn -q -Dcompat -DskipTests spring-boot:run > /tmp/app.log 2>&1 &)
       for i in $(seq 1 60); do
         curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1 && break
         sleep 2
