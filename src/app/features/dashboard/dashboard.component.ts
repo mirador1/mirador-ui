@@ -981,7 +981,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }));
         this.heatmapData.set(cells);
       },
-      error: () => {},
+      // /actuator/prometheus may be 503 if the backend is down or the
+      // actuator endpoint isn't enabled. Set an empty heatmap so the
+      // template renders a "no data" panel instead of a stale slice
+      // and log to the activity timeline so a developer can correlate.
+      error: () => {
+        this.heatmapData.set([]);
+        this.activity.log(
+          'health-change',
+          'Heatmap fetch failed (Prometheus endpoint unreachable)',
+        );
+      },
     });
   }
 
