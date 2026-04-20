@@ -29,15 +29,22 @@ import { defineConfig } from 'vitest/config';
 // `singleThread: false` allows vitest to fan out within those 2 threads
 // (one per spec), which is fine because Angular zoneless components
 // don't share state across spec files.
+//
+// Vitest 4 breaking change: `test.poolOptions` was removed — all pool
+// options are now TOP-LEVEL (not under test.). Migration docs:
+// https://vitest.dev/guide/migration.html#pool-rework
+// Keeping the nested form silently ignores the config → vitest falls
+// back to defaults (forks) → CI runner OOMs (pipeline #302 = exit 137).
 // =============================================================================
 export default defineConfig({
   test: {
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        maxThreads: 2,
-        singleThread: false,
-      },
+  },
+  // Top-level in Vitest 4:
+  poolOptions: {
+    threads: {
+      maxThreads: 2,
+      singleThread: false,
     },
   },
 });
