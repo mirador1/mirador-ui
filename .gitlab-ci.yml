@@ -446,6 +446,14 @@ sonarcloud:
         -Dsonar.token="${SONAR_TOKEN}"
         -Dsonar.javascript.node.maxspace=4096
         -Dsonar.javascript.node.timeout=600
+  # TODO: flip to false by 2026-05-20 (30d) — RED 3/3 on main (pipelines
+  # #294/#296/#300 on 2026-04-19) with a concrete, non-outage error:
+  # "Failed to create directory: /home/scanner-cli/.tree-sitter/lib" →
+  # "Analysis of JS/TS files failed". This is a container HOME perms/
+  # scanner-version issue, NOT a Sonar outage — the shield's stated
+  # purpose (outage tolerance) no longer justifies it. Fix path:
+  # either pin sonar-scanner-cli to a known-good image with writable
+  # HOME, or set HOME to a writable scratch dir in before_script.
   allow_failure: true    # SonarCloud outage must not block deployments
   rules:
     - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
@@ -550,6 +558,12 @@ trivy:scan:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+  # TODO: flip to false by 2026-07-20 (90d) — ran green 3/3 on main
+  # (pipelines #294/#296/#300 on 2026-04-19) with --exit-code 0, so
+  # the shield is currently decorative. Coordinated flip: switch
+  # --exit-code to 1 on HIGH/CRITICAL AND drop allow_failure at the
+  # same time, so the job goes from informational to a real CVE gate.
+  # Mirrors svc trivy:scan policy — keep both repos in sync.
   allow_failure: true
   script:
     # trivy pulls directly from the registry with its own HTTP client — no
@@ -730,6 +744,12 @@ cosign:sign:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+  # TODO: flip to false by 2026-07-20 (90d) — ran green 3/3 on main
+  # (pipelines #294/#296/#300 on 2026-04-19). Blocker before flip: UI
+  # does NOT have a cosign:verify gate (unlike svc) — removing the
+  # shield with no verify means a real signing failure gets buried.
+  # Plan: (1) add cosign:verify mirroring svc, (2) flip both job
+  # shields to false once verify is green.
   allow_failure: true
   variables:
     COSIGN_YES: "true"
