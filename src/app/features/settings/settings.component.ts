@@ -150,7 +150,13 @@ export class SettingsComponent implements OnInit {
       next: (v) => {
         this.actuatorEnv.set(v);
       },
-      error: () => {},
+      // /actuator/env is restricted to ROLE_ADMIN — anonymous or basic-auth
+      // sessions get 401/403. Surface the failure as a left-pane null state
+      // (the template renders "—" when actuatorEnv is null) rather than a
+      // toast (it's not actionable for non-admin users).
+      error: () => {
+        this.actuatorEnv.set(null);
+      },
     });
 
     this.http.get<ActuatorBeans>(`${base}/actuator/beans`).subscribe({
@@ -162,7 +168,11 @@ export class SettingsComponent implements OnInit {
         }
         this.actuatorBeans.set(count);
       },
-      error: () => {},
+      // Same rationale as above: /actuator/beans requires ROLE_ADMIN.
+      // We reset the count to 0 to indicate "unknown / not authorised".
+      error: () => {
+        this.actuatorBeans.set(0);
+      },
     });
   }
 

@@ -19,6 +19,7 @@ import {
   HttpRequest,
   HttpHandlerFn,
   HttpErrorResponse,
+  HttpEvent,
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
@@ -107,7 +108,7 @@ function handleRefresh(
   auth: AuthService,
   api: ApiService,
   router: Router,
-): Observable<any> {
+): Observable<HttpEvent<unknown>> {
   if (!isRefreshing) {
     isRefreshing = true;
     refreshTokenSubject.next(null);
