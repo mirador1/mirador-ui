@@ -266,30 +266,59 @@ e2e:kind:
       # which doesn't exist in the fresh clone — we set sane defaults
       # so the warnings don't cause empty-string container args that
       # crash on first connection.
-      # svc's compose file pins container_names (postgres-demo,
-      # kafka-demo, redis-demo) — those are GLOBAL on the docker
-      # daemon and conflict with the developer's local dev stack
-      # (we share the host socket with macbook-local). Two flavours
-      # of conflict observed:
-      #   1. `Conflict. The container name "/redis-demo" is already
-      #      in use` → blocks the whole stack from starting.
-      #   2. Concurrent CI jobs racing on the same name.
-      # Fix: strip `container_name:` lines from the cloned compose
-      # file BEFORE invoking docker compose. Combined with `-p` for
-      # a unique project namespace, every CI job gets isolated
-      # containers that don't touch the host's local dev stack.
+      # svc's compose file pins container_names AND publishes ports
+      # to the host (5432/9092/6379), which collides with the
+      # developer's local dev stack on macbook-local (shared docker
+      # socket). Three sed-strips make the compose CI-safe:
+      #   1. `container_name:` — global names, can't run two stacks
+      #   2. `^    ports:` + indented children — host port bindings
+      #      collide if local dev has redis/postgres/kafka on the
+      #      same ports.
+      #   3. `expose:` already present in svc's compose, so
+      #      service-to-service network calls keep working.
+      # Combined with `-p ci-${CI_JOB_ID}` we get a fully isolated
+      # stack on a private bridge network, no host port footprint.
       git clone --depth=1 "$SERVICE_REPO" /tmp/svc
       sed -i '/^[[:space:]]*container_name:/d' /tmp/svc/docker-compose.yml
+      # Strip `ports:` block (the line + its `- "x:y"` children up
+      # to the next sibling key). Python is more reliable than sed
+      # for indented YAML blocks.
+      python3 -c "
+      import re, sys
+      p = '/tmp/svc/docker-compose.yml'
+      with open(p) as f: txt = f.read()
+      # Match `    ports:` then any number of more-indented lines.
+      txt = re.sub(r'^( +)ports:\s*\n(\1 +- .*\n)+', '', txt, flags=re.MULTILINE)
+      with open(p, 'w') as f: f.write(txt)
+      "
       COMPOSE_PROJECT="ci-${CI_JOB_ID}"
       (cd /tmp/svc && \
         DB_PORT=5432 DB_USER=mirador DB_PASSWORD=mirador DB_NAME=mirador \
         SERVER_PORT=8080 \
         docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d db kafka redis)
 
-      # 2. Compile + start the Spring Boot app in the background. The
+      # 2. Connect THIS job container to the compose bridge network
+      #    so Spring Boot can reach `db`, `kafka`, `redis` by docker
+      #    DNS — no host port footprint needed. The job container's
+      #    hostname is its own container ID (set by GitLab runner).
+      JOB_CTR=$(hostname)
+      NET="${COMPOSE_PROJECT}_default"
+      docker network connect "$NET" "$JOB_CTR" 2>/dev/null || true
+
+      # 3. Compile + start the Spring Boot app in the background. The
       #    `./run.sh app` script blocks on the foreground; we daemonise
       #    with `nohup &` and wait for /actuator/health to return UP.
-      (cd /tmp/svc && nohup mvn -q -DskipTests spring-boot:run > /tmp/app.log 2>&1 &)
+      #    SPRING_* env vars point at the compose service names,
+      #    bypassing the default localhost: addresses that worked
+      #    only on the developer's host-mode dev stack.
+      (cd /tmp/svc && \
+        SPRING_DATASOURCE_URL="jdbc:postgresql://db:5432/mirador" \
+        SPRING_DATASOURCE_USERNAME=mirador \
+        SPRING_DATASOURCE_PASSWORD=mirador \
+        SPRING_DATA_REDIS_HOST=redis \
+        SPRING_DATA_REDIS_PORT=6379 \
+        SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
+        nohup mvn -q -DskipTests spring-boot:run > /tmp/app.log 2>&1 &)
       for i in $(seq 1 60); do
         curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1 && break
         sleep 2
