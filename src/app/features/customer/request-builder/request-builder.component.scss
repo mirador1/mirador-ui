@@ -268,11 +268,15 @@ h2 {
     margin: 0;
     padding: 0.75rem 1rem;
     font-size: 0.8rem;
-    color: var(--text-primary);
     max-height: 400px;
     overflow: auto;
     white-space: pre-wrap;
     word-break: break-word;
+    // Terminal-style response output: dark background, green-400 text
+    // (kept as literal hex — this is a deliberate JSON-viewer accent,
+    // not tied to the global --text-primary token). Sonar css:S4656
+    // flagged the stale `color: var(--text-primary)` that was always
+    // overridden by this line.
     background: var(--bg-terminal);
     color: #86efac;
   }

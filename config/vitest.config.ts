@@ -39,6 +39,13 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     pool: 'threads',
+    // testTimeout bumped from default 5s → 15s: the 15 smoke specs
+    // instantiate feature components that wire up signals + effects +
+    // HTTP init — on a contended CI runner (macbook-local with
+    // parallel integration tests) 5s is sometimes not enough.
+    // Pipeline #304 on main showed 10/15 smoke specs timing out at
+    // exactly 5000ms. Local run on warm laptop: ~2s total, well under.
+    testTimeout: 15000,
   },
   // Top-level in Vitest 4:
   poolOptions: {

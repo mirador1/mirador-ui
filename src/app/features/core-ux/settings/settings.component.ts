@@ -71,8 +71,14 @@ export class SettingsComponent implements OnInit {
   /** Feature flags from unleash-proxy — isAvailable() false on Local compose. */
   readonly flags = inject(FeatureFlagService);
 
-  /** Flag names sorted alphabetically for deterministic rendering. */
-  readonly flagNames = computed(() => Object.keys(this.flags.flags()).sort());
+  /** Flag names sorted alphabetically for deterministic rendering.
+   *  Explicit `localeCompare` — JS `Array.sort()` with no comparator coerces
+   *  to string and uses UTF-16 code-unit order, which is locale-unaware
+   *  (Sonar typescript:S2871). Flag names are ASCII today but this guards
+   *  against future non-ASCII identifiers. */
+  readonly flagNames = computed(() =>
+    Object.keys(this.flags.flags()).sort((a, b) => a.localeCompare(b)),
+  );
 
   // ── Actuator info ──────────────────────────────────────────────────────────
 
