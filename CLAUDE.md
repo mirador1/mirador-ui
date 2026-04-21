@@ -111,6 +111,40 @@ AppShellComponent (layout: topbar + sidebar + router-outlet)
 - Global tokens (colours, spacing, shadows) are defined in `src/styles.scss` as CSS custom properties — use them instead of hardcoding values.
 - Dashboard and observability components have large SCSS files by design (complex layout, many states). Do not refactor unless explicitly asked.
 
+## File length hygiene (segmenter les fichiers trop longs)
+
+When a hand-written source file crosses **~1 000 lines**, plan a split at
+the next touch; at **1 500+**, split NOW before shipping any other change.
+Current offenders to address over upcoming sessions:
+
+- `src/app/features/obs/quality/quality.component.html` (1 742) — 10+
+  panels (coverage, SpotBugs, Pitest, OWASP, PMD, Checkstyle, Sonar,
+  test results…) → 1 child `QualityPanelXxx` component per panel.
+- `src/app/features/core-ux/dashboard/dashboard.component.ts` (1 022)
+  + `.scss` (1 258) — 1 widget per file (ArchitectureMap, HealthProbes,
+  ErrorTimeline, BundleTreemap…).
+- `src/app/features/customer/customers/customers.component.ts` (904)
+  — split by tab (list, CRUD, import/export, bio, todos, enrich).
+- `.gitlab-ci.yml` (1 067) — modularise into `ci/includes/*.yml`
+  (validate, test, build, e2e, quality, security, docker).
+
+Exceptions (length is inherent — don't split): `README.md`,
+`docs/reference/*.md`, auto-generated files
+(`src/app/core/api/generated.types.ts`, docs/compodoc/*). Large component
+`.scss` files (>800 lines) stay single-file by design when the visual
+layout is inherently one cohesive page — refactor only when asked.
+
+How to split — one commit per responsibility move, keep the public
+entrypoint small (<200 lines), grep-friendly child names
+(`QualityPanelCoverageComponent` not `CoveragePanel`), ADR if the
+dependency graph changes.
+
+Subdirectory side of the same rule: when a flat folder crosses **10
+entries**, group by purpose (features/core-ux/, features/customer/,
+features/obs/, features/infra-ops/ already in place — keep applying
+as new features land); **15** is the hard ceiling. See
+`~/.claude/CLAUDE.md` → "Subdirectory hygiene".
+
 ## Code review checklist (run proactively after significant changes)
 
 - [ ] Zero `NG8113` warnings in production build
@@ -122,6 +156,10 @@ AppShellComponent (layout: topbar + sidebar + router-outlet)
 - [ ] **Root hygiene**: no new file added to repo root that belongs under
       `config/`, `build/`, `docs/`, or `deploy/`. See
       ~/.claude/CLAUDE.md → "Root file hygiene" for the authoritative list.
+- [ ] **File length hygiene**: no hand-written file > 1 000 lines
+      without a split plan. Auto-generated files
+      (`generated.types.ts`, compodoc) exempt. See
+      ~/.claude/CLAUDE.md → "File length hygiene".
 - [ ] **Pipelines green**: `glab ci list` on `main` shows `success`
       for the last run. Any failed job (even `allow_failure: true`)
       counts as a task. Warnings (bundle budget, deprecations,
