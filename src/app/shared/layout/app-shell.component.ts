@@ -296,6 +296,14 @@ export class AppShellComponent {
           path: '/find-the-bug',
           tip: 'Three scripted puzzles: trigger a failure, watch live metrics, reveal the root cause, apply the fix',
         },
+        // Phase 3 DEMO2 — read-only 5-minute scripted incident.
+        // Complements Find the bug (interactive) with a no-clicks-needed
+        // walkthrough suitable for a quick skim by a reviewer.
+        {
+          label: '🎬 Incident anatomy',
+          path: '/incident-anatomy',
+          tip: 'Scripted 5-minute story of a real incident shape — alert, runbook, trace, fix, verify',
+        },
       ],
     },
     {
@@ -512,6 +520,12 @@ export class AppShellComponent {
       path: '/find-the-bug',
       keywords:
         'find bug puzzle demo incident scenario rate limit circuit breaker root cause fix trigger observe',
+    },
+    {
+      label: '🎬 Incident anatomy',
+      path: '/incident-anatomy',
+      keywords:
+        'incident anatomy walkthrough outage timeline alert runbook trace fix recovery observability',
     },
     {
       label: '🐘 Database',

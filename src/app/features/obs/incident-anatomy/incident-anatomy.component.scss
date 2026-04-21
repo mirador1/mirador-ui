@@ -1,0 +1,195 @@
+/*
+ * incident-anatomy.component.scss — vertical timeline layout for the
+ * scripted incident walkthrough. Uses the existing design tokens from
+ * src/styles.scss (--bg, --fg, --border, --accent) so light/dark inherit.
+ */
+:host {
+  display: block;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 3rem;
+}
+
+.anatomy-header {
+  margin-bottom: 1.75rem;
+
+  h1 {
+    margin: 0 0 0.35rem;
+    font-size: 1.5rem;
+  }
+}
+
+.anatomy-subtitle {
+  color: var(--muted, #6b7280);
+  line-height: 1.55;
+  margin: 0;
+
+  a {
+    color: var(--accent, #3b82f6);
+    text-decoration: underline;
+  }
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+
+  // Vertical spine that connects all the timeline markers.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 32px;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    background: var(--border, #e5e7eb);
+  }
+}
+
+.timeline-step {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  // Last step loses its bottom margin so the footer sits right against.
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+  // Keep the marker above the spine::before line.
+  z-index: 1;
+}
+
+.timeline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 1.4rem;
+  background: var(--bg, #ffffff);
+  border: 2px solid var(--accent, #3b82f6);
+  border-radius: 50%;
+  // Each icon is a perfect circle over the spine; the 2 px border stops
+  // the spine from showing through via box-shadow masking.
+}
+
+.timeline-time {
+  font-size: 0.75rem;
+  color: var(--muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.timeline-card {
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+}
+
+.timeline-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.timeline-section {
+  margin-bottom: 0.75rem;
+
+  h3 {
+    margin: 0 0 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted, #6b7280);
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.55;
+    font-size: 0.95rem;
+  }
+}
+
+.timeline-snippet {
+  margin: 0.65rem 0 0.3rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--code-bg, #1f2937);
+  color: var(--code-fg, #f3f4f6);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.4;
+
+  code {
+    font-family:
+      'SF Mono', 'Monaco', 'Cascadia Code', 'Menlo', Consolas, 'Liberation Mono', monospace;
+    white-space: pre;
+  }
+}
+
+.timeline-snippet-label {
+  font-size: 0.72rem;
+  color: var(--muted, #6b7280);
+  margin-bottom: 0.65rem;
+  // Subtle — sits under the code block like a caption.
+  text-align: right;
+  font-style: italic;
+}
+
+.timeline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.6rem;
+
+  a {
+    color: var(--accent, #3b82f6);
+    font-size: 0.85rem;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.anatomy-footer {
+  margin-top: 2.5rem;
+  padding: 1rem 1.15rem;
+  background: color-mix(in srgb, var(--accent, #3b82f6) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #3b82f6) 30%, transparent);
+  border-radius: 10px;
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    line-height: 1.6;
+
+    a {
+      color: var(--accent, #3b82f6);
+      text-decoration: underline;
+    }
+  }
+}

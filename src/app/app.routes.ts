@@ -41,6 +41,17 @@ export const routes: Routes = [
       ),
   },
   {
+    // Phase 3 DEMO2 — read-only 5-minute scripted walkthrough of a real
+    // incident shape (Ollama slowness → circuit breaker). No interactivity;
+    // meant as a 60-second skim for recruiters + a reference for the
+    // observability loop (alert → runbook → trace → fix → verify).
+    path: 'incident-anatomy',
+    loadComponent: () =>
+      import('./features/obs/incident-anatomy/incident-anatomy.component').then(
+        (m) => m.IncidentAnatomyComponent,
+      ),
+  },
+  {
     path: 'database',
     loadComponent: () =>
       import('./features/infra-ops/database/database.component').then((m) => m.DatabaseComponent),

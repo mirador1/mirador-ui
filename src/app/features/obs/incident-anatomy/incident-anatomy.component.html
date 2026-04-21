@@ -1,0 +1,82 @@
+<section class="anatomy">
+  <header class="anatomy-header">
+    <h1>🎬 Anatomy of an incident</h1>
+    <p class="anatomy-subtitle">
+      A minute-by-minute walkthrough of a real incident pattern — Ollama LLM slowness cascades into
+      the circuit breaker — using Mirador's actual alerts, runbooks, traces, and chaos tools. Read
+      it top-to-bottom for the shape of a "symptom → diagnosis → fix → verify" loop; no clicks
+      needed. For hands-on,
+      <a routerLink="/find-the-bug">try /find-the-bug</a>.
+    </p>
+  </header>
+
+  <ol class="timeline">
+    @for (step of steps; track step.t) {
+      <li class="timeline-step">
+        <div class="timeline-marker" aria-hidden="true">
+          <span class="timeline-icon">{{ step.icon }}</span>
+          <span class="timeline-time">{{ step.t }}</span>
+        </div>
+
+        <div class="timeline-card">
+          <h2 class="timeline-title">{{ step.title }}</h2>
+
+          <section class="timeline-section">
+            <h3>What the operator saw</h3>
+            <p>{{ step.observation }}</p>
+          </section>
+
+          @if (step.snippet) {
+            <pre class="timeline-snippet"><code>{{ step.snippet.code }}</code></pre>
+            <div class="timeline-snippet-label">{{ step.snippet.label }}</div>
+          }
+
+          <section class="timeline-section">
+            <h3>What they did</h3>
+            <p>{{ step.action }}</p>
+          </section>
+
+          @if (step.links && step.links.length > 0) {
+            <nav class="timeline-links" aria-label="Related artefacts">
+              @for (link of step.links; track link.url) {
+                <a [href]="link.url" target="_blank" rel="noopener noreferrer">
+                  {{ link.label }} ↗
+                </a>
+              }
+            </nav>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+
+  <footer class="anatomy-footer">
+    <h3>Try it yourself</h3>
+    <p>Every artefact referenced above is real:</p>
+    <ul>
+      <li>
+        The alert is in
+        <a
+          href="https://gitlab.com/mirador1/mirador-service/-/blob/main/deploy/kubernetes/base/observability-prom/mirador-alerts.yaml"
+          target="_blank"
+          rel="noopener noreferrer"
+          >deploy/kubernetes/base/observability-prom/mirador-alerts.yaml ↗</a
+        >
+      </li>
+      <li>
+        The runbooks live under
+        <a
+          href="https://gitlab.com/mirador1/mirador-service/-/tree/main/docs/ops/runbooks"
+          target="_blank"
+          rel="noopener noreferrer"
+          >docs/ops/runbooks/ ↗</a
+        >
+      </li>
+      <li>
+        The chaos primitive that reproduces this scenario is
+        <a routerLink="/chaos">/chaos</a> → "Circuit Breaker Trip" button
+      </li>
+      <li>For a guided puzzle version, see <a routerLink="/find-the-bug">/find-the-bug</a></li>
+    </ul>
+  </footer>
+</section>
