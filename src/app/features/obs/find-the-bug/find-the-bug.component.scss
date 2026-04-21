@@ -1,0 +1,243 @@
+/*
+ * find-the-bug.component.scss — scenario-card grid + live sparkline styling.
+ *
+ * Uses the same design tokens as the rest of the app (--bg, --fg, --border,
+ * --accent, --hover) so light/dark themes inherit automatically.
+ */
+:host {
+  display: block;
+  padding: 1.25rem 1.5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.ftb-header {
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+  }
+}
+
+.ftb-subtitle {
+  color: var(--muted, #6b7280);
+  margin: 0 0 1.5rem;
+  max-width: 780px;
+  line-height: 1.5;
+}
+
+.scenarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1rem;
+}
+
+.scenario {
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 160ms ease;
+  // Each state gets a subtle left border accent so the scenario's lifecycle
+  // is scannable across 3 cards at once.
+  border-left: 4px solid var(--border, #e5e7eb);
+
+  &[data-state='triggered'] {
+    border-left-color: var(--warning, #f59e0b);
+  }
+  &[data-state='revealed'] {
+    border-left-color: var(--accent, #3b82f6);
+  }
+  &[data-state='fixing'] {
+    border-left-color: var(--fixing, #a855f7);
+  }
+  &[data-state='recovered'] {
+    border-left-color: var(--success, #10b981);
+  }
+}
+
+.scenario-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+}
+
+.scenario-icon {
+  font-size: 1.5rem;
+}
+
+.scenario-teaser {
+  color: var(--muted, #6b7280);
+  margin: 0 0 0.9rem;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.metric-panel {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  grid-template-areas: 'value spark peak';
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--hover, #f9fafb);
+  border-radius: 8px;
+  margin-bottom: 0.9rem;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'value' 'spark' 'peak';
+  }
+}
+
+.metric-value {
+  grid-area: value;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-number {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--fg, #111827);
+}
+
+.metric-unit {
+  color: var(--muted, #6b7280);
+  font-size: 0.8rem;
+}
+
+.sparkline-svg {
+  grid-area: spark;
+  width: 100%;
+  height: 40px;
+  // Flex-ish sizing while respecting the 280-wide viewBox — the SVG
+  // scales to fit via preserveAspectRatio="none" in the template.
+}
+
+.sparkline-path {
+  stroke: var(--accent, #3b82f6);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-placeholder {
+  fill: var(--muted, #9ca3af);
+  font-size: 10px;
+  font-family: inherit;
+}
+
+.metric-peak {
+  grid-area: peak;
+  text-align: right;
+  color: var(--muted, #6b7280);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--bg, #ffffff);
+  color: var(--fg, #111827);
+  cursor: pointer;
+  transition:
+    background 120ms,
+    border-color 120ms;
+
+  &:hover:not(:disabled) {
+    background: var(--hover, #f3f4f6);
+  }
+
+  &.btn-primary {
+    background: var(--accent, #3b82f6);
+    color: #ffffff;
+    border-color: var(--accent, #3b82f6);
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent, #3b82f6) 88%, white 12%);
+    }
+  }
+
+  &.btn-ghost {
+    background: transparent;
+  }
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  border: 1px solid transparent;
+
+  &.status-pill-ok {
+    background: color-mix(in srgb, var(--success, #10b981) 15%, transparent);
+    color: var(--success, #065f46);
+    border-color: color-mix(in srgb, var(--success, #10b981) 35%, transparent);
+  }
+  &.status-pill-active {
+    background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent);
+    color: color-mix(in srgb, var(--warning, #f59e0b) 75%, black 25%);
+    border-color: color-mix(in srgb, var(--warning, #f59e0b) 45%, transparent);
+  }
+  &.status-pill-fixing {
+    background: color-mix(in srgb, #a855f7 15%, transparent);
+    color: color-mix(in srgb, #a855f7 75%, black 25%);
+    border-color: color-mix(in srgb, #a855f7 45%, transparent);
+  }
+}
+
+.root-cause {
+  background: color-mix(in srgb, var(--accent, #3b82f6) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #3b82f6) 30%, transparent);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  width: 100%;
+
+  h3 {
+    margin: 0 0 0.45rem;
+    font-size: 1rem;
+  }
+
+  h4 {
+    margin: 0.9rem 0 0.3rem;
+    font-size: 0.88rem;
+  }
+
+  p {
+    margin: 0 0 0.4rem;
+    line-height: 1.5;
+  }
+
+  ul {
+    margin: 0 0 0.85rem 1rem;
+    padding: 0;
+    line-height: 1.5;
+  }
+
+  .btn {
+    margin-right: 0.4rem;
+    margin-top: 0.2rem;
+  }
+}

@@ -30,6 +30,17 @@ export const routes: Routes = [
       import('./features/obs/diagnostic/diagnostic.component').then((m) => m.DiagnosticComponent),
   },
   {
+    // Phase 3 DEMO1 — guided "trigger → observe → root cause → fix" UX.
+    // Complements /chaos (power-tool grid) and /diagnostic (free-form
+    // scenarios) with a lighter, storytelling-first entry for first-time
+    // visitors. See docs/how-to/find-the-bug.md for the scenario catalogue.
+    path: 'find-the-bug',
+    loadComponent: () =>
+      import('./features/obs/find-the-bug/find-the-bug.component').then(
+        (m) => m.FindTheBugComponent,
+      ),
+  },
+  {
     path: 'database',
     loadComponent: () =>
       import('./features/infra-ops/database/database.component').then((m) => m.DatabaseComponent),

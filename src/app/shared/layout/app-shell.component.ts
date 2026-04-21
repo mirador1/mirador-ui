@@ -287,6 +287,15 @@ export class AppShellComponent {
           label: 'Data Generator',
           tip: 'Create N customers with realistic random names, configurable delay',
         },
+        // Phase 3 DEMO1 — guided scenario walkthrough. Sits under Chaos
+        // because it reuses the same failure-injection primitives but
+        // wraps them in a "click → observe → reveal → fix" narrative
+        // aimed at first-time visitors.
+        {
+          label: '🔎 Find the bug',
+          path: '/find-the-bug',
+          tip: 'Three scripted puzzles: trigger a failure, watch live metrics, reveal the root cause, apply the fix',
+        },
       ],
     },
     {
@@ -497,6 +506,12 @@ export class AppShellComponent {
       label: '💥 Chaos',
       path: '/chaos',
       keywords: 'chaos traffic faker generate stress load rate limit circuit breaker',
+    },
+    {
+      label: '🔎 Find the bug',
+      path: '/find-the-bug',
+      keywords:
+        'find bug puzzle demo incident scenario rate limit circuit breaker root cause fix trigger observe',
     },
     {
       label: '🐘 Database',
