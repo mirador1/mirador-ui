@@ -140,6 +140,33 @@
       </div>
     </div>
 
+    <!-- Infrastructure Chaos — Chaos Mesh CRs via backend ChaosController -->
+    <h3 class="infra-chaos-title">
+      Infrastructure Chaos
+      <small>Chaos Mesh CRs — requires cluster (bin/cluster/demo-up.sh full) + ADMIN role</small>
+    </h3>
+    <div class="scenarios-table">
+      @for (a of infraChaosActions; track a.name) {
+        <div class="scenario-row">
+          <div class="scenario-meta">
+            <span
+              class="scenario-badge"
+              [style.background]="a.color + '20'"
+              [style.color]="a.color"
+              >{{ a.icon }}</span
+            >
+            <div class="scenario-desc">
+              <strong>{{ a.name }}</strong>
+              <span>{{ a.description }}</span>
+            </div>
+          </div>
+          <div class="scenario-action">
+            <button class="run-btn" (click)="a.action()">▶ Run</button>
+          </div>
+        </div>
+      }
+    </div>
+
     <!-- Chaos log -->
     @if (chaosLog().length) {
       <article class="card log-card">
