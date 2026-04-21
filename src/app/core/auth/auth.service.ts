@@ -32,17 +32,50 @@ export class AuthService {
   readonly isAuthenticated = computed(() => !!this._accessToken());
 
   /**
-   * Computed boolean: decodes the JWT payload (base64) and checks the `role` claim.
-   * Accepts both `ROLE_ADMIN` (Spring Security prefix style) and `ADMIN` (plain).
-   * Returns false on any parsing error to fail safely.
+   * Computed boolean: decodes the JWT payload (base64) and checks for admin role.
+   *
+   * <p>Supports THREE claim formats depending on the token issuer:
+   *
+   * <ul>
+   *   <li><b>Built-in JWT</b> (admin/admin via POST /auth/login): single-valued
+   *       `role` string claim. Accepts both `ROLE_ADMIN` (Spring prefix style)
+   *       and `ADMIN` (plain, legacy).</li>
+   *   <li><b>Auth0 JWT</b>: namespaced custom claim
+   *       `https://mirador-api/roles` (array of strings). Injected by the
+   *       "Inject mirador roles" Auth0 Action in the Post-Login flow —
+   *       see {@code docs/api/auth0-action-roles.js} in mirador-service.
+   *       Namespaced because OIDC reserves top-level claim names.</li>
+   *   <li><b>Keycloak JWT</b>: roles are nested under `realm_access.roles`
+   *       (array). Same format Spring's JwtAuthenticationFilter reads on
+   *       the backend.</li>
+   * </ul>
+   *
+   * <p>Returns false on any parsing error (invalid base64, malformed JSON,
+   * missing payload segment) to fail safely — a broken token should lock
+   * admin UI, not silently grant access.
    */
   readonly isAdmin = computed(() => {
     const token = this._accessToken();
     if (!token) return false;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const role = (payload['role'] as string) ?? '';
-      return role === 'ROLE_ADMIN' || role === 'ADMIN';
+
+      // Built-in + Keycloak realm_access.roles + Auth0 namespaced roles —
+      // collect every role strings from all known shapes into one flat list.
+      const roles: string[] = [];
+      if (typeof payload['role'] === 'string') {
+        roles.push(payload['role']);
+      }
+      const realmAccess = payload['realm_access'] as { roles?: unknown } | undefined;
+      if (realmAccess && Array.isArray(realmAccess.roles)) {
+        roles.push(...realmAccess.roles.filter((r): r is string => typeof r === 'string'));
+      }
+      const auth0Roles = payload['https://mirador-api/roles'];
+      if (Array.isArray(auth0Roles)) {
+        roles.push(...auth0Roles.filter((r): r is string => typeof r === 'string'));
+      }
+
+      return roles.includes('ROLE_ADMIN') || roles.includes('ADMIN');
     } catch {
       return false;
     }
