@@ -61,6 +61,12 @@ stages:
 
 variables:
   NODE_VERSION: "22"
+  # Force npm to use an in-project cache dir so GitLab's `cache:` can pick it
+  # up (the default $HOME/.npm is outside $CI_PROJECT_DIR and therefore not
+  # archivable). Combined with the .npm/ path below, `npm ci --prefer-offline`
+  # becomes fully offline on a cache hit — immune to npm-registry ECONNRESET
+  # flakes like the one that failed pipeline #318 (2026-04-21).
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
 
 default:
   image: node:${NODE_VERSION}-alpine
@@ -74,13 +80,35 @@ default:
       files:
         - package-lock.json
     paths:
+      # node_modules: the installed tree — reused on cache-hit via the
+      # "skip if fresh" check below so `npm ci` doesn't wipe+reinstall.
       - node_modules/
+      # .npm: npm's tarball cache — when `npm ci` DOES run, it reads tarballs
+      # from here instead of the registry. Belt+suspenders: if the "skip if
+      # fresh" heuristic misses, we still don't hit the network.
+      - .npm/
     policy: pull-push
 
 # ── Install ──────────────────────────────────────────────────────────────────
+# Skip `npm ci` entirely on cache hit — checks a SHA of package-lock.json
+# against a file written at the previous install. `npm ci` deletes node_modules
+# before reinstalling, so running it on every job wasted ~1.5-2 min per job.
+# On cache hit this drops install to ~1 s (just the SHA compare).
+# On miss or package-lock change → regular `npm ci --prefer-offline` (itself
+# accelerated by the .npm/ tarball cache). Same idiom reused across repos.
 .install:
   before_script:
-    - npm ci --prefer-offline
+    - |
+      set -e
+      LOCK_SHA=$(sha256sum package-lock.json | cut -d' ' -f1)
+      MARK=node_modules/.package-lock-sha
+      if [ -d node_modules/.bin ] && [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$LOCK_SHA" ]; then
+        echo "✓ node_modules cache fresh ($LOCK_SHA) — skipping npm ci"
+      else
+        echo "▶ installing dependencies (lock SHA: $LOCK_SHA)"
+        npm ci --prefer-offline --no-audit --no-fund
+        echo "$LOCK_SHA" > "$MARK"
+      fi
 
 # ── Stage: validate ─────────────────────────────────────────────────────────
 typecheck:
@@ -113,12 +141,22 @@ openapi:types-drift:
   stage: validate
   extends: .install
   # node:22-alpine doesn't ship bash; the gen scripts use `${BASH_SOURCE[0]}`
-  # (the only bashism). Install bash before the inherited .install:
-  # before_script runs — cheaper than refactoring the scripts to POSIX sh
-  # (which works on macOS dev boxes fine today).
+  # (the only bashism). Add bash on top of the inherited .install: install
+  # cache-hit logic — keeps the skip-if-fresh npm optimization active while
+  # still providing the bash runtime this one job needs.
   before_script:
     - apk add --no-cache bash
-    - npm ci --prefer-offline
+    - |
+      set -e
+      LOCK_SHA=$(sha256sum package-lock.json | cut -d' ' -f1)
+      MARK=node_modules/.package-lock-sha
+      if [ -d node_modules/.bin ] && [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$LOCK_SHA" ]; then
+        echo "✓ node_modules cache fresh ($LOCK_SHA) — skipping npm ci"
+      else
+        echo "▶ installing dependencies (lock SHA: $LOCK_SHA)"
+        npm ci --prefer-offline --no-audit --no-fund
+        echo "$LOCK_SHA" > "$MARK"
+      fi
   script:
     - npm run verify:api-types
   rules:
