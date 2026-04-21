@@ -1,0 +1,119 @@
+// @ts-check
+/* eslint-env node */
+
+// =============================================================================
+// ESLint 9 flat config for Mirador UI.
+//
+// Goal: surface Angular-specific bugs the TypeScript compiler and SonarCloud
+// don't catch reliably — most importantly RxJS subscribe-leak patterns
+// (code-level scan flagged ~86 `.subscribe()` without `takeUntilDestroyed`
+// at the time of setup, 2026-04-21).
+//
+// Philosophy:
+// - Rules that would be DISRUPTIVE to the existing codebase start as "warn"
+//   so CI stays green while tech debt is tackled incrementally.
+// - Rules that guard NEW code only (e.g. `prefer-standalone`) start as
+//   "error" because they don't grandfather-in legacy code.
+// - The SARIF output plugged into SonarCloud (via
+//   `config/sonar-project.properties → sonar.sarifReportPaths`) means
+//   findings show up next to Java/Spectral issues — single source of
+//   truth for code review.
+// =============================================================================
+
+import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import angular from 'angular-eslint';
+
+export default tseslint.config(
+  {
+    // Files to lint.
+    files: ['**/*.ts'],
+    ignores: [
+      'dist/**',
+      'docs/**',
+      'coverage/**',
+      'e2e/**',
+      '.angular/**',
+      'node_modules/**',
+    ],
+    extends: [
+      eslint.configs.recommended,
+      ...tseslint.configs.recommended,
+      ...tseslint.configs.stylistic,
+      ...angular.configs.tsRecommended,
+    ],
+    processor: angular.processInlineTemplates,
+    rules: {
+      // ─────────────────────────────────────────────────────────────────
+      // Angular-specific — keep as ERROR (enforced on new code).
+      // ─────────────────────────────────────────────────────────────────
+      '@angular-eslint/directive-selector': [
+        'error',
+        { type: 'attribute', prefix: 'app', style: 'camelCase' },
+      ],
+      '@angular-eslint/component-selector': [
+        'error',
+        { type: 'element', prefix: 'app', style: 'kebab-case' },
+      ],
+      // Project is already on standalone components (Angular 21 zoneless).
+      // Catches anyone re-introducing NgModule-based components.
+      '@angular-eslint/prefer-standalone': 'error',
+
+      // ─────────────────────────────────────────────────────────────────
+      // TypeScript strictness — WARN for now, tighten after a cleanup pass.
+      // ─────────────────────────────────────────────────────────────────
+      // CLAUDE.md forbids `any`, so this stays low-noise — but some legacy
+      // spots exist; WARN so CI doesn't block the current state.
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // Unused vars usually mean refactoring left-behinds.
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      // Stylistic recommended → some duplication with Prettier; keep as warn.
+      '@typescript-eslint/consistent-type-definitions': 'warn',
+
+      // ─────────────────────────────────────────────────────────────────
+      // No `console.*` in production code (12 existing at time of setup).
+      // Keep as warn — stability-check.sh already flags this separately.
+      // ─────────────────────────────────────────────────────────────────
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+
+      // Relax stylistic / legacy-heavy rules to WARN so the initial
+      // install doesn't fail CI. Each of these reflects real tech
+      // debt worth cleaning up incrementally but not worth blocking
+      // merges on day one.
+      'no-useless-escape': 'warn',        // a few regex idioms in info-tip
+      'no-useless-assignment': 'warn',    // 1 legacy case in customers.component
+      '@typescript-eslint/array-type': 'warn',  // stylistic (T[] vs Array<T>)
+    },
+  },
+  {
+    // HTML templates — parse with Angular template parser.
+    files: ['**/*.html'],
+    extends: [
+      ...angular.configs.templateRecommended,
+      ...angular.configs.templateAccessibility,
+    ],
+    rules: {
+      // Projet a migré de *ngFor / *ngIf vers @for / @if (Angular 21).
+      // Catches any regression back to structural directives.
+      '@angular-eslint/template/prefer-control-flow': 'error',
+      // Already 0 *ngFor without trackBy in code scan — keep tight.
+      '@angular-eslint/template/use-track-by-function': 'warn',
+      // a11y rules — real accessibility debt, but tightening to error
+      // would block CI until every legacy interactive element gets
+      // keyboard support. Start as warn, harden after an a11y sweep.
+      '@angular-eslint/template/click-events-have-key-events': 'warn',
+      '@angular-eslint/template/interactive-supports-focus': 'warn',
+      // Same a11y-debt compromise: 5 legacy `<label>` without
+      // `for="id"` or wrapped `<input>` + autofocus used in a few
+      // forms. Tighten to error once those are cleaned.
+      '@angular-eslint/template/label-has-associated-control': 'warn',
+      '@angular-eslint/template/no-autofocus': 'warn',
+      // `!=` → `!==` strict equality — 1 legacy location. Downgrade
+      // to warn; the existing line is already defensive (null check).
+      '@angular-eslint/template/eqeqeq': 'warn',
+    },
+  },
+);

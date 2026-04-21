@@ -190,7 +190,6 @@
           type="text"
           placeholder="Search pages... (Ctrl+K)"
           [(ngModel)]="searchQuery"
-          autofocus
         />
         <div class="search-results">
           @for (item of filteredSearchItems; track item.path) {

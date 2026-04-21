@@ -192,7 +192,7 @@ export interface PmdReport {
   /** Violations grouped by priority. */
   byPriority?: Record<string, number>;
   /** Most frequently violated rules. */
-  topRules?: Array<{ rule: string; count: number }>;
+  topRules?: { rule: string; count: number }[];
   /** Full violation list. */
   violations?: PmdViolation[];
 }
@@ -222,7 +222,7 @@ export interface CheckstyleReport {
   /** Violations grouped by severity. */
   bySeverity?: Record<string, number>;
   /** Most frequent checker violations. */
-  topCheckers?: Array<{ checker: string; count: number }>;
+  topCheckers?: { checker: string; count: number }[];
   /** Full violation list. */
   violations?: CheckstyleViolation[];
 }
@@ -346,13 +346,13 @@ export interface QualityReport {
   git?: {
     available: boolean;
     remoteUrl?: string;
-    commits?: Array<{ hash: string; author: string; date: string; message: string }>;
+    commits?: { hash: string; author: string; date: string; message: string }[];
   };
   /** REST API endpoint inventory from SpringDoc. */
   api?: {
     available: boolean;
     total?: number;
-    endpoints?: Array<{ path: string; methods: string[]; handler: string }>;
+    endpoints?: { path: string; methods: string[]; handler: string }[];
   };
   /** Maven dependency list from the POM, with optional freshness data from Maven Central. */
   dependencies?: {
@@ -378,7 +378,7 @@ export interface QualityReport {
       unusedDeclared?: string[];
       unusedDeclaredCount?: number;
     };
-    dependencies?: Array<{
+    dependencies?: {
       groupId: string;
       artifactId: string;
       version: string;
@@ -387,7 +387,7 @@ export interface QualityReport {
       latestVersion?: string;
       /** True when latestVersion differs from version (and version is not a pre-release). */
       outdated?: boolean;
-    }>;
+    }[];
   };
   /** Source code metrics (class/method/line counts and complexity). */
   metrics?: {
@@ -396,18 +396,18 @@ export interface QualityReport {
     totalMethods?: number;
     totalLines?: number;
     totalComplexity?: number;
-    packages?: Array<{
+    packages?: {
       name: string;
       classes: number;
       methods: number;
       lines: number;
       complexity?: number;
-    }>;
+    }[];
     /** Top 10 most complex classes by cyclomatic complexity (COMPLEXITY_MISSED + COMPLEXITY_COVERED). */
-    topComplexClasses?: Array<{
+    topComplexClasses?: {
       class: string;
       complexity: number;
-    }>;
+    }[];
     /** Classes with 0% method coverage (METHOD_COVERED=0 but METHOD_TOTAL>0). */
     untestedClasses?: string[];
     /** Number of classes with 0% method coverage. */
@@ -436,15 +436,15 @@ export interface QualityReport {
     /** Number of dependencies with potentially incompatible licenses (GPL, AGPL, LGPL, CDDL, EPL). */
     incompatibleCount?: number;
     /** License names grouped by usage count, sorted by count desc. */
-    licenses?: Array<{ license: string; count: number; incompatible: boolean }>;
-    dependencies?: Array<{
+    licenses?: { license: string; count: number; incompatible: boolean }[];
+    dependencies?: {
       group: string;
       artifact: string;
       version: string;
       license: string;
       /** True when license is GPL/AGPL/LGPL/CDDL/EPL — may be incompatible with commercial use. */
       incompatible: boolean;
-    }>;
+    }[];
   };
 }
 
@@ -453,11 +453,11 @@ export interface BranchesReport {
   available: boolean;
   reason?: string;
   total?: number;
-  branches?: Array<{
+  branches?: {
     name: string;
     lastCommit: string;
     author: string;
-  }>;
+  }[];
 }
 
 /** GitLab CI/CD pipeline history fetched from the GitLab REST API. */
@@ -466,14 +466,14 @@ export interface PipelineReport {
   reason?: string;
   projectId?: string;
   host?: string;
-  pipelines?: Array<{
+  pipelines?: {
     id: number;
     ref: string;
     status: string;
     createdAt: string;
     durationSeconds?: number;
     webUrl: string;
-  }>;
+  }[];
 }
 
 /**
