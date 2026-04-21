@@ -25,6 +25,25 @@ import { authInterceptor } from './core/auth/auth.interceptor';
 import { AppErrorHandler } from './core/telemetry/app-error-handler';
 
 /**
+ * Auth0 tenant configuration — swap these 2 values when creating a fresh
+ * tenant (e.g. if the current one has an unrecoverable dashboard error).
+ *
+ * Concrete steps to get new values: {@code docs/how-to/auth0-tenant-setup.md}.
+ * Both values are PUBLIC — safe to commit (the Auth0 SDK transmits them on
+ * every /authorize request; anyone inspecting network traffic sees them).
+ *
+ * The third value, {@code AUTH0_AUDIENCE}, is the identifier of the API
+ * registered in Auth0 Dashboard → Applications → APIs. This ONE stays
+ * stable across tenants (it's our own API name, not something Auth0
+ * assigns). Changing it would also require updating
+ * {@code AUTH0_AUDIENCE} in the backend env + the Spring Security JWT
+ * validator (see {@code KeycloakConfig.auth0Audience}).
+ */
+const AUTH0_DOMAIN = 'dev-ksxj46zlkhk2gcvo.us.auth0.com';
+const AUTH0_CLIENT_ID = 'DZKCwZ9dqAk3dOtVdDfc2rLJOenxidX6';
+const AUTH0_AUDIENCE = 'https://mirador-api';
+
+/**
  * Root `ApplicationConfig` passed to `bootstrapApplication()` in `main.ts`.
  *
  * Providers configured here are available to every component and service in the app.
@@ -48,21 +67,24 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     /**
      * Auth0 OIDC provider (replaces local Keycloak in production).
-     * Domain and clientId are public values — safe to embed in the bundle.
-     * The Auth0BridgeService (core/auth/auth0-bridge.service.ts) syncs the
-     * access token into the existing signal-based AuthService so the
-     * authInterceptor and all components remain unchanged.
+     * Tenant values live as constants at the top of this file — swap them
+     * when creating a fresh tenant. See `docs/how-to/auth0-tenant-setup.md`
+     * for the concrete dashboard steps.
      *
-     * audience: 'https://mirador-api' requires an Auth0 API to be registered
-     * at https://manage.auth0.com → Applications → APIs with identifier
-     * 'https://mirador-api'. Without it, Auth0 returns opaque tokens.
+     * Auth0BridgeService (core/auth/auth0-bridge.service.ts) syncs the
+     * access token into the signal-based AuthService so the authInterceptor
+     * and all components stay unchanged.
+     *
+     * The audience requires an Auth0 API registered under the same tenant
+     * with the matching identifier — without it, Auth0 returns opaque
+     * tokens the backend cannot validate.
      */
     provideAuth0({
-      domain: 'dev-ksxj46zlkhk2gcvo.us.auth0.com',
-      clientId: 'DZKCwZ9dqAk3dOtVdDfc2rLJOenxidX6',
+      domain: AUTH0_DOMAIN,
+      clientId: AUTH0_CLIENT_ID,
       authorizationParams: {
         redirect_uri: window.location.origin,
-        audience: 'https://mirador-api',
+        audience: AUTH0_AUDIENCE,
       },
     }),
   ],
