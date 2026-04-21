@@ -445,7 +445,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Sorted: running containers first, then alphabetically.
    */
   dockerContainers = signal<
-    Array<{
+    {
       name: string;
       status: string;
       image: string;
@@ -457,7 +457,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       screenshot?: string;
       port?: string;
       url?: string;
-    }>
+    }[]
   >([]);
 
   /** Signal: true while the Docker container list request is in flight. */
@@ -480,7 +480,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dockerLoading.set(true);
     this.dockerError.set('');
     this.http
-      .get<any[]>(`${this.dockerApiUrl}/containers/json?all=true`)
+      .get<DockerContainer[]>(`${this.dockerApiUrl}/containers/json?all=true`)
       .pipe(catchError(() => of(null)))
       .subscribe((containers) => {
         this.dockerLoading.set(false);
@@ -587,7 +587,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     '🔧 CI/CD',
   ];
 
-  readonly topoNodes: Array<{
+  readonly topoNodes: {
     id: string;
     label: string;
     col: number;
@@ -599,7 +599,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     tip: string;
     detail: string;
     image?: string;
-  }> = [
+  }[] = [
     // Col 0 — Client
     {
       id: 'client',
@@ -967,7 +967,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Heatmap ───────────────────────────────────────────────────────────────
-  heatmapData = signal<Array<{ hour: number; count: number }>>([]);
+  heatmapData = signal<{ hour: number; count: number }[]>([]);
 
   buildHeatmap(): void {
     this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({

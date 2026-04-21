@@ -39,12 +39,12 @@ interface ScheduledJob {
  */
 interface ActuatorEnv {
   /** List of Spring property sources (application.yml, system properties, env vars, etc.). */
-  propertySources?: Array<{
+  propertySources?: {
     /** Name of the property source (e.g., `'Config resource [classpath:/application.yml]'`). */
     name: string;
     /** Map of property name → value wrapper. */
     properties: Record<string, { value: string }>;
-  }>;
+  }[];
 }
 
 /**
@@ -122,7 +122,7 @@ export class SettingsComponent implements OnInit {
   // ── Loggers ───────────────────────────────────────────────────────────────
 
   /** Signal: list of Spring loggers with their current effective log level. */
-  loggers = signal<Array<{ name: string; level: string }>>([]);
+  loggers = signal<{ name: string; level: string }[]>([]);
 
   /** Logger name filter bound via ngModel — filters the displayed logger list. */
   loggerFilter = '';

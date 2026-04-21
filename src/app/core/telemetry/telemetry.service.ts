@@ -195,8 +195,12 @@ export class TelemetryService {
           : entry.level === 'warn'
             ? console.warn
             : entry.level === 'debug'
-              ? console.debug
-              : console.info;
+              ? // when telemetry backend is unavailable; debug/info go to
+                // the browser console as a last resort so developers can
+                // still see the events locally.
+                console.debug
+              : // eslint-disable-next-line no-console -- same fallback
+                console.info;
       logger.call(
         console,
         `[telemetry:${entry.level}]`,

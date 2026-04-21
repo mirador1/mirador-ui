@@ -35,7 +35,13 @@ interface TipLine {
   template: `
     <span
       class="info-trigger"
+      role="button"
+      tabindex="0"
+      [attr.aria-label]="title ? 'Info: ' + title : 'Info'"
+      [attr.aria-expanded]="open() || hover()"
       (click)="open.set(!open())"
+      (keydown.enter)="open.set(!open()); $event.preventDefault()"
+      (keydown.space)="open.set(!open()); $event.preventDefault()"
       (mouseenter)="onEnter()"
       (mouseleave)="hover.set(false)"
     >
@@ -332,7 +338,10 @@ export class InfoTipComponent {
    * Falls back to [raw] if the string has 0 or 1 label marker.
    */
   private static splitPseudoSentences(raw: string): string[] {
-    const labelMatches = [...raw.matchAll(/(?:^|\.\s+|\;\s+)([\w][\w .\/-]{0,28}):\s/g)];
+    // `;` and `/` don't need to be escaped in regex literals or character
+    // classes; ESLint `no-useless-escape` flags them. `-` at the end of
+    // a character class is a literal hyphen, no escape needed either.
+    const labelMatches = [...raw.matchAll(/(?:^|\.\s+|;\s+)([\w][\w ./-]{0,28}):\s/g)];
     if (labelMatches.length < 2) return [raw];
 
     const chunks: string[] = [];
@@ -359,12 +368,15 @@ export class InfoTipComponent {
    * - text: everything else.
    */
   private static classify(segment: string): TipLine {
-    const bulletMatch = /^[\-•*]\s+(.*)$/.exec(segment);
+    // `-` at start of a character class is a literal hyphen, no escape
+    // needed (`[-•*]` is identical to `[\-•*]`).
+    const bulletMatch = /^[-•*]\s+(.*)$/.exec(segment);
     if (bulletMatch) {
       return { kind: 'bullet', key: bulletMatch[1], value: '' };
     }
 
-    const kvMatch = /^([\w][\w .\/-]{0,28}):\s+(.+)$/.exec(segment);
+    // Same `/` + `-` escaping cleanup as the matcher above.
+    const kvMatch = /^([\w][\w ./-]{0,28}):\s+(.+)$/.exec(segment);
     if (kvMatch) {
       return { kind: 'kv', key: kvMatch[1].trim(), value: kvMatch[2].trim() };
     }

@@ -92,12 +92,12 @@ export class DatabaseComponent {
    * Populated by running all `healthChecks` queries against pgweb in sequence.
    */
   healthResults = signal<
-    Array<{
+    {
       check: HealthCheck;
       status: 'ok' | 'warn' | 'crit' | 'loading' | 'error';
       detail: string;
       rows: string[][];
-    }>
+    }[]
   >([]);
 
   /** Signal: true while the batch health check queries are in flight. */
@@ -316,11 +316,11 @@ export class DatabaseComponent {
   sqlError = signal('');
   sqlLoading = signal(false);
 
-  readonly sqlPresetCategories: Array<{
+  readonly sqlPresetCategories: {
     id: DbTab;
     label: string;
-    presets: Array<{ icon: string; name: string; tip: string; query: string }>;
-  }> = [
+    presets: { icon: string; name: string; tip: string; query: string }[];
+  }[] = [
     {
       id: 'customer' as DbTab,
       label: '📋 Customer Data',
