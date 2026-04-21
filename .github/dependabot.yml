@@ -1,0 +1,35 @@
+# =============================================================================
+# Dependabot — GitHub Actions dependency updates on the GH mirror.
+#
+# Same scope + rationale as the mirador-service repo — see that file for the
+# full context. TL;DR: Renovate handles Maven/npm on the canonical GitLab
+# repo; Dependabot runs only on the GH mirror for github-actions updates
+# (complementing ADR-0043 SHA pinning).
+#
+# This UI repo has NO workflows today (.github/workflows/ empty), BUT the
+# config stays here so Dependabot auto-activates the moment a workflow file
+# lands — no policy change required at that point.
+# =============================================================================
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Europe/Paris"
+    groups:
+      github-actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 5
