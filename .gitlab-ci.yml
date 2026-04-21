@@ -101,6 +101,29 @@ lint:format:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+# ── OpenAPI → TS types drift gate ─────────────────────────────────────────────
+# Verifies src/app/core/api/generated.types.ts matches what `openapi-typescript`
+# would produce from the committed docs/api/openapi.json snapshot. Drift here
+# means a reviewer edited the snapshot (via `npm run gen:openapi-snapshot`) but
+# forgot to regenerate the typed surface, so any UI HTTP call that typechecks
+# against the stale shape will break at runtime on a field the server added.
+# Fix: `npm run gen:api-types && git add src/app/core/api/generated.types.ts`.
+# Rationale: see docs/how-to/openapi-types-generation.md.
+openapi:types-drift:
+  stage: validate
+  extends: .install
+  script:
+    - npm run verify:api-types
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - docs/api/openapi.json
+        - src/app/core/api/generated.types.ts
+        - scripts/gen-api-types.sh
+        - scripts/check-api-types-drift.sh
+        - package-lock.json
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # ── ESLint (Angular + TypeScript + a11y) ──────────────────────────────────
 #
 # ESLint 9 flat config lives at `eslint.config.mjs`. Rules span

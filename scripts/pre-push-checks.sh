@@ -110,6 +110,18 @@ else
   pass "No empty imports"
 fi
 
+# OpenAPI-generated TS types in sync with the committed snapshot. A drift
+# here means the backend contract changed but the UI-side types weren't
+# regenerated — future HTTP calls will type-check against a stale shape.
+# See docs/how-to/openapi-types-generation.md for the regeneration workflow.
+echo -n "  Verifying OpenAPI-generated types... "
+if npm run --silent verify:api-types > /tmp/api-types-verify.log 2>&1; then
+  pass "generated.types.ts matches docs/api/openapi.json"
+else
+  tail -10 /tmp/api-types-verify.log
+  fail "generated.types.ts is out of sync (run: npm run gen:api-types)"
+fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 section "Tests"
 
