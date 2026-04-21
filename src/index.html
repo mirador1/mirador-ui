@@ -6,6 +6,12 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#1e3a5f" />
+    <!-- Standards-compliant replacement for the deprecated apple-prefixed tag
+         (Chrome warns about `apple-mobile-web-app-capable` since 2024). The
+         apple-prefixed variant is KEPT for Safari/iOS compatibility — iOS
+         doesn't yet recognise the standards version as of 2026. Having both
+         covers Chrome + Safari with one line of deprecation noise each. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2" />

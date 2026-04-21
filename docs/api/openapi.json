@@ -1,0 +1,2242 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Customer Observability API",
+    "description": "Full-stack observability and management API built with **Spring Boot 4** and **Java 25**.\n\n## Authentication\n1. Call `POST /auth/login` with `{\"username\":\"admin\",\"password\":\"admin\"}`\n2. Copy the `accessToken` from the response\n3. Click **Authorize** (top right) and paste the token (without the `Bearer ` prefix)\n\n## API Versioning\nEndpoints that support multiple versions use the `X-API-Version` header:\n- `X-API-Version: 1.0` → v1 response (no `createdAt`)\n- `X-API-Version: 2.0` → v2 response (includes `createdAt`)\n- Omitting the header defaults to **v1**.\n\n## Resilience patterns demonstrated\n- **Rate limiting**: 100 req/min per IP via Bucket4j → `429 Too Many Requests`\n- **Idempotency**: repeat a `POST /customers` with the same `Idempotency-Key` to get a cached response\n- **Circuit breaker**: `/bio` uses Resilience4j on the Ollama LLM call\n- **Kafka request-reply**: `/enrich` blocks until the consumer replies or times out → `504`\n\n## Observability\nEvery endpoint emits Micrometer metrics (→ Prometheus) and OpenTelemetry spans (→ Tempo via LGTM).\n",
+    "contact": {
+      "name": "Customer Observability UI",
+      "url": "http://localhost:4200"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "2.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Customers",
+      "description": "Customer CRUD, search, export, real-time stream, and advanced patterns (Kafka enrich, virtual threads, cursor pagination, LLM bio generation)"
+    },
+    {
+      "name": "Security Demos (OWASP)",
+      "description": "⚠️ Intentionally vulnerable endpoints for educational purposes. Demonstrates SQL Injection (A03), XSS (A07), CORS misconfiguration, IDOR (A01), and security headers."
+    },
+    {
+      "name": "Scheduled jobs",
+      "description": "Inspect ShedLock distributed-lock state for scheduled jobs."
+    },
+    {
+      "name": "Diagnostic",
+      "description": "Runtime introspection endpoints"
+    },
+    {
+      "name": "Audit Trail",
+      "description": "Paginated security and data-mutation events — login attempts, CRUD operations, token refreshes"
+    },
+    {
+      "name": "Authentication",
+      "description": "JWT login and token refresh. Demo credentials: admin/admin | user/user | viewer/viewer"
+    },
+    {
+      "name": "Chaos",
+      "description": "On-demand Chaos Mesh experiments (admin-only)"
+    }
+  ],
+  "paths": {
+    "/customers/{id}": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Get a customer by ID",
+        "description": "Returns one customer by primary key. Read-only; uses the JPA second-level Caffeine cache (`@Cacheable(\"customers\")`). Returns 404 if the ID does not exist.",
+        "operationId": "getById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer with this ID",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Update a customer",
+        "description": "Replaces the name and email of an existing customer. Requires ROLE_USER or ROLE_ADMIN.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lacks ROLE_USER or ROLE_ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Delete a customer",
+        "description": "Permanently deletes the customer. Requires ROLE_ADMIN.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lacks ROLE_ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Partially update a customer",
+        "description": "Applies only the provided fields. Omit fields you do not want to change. Requires ROLE_USER or ROLE_ADMIN.",
+        "operationId": "patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchCustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lacks ROLE_USER or ROLE_ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "List customers (v1)",
+        "description": "Paginated list of customers (id, name, email). Default version — also returned when `X-API-Version` header is absent. Supports optional full-text search on name and email. Adds RFC 8288 `Link` headers (next, prev, first, last) and `Deprecation`/`Sunset` headers.",
+        "operationId": "getAllV2",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Optional search term — filters on name and email",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "X-API-Version",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "default": "1.0.0",
+              "enum": [
+                "2.0",
+                "1.0",
+                "1.0.0"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of customers",
+            "headers": {
+              "Sunset": {
+                "description": "Date after which v1 will be removed",
+                "style": "simple",
+                "schema": {
+                  "type": "array",
+                  "contains": {
+                    "default": ""
+                  },
+                  "items": {
+                    "default": ""
+                  },
+                  "unevaluatedItems": {
+                    "default": ""
+                  }
+                }
+              },
+              "Deprecation": {
+                "description": "Marks v1 as deprecated",
+                "style": "simple",
+                "schema": {
+                  "type": "array",
+                  "contains": {
+                    "default": ""
+                  },
+                  "items": {
+                    "default": ""
+                  },
+                  "unevaluatedItems": {
+                    "default": ""
+                  }
+                }
+              },
+              "Link": {
+                "description": "RFC 8288 pagination links",
+                "style": "simple",
+                "schema": {
+                  "type": "array",
+                  "contains": {
+                    "default": ""
+                  },
+                  "items": {
+                    "default": ""
+                  },
+                  "unevaluatedItems": {
+                    "default": ""
+                  }
+                }
+              }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageCustomerDtoV2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (100 req/min per IP)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Create a customer",
+        "description": "Creates a new customer, fires a Kafka `CustomerCreatedEvent` (fire-and-forget), adds the customer to the in-memory recent buffer, and increments the `customer.created.count` Micrometer counter. Requires `ROLE_ADMIN`. Supports idempotency via the `Idempotency-Key` header — repeating the same request returns the cached response.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Customer created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (blank name, invalid email, etc.)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated but lacks ROLE_USER or ROLE_ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already in use",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/batch": {
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Batch import customers",
+        "description": "Creates multiple customers in one request. Each entry is validated individually — a failure on one row does not abort the batch. Returns a summary with `created`, `failed`, and `errors` lists. Requires ROLE_USER or ROLE_ADMIN.",
+        "operationId": "batchCreate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreateCustomerRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Batch result with per-row status",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchImportResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lacks ROLE_USER or ROLE_ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chaos/{experiment}": {
+      "post": {
+        "tags": [
+          "Chaos"
+        ],
+        "summary": "Trigger a chaos experiment",
+        "operationId": "trigger",
+        "parameters": [
+          {
+            "name": "experiment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Refresh tokens",
+        "description": "Rotates the refresh token and returns a new access + refresh pair. The old refresh token is consumed (single-use) to prevent replay attacks.",
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "New `{accessToken, refreshToken}`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token expired or invalid",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout — invalidate access and refresh tokens",
+        "description": "Blacklists the current JWT (stored in Redis until expiry) and deletes all refresh tokens. Requires a valid Bearer token in the Authorization header.",
+        "operationId": "logout",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login — obtain access + refresh tokens",
+        "description": "Validates credentials and returns a signed JWT pair. Demo accounts: `admin/admin` (ROLE_ADMIN — full access), `user/user` (ROLE_USER — read + write), `viewer/viewer` (ROLE_READER — read-only). Brute-force protection: after 5 failed attempts the IP is locked out for 15 minutes. Copy the `accessToken` and use it in the **Authorize** button above.",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful — `{accessToken, refreshToken}`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials — includes `remainingAttempts`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "IP locked out after too many failures",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/scheduled/jobs": {
+      "get": {
+        "tags": [
+          "Scheduled jobs"
+        ],
+        "summary": "List ShedLock-tracked scheduled jobs",
+        "description": "Returns one entry per scheduled job registered with ShedLock, including the last lock holder + lock-until timestamp. Useful to verify that scheduled tasks are not silently failing or deadlocked across replicas. Read-only; queries the `shedlock` table directly via JdbcTemplate.",
+        "operationId": "getJobs",
+        "responses": {
+          "200": {
+            "description": "List of `{name, lockUntil, lockedAt, lockedBy}` rows from the shedlock table.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduledJobDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token (this endpoint requires authentication)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduledJobDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diag/startup-timings": {
+      "get": {
+        "tags": [
+          "Diagnostic"
+        ],
+        "summary": "Startup timings",
+        "description": "Returns the total boot duration plus per-bean init cost (≥ 5 ms). Useful to explain what happened during the first few seconds of the Spring Boot startup — Flyway, Kafka listener registration, circuit-breaker wiring, OpenTelemetry agent, etc. Values are fixed once the ApplicationReadyEvent has fired.",
+        "operationId": "startupTimings",
+        "responses": {
+          "200": {
+            "description": "Timings snapshot. `totalBootMs: -1` until the ready event fires.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/xss-vulnerable": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "⚠️ XSS — VULNERABLE (reflects raw HTML)",
+        "description": "Echoes `name` directly into an HTML page. Try the payload\n```\n?name=&lt;script&gt;alert('XSS')&lt;/script&gt;\n```\n**OWASP A07:2021 — Cross-Site Scripting**",
+        "operationId": "xssVulnerable",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Injected HTML/JavaScript",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "<img src=x onerror=alert('XSS')>"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/xss-safe": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "✅ XSS — SAFE (HTML-encoded output)",
+        "description": "HTML-encodes the input using `HtmlUtils.htmlEscape()` before reflecting it. `&lt;script&gt;` becomes `&amp;lt;script&amp;gt;` — displayed as text, not executed.",
+        "operationId": "xssSafe",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Input that will be safely HTML-encoded",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "<b>Bold</b> & <i>italic</i>"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/sqli-vulnerable": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "⚠️ SQL Injection — VULNERABLE",
+        "description": "Concatenates user input directly into SQL. Try `?name=Alice' OR '1'='1` to dump all customers. **OWASP A03:2021 — Injection**",
+        "operationId": "sqliVulnerable",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "User input injected into SQL",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "Alice' OR '1'='1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/sqli-safe": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "✅ SQL Injection — SAFE",
+        "description": "Uses a parameterized query (`?` placeholder). Same input as the vulnerable endpoint — the driver treats it as data, not SQL.",
+        "operationId": "sqliSafe",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Same input, now safely parameterized",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "Alice"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/idor-vulnerable": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "⚠️ IDOR — VULNERABLE (no ownership check)",
+        "description": "Returns any customer record by ID with no access control. Enumerate IDs to harvest all data. **OWASP A01:2021 — Broken Object Level Authorization (BOLA/IDOR)**",
+        "operationId": "idorVulnerable",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Any customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/idor-safe": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "✅ IDOR — SAFE (ownership check pattern)",
+        "description": "Shows the correct pattern: `WHERE id = ? AND created_by = :currentUser` + `@PreAuthorize` ownership check.",
+        "operationId": "idorSafe",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Customer ID to demonstrate the safe pattern",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/headers": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "Security headers metadata",
+        "description": "Returns expected values and explanations for OWASP-recommended security headers: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `CSP`, `Permissions-Policy`. The frontend compares these expected values against the actual response headers.",
+        "operationId": "headersInfo",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/demo/security/cors-info": {
+      "get": {
+        "tags": [
+          "Security Demos (OWASP)"
+        ],
+        "summary": "CORS configuration info",
+        "description": "Explains why `allowedOrigins('*') + allowCredentials(true)` is dangerous and how this API is correctly configured.",
+        "operationId": "corsInfo",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/customers/{id}/todos": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Get todos from JSONPlaceholder (external API)",
+        "description": "Fetches todos for the customer from the external JSONPlaceholder API (https://jsonplaceholder.typicode.com). Decorated with Resilience4j **circuit breaker** + **retry** + fallback (empty list). Demonstrates graceful degradation — never returns 5xx even if the external API is down.",
+        "operationId": "getTodos",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of todos (may be empty if circuit is open or API is down)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TodoItem"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/{id}/enrich": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Enrich customer via Kafka request-reply",
+        "description": "Sends a `CustomerEnrichRequest` to the `customer.request` Kafka topic and **blocks** until the consumer replies on `customer.reply` with a computed `displayName`. Demonstrates synchronous Kafka request-reply (not just fire-and-forget). Returns `504 Gateway Timeout` if no reply arrives within the configured timeout.",
+        "operationId": "enrich",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enriched customer with displayName",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichedCustomerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Kafka consumer did not reply within the timeout",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/{id}/bio": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Generate AI bio (Ollama LLM)",
+        "description": "Calls the local Ollama LLM (llama3.2) via Spring AI to generate a professional bio for the customer. Protected by a Resilience4j **circuit breaker** + **retry** — returns 503 when the circuit is open. Response time: 1–10 s depending on model and hardware.",
+        "operationId": "generateBio",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bio generated — `{\"bio\": \"...\"}` ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ollama unavailable or circuit breaker open",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/{id}/audit": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Get audit trail for a customer",
+        "description": "Returns all audit events (CREATE, UPDATE, DELETE, PATCH) for the given customer ID.",
+        "operationId": "getAudit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of audit events",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/summary": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Customer summary page (id + name only)",
+        "description": "Lightweight paginated list using a Spring Data **interface projection** — emits `SELECT id, name FROM customer` instead of `SELECT *`. Useful for read-heavy list views where the full DTO is overkill. The `CustomerSummary` interface is resolved by Spring Data JPA without any DTO mapper.",
+        "operationId": "getSummary",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of `{id, name}` projections",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageCustomerSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/stream": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Server-Sent Events stream",
+        "description": "Opens an SSE connection that pushes `customer` events (JSON) whenever a new customer is created. A `ping` event is sent every 30 s to keep the connection alive. **No authentication required** — `EventSource` cannot send custom headers, so this endpoint is `permitAll`.",
+        "operationId": "stream",
+        "responses": {
+          "200": {
+            "description": "SSE stream — content-type: text/event-stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/customers/slow-query": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Simulate a slow database query",
+        "description": "Runs `SELECT pg_sleep(N)` to inject artificial latency. The resulting DB span is visible in distributed traces (Grafana Tempo). Max 10 seconds.",
+        "operationId": "slowQuery",
+        "parameters": [
+          {
+            "name": "seconds",
+            "in": "query",
+            "description": "Sleep duration in seconds (capped at 10)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Query completed — returns `{status, duration}`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/recent": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Recent customers (in-memory buffer)",
+        "description": "Returns the last 10 customers from the in-memory `RecentCustomerBuffer`. No DB query — populated on each `POST /customers`. Demonstrates in-process caching vs DB round-trips.",
+        "operationId": "getRecent",
+        "responses": {
+          "200": {
+            "description": "Up to 10 most recently created customers",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/export": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Export all customers as CSV",
+        "description": "Streams all customers directly to the response output stream using `StreamingResponseBody` — avoids loading the entire result set into memory. Returns `Content-Disposition: attachment; filename=customers.csv`.",
+        "operationId": "exportCsv",
+        "responses": {
+          "200": {
+            "description": "CSV file stream",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "additionalProperties": {
+                    "default": ""
+                  },
+                  "default": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/cursor": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Cursor-based pagination",
+        "description": "Returns customers using `WHERE id > cursor ORDER BY id LIMIT size+1`. Faster than offset-based pagination for large datasets — always an index seek, never a full scan. Pass the last returned `id` as `cursor` in the next request.",
+        "operationId": "getAllCursor",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page with `items`, `nextCursor`, and `hasNext`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPageCustomerDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/aggregate": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Aggregate stats via virtual threads",
+        "description": "Runs two data-loading tasks in parallel using Java virtual threads (Project Loom). Each task takes ~200 ms — both run concurrently so the total is ~200 ms, not ~400 ms. Visible in traces (two parallel child spans) and in the `customer.aggregate.duration` metric.",
+        "operationId": "aggregate",
+        "responses": {
+          "200": {
+            "description": "Aggregated result with count, average name length, and virtual-thread timing",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AggregatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chaos": {
+      "get": {
+        "tags": [
+          "Chaos"
+        ],
+        "summary": "List available chaos experiments",
+        "operationId": "catalog",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit": {
+      "get": {
+        "tags": [
+          "Audit Trail"
+        ],
+        "summary": "List audit events",
+        "description": "Returns a paginated list of security and mutation events. Filter by action (e.g. `LOGIN_FAILED`, `CUSTOMER_CREATED`), username, or time range. Page size is capped at 100.",
+        "operationId": "getAuditEvents",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Page size (max 100)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Filter by action type, e.g. LOGIN_FAILED, CUSTOMER_CREATED",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "LOGIN_FAILED"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Filter by username",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of time range (ISO-8601)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "2024-01-01T00:00:00Z"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of time range (ISO-8601)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "example": "2024-12-31T23:59:59Z"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateCustomerRequest": {
+        "type": "object",
+        "description": "Request body for creating or updating a customer",
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "",
+            "description": "Full name of the customer",
+            "example": "Alice Martin",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Unique email address",
+            "example": "alice@example.com",
+            "maxLength": 255,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "email",
+          "name"
+        ]
+      },
+      "CustomerDto": {
+        "type": "object",
+        "description": "Customer resource (API v1) — id, name, email",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique auto-incremented identifier",
+            "example": 42
+          },
+          "name": {
+            "type": "string",
+            "default": "",
+            "description": "Full name of the customer",
+            "example": "Alice Martin"
+          },
+          "email": {
+            "type": "string",
+            "default": "",
+            "description": "Email address (unique per customer)",
+            "example": "alice@example.com"
+          }
+        }
+      },
+      "BatchError": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "BatchImportResult": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDto"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchError"
+            }
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ]
+      },
+      "PatchCustomerRequest": {
+        "type": "object",
+        "description": "Partial update request — only provided fields are modified",
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "",
+            "description": "New name (omit to keep current)",
+            "example": "Alice Martin",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "New email (omit to keep current)",
+            "example": "alice@example.com",
+            "maxLength": 255,
+            "minLength": 0
+          }
+        }
+      },
+      "ScheduledJobDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "lockUntil": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lockedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lockedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CustomerDtoV2": {
+        "type": "object",
+        "description": "Customer resource (API v2) — adds createdAt compared to v1. Request with X-API-Version: 2.0",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique auto-incremented identifier",
+            "example": 42
+          },
+          "name": {
+            "type": "string",
+            "default": "",
+            "description": "Full name of the customer",
+            "example": "Alice Martin"
+          },
+          "email": {
+            "type": "string",
+            "default": "",
+            "description": "Email address (unique per customer)",
+            "example": "alice@example.com"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC timestamp when the customer record was created (ISO-8601)",
+            "example": "2024-06-01T10:30:00Z"
+          }
+        }
+      },
+      "PageCustomerDtoV2": {
+        "type": "object",
+        "properties": {
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDtoV2"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageableObject": {
+        "type": "object",
+        "properties": {
+          "paged": {
+            "type": "boolean"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "unpaged": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SortObject": {
+        "type": "object",
+        "properties": {
+          "sorted": {
+            "type": "boolean"
+          },
+          "unsorted": {
+            "type": "boolean"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TodoItem": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EnrichedCustomerDto": {
+        "type": "object",
+        "description": "Enriched customer — base fields + displayName computed via Kafka request-reply",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Customer ID",
+            "example": 42
+          },
+          "name": {
+            "type": "string",
+            "default": "",
+            "description": "Customer name",
+            "example": "Alice Martin"
+          },
+          "email": {
+            "type": "string",
+            "default": "",
+            "description": "Customer email",
+            "example": "alice@example.com"
+          },
+          "displayName": {
+            "type": "string",
+            "default": "",
+            "description": "Display name computed by the Kafka consumer: 'Name <email>'",
+            "example": "Alice Martin <alice@example.com>"
+          }
+        }
+      },
+      "AuditEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerSummary": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PageCustomerSummary": {
+        "type": "object",
+        "properties": {
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerSummary"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SseEmitter": {
+        "type": "object",
+        "properties": {
+          "timeout": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CursorPageCustomerDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDto"
+            }
+          },
+          "nextCursor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AggregatedResponse": {
+        "type": "object",
+        "properties": {
+          "customerData": {
+            "type": "string"
+          },
+          "stats": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditPage": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEventDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "Paste the `accessToken` from `POST /auth/login`. Do not include the `Bearer ` prefix.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+<section class="ftb">
+  <header class="ftb-header">
+    <h1>🔎 Find the bug</h1>
+    <p class="ftb-subtitle">
+      Three small puzzles. For each one: click <strong>Trigger</strong>, watch the live metric rise,
+      read the revealed root cause, then apply the fix. A fast-forward tour of "symptom → signal →
+      diagnosis" that the other dashboards give you the raw data for.
+    </p>
+  </header>
+
+  <div class="scenarios">
+    @for (s of scenarios; track s.id) {
+      <article class="scenario" [attr.data-state]="stateOf(s.id)">
+        <header class="scenario-header">
+          <span class="scenario-icon" aria-hidden="true">{{ s.icon }}</span>
+          <h2>{{ s.title }}</h2>
+        </header>
+
+        <p class="scenario-teaser">{{ s.teaser }}</p>
+
+        <!-- Live metric panel — always visible so the user sees "nothing happening
+             yet" in idle state, then watches the value rise after trigger. -->
+        <div class="metric-panel">
+          <div class="metric-value">
+            <span class="metric-number">{{ currentValue(s.id) }}</span>
+            <span class="metric-unit">{{ s.unit }}</span>
+          </div>
+          <!-- Inline sparkline; 280×40 viewBox matches the JS-emitted path. -->
+          <svg
+            class="sparkline-svg"
+            viewBox="0 0 280 40"
+            preserveAspectRatio="none"
+            aria-label="Live metric sparkline"
+          >
+            @if (sparkline(s.id)) {
+              <path class="sparkline-path" [attr.d]="sparkline(s.id)" fill="none" />
+            } @else {
+              <text x="140" y="24" class="sparkline-placeholder" text-anchor="middle">
+                idle — no samples yet
+              </text>
+            }
+          </svg>
+          <div class="metric-peak">
+            peak: <strong>{{ peakValue(s.id) }}</strong> {{ s.unit }}
+          </div>
+        </div>
+
+        <!-- State-driven action row. Each state hides all but its own controls. -->
+        <div class="actions">
+          @if (stateOf(s.id) === 'idle' || stateOf(s.id) === 'recovered') {
+            <button type="button" class="btn btn-primary" (click)="start(s)">
+              {{ stateOf(s.id) === 'recovered' ? 'Run it again' : 'Trigger' }}
+            </button>
+            @if (stateOf(s.id) === 'recovered') {
+              <span class="status-pill status-pill-ok">✓ Recovered</span>
+            }
+          } @else if (stateOf(s.id) === 'triggered') {
+            <span class="status-pill status-pill-active">
+              ⚠️ Active — watch the metric. Root cause in
+              <strong>{{ s.revealAfterMs / 1000 }} s</strong>…
+            </span>
+            <button type="button" class="btn btn-ghost" (click)="reset(s.id)">Cancel</button>
+          } @else if (stateOf(s.id) === 'revealed') {
+            <div class="root-cause">
+              <h3>🧠 Root cause</h3>
+              <p>{{ s.rootCause }}</p>
+              <h4>How to fix</h4>
+              <ul>
+                @for (step of s.fixSteps; track step) {
+                  <li>{{ step }}</li>
+                }
+              </ul>
+              <button type="button" class="btn btn-primary" (click)="applyFix(s)">Apply fix</button>
+              <button type="button" class="btn btn-ghost" (click)="reset(s.id)">Give up</button>
+            </div>
+          } @else if (stateOf(s.id) === 'fixing') {
+            <span class="status-pill status-pill-fixing">
+              🔧 Applying fix — give it a few seconds…
+            </span>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

@@ -1,0 +1,69 @@
+{
+  "//": [
+    "Mirador UI dev container — Angular 21 + Node 22 zero-install onboarding.",
+    "",
+    "Use case: a contributor wants to hack on the UI without installing Node,",
+    "npm, or any Angular CLI on their host. One click on 'Open in Codespaces'",
+    "on the GitHub mirror OR 'Reopen in Container' in VS Code locally → they",
+    "get `npm start` serving on :4200 with the correct Node + Angular CLI",
+    "versions, pinned.",
+    "",
+    "Complements the sibling mirador-service/.devcontainer/devcontainer.json",
+    "which contains Java 25 + Maven. A contributor who wants both can spin",
+    "each repo in its own container — Docker-in-Docker inside either lets",
+    "compose-stack containers start as usual."
+  ],
+  "name": "Mirador UI (Angular 21 + Node 22)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-extra/features/glab-cli:1": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "angular.ng-template",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "gitlab.gitlab-workflow",
+        "github.vscode-github-actions",
+        "bierner.markdown-mermaid",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "files.eol": "\n"
+      }
+    }
+  },
+
+  "//postCreate": "Installs npm deps the moment the container boots. First boot takes ~1 min; re-opens hit the cache and finish instantly.",
+  "postCreateCommand": "npm ci --prefer-offline || npm install",
+
+  "forwardPorts": [4200, 8080],
+  "portsAttributes": {
+    "4200": { "label": "Angular dev server" },
+    "8080": { "label": "Mirador backend (sibling repo)" }
+  },
+
+  "remoteUser": "node",
+
+  "mounts": [
+    "source=mirador-ui-node-cache,target=/home/node/.npm,type=volume"
+  ]
+}

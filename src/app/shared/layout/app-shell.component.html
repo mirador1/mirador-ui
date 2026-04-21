@@ -73,6 +73,21 @@
         <button class="search-btn" (click)="showSearch.set(true)" title="Search (Ctrl+K)">
           ⌘K
         </button>
+        <!--
+          Guided-tour replay button. Opens the same 6-step walkthrough that
+          auto-shows on first sign-in; harmless to click repeatedly — the
+          tour is a read-only overlay driven by TourService signals.
+          See src/app/core/tour/ for the implementation.
+        -->
+        <button
+          class="tour-launcher-btn"
+          type="button"
+          (click)="tour.start()"
+          title="Show the guided tour"
+          aria-label="Show the guided tour"
+        >
+          🎓
+        </button>
         <button class="logout-btn" (click)="logout()">Sign out</button>
       } @else {
         <button class="theme-btn" (click)="theme.toggle()">
@@ -180,6 +195,9 @@
       }
     </div>
   }
+
+  <!-- Guided-tour overlay (mounted once, renders only while the tour is active) -->
+  <app-tour-overlay />
 
   <!-- Global search modal (Ctrl+K) -->
   @if (showSearch()) {

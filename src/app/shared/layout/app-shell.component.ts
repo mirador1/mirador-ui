@@ -8,17 +8,19 @@
  * - Toast notification container
  * - Router outlet for feature page content
  */
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { EnvService, Environment } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { TourService } from '../../core/tour/tour.service';
+import { TourOverlayComponent } from '../../core/tour/tour-overlay.component';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, FormsModule],
+  imports: [RouterOutlet, RouterLink, FormsModule, TourOverlayComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
 })
@@ -35,7 +37,20 @@ export class AppShellComponent {
   /** Provides `toasts` signal rendered in the toast container overlay. */
   readonly toast = inject(ToastService);
 
+  /** Drives the onboarding tour (🎓 button + auto-start on first sign-in). */
+  readonly tour = inject(TourService);
+
   private readonly router = inject(Router);
+
+  constructor() {
+    // Auto-start the tour the FIRST time a user reaches an authenticated
+    // state. The localStorage flag inside TourService makes this a no-op on
+    // subsequent visits. Wrapped in effect() so we react to sign-in without
+    // needing a separate lifecycle hook on the dashboard component.
+    effect(() => {
+      if (this.auth.isAuthenticated()) this.tour.maybeAutoStart();
+    });
+  }
 
   /** Signal: true when the mobile hamburger menu is open. Used on small viewports only. */
   mobileMenuOpen = signal(false);
@@ -272,6 +287,23 @@ export class AppShellComponent {
           label: 'Data Generator',
           tip: 'Create N customers with realistic random names, configurable delay',
         },
+        // Phase 3 DEMO1 — guided scenario walkthrough. Sits under Chaos
+        // because it reuses the same failure-injection primitives but
+        // wraps them in a "click → observe → reveal → fix" narrative
+        // aimed at first-time visitors.
+        {
+          label: '🔎 Find the bug',
+          path: '/find-the-bug',
+          tip: 'Three scripted puzzles: trigger a failure, watch live metrics, reveal the root cause, apply the fix',
+        },
+        // Phase 3 DEMO2 — read-only 5-minute scripted incident.
+        // Complements Find the bug (interactive) with a no-clicks-needed
+        // walkthrough suitable for a quick skim by a reviewer.
+        {
+          label: '🎬 Incident anatomy',
+          path: '/incident-anatomy',
+          tip: 'Scripted 5-minute story of a real incident shape — alert, runbook, trace, fix, verify',
+        },
       ],
     },
     {
@@ -482,6 +514,18 @@ export class AppShellComponent {
       label: '💥 Chaos',
       path: '/chaos',
       keywords: 'chaos traffic faker generate stress load rate limit circuit breaker',
+    },
+    {
+      label: '🔎 Find the bug',
+      path: '/find-the-bug',
+      keywords:
+        'find bug puzzle demo incident scenario rate limit circuit breaker root cause fix trigger observe',
+    },
+    {
+      label: '🎬 Incident anatomy',
+      path: '/incident-anatomy',
+      keywords:
+        'incident anatomy walkthrough outage timeline alert runbook trace fix recovery observability',
     },
     {
       label: '🐘 Database',

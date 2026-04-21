@@ -129,6 +129,41 @@ export class ChaosComponent implements OnDestroy {
    */
   private _fakerAbort = false;
 
+  /**
+   * Infrastructure chaos actions — Chaos Mesh CRs applied by the backend.
+   * Kept separate from `actions` (which are app-level HTTP floods) because:
+   *   - they require a running cluster + Chaos Mesh installed (full-mode demo-up)
+   *   - they require ROLE_ADMIN (backend @PreAuthorize enforces)
+   *   - they have a cooldown shape: each click creates one CR that auto-deletes
+   *     after its duration; no need for a stop button
+   */
+  readonly infraChaosActions: ChaosAction[] = [
+    {
+      name: 'Kill a backend pod',
+      description:
+        'Chaos Mesh PodChaos — SIGKILL a random mirador pod for 30s. Exposes Spring Boot restart time on the golden-signals dashboard.',
+      icon: '💀',
+      color: '#991b1b',
+      action: () => this.triggerInfraChaos('pod-kill'),
+    },
+    {
+      name: 'Network delay → Postgres',
+      description:
+        'Chaos Mesh NetworkChaos — 200ms latency mirador → postgresql for 1 min. Surfaces as a p99 spike on the DB latency panel.',
+      icon: '🐢',
+      color: '#7c2d12',
+      action: () => this.triggerInfraChaos('network-delay'),
+    },
+    {
+      name: 'CPU stress on a pod',
+      description:
+        'Chaos Mesh StressChaos — saturate 70% of one vCPU on a random mirador pod for 2 min. Trips Resilience4j circuit breakers on /bio.',
+      icon: '🔥',
+      color: '#b45309',
+      action: () => this.triggerInfraChaos('cpu-stress'),
+    },
+  ];
+
   readonly actions: ChaosAction[] = [
     {
       name: 'Exhaust Rate Limit',
@@ -296,6 +331,44 @@ export class ChaosComponent implements OnDestroy {
       { time: new Date(), message: msg, type: 'impact' as const },
       ...l.slice(0, 49),
     ]);
+  }
+
+  // ── Infrastructure chaos (Chaos Mesh CRs via backend) ───────────────────
+  /**
+   * Ask the backend to create a Chaos Mesh CR for the given experiment slug.
+   * The backend uses Fabric8 under the hood; the CR is auto-deleted by
+   * Chaos Mesh after its declared duration, so no stop handler is needed.
+   *
+   * Error shapes surfaced to the user via toast + log:
+   *   - 403 → not ADMIN
+   *   - 503 → Chaos Mesh CRDs not installed (fast-mode cluster or laptop)
+   *   - other → raw HTTP status + message
+   */
+  private triggerInfraChaos(slug: 'pod-kill' | 'network-delay' | 'cpu-stress'): void {
+    this.logAction(`Triggering infrastructure chaos: ${slug}...`);
+    this.api
+      .triggerChaosExperiment(slug)
+      .pipe(
+        catchError((e: { status?: number; error?: { error?: string }; message?: string }) => {
+          const msg =
+            e.status === 503
+              ? 'Chaos Mesh CRDs not installed — run bin/cluster/demo-up.sh (full mode)'
+              : e.status === 403
+                ? 'Forbidden — chaos endpoints require ADMIN role'
+                : `HTTP ${e.status ?? '?'}: ${e.error?.error ?? e.message ?? 'unknown error'}`;
+          this.logImpact(`⚠️ ${slug} failed: ${msg}`);
+          this.toast.show(msg, 'warn');
+          return of(null);
+        }),
+      )
+      .subscribe((res) => {
+        if (res) {
+          this.logImpact(
+            `✅ ${res.kind} ${res.customResourceName} created, duration ${res.duration}`,
+          );
+          this.toast.show(`${res.kind} started (${res.duration})`, 'info');
+        }
+      });
   }
 
   private exhaustRateLimit(): void {

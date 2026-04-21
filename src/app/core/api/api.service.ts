@@ -320,4 +320,36 @@ export class ApiService {
   enrichCustomer(id: number): Observable<EnrichedCustomer> {
     return this.http.get<EnrichedCustomer>(`${this.url}/customers/${id}/enrich`);
   }
+
+  /**
+   * Trigger a Chaos Mesh experiment via the backend ChaosController.
+   * ADMIN-only — the backend enforces it with `@PreAuthorize("hasRole('ADMIN')")`.
+   *
+   * The backend creates a PodChaos / NetworkChaos / StressChaos custom
+   * resource in the `app` namespace with a unique timestamped name. Chaos
+   * Mesh auto-deletes it after the declared duration.
+   *
+   * @param slug one of `'pod-kill'`, `'network-delay'`, `'cpu-stress'`
+   * @returns Observable emitting the created CR name + metadata, or
+   *          throwing an HttpErrorResponse with status:
+   *          - 400 — unknown slug (should not happen with the typed enum)
+   *          - 403 — not ADMIN
+   *          - 503 — Chaos Mesh CRDs not installed on this cluster
+   *          - 500 — other Kubernetes API failure (RBAC, conflict…)
+   */
+  triggerChaosExperiment(slug: 'pod-kill' | 'network-delay' | 'cpu-stress'): Observable<{
+    experiment: string;
+    kind: string;
+    customResourceName: string;
+    duration: string;
+    status: string;
+  }> {
+    return this.http.post<{
+      experiment: string;
+      kind: string;
+      customResourceName: string;
+      duration: string;
+      status: string;
+    }>(`${this.url}/chaos/${slug}`, {});
+  }
 }

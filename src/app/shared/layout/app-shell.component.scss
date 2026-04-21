@@ -262,7 +262,11 @@
 }
 
 // ── Theme & help buttons ────────────────────────────────────────────────────
-.theme-btn {
+.theme-btn,
+.tour-launcher-btn {
+  // Shared topbar button shell — kept compact + outline-only so the tour
+  // 🎓 and theme 🌙 sit in the same visual row without stealing attention
+  // from the primary topbar actions.
   background: transparent;
   border: 1px solid #4a6a8a;
   border-radius: 4px;
