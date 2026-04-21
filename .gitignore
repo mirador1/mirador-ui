@@ -47,7 +47,11 @@ __screenshots__/
 Thumbs.db
 /docs/compodoc/
 /docs/typedoc/
-.claude/
+.claude/*
+# Whitelist launch.json — Claude Preview dev server config that
+# benefits from being shared across machines / contributors.
+# Pattern: exclude dir CONTENTS not the dir itself, so the whitelist works.
+!.claude/launch.json
 
 # Playwright E2E — generated artifacts (ADR-0033).
 # `e2e/` itself (spec files) IS tracked; the outputs below are not.

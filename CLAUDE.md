@@ -22,6 +22,7 @@
 - **Comments explain why**, not what. Write comments that a future Claude session with no conversation history can understand.
 - After significant feature work, **do a code review pass**: unused imports (`NG8113`), `any` types, silent error handlers, missing types on HTTP calls.
 - **Never modify files outside this project** unless explicitly asked.
+- **Reference pipelines/MRs/files as clickable URLs.** When a status update or commit message mentions an MR, pipeline, tag, ADR or audit report, emit it as a markdown link (`[!62](https://gitlab.com/mirador1/mirador-ui/-/merge_requests/62)`, `[#308](https://gitlab.com/mirador1/mirador-ui/-/pipelines/<id>)`, `[stable-v1.0.5](https://gitlab.com/mirador1/mirador-ui/-/tags/stable-v1.0.5)`, `[ADR](file:///<repo>/docs/adr/…md)`) so the user can open it in one click. Bare IDs are fine in subsequent prose once the clickable form has appeared earlier in the same turn. See `~/.claude/CLAUDE.md` → "Reference pipelines, MRs and config files as clickable URLs" for the full pattern list.
 
 ## Project overview
 
