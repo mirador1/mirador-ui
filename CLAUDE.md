@@ -166,12 +166,44 @@ as new features land); **15** is the hard ceiling. See
       `allow_failure` shields) are fix-now unless carried by a dated
       follow-up. See ~/.claude/CLAUDE.md → "Pipelines stay green".
 
-## Docker Cleanup
+## Docker Cleanup — TIGHTENED CADENCE (2026-04-21)
 
-At the start of each session (or after heavy build/test work), run:
+Run the prune trio at **each** of these moments, not just "start of session":
+
+1. **Session start** — baseline.
+2. **After any CI pipeline failure carrying a runner-pressure signal**
+   (vitest worker exit 137 / "Worker exited unexpectedly", npm ECONNRESET,
+   Playwright `Target closed` under load, `OOMKilled` in logs). Rerun
+   WITHOUT cleanup → dies the same way.
+3. **Every 30 min of active local CI work** — catches leaks silently.
+4. **Before calling a session done** — clean slate.
+
+### Leak classes specific to this repo
+
+- **Orphaned Playwright Chromium processes** from cancelled E2E runs —
+  `ps auxm | grep -i chrom | head -5` shows suspects. Kill any older
+  than the current run.
+- **Stale `ng serve` / `vite` dev servers** on ports 4200 / 5173 from
+  earlier sessions — `lsof -i :4200` / `lsof -i :5173`, then
+  `kill <pid>` if not currently in use.
+- **Dev Docker containers** — see svc CLAUDE.md for the list
+  (`postgres-demo` etc. started by the sibling repo's `./run.sh all`
+  leak into this repo's context too since they share the Docker VM).
+
+### Prune trio + escalation
+
+```bash
+docker system df                                     # check first
+docker container prune -f                            # stopped containers
+docker builder prune -f                              # build cache
+docker image prune -f                                # dangling images
+# If > 80 GB total OR images > 100 count:
+docker image prune -a -f                             # ALL unused images (~20-30 GB typical)
 ```
-docker container prune -f
-docker volume prune -f
-docker builder prune -f
-```
-Check disk usage first with `docker system df`. Never prune running containers or named volumes without confirming with the user.
+
+**Never** prune named volumes (`docker volume prune`) without user
+confirmation — they hold postgres / sonar / flyway state.
+
+See `~/.claude/CLAUDE.md` → "Clean Docker regularly — don't wait for
+OOM" for the canonical rule (svc-side CI stressors + kind cluster leaks
+cross-pollute this repo's CI because macbook-local is shared).
