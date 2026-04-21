@@ -112,6 +112,13 @@ lint:format:
 openapi:types-drift:
   stage: validate
   extends: .install
+  # node:22-alpine doesn't ship bash; the gen scripts use `${BASH_SOURCE[0]}`
+  # (the only bashism). Install bash before the inherited .install:
+  # before_script runs — cheaper than refactoring the scripts to POSIX sh
+  # (which works on macOS dev boxes fine today).
+  before_script:
+    - apk add --no-cache bash
+    - npm ci --prefer-offline
   script:
     - npm run verify:api-types
   rules:

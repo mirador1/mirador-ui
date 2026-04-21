@@ -38,4 +38,18 @@ regexes = [
   '''localhost''',
   # Fake JWT tokens in tests (header.payload.signature shape).
   '''eyJhbGciOiJIUzI1NiIs[A-Za-z0-9_\-\.]+''',
+  # Auth0 public identifiers — safe by design in an SPA.
+  # Client ID goes in the browser by design (PKCE flow, no client_secret);
+  # domain is public. Pipeline #317 flagged AUTH0_CLIENT_ID in app.config.ts
+  # as a `generic-api-key` (entropy 4.5, 24 chars alphanum) — false positive.
+  # Narrow the allowlist to the three Auth0 constants we keep hard-coded
+  # in src/app/app.config.ts so a real leak (JWT, Auth0 mgmt API key)
+  # would still fire.
+  '''AUTH0_DOMAIN''',
+  '''AUTH0_CLIENT_ID''',
+  '''AUTH0_AUDIENCE''',
+  # Also whitelist the specific dev tenant values so they don't re-flag on
+  # transitive matches elsewhere (docs referencing the same constants):
+  '''dev-ksxj46zlkhk2gcvo\.us\.auth0\.com''',
+  '''DZKCwZ9dqAk3dOtVdDfc2rLJOenxidX6''',
 ]
