@@ -4,9 +4,14 @@
  * Attaches `Authorization: Bearer <accessToken>` to every outgoing backend request,
  * except for routes that don't need authentication (/auth/*, /proxy/*).
  *
- * On 401 responses, attempts a silent token refresh using the refresh token.
- * If refresh succeeds, retries the original request with the new access token.
- * If refresh fails, logs out the user and redirects to /login.
+ * On 401 responses:
+ *   - If Auth0 is authenticated (SPA login flow), fetch a fresh access token via
+ *     `getAccessTokenSilently()` and replay the original request. This covers the
+ *     race condition where the dashboard fires API calls BEFORE
+ *     `Auth0BridgeService` has populated `AuthService` on a fresh callback.
+ *   - Otherwise, attempt a silent refresh via `POST /auth/refresh` using the
+ *     refresh token issued by the built-in `/auth/login` endpoint.
+ *   - If both paths fail, log out the user and redirect to /login.
  *
  * Concurrent requests that hit 401 while a refresh is in progress are queued
  * and replayed once the refresh completes (avoids multiple refresh calls).
@@ -23,6 +28,7 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { BehaviorSubject, EMPTY, Observable, throwError } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from './auth.service';
@@ -54,6 +60,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const env = inject(EnvService);
   const api = inject(ApiService);
   const router = inject(Router);
+  const auth0 = inject(Auth0Service);
   const token = auth.token();
 
   // Only attach JWT to requests targeting the backend API (relative URLs or matching base URL).
@@ -77,7 +84,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         isBackendRequest &&
         !skipAuth
       ) {
-        return handleRefresh(authReq, next, auth, api, router);
+        return handleRefresh(authReq, next, auth, api, router, auth0);
       }
       return throwError(() => error);
     }),
@@ -85,22 +92,26 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 /**
- * Handle a 401 response by attempting a silent token refresh.
+ * Handle a 401 response with Auth0-first, built-in-refresh-second strategy.
  *
- * If no refresh is already in progress, calls `POST /auth/refresh`, stores the
- * new tokens, and retries the original request. If a refresh is already in
- * progress, waits for `refreshTokenSubject` to emit the new token and then
- * replays the original request.
+ * <h3>Why Auth0 first?</h3>
+ * On a fresh Auth0 callback, `Auth0BridgeService` subscribes to `isAuthenticated$`
+ * and calls `getAccessTokenSilently()` asynchronously (~200-500 ms round-trip to
+ * Auth0's `/oauth/token`). During that window, the dashboard's early API calls
+ * fire without a token and receive 401. Without this Auth0-aware branch, the
+ * interceptor would see no refresh token in `AuthService`, call `logout()`, and
+ * redirect to /login — producing the "flash-then-redirect-to-login" symptom.
  *
- * Returns `EMPTY` (silently dropping the observable) when the refresh fails —
- * the router redirect to /login handles the user flow without propagating errors.
+ * <h3>Flow</h3>
+ * 1. Wait for Auth0 SDK to finish initialising (`isLoading$ = false`).
+ * 2. If Auth0 reports `isAuthenticated = true`, fetch a fresh access token via
+ *    `getAccessTokenSilently()` and replay the original request with it.
+ * 3. If Auth0 is not authenticated, fall back to the existing built-in refresh
+ *    flow (works for `admin/admin` + Keycloak logins).
+ * 4. If both paths fail, redirect to /login (same as before).
  *
- * @param req    The original request that received a 401.
- * @param next   The next handler in the interceptor chain.
- * @param auth   AuthService for token storage and logout.
- * @param api    ApiService for the refresh token HTTP call.
- * @param router Angular Router used to redirect to /login on refresh failure.
- * @returns Observable that either replays the original request or completes silently.
+ * Concurrent 401s share the `isRefreshing` flag + `refreshTokenSubject` — only
+ * one refresh round-trip per 401 burst.
  */
 function handleRefresh(
   req: HttpRequest<unknown>,
@@ -108,42 +119,92 @@ function handleRefresh(
   auth: AuthService,
   api: ApiService,
   router: Router,
+  auth0: Auth0Service,
 ): Observable<HttpEvent<unknown>> {
-  if (!isRefreshing) {
-    isRefreshing = true;
-    refreshTokenSubject.next(null);
-
-    const currentRefreshToken = auth.refreshToken();
-    if (!currentRefreshToken) {
-      isRefreshing = false;
-      auth.logout();
-      router.navigateByUrl('/login');
-      // Return EMPTY so the component doesn't receive a spurious error —
-      // the /login redirect handles the user flow.
-      return EMPTY;
-    }
-
-    return api.refreshToken(currentRefreshToken).pipe(
-      switchMap(({ accessToken, refreshToken }) => {
-        isRefreshing = false;
-        auth.setTokens(accessToken, refreshToken);
-        refreshTokenSubject.next(accessToken);
-        return next(req.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } }));
-      }),
-      catchError(() => {
-        isRefreshing = false;
-        auth.logout();
-        router.navigateByUrl('/login');
-        // Return EMPTY so components don't display a stale error on logout redirect.
-        return EMPTY;
-      }),
+  if (isRefreshing) {
+    // Another request is already refreshing — wait for the new token.
+    return refreshTokenSubject.pipe(
+      filter((token) => token !== null),
+      take(1),
+      switchMap((token) => next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))),
     );
   }
 
-  // Another request hit 401 while refresh is in progress — wait for it to complete
-  return refreshTokenSubject.pipe(
-    filter((token) => token !== null),
+  isRefreshing = true;
+  refreshTokenSubject.next(null);
+
+  // Wait for the Auth0 SDK to settle before deciding which refresh path to take.
+  // `isLoading$` emits `true` while the SDK is processing a `?code` callback or
+  // a silent-auth iframe; taking the first `false` ensures we don't race it.
+  return auth0.isLoading$.pipe(
+    filter((loading) => !loading),
     take(1),
-    switchMap((token) => next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))),
+    switchMap(() => auth0.isAuthenticated$.pipe(take(1))),
+    switchMap((isAuth0) => {
+      if (isAuth0) {
+        return auth0.getAccessTokenSilently().pipe(
+          switchMap((freshToken) => {
+            auth.setToken(freshToken);
+            refreshTokenSubject.next(freshToken);
+            isRefreshing = false;
+            return next(req.clone({ setHeaders: { Authorization: `Bearer ${freshToken}` } }));
+          }),
+          catchError(() => {
+            // Auth0 silent-refresh failed (session expired, network error). Fall
+            // through to the built-in refresh flow — if that also fails, we log
+            // the user out.
+            return fallbackBuiltinRefresh(req, next, auth, api, router);
+          }),
+        );
+      }
+      // Not authenticated via Auth0 — use the built-in refresh flow.
+      return fallbackBuiltinRefresh(req, next, auth, api, router);
+    }),
+    catchError(() => {
+      // Safety net: any unexpected error resets the refresh flag + logs out.
+      isRefreshing = false;
+      auth.logout();
+      router.navigateByUrl('/login');
+      return EMPTY;
+    }),
+  );
+}
+
+/**
+ * Built-in refresh flow — calls `POST /auth/refresh` with the refresh token
+ * stored by {@link AuthService} (issued at `/auth/login` time). Used for the
+ * `admin/admin` + Keycloak paths that existed before the Auth0 integration.
+ */
+function fallbackBuiltinRefresh(
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+  auth: AuthService,
+  api: ApiService,
+  router: Router,
+): Observable<HttpEvent<unknown>> {
+  const currentRefreshToken = auth.refreshToken();
+  if (!currentRefreshToken) {
+    isRefreshing = false;
+    auth.logout();
+    router.navigateByUrl('/login');
+    // Return EMPTY so the component doesn't receive a spurious error —
+    // the /login redirect handles the user flow.
+    return EMPTY;
+  }
+
+  return api.refreshToken(currentRefreshToken).pipe(
+    switchMap(({ accessToken, refreshToken }) => {
+      isRefreshing = false;
+      auth.setTokens(accessToken, refreshToken);
+      refreshTokenSubject.next(accessToken);
+      return next(req.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } }));
+    }),
+    catchError(() => {
+      isRefreshing = false;
+      auth.logout();
+      router.navigateByUrl('/login');
+      // Return EMPTY so components don't display a stale error on logout redirect.
+      return EMPTY;
+    }),
   );
 }
