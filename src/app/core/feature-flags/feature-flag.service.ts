@@ -21,12 +21,12 @@ import { EnvService } from '../env/env.service';
 
 /** Shape returned by `unleash-proxy`'s `GET /proxy` endpoint. */
 interface UnleashProxyResponse {
-  toggles: Array<{
+  toggles: {
     name: string;
     enabled: boolean;
     /** Optional payload for variant toggles — ignored for now. */
     variant?: { name: string; enabled: boolean };
-  }>;
+  }[];
 }
 
 /**

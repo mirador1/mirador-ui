@@ -508,7 +508,7 @@ export class DiagnosticComponent {
     this._stressAbort = true;
   }
 
-  stressChartBars(): Array<{ x: number; okH: number; errH: number }> {
+  stressChartBars(): { x: number; okH: number; errH: number }[] {
     const samples = this.stressSamples();
     if (!samples.length) return [];
     const max = Math.max(1, ...samples.map((s) => s.ok + s.err));

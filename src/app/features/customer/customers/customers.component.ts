@@ -710,7 +710,10 @@ export class CustomersComponent implements OnInit, OnDestroy {
     const reader = new FileReader();
     reader.onload = () => {
       const content = reader.result as string;
-      let records: Array<{ name: string; email: string }> = [];
+      // Declared without initialiser — every branch below assigns `records`
+      // before the first read (the dead initial `[]` tripped
+      // `no-useless-assignment`).
+      let records: { name: string; email: string }[];
 
       if (file.name.endsWith('.json')) {
         try {
@@ -747,7 +750,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
     input.value = ''; // reset so same file can be re-selected
   }
 
-  private executeBulkImport(records: Array<{ name: string; email: string }>): void {
+  private executeBulkImport(records: { name: string; email: string }[]): void {
     this.importLoading.set(true);
     this.importProgress.set(0);
     this.importTotal.set(records.length);

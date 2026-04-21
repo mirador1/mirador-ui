@@ -113,7 +113,7 @@ export class RequestBuilderComponent {
    * Shown in the History panel with click-to-replay. Capped at 20 to keep the list scannable.
    */
   history = signal<
-    Array<{ method: string; url: string; status: number; timeMs: number; timestamp: Date }>
+    { method: string; url: string; status: number; timeMs: number; timestamp: Date }[]
   >([]);
 
   /**

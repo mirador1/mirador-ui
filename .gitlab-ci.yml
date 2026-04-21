@@ -101,6 +101,43 @@ lint:format:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+# ── ESLint (Angular + TypeScript + a11y) ──────────────────────────────────
+#
+# ESLint 9 flat config lives at `eslint.config.mjs`. Rules span
+# @typescript-eslint (TS strictness), angular-eslint (Angular-specific
+# anti-patterns — standalone, control-flow, selector style), and a
+# subset of a11y checks on templates.
+#
+# What ESLint catches that tsc / Prettier / SonarCloud don't:
+#   - RxJS subscribe-leak patterns (the reason ESLint was added
+#     2026-04-21 — 86 `.subscribe()` without takeUntilDestroyed were
+#     scanned at setup).
+#   - Accessibility (click without keyboard, focusable gate).
+#   - Control-flow regressions (*ngIf vs @if).
+#
+# Output: SARIF file at `eslint-report.sarif`, ingested by SonarCloud
+# via `sonar.sarifReportPaths` in config/sonar-project.properties.
+# `|| true` on lint:sarif ensures the file is generated even if there
+# are errors (we want Sonar to see them, not CI to bail early).
+lint:eslint:
+  stage: validate
+  extends: .install
+  script:
+    - npm run lint
+    - npm run lint:sarif
+  artifacts:
+    when: always
+    paths:
+      - eslint-report.sarif
+    expire_in: 1 week
+  # Currently configured with 10 known warnings — goal is 0 errors
+  # reached at install time, warning-only so the initial rollout
+  # doesn't fail CI. Tighten specific rules to "error" as legacy tech
+  # debt gets cleaned up.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # ── Stage: test ──────────────────────────────────────────────────────────────
 unit-tests:
   stage: test
@@ -424,7 +461,15 @@ sonarcloud:
   image:
     name: sonarsource/sonar-scanner-cli:11
     entrypoint: [""]
-  needs: ["unit-tests", "build:production"]
+  needs:
+    - job: unit-tests
+    - job: build:production
+    # ESLint SARIF — ingested by sonar via config/sonar-project.properties
+    # → sonar.sarifReportPaths. `optional: true` so the sonar step still
+    # runs on branches that didn't trigger lint:eslint (path-filtered).
+    - job: lint:eslint
+      artifacts: true
+      optional: true
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
     GIT_DEPTH: "0"    # full clone for accurate blame/line info

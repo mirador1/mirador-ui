@@ -56,13 +56,13 @@ export class AboutComponent {
     { id: 'testing', label: '🧪 Testing' },
   ] as const;
 
-  readonly technologies: Array<{
+  readonly technologies: {
     name: string;
     url: string;
     description: string;
     usage: string;
     icon: string;
-  }> = [
+  }[] = [
     {
       name: 'Angular 21',
       icon: '🅰️',
@@ -455,13 +455,13 @@ export class AboutComponent {
         'Replaces Karma+Jasmine for Angular unit tests. Runs with a jsdom environment. Tests cover services, pipes, and pure functions. Executed by `./run.sh test` and the GitLab CI pipeline. No `fakeAsync`/`tick` — async is handled with real Promises and `vi.useFakeTimers()`.',
     },
   ];
-  readonly portMap: Array<{
+  readonly portMap: {
     port: number | null;
     name: string;
     category: string;
     note: string;
     url?: string | null;
-  }> = [
+  }[] = [
     // Application
     {
       port: 8080,

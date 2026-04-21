@@ -95,7 +95,7 @@ export class ChaosComponent implements OnDestroy {
    * Signal: top-10 endpoint breakdown sorted by request count.
    * Parsed from Prometheus `http_server_requests_seconds_count` metrics.
    */
-  trafficBreakdown = signal<Array<{ uri: string; count: number; status: string }>>([]);
+  trafficBreakdown = signal<{ uri: string; count: number; status: string }[]>([]);
 
   /** Signal: estimated total requests per second across all endpoints. */
   totalRps = signal(0);
@@ -107,7 +107,7 @@ export class ChaosComponent implements OnDestroy {
    * Shown in the terminal-style log panel below the action buttons.
    * Types: `'action'`=cyan (user-triggered), `'impact'`=orange (monitor), `'info'`=gray.
    */
-  chaosLog = signal<Array<{ time: Date; message: string; type: 'action' | 'impact' | 'info' }>>([]);
+  chaosLog = signal<{ time: Date; message: string; type: 'action' | 'impact' | 'info' }[]>([]);
 
   // ── Faker generator ───────────────────────────────────────────────────────
 
@@ -250,7 +250,7 @@ export class ChaosComponent implements OnDestroy {
       .pipe(catchError(() => of('')))
       .subscribe((text: string) => {
         if (!text) return;
-        const entries: Array<{ uri: string; count: number; status: string }> = [];
+        const entries: { uri: string; count: number; status: string }[] = [];
         const regex =
           /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
         let m;
@@ -271,7 +271,7 @@ export class ChaosComponent implements OnDestroy {
       });
   }
 
-  impactChartBars(): Array<{ x: number; okH: number; errH: number }> {
+  impactChartBars(): { x: number; okH: number; errH: number }[] {
     const s = this.impactSamples();
     if (!s.length) return [];
     const max = Math.max(1, ...s.map((x) => x.ok + x.errors));
