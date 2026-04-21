@@ -1,0 +1,184 @@
+/*
+ * tour-overlay.component.scss — styles for the onboarding tour.
+ *
+ * Kept self-contained inside one SCSS file to keep the feature scoped. Uses
+ * the existing CSS custom properties from src/styles.scss (--bg, --fg,
+ * --border, --accent) so dark/light mode inherit without extra work.
+ */
+
+:host {
+  // No layout footprint — the overlay is position: fixed. Without this, the
+  // host <app-tour-overlay> would still allocate a line box in the topbar's
+  // flex row. `display: contents` lets the children position freely.
+  display: contents;
+}
+
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  // Low opacity so the app remains visible (the whole point of a guided
+  // tour is showing what to look at). The ring + card contrast do the rest.
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  pointer-events: auto;
+  // Small fade-in so the jump isn't jarring.
+  animation: tour-fade-in 180ms ease-out;
+}
+
+.tour-ring {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  border: 3px solid var(--accent, #3b82f6);
+  border-radius: 10px;
+  // Inner glow + outer dark halo so the ring reads against both light and
+  // dark backgrounds. Shadow outside is the "spotlight out" cue.
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.18),
+    0 0 16px rgba(59, 130, 246, 0.35);
+  transition:
+    top 180ms ease-out,
+    left 180ms ease-out,
+    width 180ms ease-out,
+    height 180ms ease-out;
+  animation: tour-pulse 1800ms ease-in-out infinite;
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 1002;
+  max-width: 360px;
+  min-width: 280px;
+  background: var(--bg, #ffffff);
+  color: var(--fg, #111827);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  padding: 1rem 1.1rem 0.85rem 1.1rem;
+  animation: tour-fade-in 200ms ease-out;
+
+  // When the target isn't in the DOM (or the step is a welcome/closing
+  // with no anchor), render as a centred dialog instead of anchored.
+  &.tour-card-centred {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+  }
+
+  // Clamp against viewport edges so steps near the right/bottom can't clip
+  // off-screen. `max-width` uses `min(...)` so the card is always ≥ 8 px
+  // from the right; the top/left absolute coords come from JS which
+  // already positions against the target rect, but a narrow viewport
+  // (< 360 px) would otherwise overflow. Kept in CSS so we don't need
+  // a JS clamp pass on every resize tick.
+  max-width: min(360px, calc(100vw - 16px));
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--fg, #111827);
+  }
+
+  p {
+    margin: 0 0 0.85rem;
+    line-height: 1.5;
+    font-size: 0.925rem;
+    color: var(--fg, #374151);
+  }
+}
+
+.tour-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tour-progress {
+  font-size: 0.8rem;
+  color: var(--muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+  // Tabular numerals so "3 / 6" doesn't shift width when it becomes "4 / 6"
+  // as the user clicks Next — tiny detail, big polish.
+}
+
+.tour-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tour-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--bg, #ffffff);
+  color: var(--fg, #374151);
+  cursor: pointer;
+  transition:
+    background 120ms,
+    border-color 120ms,
+    color 120ms;
+
+  &:hover:not(:disabled) {
+    background: var(--hover, #f3f4f6);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &.tour-btn-primary {
+    background: var(--accent, #3b82f6);
+    color: #ffffff;
+    border-color: var(--accent, #3b82f6);
+
+    &:hover:not(:disabled) {
+      // Lighten on hover by dropping a white overlay — works in both themes.
+      background: color-mix(in srgb, var(--accent, #3b82f6) 88%, white 12%);
+    }
+  }
+}
+
+@keyframes tour-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tour-pulse {
+  // Subtle ring pulse so the highlight stays visually distinct from a plain
+  // static focus outline. Keeps the duration > 1.5 s so it's not distracting
+  // while the user reads the card body.
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.18),
+      0 0 16px rgba(59, 130, 246, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.18),
+      0 0 24px rgba(59, 130, 246, 0.55);
+  }
+}
+
+// Respect the user's reduced-motion preference — kill the pulse but keep
+// the ring visible. a11y check: WCAG 2.3.3 (animation from interactions).
+@media (prefers-reduced-motion: reduce) {
+  .tour-backdrop,
+  .tour-card {
+    animation: none;
+  }
+  .tour-ring {
+    animation: none;
+    transition: none;
+  }
+}

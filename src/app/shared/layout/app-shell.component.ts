@@ -8,17 +8,19 @@
  * - Toast notification container
  * - Router outlet for feature page content
  */
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { EnvService, Environment } from '../../core/env/env.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { TourService } from '../../core/tour/tour.service';
+import { TourOverlayComponent } from '../../core/tour/tour-overlay.component';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, FormsModule],
+  imports: [RouterOutlet, RouterLink, FormsModule, TourOverlayComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
 })
@@ -35,7 +37,20 @@ export class AppShellComponent {
   /** Provides `toasts` signal rendered in the toast container overlay. */
   readonly toast = inject(ToastService);
 
+  /** Drives the onboarding tour (🎓 button + auto-start on first sign-in). */
+  readonly tour = inject(TourService);
+
   private readonly router = inject(Router);
+
+  constructor() {
+    // Auto-start the tour the FIRST time a user reaches an authenticated
+    // state. The localStorage flag inside TourService makes this a no-op on
+    // subsequent visits. Wrapped in effect() so we react to sign-in without
+    // needing a separate lifecycle hook on the dashboard component.
+    effect(() => {
+      if (this.auth.isAuthenticated()) this.tour.maybeAutoStart();
+    });
+  }
 
   /** Signal: true when the mobile hamburger menu is open. Used on small viewports only. */
   mobileMenuOpen = signal(false);
