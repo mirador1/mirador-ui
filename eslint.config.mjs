@@ -94,6 +94,27 @@ export default tseslint.config(
       'no-useless-escape': 'warn',        // a few regex idioms in info-tip
       'no-useless-assignment': 'warn',    // 1 legacy case in customers.component
       '@typescript-eslint/array-type': 'warn',  // stylistic (T[] vs Array<T>)
+
+      // ─────────────────────────────────────────────────────────────────
+      // Size + complexity — Phase A 2026-04-21.
+      // See docs/audit/quality-thresholds-2026-04-21.md in the svc repo
+      // for the full industry-threshold comparison. All WARN during
+      // Phase A; flip to ERROR in Phase C after Phase B refactors
+      // clear the current outliers (dashboard.component.ts 1022,
+      // customers.component.ts 904, quality.component.ts 796).
+      // ─────────────────────────────────────────────────────────────────
+      'max-lines': [
+        'warn',
+        { max: 400, skipBlankLines: true, skipComments: true },
+      ],
+      'max-lines-per-function': [
+        'warn',
+        { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true },
+      ],
+      'complexity': ['warn', 10],
+      'max-params': ['warn', 5],
+      'max-depth': ['warn', 4],
+      'max-nested-callbacks': ['warn', 4],
     },
   },
   {
