@@ -84,7 +84,7 @@ export class LoginComponent {
         if (!err.status || err.status === 0) {
           // Network error — backend unreachable
           this.errorType.set('backend');
-          this.error.set('Backend unreachable — is the Spring Boot app running on localhost:8080?');
+          this.error.set('Backend unreachable — is the backend server running on localhost:8080?');
         } else if (err.status === 429) {
           this.errorType.set('blocked');
           const minutes = err.error?.retryAfterMinutes ?? 15;
