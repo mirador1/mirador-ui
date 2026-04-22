@@ -232,9 +232,16 @@ as new features land); **15** is the hard ceiling. See
 Hard constraints, not aspirations — same 7 non-negotiables as
 `~/.claude/CLAUDE.md` → "Clean Code + Clean Architecture":
 
-1. Function size ≤ 20-30 LOC body, ≤ 5 params, complexity ≤ 10
-   (ESLint enforces — `max-lines`, `max-lines-per-function`,
-   `complexity`, `max-params`. Phase C flips warn → error).
+1. Function size ≤ 20-30 LOC body, ≤ 5 params, complexity ≤ 10 —
+   ESLint enforces (`max-lines`, `max-lines-per-function`, `complexity`,
+   `max-params`, `max-depth`, `max-nested-callbacks`). **Phase C
+   flipped warn → error 2026-04-22** with project-calibrated thresholds
+   (max-lines 700, function 100, complexity 15, params 6, depth 4,
+   callbacks 4). Regressions land as red CI jobs, not silent debt.
+   Two legitimate complexity violations (KeyboardService.onKeyDown,
+   TelemetryService.push) carry `eslint-disable-next-line complexity`
+   + documented reason (switch-on-enum patterns where cyclomatic
+   count = number of mutually-exclusive cases, not branching depth).
 2. Single Responsibility per component / service / signal.
 3. Naming tells intent — rename the moment a mismatch is noticed.
 4. Comments explain WHY, not WHAT.
