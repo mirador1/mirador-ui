@@ -1,0 +1,218 @@
+// customers.component.scss partial — _controls
+// Extracted 2026-04-22 from customers.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_controls';` in customers.component.scss.
+
+h2 {
+  margin: 0 0 0.25rem;
+}
+
+.page-header {
+  margin-bottom: 1rem;
+}
+.subtitle {
+  margin: 0;
+  color: var(--text-label);
+  font-size: 0.9rem;
+}
+
+// ── Controls bar ────────────────��──────────────────────────────────────────
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.label {
+  font-size: 0.82rem;
+  color: var(--text-label);
+  white-space: nowrap;
+}
+
+.toggle-btns {
+  display: flex;
+
+  button {
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--border-input);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.82rem;
+
+    &:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+    &:last-child {
+      border-radius: 0 4px 4px 0;
+      border-left: none;
+    }
+
+    &.active {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
+    }
+
+    small {
+      opacity: 0.8;
+      margin-left: 3px;
+    }
+  }
+}
+
+.search-box {
+  flex: 1;
+  min-width: 180px;
+
+  input {
+    width: 100%;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+  }
+}
+
+.action-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.export-group {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.import-group {
+  display: flex;
+}
+
+.import-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.import-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-code);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
+  transition: width 0.2s;
+}
+
+.progress-text {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.import-result {
+  padding: 0.5rem 1rem;
+  background: var(--bg-success);
+  border: 1px solid var(--border-success);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-success);
+}
+
+// ── Batch bar ─────��───────────────────────────────────────────────────────
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-warn);
+  border: 1px solid var(--border-warn);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--text-warn);
+}
+
+// ── Alerts ─────────���─────────────────────────────��─────────────────────────
+.alert-error {
+  background: var(--bg-error);
+  color: var(--text-error);
+  border: 1px solid var(--border-error);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.alert-warn {
+  background: var(--bg-warn);
+  color: var(--text-warn);
+  border: 1px solid var(--border-warn);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+
+  a {
+    color: var(--text-link);
+  }
+}
+
+// ── Main layout ────────────────────────────────────────────────────────────

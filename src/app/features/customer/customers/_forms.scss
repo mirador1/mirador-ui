@@ -1,0 +1,315 @@
+// customers.component.scss partial — _forms
+// Extracted 2026-04-22 from customers.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_forms';` in customers.component.scss.
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+
+    small {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+  }
+}
+
+// ── Create form ───────────────────────────────────────────────��────────────
+.create-card {
+  align-self: start;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+
+  input[type='text'],
+  input[type='email'] {
+    display: block;
+    width: 100%;
+    margin-top: 0.2rem;
+    padding: 0.45rem 0.6rem;
+    box-sizing: border-box;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+  }
+}
+
+.idem-row {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.idem-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.idem-key {
+  font-family: monospace;
+  font-size: 0.72rem;
+  background: var(--bg-code);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 0.55rem;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Container for the Create + Add-random pair — stacks them on narrow
+// cards but keeps them on one row when there's room.
+.create-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  .primary-btn,
+  .secondary-btn {
+    flex: 1 1 160px;
+  }
+}
+
+// Secondary action styled as an outlined button so the "+ Create" path
+// remains the primary visual call-to-action.
+.secondary-btn {
+  padding: 0.55rem;
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent);
+    color: white;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.danger-btn {
+  padding: 0.4rem 0.85rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.error-text {
+  color: var(--text-error);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.success-box {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-success);
+  border: 1px solid var(--border-success);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-success);
+}
+
+// ── List ───────────────���─────────────────────────────��─────────────────────
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.page-btns {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.sm-btn {
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.82rem;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 2px solid var(--border-default);
+    color: var(--text-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+
+    &.sortable {
+      cursor: pointer;
+      user-select: none;
+      &:hover {
+        color: var(--color-accent);
+      }
+    }
+
+    &.check-col {
+      width: 30px;
+    }
+  }
+
+  td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: middle;
+    color: var(--text-primary);
+
+    &.check-col {
+      width: 30px;
+    }
+  }
+
+  tr.selected-row td {
+    background: var(--color-accent-light);
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.sort-icon {
+  font-size: 0.7rem;
+  margin-left: 0.2rem;
+  color: var(--text-muted);
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.tag-btn {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 3px;
+
+  &.bio,
+  &.todos,
+  &.enrich,
+  &.edit {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #e2e8f0;
+  }
+  &.delete {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fecaca;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.version-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  font-family: monospace;
+
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+// ── Modal ──────────��──────────────────────────────────────────────────────
