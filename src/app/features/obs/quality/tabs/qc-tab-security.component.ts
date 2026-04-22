@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import type { OwaspReport } from '../quality.component';
+import type { OwaspReport } from '../quality-types';
 import { entriesOf, nvdUrl, severityColor } from '../quality-helpers';
 
 /**

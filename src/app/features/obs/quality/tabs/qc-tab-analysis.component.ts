@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import type { BugsReport } from '../quality.component';
+import type { BugsReport } from '../quality-types';
 import { entriesOf } from '../quality-helpers';
 
 /**

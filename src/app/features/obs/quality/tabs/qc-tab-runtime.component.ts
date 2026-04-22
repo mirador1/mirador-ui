@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import type { RuntimeReport } from '../quality.component';
+import type { RuntimeReport } from '../quality-types';
 
 /**
  * Runtime tab — active profiles, JVM uptime, startup time, JAR layers.

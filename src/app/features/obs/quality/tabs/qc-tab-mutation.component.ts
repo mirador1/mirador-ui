@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import type { QualityReport } from '../quality.component';
+import type { QualityReport } from '../quality-types';
 import { commitUrl, coverageColor, entriesOf, severityColor } from '../quality-helpers';
 
 /**
