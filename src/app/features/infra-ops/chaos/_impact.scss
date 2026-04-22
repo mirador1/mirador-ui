@@ -1,0 +1,114 @@
+// ── Impact chart ────────────────────────────────────────────────────────────
+.impact-chart {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+
+  h4 {
+    margin: 0 0 0.5rem;
+    font-size: 0.88rem;
+    small {
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+  }
+}
+
+.chart-svg {
+  width: 100%;
+  height: 100px;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.traffic-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.traffic-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
+  font-size: 0.75rem;
+  font-family: monospace;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.traffic-uri {
+  flex: 1;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.traffic-status {
+  font-weight: 700;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+
+  &.t-ok {
+    background: #dcfce7;
+    color: #166534;
+  }
+  &.t-err {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+.traffic-count {
+  min-width: 35px;
+  text-align: right;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+// ── Panels ──────────────────────────────────────────────────────────────────
+.panels-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: var(--shadow-card);
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+  }
+}
+
+.panel-desc {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
