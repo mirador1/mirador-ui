@@ -9,7 +9,8 @@
  * event types in a single click, useful for demonstrating the timeline in demos.
  * Events are stored in-memory by ActivityService and lost on page reload.
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
@@ -32,34 +33,45 @@ export class ActivityComponent {
   private readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /** Signal: true while the `quickTraffic()` sequence is running. Disables the button. */
   generating = signal(false);
 
   /** Create a customer and log it */
   quickCreate(): void {
     const name = `Activity-${Date.now() % 10000}`;
-    this.api.createCustomer({ name, email: `${name.toLowerCase()}@test.com` }).subscribe({
-      next: (c) => {
-        this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
-        this.toast.show(`Customer "${c.name}" created`, 'success');
-      },
-      error: () => this.toast.show('Create failed — is the backend running?', 'error'),
-    });
+    this.api
+      .createCustomer({ name, email: `${name.toLowerCase()}@test.com` })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (c) => {
+          this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
+          this.toast.show(`Customer "${c.name}" created`, 'success');
+        },
+        error: () => this.toast.show('Create failed — is the backend running?', 'error'),
+      });
   }
 
   /** Check health and log the result */
   quickHealth(): void {
-    this.api.getHealth().subscribe({
-      next: (v) => {
-        const status = (v as { status?: string })?.status ?? '?';
-        this.activity.log('health-change', `Health check → ${status}`);
-        this.toast.show(`Health: ${status}`, status === 'UP' ? 'success' : 'warn');
-      },
-      error: () => {
-        this.activity.log('health-change', 'Backend unreachable');
-        this.toast.show('Backend unreachable', 'error');
-      },
-    });
+    this.api
+      .getHealth()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => {
+          const status = (v as { status?: string })?.status ?? '?';
+          this.activity.log('health-change', `Health check → ${status}`);
+          this.toast.show(`Health: ${status}`, status === 'UP' ? 'success' : 'warn');
+        },
+        error: () => {
+          this.activity.log('health-change', 'Backend unreachable');
+          this.toast.show('Backend unreachable', 'error');
+        },
+      });
   }
 
   /** Generate mixed traffic to produce multiple event types */
@@ -92,7 +104,10 @@ export class ActivityComponent {
     // 4. Health check
     this.http
       .get(`${base}/actuator/health`)
-      .pipe(catchError(() => of({ status: 'UNREACHABLE' })))
+      .pipe(
+        catchError(() => of({ status: 'UNREACHABLE' })),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((v) => {
         const status = (v as { status?: string })?.status ?? '?';
         this.activity.log('health-change', `Health → ${status}`);
@@ -102,7 +117,10 @@ export class ActivityComponent {
     const t0 = Date.now();
     this.http
       .get(`${base}/customers/aggregate`)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => {
         this.activity.log('diagnostic-run', `Aggregate completed in ${Date.now() - t0} ms`);
       });
@@ -124,7 +142,10 @@ export class ActivityComponent {
       const n = `Import-${Date.now() % 10000}-${i}`;
       this.http
         .post(`${base}/customers`, { name: n, email: `${n.toLowerCase()}@import.com` })
-        .pipe(catchError(() => of(null)))
+        .pipe(
+          catchError(() => of(null)),
+          takeUntilDestroyed(this.destroyRef),
+        )
         .subscribe((r) => {
           if (r) importOk++;
           importDone++;

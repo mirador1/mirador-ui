@@ -14,6 +14,7 @@
  */
 import {
   Component,
+  DestroyRef,
   inject,
   signal,
   computed,
@@ -22,6 +23,7 @@ import {
   viewChild,
   ElementRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -59,6 +61,11 @@ export class CustomersComponent implements OnInit, OnDestroy {
   /** Feature flags — used to gate the Bio tab on `mirador.bio.enabled`. */
   readonly flags = inject(FeatureFlagService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /**
    * Is the Bio tab available? Kill-switch semantics via Unleash:
    *   - Local (no proxy) → true (always show in dev)
@@ -326,27 +333,33 @@ export class CustomersComponent implements OnInit, OnDestroy {
     const search = this.searchQuery() || undefined;
 
     if (this.summaryMode()) {
-      this.api.getCustomerSummary(this.currentPage()).subscribe({
-        next: (p) => {
-          this.summaries.set(p);
-          this.listLoading.set(false);
-        },
-        error: (err) => {
-          this.listError.set(httpError(err));
-          this.listLoading.set(false);
-        },
-      });
+      this.api
+        .getCustomerSummary(this.currentPage())
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (p) => {
+            this.summaries.set(p);
+            this.listLoading.set(false);
+          },
+          error: (err) => {
+            this.listError.set(httpError(err));
+            this.listLoading.set(false);
+          },
+        });
     } else {
-      this.api.getCustomers(this.currentPage(), 10, this.apiVersion(), search, sort).subscribe({
-        next: (p) => {
-          this.customers.set(p);
-          this.listLoading.set(false);
-        },
-        error: (err) => {
-          this.listError.set(httpError(err));
-          this.listLoading.set(false);
-        },
-      });
+      this.api
+        .getCustomers(this.currentPage(), 10, this.apiVersion(), search, sort)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (p) => {
+            this.customers.set(p);
+            this.listLoading.set(false);
+          },
+          error: (err) => {
+            this.listError.set(httpError(err));
+            this.listLoading.set(false);
+          },
+        });
     }
   }
 
@@ -377,10 +390,13 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 
   loadRecent(): void {
-    this.api.getRecentCustomers().subscribe({
-      next: (r) => this.recent.set(r),
-      error: (err) => this.listError.set(httpError(err)),
-    });
+    this.api
+      .getRecentCustomers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => this.recent.set(r),
+        error: (err) => this.listError.set(httpError(err)),
+      });
   }
 
   runAggregate(): void {
@@ -388,17 +404,20 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.aggregateError.set('');
     this.aggregate.set(null);
     const t0 = Date.now();
-    this.api.getAggregate().subscribe({
-      next: (r) => {
-        this.aggregate.set(r);
-        this.aggregateLoading.set(false);
-        this.aggregateError.set(`Completed in ${Date.now() - t0} ms (virtual threads)`);
-      },
-      error: (err) => {
-        this.aggregateError.set(httpError(err));
-        this.aggregateLoading.set(false);
-      },
-    });
+    this.api
+      .getAggregate()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          this.aggregate.set(r);
+          this.aggregateLoading.set(false);
+          this.aggregateError.set(`Completed in ${Date.now() - t0} ms (virtual threads)`);
+        },
+        error: (err) => {
+          this.aggregateError.set(httpError(err));
+          this.aggregateLoading.set(false);
+        },
+      });
   }
 
   // ── Create ─────────────────────────────────────────────────────────────────
@@ -418,23 +437,26 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.createSuccess.set(null);
 
     const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
-    this.api.createCustomer({ name, email }, key).subscribe({
-      next: (c) => {
-        this.createSuccess.set(c);
-        this.newName.set('');
-        this.newEmail.set('');
-        if (nameEl) nameEl.value = '';
-        if (emailEl) emailEl.value = '';
-        this.createLoading.set(false);
-        this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
-        this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
-        this.loadCustomers();
-      },
-      error: (err) => {
-        this.createError.set(httpError(err));
-        this.createLoading.set(false);
-      },
-    });
+    this.api
+      .createCustomer({ name, email }, key)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (c) => {
+          this.createSuccess.set(c);
+          this.newName.set('');
+          this.newEmail.set('');
+          if (nameEl) nameEl.value = '';
+          if (emailEl) emailEl.value = '';
+          this.createLoading.set(false);
+          this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
+          this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
+          this.loadCustomers();
+        },
+        error: (err) => {
+          this.createError.set(httpError(err));
+          this.createLoading.set(false);
+        },
+      });
   }
 
   resetIdempotencyKey(): void {
@@ -454,19 +476,22 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.createSuccess.set(null);
 
     const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
-    this.api.createCustomer({ name, email }, key).subscribe({
-      next: (c) => {
-        this.createSuccess.set(c);
-        this.createLoading.set(false);
-        this.toast.show(`Random customer "${c.name}" created (ID ${c.id})`, 'success');
-        this.activity.log('customer-create', `Random-created "${c.name}" (ID ${c.id})`);
-        this.loadCustomers();
-      },
-      error: (err) => {
-        this.createError.set(httpError(err));
-        this.createLoading.set(false);
-      },
-    });
+    this.api
+      .createCustomer({ name, email }, key)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (c) => {
+          this.createSuccess.set(c);
+          this.createLoading.set(false);
+          this.toast.show(`Random customer "${c.name}" created (ID ${c.id})`, 'success');
+          this.activity.log('customer-create', `Random-created "${c.name}" (ID ${c.id})`);
+          this.loadCustomers();
+        },
+        error: (err) => {
+          this.createError.set(httpError(err));
+          this.createLoading.set(false);
+        },
+      });
   }
 
   // ── Edit ───────────────────────────────────────────────────────────────────
@@ -489,6 +514,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
     this.api
       .updateCustomer(c.id, { name: this.editName.trim(), email: this.editEmail.trim() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.editingCustomer.set(null);
@@ -518,20 +544,23 @@ export class CustomersComponent implements OnInit, OnDestroy {
     if (!c?.id) return;
     this.deleteLoading.set(true);
 
-    this.api.deleteCustomer(c.id).subscribe({
-      next: () => {
-        this.deletingCustomer.set(null);
-        this.deleteLoading.set(false);
-        this.toast.show(`Customer "${c.name}" deleted`, 'success');
-        this.activity.log('customer-delete', `Deleted "${c.name}" (ID ${c.id})`);
-        this.loadCustomers();
-      },
-      error: (err) => {
-        this.deleteLoading.set(false);
-        this.toast.show(httpError(err), 'error');
-        this.deletingCustomer.set(null);
-      },
-    });
+    this.api
+      .deleteCustomer(c.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deletingCustomer.set(null);
+          this.deleteLoading.set(false);
+          this.toast.show(`Customer "${c.name}" deleted`, 'success');
+          this.activity.log('customer-delete', `Deleted "${c.name}" (ID ${c.id})`);
+          this.loadCustomers();
+        },
+        error: (err) => {
+          this.deleteLoading.set(false);
+          this.toast.show(httpError(err), 'error');
+          this.deletingCustomer.set(null);
+        },
+      });
   }
 
   // ── Batch selection ───────────────────────────────────────────────────────
@@ -571,16 +600,19 @@ export class CustomersComponent implements OnInit, OnDestroy {
     let completed = 0;
     let errors = 0;
     for (const id of ids) {
-      this.api.deleteCustomer(id).subscribe({
-        next: () => {
-          completed++;
-          if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
-        },
-        error: () => {
-          errors++;
-          if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
-        },
-      });
+      this.api
+        .deleteCustomer(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            completed++;
+            if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
+          },
+          error: () => {
+            errors++;
+            if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
+          },
+        });
     }
   }
 
@@ -670,20 +702,23 @@ export class CustomersComponent implements OnInit, OnDestroy {
     let done = 0;
 
     for (const record of records) {
-      this.api.createCustomer(record).subscribe({
-        next: () => {
-          ok++;
-          done++;
-          this.importProgress.set(done);
-          this.checkImportDone(done, records.length, ok, errors);
-        },
-        error: () => {
-          errors++;
-          done++;
-          this.importProgress.set(done);
-          this.checkImportDone(done, records.length, ok, errors);
-        },
-      });
+      this.api
+        .createCustomer(record)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            ok++;
+            done++;
+            this.importProgress.set(done);
+            this.checkImportDone(done, records.length, ok, errors);
+          },
+          error: () => {
+            errors++;
+            done++;
+            this.importProgress.set(done);
+            this.checkImportDone(done, records.length, ok, errors);
+          },
+        });
     }
   }
 
@@ -763,38 +798,47 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.detailError.set('');
 
     if (tab === 'bio') {
-      this.api.getCustomerBio(c.id).subscribe({
-        next: (r) => {
-          this.bio.set(r.bio);
-          this.detailLoading.set(false);
-        },
-        error: (err) => {
-          this.detailError.set(httpError(err));
-          this.detailLoading.set(false);
-        },
-      });
+      this.api
+        .getCustomerBio(c.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (r) => {
+            this.bio.set(r.bio);
+            this.detailLoading.set(false);
+          },
+          error: (err) => {
+            this.detailError.set(httpError(err));
+            this.detailLoading.set(false);
+          },
+        });
     } else if (tab === 'todos') {
-      this.api.getCustomerTodos(c.id).subscribe({
-        next: (r) => {
-          this.todos.set(r);
-          this.detailLoading.set(false);
-        },
-        error: (err) => {
-          this.detailError.set(httpError(err));
-          this.detailLoading.set(false);
-        },
-      });
+      this.api
+        .getCustomerTodos(c.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (r) => {
+            this.todos.set(r);
+            this.detailLoading.set(false);
+          },
+          error: (err) => {
+            this.detailError.set(httpError(err));
+            this.detailLoading.set(false);
+          },
+        });
     } else if (tab === 'enrich') {
-      this.api.enrichCustomer(c.id).subscribe({
-        next: (r) => {
-          this.enriched.set(r);
-          this.detailLoading.set(false);
-        },
-        error: (err) => {
-          this.detailError.set(httpError(err));
-          this.detailLoading.set(false);
-        },
-      });
+      this.api
+        .enrichCustomer(c.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (r) => {
+            this.enriched.set(r);
+            this.detailLoading.set(false);
+          },
+          error: (err) => {
+            this.detailError.set(httpError(err));
+            this.detailLoading.set(false);
+          },
+        });
     }
   }
 

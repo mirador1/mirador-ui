@@ -11,7 +11,8 @@
  * - Per-pipeline job drill-down with runner tag + duration
  * - Status-aware styling (success / failed / running / …)
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, KeyValuePipe } from '@angular/common';
 import {
   GitlabJob,
@@ -34,6 +35,11 @@ export class PipelinesComponent implements OnInit, OnDestroy {
   private readonly api = inject(PipelinesService);
   private readonly toast = inject(ToastService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   // ── State ─────────────────────────────────────────────────────────────────
 
   readonly project = signal<ProjectKey>('service');
@@ -105,20 +111,23 @@ export class PipelinesComponent implements OnInit, OnDestroy {
   refresh(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.list(this.project(), 20).subscribe({
-      next: (ps) => {
-        this.pipelines.set(ps);
-        this.lastFetchedAt.set(new Date());
-        this.loading.set(false);
-      },
-      error: (e) => {
-        // Most likely cause when running dev without the proxy: ECONNREFUSED.
-        // Keep the prior list so the view degrades gracefully.
-        const msg = e?.error?.error ?? e?.message ?? 'Unknown error';
-        this.error.set(`Could not reach the GitLab proxy (docker-api.mjs at /gitlab/*). ${msg}`);
-        this.loading.set(false);
-      },
-    });
+    this.api
+      .list(this.project(), 20)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (ps) => {
+          this.pipelines.set(ps);
+          this.lastFetchedAt.set(new Date());
+          this.loading.set(false);
+        },
+        error: (e) => {
+          // Most likely cause when running dev without the proxy: ECONNREFUSED.
+          // Keep the prior list so the view degrades gracefully.
+          const msg = e?.error?.error ?? e?.message ?? 'Unknown error';
+          this.error.set(`Could not reach the GitLab proxy (docker-api.mjs at /gitlab/*). ${msg}`);
+          this.loading.set(false);
+        },
+      });
   }
 
   togglePipeline(p: GitlabPipeline): void {
@@ -130,16 +139,19 @@ export class PipelinesComponent implements OnInit, OnDestroy {
     this.openPipelineId.set(p.id);
     this.openJobs.set([]);
     this.jobsLoading.set(true);
-    this.api.jobs(this.project(), p.id).subscribe({
-      next: (jobs) => {
-        this.openJobs.set(jobs);
-        this.jobsLoading.set(false);
-      },
-      error: () => {
-        this.toast.show('Failed to load jobs for this pipeline.', 'error');
-        this.jobsLoading.set(false);
-      },
-    });
+    this.api
+      .jobs(this.project(), p.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (jobs) => {
+          this.openJobs.set(jobs);
+          this.jobsLoading.set(false);
+        },
+        error: () => {
+          this.toast.show('Failed to load jobs for this pipeline.', 'error');
+          this.jobsLoading.set(false);
+        },
+      });
   }
 
   /** Convenience: true if at least one job ran on a `macbook-local` runner. */

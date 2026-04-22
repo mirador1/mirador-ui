@@ -10,7 +10,8 @@
  *
  * URLs can be relative (prefixed with EnvService base URL) or absolute.
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -49,6 +50,11 @@ export class RequestBuilderComponent {
   readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   method = 'GET';
   url = '';
   headersText = '';
@@ -171,7 +177,7 @@ export class RequestBuilderComponent {
         req$ = this.http.get(fullUrl, options);
     }
 
-    req$.subscribe({
+    req$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: HttpResponse<string>) => {
         const elapsed = Math.round(performance.now() - t0);
         this.responseStatus.set(res.status);

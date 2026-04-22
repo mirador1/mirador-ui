@@ -7,7 +7,8 @@
  * - Auto-refresh every 30 seconds
  * - Colored action badges by category: auth=blue, customer=green, blocked=red
  */
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -73,6 +74,11 @@ export class AuditComponent implements OnInit, OnDestroy {
   private readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /** Available action filter values for the filter dropdown. */
   readonly actions = ACTION_VALUES;
 
@@ -133,16 +139,19 @@ export class AuditComponent implements OnInit, OnDestroy {
     if (this.filterAction()) params['action'] = this.filterAction();
     if (this.filterUser()) params['user'] = this.filterUser();
 
-    this.http.get<AuditPage>(`${base}/audit`, { headers, params }).subscribe({
-      next: (p) => {
-        this.data.set(p);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.error.set(`Error ${err.status ?? '?'}: ${err.message ?? 'unknown'}`);
-        this.loading.set(false);
-      },
-    });
+    this.http
+      .get<AuditPage>(`${base}/audit`, { headers, params })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (p) => {
+          this.data.set(p);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.error.set(`Error ${err.status ?? '?'}: ${err.message ?? 'unknown'}`);
+          this.loading.set(false);
+        },
+      });
   }
 
   applyFilters(): void {

@@ -12,7 +12,8 @@
  *
  * Vulnerable endpoints are permit-all (no auth required).
  */
-import { Component, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, DestroyRef, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe, KeyValuePipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -46,6 +47,11 @@ export class SecurityComponent implements OnDestroy {
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   activeTab = signal<SecurityTab>('mechanisms');
 
   // ── SQL Injection ──────────────────────────────────────────────────────────
@@ -135,6 +141,7 @@ export class SecurityComponent implements OnDestroy {
       .get<SqliResult>(`${base}/demo/security/sqli-vulnerable`, {
         params: { name: this.sqliName() },
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (r) => {
           this.sqliVulnResult.set(r);
@@ -154,6 +161,7 @@ export class SecurityComponent implements OnDestroy {
     this.sqliSafeResult.set(null);
     this.http
       .get<SqliResult>(`${base}/demo/security/sqli-safe`, { params: { name: this.sqliName() } })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (r) => {
           this.sqliSafeResult.set(r);
@@ -181,6 +189,7 @@ export class SecurityComponent implements OnDestroy {
         params: { name: this.xssName() },
         responseType: 'text',
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (html) => {
           this.xssVulnHtml.set(html);
@@ -205,6 +214,7 @@ export class SecurityComponent implements OnDestroy {
         params: { name: this.xssName() },
         responseType: 'text',
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (html) => {
           this.xssVulnHtml.set(null);
@@ -225,16 +235,19 @@ export class SecurityComponent implements OnDestroy {
     const base = this.env.baseUrl();
     this.corsLoading.set(true);
     this.corsError.set('');
-    this.http.get<CorsInfo>(`${base}/demo/security/cors-info`).subscribe({
-      next: (r) => {
-        this.corsInfo.set(r);
-        this.corsLoading.set(false);
-      },
-      error: (e) => {
-        this.corsError.set(`Error ${e.status}: ${e.message}`);
-        this.corsLoading.set(false);
-      },
-    });
+    this.http
+      .get<CorsInfo>(`${base}/demo/security/cors-info`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          this.corsInfo.set(r);
+          this.corsLoading.set(false);
+        },
+        error: (e) => {
+          this.corsError.set(`Error ${e.status}: ${e.message}`);
+          this.corsLoading.set(false);
+        },
+      });
   }
 
   // ── IDOR ──────────────────────────────────────────────────────────────────
@@ -247,6 +260,7 @@ export class SecurityComponent implements OnDestroy {
       .get<IdorResult>(`${base}/demo/security/idor-vulnerable`, {
         params: { id: String(this.idorId()) },
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (r) => {
           this.idorVulnResult.set(r);
@@ -268,6 +282,7 @@ export class SecurityComponent implements OnDestroy {
       .get<IdorResult>(`${base}/demo/security/idor-safe`, {
         params: { id: String(this.idorId()) },
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (r) => {
           this.idorSafeResult.set(r);
@@ -336,6 +351,7 @@ export class SecurityComponent implements OnDestroy {
     this.headersError.set('');
     this.http
       .get<{ headers: HeaderMeta[] }>(`${base}/demo/security/headers`, { observe: 'response' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (resp) => {
           const expected = resp.body?.headers ?? [];
@@ -366,16 +382,19 @@ export class SecurityComponent implements OnDestroy {
     const params: Record<string, string> = { page: String(this.auditPage()), size: '20' };
     if (this.auditFilterAction()) params['action'] = this.auditFilterAction();
     if (this.auditFilterUser()) params['user'] = this.auditFilterUser();
-    this.http.get<AuditPage>(`${this.env.baseUrl()}/audit`, { headers, params }).subscribe({
-      next: (p: AuditPage) => {
-        this.auditData.set(p);
-        this.auditLoading.set(false);
-      },
-      error: (e) => {
-        this.auditError.set(`Error ${e.status}: ${e.message}`);
-        this.auditLoading.set(false);
-      },
-    });
+    this.http
+      .get<AuditPage>(`${this.env.baseUrl()}/audit`, { headers, params })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (p: AuditPage) => {
+          this.auditData.set(p);
+          this.auditLoading.set(false);
+        },
+        error: (e) => {
+          this.auditError.set(`Error ${e.status}: ${e.message}`);
+          this.auditLoading.set(false);
+        },
+      });
   }
 
   applyAuditFilters(): void {

@@ -17,7 +17,8 @@
  * (`ng build --stats-json`). Prometheus-fed RPS/latency charts and JVM/CPU
  * cards were already retired in ADR-0006.
  */
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -51,6 +52,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private readonly activity = inject(ActivityService);
   /** Desktop deep-link helpers (docker-desktop://, vscode://, idea://). */
   readonly deepLink = inject(DeepLinkService);
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   * The dashboard is the highest-traffic page + has 8 subscribes + a
+   * 5s auto-refresh — leak surface is non-trivial.
+   */
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Signal: raw JSON from `/actuator/health`. Null until first poll. Shape: `{status, components}`. */
   health = signal<unknown>(null);
@@ -141,7 +149,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loadQualitySummary(): void {
     this.http
       .get<Record<string, unknown>>(`${this.env.baseUrl()}/actuator/quality`)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((data) => {
         if (!data) {
           this.qualitySummary.set({
@@ -186,42 +197,51 @@ export class DashboardComponent implements OnInit, OnDestroy {
   refresh(): void {
     this.error.set('');
 
-    this.api.getHealth().subscribe({
-      next: (v) => {
-        const newStatus = (v as { status?: string })?.status ?? '?';
-        if (this._previousHealthStatus && this._previousHealthStatus !== newStatus) {
-          if (newStatus === 'UP') {
-            this.toast.show('Backend is back UP', 'success');
-            this.activity.log('health-change', 'Backend health → UP');
-          } else {
-            this.toast.show(`Backend health changed to ${newStatus}`, 'error', 6000);
-            this.activity.log('health-change', `Backend health → ${newStatus}`);
+    this.api
+      .getHealth()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => {
+          const newStatus = (v as { status?: string })?.status ?? '?';
+          if (this._previousHealthStatus && this._previousHealthStatus !== newStatus) {
+            if (newStatus === 'UP') {
+              this.toast.show('Backend is back UP', 'success');
+              this.activity.log('health-change', 'Backend health → UP');
+            } else {
+              this.toast.show(`Backend health changed to ${newStatus}`, 'error', 6000);
+              this.activity.log('health-change', `Backend health → ${newStatus}`);
+            }
           }
-        }
-        this._previousHealthStatus = newStatus;
-        this.health.set(v);
-        this.lastRefresh.set(new Date());
-      },
-      error: () => {
-        if (this._previousHealthStatus && this._previousHealthStatus !== 'UNREACHABLE') {
-          this.toast.show('Backend is unreachable!', 'error', 6000);
-          this.activity.log('health-change', 'Backend unreachable');
-        }
-        this._previousHealthStatus = 'UNREACHABLE';
-        this.health.set({ status: 'UNREACHABLE' });
-        this.error.set(`Backend not reachable at ${this.env.baseUrl()}`);
-      },
-    });
+          this._previousHealthStatus = newStatus;
+          this.health.set(v);
+          this.lastRefresh.set(new Date());
+        },
+        error: () => {
+          if (this._previousHealthStatus && this._previousHealthStatus !== 'UNREACHABLE') {
+            this.toast.show('Backend is unreachable!', 'error', 6000);
+            this.activity.log('health-change', 'Backend unreachable');
+          }
+          this._previousHealthStatus = 'UNREACHABLE';
+          this.health.set({ status: 'UNREACHABLE' });
+          this.error.set(`Backend not reachable at ${this.env.baseUrl()}`);
+        },
+      });
 
-    this.api.getReadiness().subscribe({
-      next: (v) => this.readiness.set(v),
-      error: () => this.readiness.set({ status: 'UNREACHABLE' }),
-    });
+    this.api
+      .getReadiness()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => this.readiness.set(v),
+        error: () => this.readiness.set({ status: 'UNREACHABLE' }),
+      });
 
-    this.api.getLiveness().subscribe({
-      next: (v) => this.liveness.set(v),
-      error: () => this.liveness.set({ status: 'UNREACHABLE' }),
-    });
+    this.api
+      .getLiveness()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => this.liveness.set(v),
+        error: () => this.liveness.set({ status: 'UNREACHABLE' }),
+      });
 
     // Refresh dependency graph and Docker containers alongside health probes
     this.refreshTopology();
@@ -442,7 +462,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dockerError.set('');
     this.http
       .get<DockerContainer[]>(`${this.dockerApiUrl}/containers/json?all=true`)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((containers) => {
         this.dockerLoading.set(false);
         if (!containers) {
@@ -495,7 +518,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Docker Engine API: POST /containers/{name}/{action}
     this.http
       .post<void>(`${this.dockerApiUrl}/containers/${name}/${action}`, null)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => {
         this.dockerActionLoading.set(null);
         this.toast.show(`${action} ${name}`, 'info');
@@ -561,7 +587,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // API + db + redis from actuator/health
     this.http
       .get<ActuatorHealth>(`${base}/actuator/health`)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((h) => {
         const c = h?.components ?? {};
         const apiUp = h?.status === 'UP' || (h && h.status);
@@ -661,29 +690,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
   heatmapData = signal<{ hour: number; count: number }[]>([]);
 
   buildHeatmap(): void {
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        // Use total request count as a proxy; build 24 simulated cells based on current rate
-        const match = text.match(/http_server_requests_seconds_count\b.*?\s+(\d+\.?\d*)/m);
-        const total = match ? parseFloat(match[1]) : 0;
-        const cells = Array.from({ length: 24 }, (_, i) => ({
-          hour: i,
-          count: Math.round((total / 24) * (0.5 + Math.random())),
-        }));
-        this.heatmapData.set(cells);
-      },
-      // /actuator/prometheus may be 503 if the backend is down or the
-      // actuator endpoint isn't enabled. Set an empty heatmap so the
-      // template renders a "no data" panel instead of a stale slice
-      // and log to the activity timeline so a developer can correlate.
-      error: () => {
-        this.heatmapData.set([]);
-        this.activity.log(
-          'health-change',
-          'Heatmap fetch failed (Prometheus endpoint unreachable)',
-        );
-      },
-    });
+    this.http
+      .get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (text) => {
+          // Use total request count as a proxy; build 24 simulated cells based on current rate
+          const match = text.match(/http_server_requests_seconds_count\b.*?\s+(\d+\.?\d*)/m);
+          const total = match ? parseFloat(match[1]) : 0;
+          const cells = Array.from({ length: 24 }, (_, i) => ({
+            hour: i,
+            count: Math.round((total / 24) * (0.5 + Math.random())),
+          }));
+          this.heatmapData.set(cells);
+        },
+        // /actuator/prometheus may be 503 if the backend is down or the
+        // actuator endpoint isn't enabled. Set an empty heatmap so the
+        // template renders a "no data" panel instead of a stale slice
+        // and log to the activity timeline so a developer can correlate.
+        error: () => {
+          this.heatmapData.set([]);
+          this.activity.log(
+            'health-change',
+            'Heatmap fetch failed (Prometheus endpoint unreachable)',
+          );
+        },
+      });
   }
 
   heatmapColor(count: number): string {

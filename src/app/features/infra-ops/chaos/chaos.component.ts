@@ -15,7 +15,8 @@
  * Faker generator: creates N customers with realistic random names/emails
  * using a configurable delay between requests. Abortable mid-run.
  */
-import { Component, inject, signal, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -43,6 +44,11 @@ export class ChaosComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /**
    * Signal: rolling list of impact monitoring samples (last N entries).
    * Rendered as a stacked bar chart in the template.
@@ -228,6 +234,7 @@ export class ChaosComponent implements OnDestroy {
             return of(null);
           }),
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => {
           if (errors === 0 || done < count - errors) ok++;
           timings.push(performance.now() - start);
@@ -251,7 +258,10 @@ export class ChaosComponent implements OnDestroy {
     // Traffic breakdown from Prometheus
     this.http
       .get(`${base}/actuator/prometheus`, { responseType: 'text' })
-      .pipe(catchError(() => of('')))
+      .pipe(
+        catchError(() => of('')),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((text: string) => {
         if (!text) return;
         const entries: { uri: string; count: number; status: string }[] = [];
@@ -330,6 +340,7 @@ export class ChaosComponent implements OnDestroy {
           return of(null);
         }),
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((res) => {
         if (res) {
           this.logImpact(
@@ -357,6 +368,7 @@ export class ChaosComponent implements OnDestroy {
             return of(null);
           }),
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => {
           if (limited === done) ok++;
           done++;
@@ -375,49 +387,59 @@ export class ChaosComponent implements OnDestroy {
   private triggerKafkaTimeout(): void {
     this.logAction('Triggering Kafka enrich timeout (5s)...');
     const base = this.env.baseUrl();
-    this.api.getFirstCustomerId().subscribe((id) => {
-      const t0 = Date.now();
-      this.http
-        .get(`${base}/customers/${id}/enrich`)
-        .pipe(catchError((e) => of({ error: true, status: e.status })))
-        .subscribe((res: { error?: boolean; status?: number }) => {
-          const elapsed = Date.now() - t0;
-          if (res.error) {
-            this.logImpact(`Kafka timeout: ${res.status} after ${elapsed} ms`);
-          } else {
-            this.logImpact(`Kafka responded OK in ${elapsed} ms (consumer is running)`);
-          }
-        });
-    });
+    this.api
+      .getFirstCustomerId()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id) => {
+        const t0 = Date.now();
+        this.http
+          .get(`${base}/customers/${id}/enrich`)
+          .pipe(
+            catchError((e) => of({ error: true, status: e.status })),
+            takeUntilDestroyed(this.destroyRef),
+          )
+          .subscribe((res: { error?: boolean; status?: number }) => {
+            const elapsed = Date.now() - t0;
+            if (res.error) {
+              this.logImpact(`Kafka timeout: ${res.status} after ${elapsed} ms`);
+            } else {
+              this.logImpact(`Kafka responded OK in ${elapsed} ms (consumer is running)`);
+            }
+          });
+      });
   }
 
   private tripCircuitBreaker(): void {
     this.logAction('Hitting /bio 10 times to trip circuit breaker...');
     const base = this.env.baseUrl();
-    this.api.getFirstCustomerId().subscribe((id) => {
-      let opened = 0;
-      let done = 0;
-      for (let i = 0; i < 10; i++) {
-        this.http
-          .get(`${base}/customers/${id}/bio`)
-          .pipe(
-            catchError((e) => {
-              if (e.status === 503 || e.status === 500) opened++;
-              return of(null);
-            }),
-          )
-          .subscribe(() => {
-            done++;
-            if (done === 10) {
-              this.logImpact(
-                opened > 0
-                  ? `Circuit breaker tripped: ${opened}/10 rejected`
-                  : 'Circuit stayed closed — Ollama is reachable',
-              );
-            }
-          });
-      }
-    }); // end getFirstCustomerId
+    this.api
+      .getFirstCustomerId()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id) => {
+        let opened = 0;
+        let done = 0;
+        for (let i = 0; i < 10; i++) {
+          this.http
+            .get(`${base}/customers/${id}/bio`)
+            .pipe(
+              catchError((e) => {
+                if (e.status === 503 || e.status === 500) opened++;
+                return of(null);
+              }),
+            )
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+              done++;
+              if (done === 10) {
+                this.logImpact(
+                  opened > 0
+                    ? `Circuit breaker tripped: ${opened}/10 rejected`
+                    : 'Circuit stayed closed — Ollama is reachable',
+                );
+              }
+            });
+        }
+      }); // end getFirstCustomerId
   }
 
   private invalidPayloadFlood(): void {
@@ -434,6 +456,7 @@ export class ChaosComponent implements OnDestroy {
             return of(null);
           }),
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => {
           done++;
           if (done === 50) {
@@ -461,6 +484,7 @@ export class ChaosComponent implements OnDestroy {
             return of(null);
           }),
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => {
           if (errors === done) ok++;
           done++;
