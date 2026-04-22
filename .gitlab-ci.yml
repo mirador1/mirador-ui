@@ -907,8 +907,10 @@ release-please:
   image: node:22-alpine
   needs: []
   rules:
-    # Explicit != "" check (2026-04-22) — GitLab sometimes evaluates bare $MASKED_VAR as false in rules:if even when set; observed on pipeline #658.
-    - if: $CI_COMMIT_BRANCH == "main" && $RELEASE_PLEASE_TOKEN != ""
+    # DISABLED 2026-04-22 — googleapis/release-please is GitHub-API-only (401 Bad
+    # Credentials on api.github.com/graphql with GitLab PAT). See svc commit +
+    # TASKS.md "Release automation — tool swap".
+    - when: never
   before_script:
     - apk add --no-cache git
   script:
