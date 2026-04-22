@@ -16,7 +16,7 @@ import { coverageColor } from '../quality-helpers';
  * 1708 LOC to ~150 LOC (tab-switch glue + page-header shell).
  */
 @Component({
-  selector: 'qc-tab-overview',
+  selector: 'app-qt-overview',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],

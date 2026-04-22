@@ -11,7 +11,7 @@ import { coverageColor } from '../quality-helpers';
  * Extracted 2026-04-22 from quality.component.html under Phase B-5.
  */
 @Component({
-  selector: 'qc-tab-tests',
+  selector: 'app-qt-tests',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],

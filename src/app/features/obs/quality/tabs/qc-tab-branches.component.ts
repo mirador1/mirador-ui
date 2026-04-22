@@ -11,7 +11,7 @@ import type { BranchesReport } from '../quality.component';
  * report — smaller surface, easier to test.
  */
 @Component({
-  selector: 'qc-tab-branches',
+  selector: 'app-qt-branches',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

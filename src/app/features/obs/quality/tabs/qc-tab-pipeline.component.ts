@@ -10,7 +10,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
  * (1 panel = 1 file, see CLAUDE.md → "File length hygiene" rule #6).
  */
 @Component({
-  selector: 'qc-tab-pipeline',
+  selector: 'app-qt-pipeline',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

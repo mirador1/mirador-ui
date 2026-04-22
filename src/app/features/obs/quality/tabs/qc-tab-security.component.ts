@@ -8,7 +8,7 @@ import { entriesOf, nvdUrl, severityColor } from '../quality-helpers';
  * Extracted 2026-04-22 from quality.component.html under Phase B-5.
  */
 @Component({
-  selector: 'qc-tab-security',
+  selector: 'app-qt-security',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],

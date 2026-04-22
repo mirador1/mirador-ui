@@ -14,7 +14,7 @@ import { commitUrl, coverageColor, entriesOf, severityColor } from '../quality-h
  * so it takes the whole report via `@let r = report()` at template top.
  */
 @Component({
-  selector: 'qc-tab-mutation',
+  selector: 'app-qt-mutation',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],

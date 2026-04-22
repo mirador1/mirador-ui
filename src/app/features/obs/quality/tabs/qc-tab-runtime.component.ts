@@ -6,7 +6,7 @@ import type { RuntimeReport } from '../quality.component';
  * Extracted 2026-04-22 from quality.component.html under Phase B-5.
  */
 @Component({
-  selector: 'qc-tab-runtime',
+  selector: 'app-qt-runtime',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

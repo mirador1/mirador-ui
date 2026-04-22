@@ -10,7 +10,7 @@ import { entriesOf } from '../quality-helpers';
  * by mistake — this IS the analysis/SpotBugs block. Comment fixed here.
  */
 @Component({
-  selector: 'qc-tab-analysis',
+  selector: 'app-qt-analysis',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

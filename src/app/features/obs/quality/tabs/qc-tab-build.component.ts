@@ -11,7 +11,7 @@ import { entriesOf, severityColor } from '../quality-helpers';
  * Takes the 3 relevant sub-trees as inputs + the 2 maven-site signals.
  */
 @Component({
-  selector: 'qc-tab-build',
+  selector: 'app-qt-build',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

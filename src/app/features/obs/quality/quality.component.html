@@ -234,11 +234,11 @@
 
     @if (report(); as r) {
       @if (selectedTab() === 'overview') {
-        <qc-tab-overview [report]="r" (tabSelected)="selectedTab.set($event)" />
+        <app-qt-overview [report]="r" (tabSelected)="selectedTab.set($event)" />
       }
 
       @if (selectedTab() === 'tests') {
-        <qc-tab-tests
+        <app-qt-tests
           [testsReport]="r.tests"
           [coverageReport]="r.coverage"
           [mavenSiteAvailable]="mavenSiteAvailable()"
@@ -247,7 +247,7 @@
       }
 
       @if (selectedTab() === 'analysis') {
-        <qc-tab-analysis
+        <app-qt-analysis
           [bugsReport]="r.bugs"
           [mavenSiteAvailable]="mavenSiteAvailable()"
           [mavenSiteBase]="mavenSiteBase"
@@ -255,7 +255,7 @@
       }
 
       @if (selectedTab() === 'build') {
-        <qc-tab-build
+        <app-qt-build
           [buildReport]="r.build"
           [pmdReport]="r.pmd"
           [checkstyleReport]="r.checkstyle"
@@ -265,7 +265,7 @@
       }
 
       @if (selectedTab() === 'security') {
-        <qc-tab-security
+        <app-qt-security
           [owaspReport]="r.owasp"
           [mavenSiteAvailable]="mavenSiteAvailable()"
           [mavenSiteBase]="mavenSiteBase"
@@ -273,7 +273,7 @@
       }
 
       @if (selectedTab() === 'mutation') {
-        <qc-tab-mutation
+        <app-qt-mutation
           [report]="r"
           [mavenSiteAvailable]="mavenSiteAvailable()"
           [mavenSiteBase]="mavenSiteBase"
@@ -282,15 +282,15 @@
       <!-- end build tab -->
 
       @if (selectedTab() === 'runtime') {
-        <qc-tab-runtime [runtime]="r.runtime" />
+        <app-qt-runtime [runtime]="r.runtime" />
       }
 
       @if (selectedTab() === 'pipeline') {
-        <qc-tab-pipeline />
+        <app-qt-pipeline />
       }
 
       @if (selectedTab() === 'branches') {
-        <qc-tab-branches [branches]="r.branches" />
+        <app-qt-branches [branches]="r.branches" />
       }
     }
   }
