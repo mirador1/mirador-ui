@@ -211,3 +211,35 @@ h2 {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+// ── Mobile-first safety net (≤ 768 px) ───────────────────────────────────
+// Added 2026-04-22 under the "UI must work on mobile" hard rule
+// (CLAUDE.md + ADR-0010). File previously had zero @media queries — this
+// block catches common mobile-overflow patterns without requiring
+// per-selector audit. Per-selector tuning lives inline above when needed.
+@media (max-width: 768px) {
+  // Force tab/nav rows to stack vertically below the breakpoint —
+  // horizontal flex strips are the #1 cause of overflow at 375 px.
+  .tabs,
+  .tab-list,
+  .nav-tabs,
+  .header-actions,
+  .toolbar {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  // Tighten card/panel padding so content fits the narrower viewport.
+  .card,
+  .panel,
+  .info-card,
+  .stat-card {
+    padding: 0.75rem 0.5rem;
+  }
+  // Tables with fixed-width columns get horizontal-scroll instead of
+  // overflowing the page. `nowrap` keeps the row coherent during scroll.
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
