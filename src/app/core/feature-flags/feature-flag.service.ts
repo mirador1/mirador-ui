@@ -15,7 +15,8 @@
  * is `null` and the service stays in the "unavailable" state. Callers
  * gate their feature-flag-specific behaviour on `isAvailable()`.
  */
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, DestroyRef, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { EnvService } from '../env/env.service';
 
@@ -42,6 +43,13 @@ const FRONTEND_TOKEN = 'mirador-ui-proxy-secret';
 export class FeatureFlagService {
   private readonly http = inject(HttpClient);
   private readonly env = inject(EnvService);
+  /**
+   * DestroyRef for `takeUntilDestroyed()` on every refresh subscribe.
+   * Singleton service (`providedIn: 'root'`) so destroy fires only on app
+   * teardown, but the pattern is uniform with components for review
+   * consistency (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Toggle map, keyed by flag name. Empty until the first successful fetch. */
   private readonly _flags = signal<Record<string, boolean>>({});
@@ -110,6 +118,7 @@ export class FeatureFlagService {
     const endpoint = `${url}/proxy?appName=mirador-ui&environment=development`;
     this.http
       .get<UnleashProxyResponse>(endpoint, { headers: { Authorization: FRONTEND_TOKEN } })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           const map: Record<string, boolean> = {};
