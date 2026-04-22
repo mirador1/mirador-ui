@@ -1,0 +1,114 @@
+// about.component.scss partial — _compat-pipeline
+// Extracted 2026-04-22 from about.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_compat-pipeline';` in about.component.scss.
+
+.compat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-top: 0.5rem;
+
+  thead tr {
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-default);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: var(--bg-card-hover);
+    }
+  }
+
+  td {
+    padding: 0.45rem 0.6rem;
+    vertical-align: top;
+    line-height: 1.45;
+    color: var(--text-secondary);
+
+    strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 0.1rem;
+    }
+
+    code {
+      background: var(--bg-code);
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--color-accent);
+    }
+  }
+}
+
+// ── Resilience grid (wider items) ────────────────────────────────────────────
+.resilience-grid {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+
+.resilience-item span {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+// ── Messaging pipeline steps ─────────────────────────────────────────────────
+.pipeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.pipeline-step {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+
+  strong {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    display: block;
+  }
+
+  span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+}
+
+.pipeline-num {
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+
+// ── Kubernetes deploy tab ──────────────────────────────────────────────────
+// Quick-access links to live GCP resources at the top of the deploy-gcp tab

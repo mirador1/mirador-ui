@@ -1,0 +1,249 @@
+// about.component.scss partial — _deploy
+// Extracted 2026-04-22 from about.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_deploy';` in about.component.scss.
+
+.deploy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.deploy-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--color-accent);
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    background: var(--bg-hover, rgba(59, 130, 246, 0.08));
+    border-color: var(--color-accent);
+  }
+}
+
+.deploy-card {
+  h3 {
+    margin: 1.5rem 0 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+}
+
+// Ordered checklist used in the Google Cloud deployment tab
+ol.checklist {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  padding-left: 1.4rem;
+  margin-bottom: 1.5rem;
+
+  li {
+    margin-bottom: 0.3rem;
+
+    code {
+      font-size: 0.78rem;
+      background: var(--bg-elevated);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      color: var(--color-accent);
+    }
+  }
+}
+
+.k8s-diagram {
+  width: 100%;
+  max-width: 780px;
+  height: auto;
+  margin: 1rem 0 1.5rem;
+  display: block;
+}
+
+.deploy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 1.5rem;
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  tr:first-child td {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  code {
+    font-size: 0.78rem;
+    background: var(--bg-elevated);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    color: var(--color-accent);
+  }
+}
+
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+
+  pre {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+}
+
+// ── Tech stack badge banner ──────────────────────────────────────────────────
+.tech-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  align-items: center;
+
+  img {
+    height: 20px;
+    border-radius: 3px;
+  }
+}
+
+// ── External services grid ───────────────────────────────────────────────────
+.ext-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.ext-service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--color-accent);
+    transform: translateY(-1px);
+  }
+
+  .ext-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #fc6d26; // default: GitLab orange
+
+    svg {
+      display: block;
+    }
+  }
+
+  .ext-icon.ext-sonar {
+    color: #f37021;
+  } // SonarCloud orange
+  .ext-icon.ext-auth0 {
+    color: #eb5424;
+  } // Auth0 red-orange
+  .ext-icon.ext-dns {
+    color: #facc15;
+  } // DuckDNS yellow
+  .ext-icon.ext-gcp {
+    color: #4285f4;
+  } // Google blue
+
+  .ext-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .ext-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+}
+
+// ── Doc-pane (ADR-0008 About trim Phase 2) ──────────────────────────────────
+// Compact panel that replaces a page of prose with a link to the versioned
+// Markdown doc on GitLab. The wordy architecture explanations used to live
+// here inline — they were hard to keep in sync with the code and invisible
+// to `git log` on docs/.
+.doc-pane {
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    text-transform: none; // h3 is already uppercase in global .card — override for readability
+    letter-spacing: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+
+  .doc-pane-summary {
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 1rem;
+  }
+
+  .doc-pane-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: var(--color-accent);
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition:
+      background 0.15s,
+      transform 0.1s;
+
+    &:hover {
+      background: var(--color-accent-dark, var(--color-accent));
+      transform: translateY(-1px);
+    }
+  }
+}
