@@ -84,6 +84,12 @@ export class KeyboardService implements OnDestroy {
     document.removeEventListener('keydown', this.handler);
   }
 
+  // Intentional switch-on-keycode dispatch (Ctrl+K, /, ?, Esc, …).
+  // Cognitive complexity is the number of shortcut bindings, not branching
+  // depth — each branch is ≤ 3 lines and they don't interact. Refactoring
+  // to a dispatch table would duplicate modifier-key handling without
+  // simplifying anything.
+  // eslint-disable-next-line complexity
   private onKeyDown(e: KeyboardEvent): void {
     const target = e.target as HTMLElement;
     const isInput =

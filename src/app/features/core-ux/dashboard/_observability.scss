@@ -1,0 +1,131 @@
+// ── Observability links ─────────────────────────────────────────────────────
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.obs-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  box-shadow: var(--shadow-card);
+
+  &:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px var(--color-accent-light);
+  }
+}
+
+.obs-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.obs-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+
+  strong {
+    font-size: 0.9rem;
+    color: var(--color-accent);
+  }
+  small {
+    font-size: 0.78rem;
+    color: var(--text-label);
+  }
+}
+
+.ext-icon {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+// ── Live Activity ─────────────────────────────────────────────────────────────
+.live-feed-preview {
+  margin-bottom: 1.5rem;
+  background: var(--bg-card, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.view-all-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.live-names-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.live-name-item {
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-card, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  animation: slideIn 0.3s ease-out;
+
+  &:first-child {
+    border-color: var(--color-accent, #6366f1);
+    background: color-mix(in srgb, var(--color-accent, #6366f1) 10%, transparent);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── SSE live indicator dot ────────────────────────────────────────────────────
+.sse-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  animation: ssePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ssePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}

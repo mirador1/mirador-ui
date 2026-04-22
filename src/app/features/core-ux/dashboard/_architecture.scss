@@ -1,0 +1,169 @@
+// ── Architecture legend ───────────────────────────────────────────────────────
+.archi-legend {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+
+  code {
+    background: var(--bg-card);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+  }
+}
+
+// ── Architecture columns ─────────────────────────────────────────────────────
+.archi-columns {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.archi-col {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.archi-col-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.35rem 0;
+  border-bottom: 2px solid var(--border-default);
+  margin-bottom: 0.25rem;
+}
+
+.archi-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  padding: 0 0.15rem;
+  margin-top: 2rem;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.archi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: row;
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.2s,
+    opacity 0.2s;
+  min-width: 0;
+
+  &.archi-down {
+    border-color: var(--border-error);
+    opacity: 0.6;
+  }
+}
+
+.archi-indicator {
+  width: 4px;
+  flex-shrink: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+.archi-body {
+  flex: 1;
+  padding: 0.4rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.archi-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.archi-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.archi-name {
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archi-port {
+  font-size: 0.6rem;
+  font-family: monospace;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.archi-desc {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archi-conn {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archi-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-top: 0.1rem;
+}
+
+.archi-status {
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.archi-actions {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.dep-aggregate {
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+
+  &.dep-all-up {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+  }
+
+  &.dep-some-down {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+  }
+}

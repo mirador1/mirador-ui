@@ -1,0 +1,87 @@
+// ── Dependencies table ──────────────────────────────────────────────────────
+.dep-table-container {
+  margin-bottom: 1rem;
+}
+
+.dep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    color: var(--text-primary);
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+}
+
+.dep-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+.dep-status-text {
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.dep-role {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+// ── Heatmap ─────────────────────────────────────────────────────────────────
+.heatmap-container {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  margin-bottom: 1rem;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  border: 1px solid var(--border-default);
+}
+
+.heatmap-hour {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.mono {
+  font-family: monospace;
+}
+.positive {
+  color: #16a34a;
+}
+.negative {
+  color: #dc2626;
+}
