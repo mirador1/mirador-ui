@@ -139,6 +139,30 @@ entrypoint small (<200 lines), grep-friendly child names
 (`QualityPanelCoverageComponent` not `CoveragePanel`), ADR if the
 dependency graph changes.
 
+**1 widget / 1 panel = 1 file** (confirmed pattern 2026-04-22). When
+a component is a *container of independent things* — a dashboard
+holding 8 widgets, a quality page holding 10 panels, a settings
+screen holding 12 tabs — the split rule is **one concern per file**:
+
+- Parent keeps ~150 LOC of composition glue (imports + template
+  assembling the children + routing).
+- Each widget / panel lands in `./<parent>/widgets/<name>.component.ts`
+  as a standalone component — its own template, its own signals,
+  its own SCSS. Fully extractable / testable in isolation.
+- Name rule: preserve the parent's concern in the child's name
+  (`DashboardArchitectureMap` not `ArchitectureMap`).
+- Grep path: `grep -rn "DashboardArchitectureMap"` lands directly on
+  the one file that owns that widget — no hunting through a 1200-line
+  parent.
+
+Applies to: dashboard (~8 widgets), quality (~10 panels), customers
+(~6 tabs), settings, security, observability. A file > 400 LOC in
+any of these is a smell — look for a hidden "add this widget too"
+coupling worth extracting.
+
+See `~/.claude/CLAUDE.md` → "File length hygiene" item #6 for the
+cross-language version (Java parsers, shell sections).
+
 Subdirectory side of the same rule: when a flat folder crosses **10
 entries**, group by purpose (features/core-ux/, features/customer/,
 features/obs/, features/infra-ops/ already in place — keep applying
