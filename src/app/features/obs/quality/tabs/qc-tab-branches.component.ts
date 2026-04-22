@@ -14,6 +14,7 @@ import type { BranchesReport } from '../quality.component';
   selector: 'app-qt-branches',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: '../quality.component.scss',
   template: `
     @let b = branches();
     <section class="quality-section">

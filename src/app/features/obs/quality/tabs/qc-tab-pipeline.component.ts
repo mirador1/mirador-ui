@@ -13,6 +13,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   selector: 'app-qt-pipeline',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: '../quality.component.scss',
   template: `
     <section class="tab-section">
       <h2 class="section-title">🚀 Pipeline History</h2>

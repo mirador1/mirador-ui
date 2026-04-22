@@ -20,6 +20,7 @@ import { coverageColor } from '../quality-helpers';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],
+  styleUrl: '../quality.component.scss',
   template: `
     @let r = report();
     @if (r) {

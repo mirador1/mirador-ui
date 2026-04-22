@@ -18,6 +18,7 @@ import { commitUrl, coverageColor, entriesOf, severityColor } from '../quality-h
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],
+  styleUrl: '../quality.component.scss',
   template: `
     @let r = report();
     @if (r) {

@@ -13,6 +13,7 @@ import { entriesOf } from '../quality-helpers';
   selector: 'app-qt-analysis',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: '../quality.component.scss',
   template: `
     @let bugs = bugsReport();
     @let siteBase = mavenSiteBase();

@@ -14,6 +14,7 @@ import { entriesOf, severityColor } from '../quality-helpers';
   selector: 'app-qt-build',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: '../quality.component.scss',
   template: `
     @let build = buildReport();
     @let pmd = pmdReport();

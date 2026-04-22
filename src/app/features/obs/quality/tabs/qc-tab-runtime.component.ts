@@ -9,6 +9,7 @@ import type { RuntimeReport } from '../quality.component';
   selector: 'app-qt-runtime',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: '../quality.component.scss',
   template: `
     @let rt = runtime();
     <section class="report-section">

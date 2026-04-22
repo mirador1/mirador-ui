@@ -12,6 +12,7 @@ import { entriesOf, nvdUrl, severityColor } from '../quality-helpers';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],
+  styleUrl: '../quality.component.scss',
   template: `
     @let owasp = owaspReport();
     @let siteBase = mavenSiteBase();

@@ -15,6 +15,7 @@ import { coverageColor } from '../quality-helpers';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe],
+  styleUrl: '../quality.component.scss',
   template: `
     @let tests = testsReport();
     @let coverage = coverageReport();
