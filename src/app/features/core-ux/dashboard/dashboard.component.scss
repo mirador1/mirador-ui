@@ -1256,3 +1256,36 @@ pre {
 // The widgets they styled were retired because Grafana's Golden Signals
 // dashboard covers error rate / throughput natively, and bundle sizes are
 // a build artefact (`ng build --stats-json`), not a runtime concern.
+
+// ── Mobile-first safety net (≤ 768 px) ───────────────────────────────────
+// Added 2026-04-22 under the "UI must work on mobile" hard rule
+// (CLAUDE.md + ADR-0010). File previously had zero @media queries.
+// Per-widget responsive tuning should live inside each widget once
+// dashboard.component is split into 1-widget-per-file under Phase B-6.
+@media (max-width: 768px) {
+  // Header controls stack vertically rather than overflow.
+  .page-header,
+  .header-actions,
+  .autorefresh-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  // Buttons + inputs full-width for easier touch-tap.
+  .btn,
+  .btn-refresh,
+  .autorefresh-option {
+    width: 100%;
+  }
+  // Hide secondary text columns that don't fit at narrow widths.
+  // Re-enable by overriding in the specific widget SCSS post-B-6.
+  .hide-on-mobile {
+    display: none !important;
+  }
+  // Force tables to horizontal-scroll.
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

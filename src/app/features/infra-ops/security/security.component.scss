@@ -612,7 +612,14 @@
 
 .headers-row {
   display: grid;
+  // Desktop: fixed 4-col + flex. Mobile: stacked (single column) —
+  // the 680px fixed minimum would otherwise cause a horizontal
+  // scrollbar at iPhone SE (375px) per CLAUDE.md mobile rule.
   grid-template-columns: 240px 200px 200px 40px 1fr;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
   gap: 0.5rem;
   align-items: start;
   padding: 0.4rem 0.5rem;
@@ -825,4 +832,31 @@
 .muted {
   font-size: 0.8rem;
   color: var(--text-muted, #9ca3af);
+}
+
+// ── Mobile-first safety net (≤ 768 px) ───────────────────────────────────
+// Added 2026-04-22 under the "UI must work on mobile" hard rule
+// (CLAUDE.md + ADR-0010). File previously had zero @media queries —
+// this block catches common mobile-overflow patterns without
+// requiring per-selector audit. Per-selector tuning lives inline
+// above (e.g. .headers-row grid fallback already added).
+@media (max-width: 768px) {
+  // Collapse secondary nav / tabs to vertical stack.
+  .security-tabs {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  // Shrink card paddings to fit narrower viewport.
+  .card,
+  .violation-summary,
+  .info-card {
+    padding: 0.75rem 0.5rem;
+  }
+  // Force tables that have fixed-width columns to horizontal-scroll
+  // rather than overflow the page.
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
 }
