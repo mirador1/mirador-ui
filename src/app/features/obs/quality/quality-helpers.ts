@@ -49,3 +49,36 @@ export function entriesOf(obj: Record<string, number> | undefined): [string, num
   if (!obj) return [];
   return Object.entries(obj);
 }
+
+/**
+ * Coverage % → CSS class suffix (used for colour coding coverage bars).
+ * - `good` (≥ 70 %) — green
+ * - `warn` (≥ 50 %) — orange
+ * - `bad`  (< 50 %) — red
+ */
+export function coverageColor(pct: number): string {
+  if (pct >= 70) return 'good';
+  if (pct >= 50) return 'warn';
+  return 'bad';
+}
+
+/**
+ * Converts a git remote URL (SSH or HTTPS) to a browseable web URL.
+ *   git@gitlab.com:foo/bar.git → https://gitlab.com/foo/bar
+ *   https://gitlab.com/foo/bar → https://gitlab.com/foo/bar
+ */
+export function gitWebUrl(remoteUrl: string): string {
+  const ssh = remoteUrl.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (ssh) return `https://${ssh[1]}/${ssh[2]}`;
+  return remoteUrl.replace(/\.git$/, '');
+}
+
+/**
+ * Commit URL for a given hash on the git remote. GitLab uses `-/commit/`,
+ * GitHub uses `commit/` — detected via `gitlab` substring in the host.
+ */
+export function commitUrl(remoteUrl: string, hash: string): string {
+  const base = gitWebUrl(remoteUrl);
+  if (base.includes('gitlab')) return `${base}/-/commit/${hash}`;
+  return `${base}/commit/${hash}`;
+}
