@@ -155,18 +155,36 @@ specifics:
 
 When a hand-written source file crosses **~1 000 lines**, plan a split at
 the next touch; at **1 500+**, split NOW before shipping any other change.
-Current offenders to address over upcoming sessions:
 
-- `src/app/features/obs/quality/quality.component.html` (1 742) — 10+
-  panels (coverage, SpotBugs, Pitest, OWASP, PMD, Checkstyle, Sonar,
-  test results…) → 1 child `QualityPanelXxx` component per panel.
+**Wave landed 2026-04-22** — UI Phase B-7 sub-tasks shipped:
+
+| File | Before | After | How |
+|---|---|---|---|
+| `quality.component.html` | 1 742 | 298 | 9 `QcTab*` children + `quality-helpers.ts` |
+| `quality.component.scss` | 1 206 | 27 | 5 Sass partials (page-chrome / overview-cards / section-layout / tabs / panels) |
+| `quality.component.ts` | 806 | 249 | `quality-types.ts` extraction (24 interfaces) |
+| `customers.component.scss` | 820 | 22 | 4 Sass partials (controls / forms / modal-detail / recent-banner) |
+| `customers.component.ts` | 904 | 813 | `customers-data.ts` (46 names) + `customers-helpers.ts` (uuid, randomCustomer + spec) + `customers-types.ts` |
+| `security.component.scss` | 862 | 52 | 5 Sass partials (page-chrome / common-ui / mechanisms / jwt-inspector / headers-audit) |
+| `security.component.ts` | 681 | 547 | `security-types.ts` (7 interfaces + AUDIT_ACTIONS) |
+| `about.component.scss` | 813 | 22 | 4 Sass partials (tabs-header / sections / compat-pipeline / deploy) |
+| `settings.component.scss` | 688 | 27 | 5 Sass partials (page-chrome / card-config / loggers / sql-explorer / jobs-flags) |
+| `diagnostic.component.scss` | 616 | 19 | 5 Sass partials (page-chrome / history / scenarios / charts / jobs-tests) |
+| `diagnostic.component.ts` | 711 | 628 | `diagnostic-types.ts` (7 interfaces) |
+| `database.component.ts` | 644 | 599 | `database-types.ts` (3 interfaces + DbTab) |
+| `chaos.component.ts` | 632 | 600 | `chaos-types.ts` (2 interfaces) |
+| `.gitlab-ci.yml` | 1 086 | 144 | 7 includes under `.gitlab-ci/` |
+
+**Remaining offenders** (open work):
+
 - `src/app/features/core-ux/dashboard/dashboard.component.ts` (1 022)
-  + `.scss` (1 258) — 1 widget per file (ArchitectureMap, HealthProbes,
-  ErrorTimeline, BundleTreemap…).
-- `src/app/features/customer/customers/customers.component.ts` (904)
-  — split by tab (list, CRUD, import/export, bio, todos, enrich).
-- `.gitlab-ci.yml` (1 067) — modularise into `ci/includes/*.yml`
-  (validate, test, build, e2e, quality, security, docker).
+  + `.scss` (1 258) — Phase B-6, 1 widget per file (ArchitectureMap,
+  HealthProbes, ErrorTimeline, BundleTreemap…). Deferred to a fresh
+  session (~4 h, the only remaining > 1000 LOC offender in UI).
+- `src/app/features/customer/customers/customers.component.ts` (813,
+  was 904) — partial extraction landed; full split by concern (list /
+  CRUD / detail tabs) is higher risk because of shared signal state.
+  Deferred alongside Phase B-6 or as B-7-2b dedicated wave.
 
 Exceptions (length is inherent — don't split): `README.md`,
 `docs/reference/*.md`, auto-generated files
