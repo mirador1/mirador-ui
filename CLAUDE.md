@@ -145,6 +145,33 @@ features/obs/, features/infra-ops/ already in place — keep applying
 as new features land); **15** is the hard ceiling. See
 `~/.claude/CLAUDE.md` → "Subdirectory hygiene".
 
+## Clean Code + Clean Architecture — binding constraints
+
+Hard constraints, not aspirations — same 7 non-negotiables as
+`~/.claude/CLAUDE.md` → "Clean Code + Clean Architecture":
+
+1. Function size ≤ 20-30 LOC body, ≤ 5 params, complexity ≤ 10
+   (ESLint enforces — `max-lines`, `max-lines-per-function`,
+   `complexity`, `max-params`. Phase C flips warn → error).
+2. Single Responsibility per component / service / signal.
+3. Naming tells intent — rename the moment a mismatch is noticed.
+4. Comments explain WHY, not WHAT.
+5. Dependency rule — core services (`AuthService`, `ApiService`,
+   `EnvService`, …) provide contracts; features import services,
+   never the reverse. No circular component deps.
+6. Test-as-spec — coverage drop on a touched file = ship a
+   Vitest spec in the same commit.
+7. No dead code — unused imports (`NG8113`), `*ngIf`/`*ngFor`
+   leftovers, `any` types, empty `error: () => {}` handlers all
+   count as warnings to clear before tagging a green checkpoint.
+
+**Current-state baseline**: joint audit at
+[`../workspace-modern/mirador-service/docs/audit/clean-code-architecture-2026-04-22.md`](file:///Users/benoitbesson/dev/workspace-modern/mirador-service/docs/audit/clean-code-architecture-2026-04-22.md)
+(80 % Clean Code / 70 % Clean Arch). Covers both repos; UI-side
+findings are in §"Observations" (Signals over NgRx, OpenAPI →
+types). Re-audit every 3-6 months; the Phase B-5/B-6 file splits
+will reshape UI metrics — re-audit post-Phase-B to update.
+
 ## Code review checklist (run proactively after significant changes)
 
 - [ ] Zero `NG8113` warnings in production build
@@ -153,6 +180,10 @@ as new features land); **15** is the hard ceiling. See
 - [ ] No `*ngIf`/`*ngFor` directives (use `@if`/`@for`)
 - [ ] Error handlers are not silently empty
 - [ ] New services are added to the correct `imports` or `providers` array
+- [ ] **Clean Code 7 non-negotiables**: function size, SRP, naming,
+      why-not-what comments, dependency rule, test-as-spec, no dead
+      code. See the section above; the joint svc audit is the
+      current baseline.
 - [ ] **Root hygiene**: no new file added to repo root that belongs under
       `config/`, `build/`, `docs/`, or `deploy/`. See
       ~/.claude/CLAUDE.md → "Root file hygiene" for the authoritative list.
