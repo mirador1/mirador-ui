@@ -14,6 +14,11 @@ import {
   commitUrl,
 } from './quality-helpers';
 
+// Spec files naturally exceed the per-function max-lines limit because the
+// outer `describe()` callback wraps the entire file body. Disabling the
+// rule for this top-level callback is the project-wide convention; the
+// nested describes still respect normal function-size limits.
+// eslint-disable-next-line max-lines-per-function
 describe('quality-helpers', () => {
   describe('severityColor()', () => {
     it("maps CRITICAL/HIGH/'1' to 'bad' (red)", () => {
