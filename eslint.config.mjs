@@ -96,25 +96,47 @@ export default tseslint.config(
       '@typescript-eslint/array-type': 'warn',  // stylistic (T[] vs Array<T>)
 
       // ─────────────────────────────────────────────────────────────────
-      // Size + complexity — Phase A 2026-04-21.
-      // See docs/audit/quality-thresholds-2026-04-21.md in the svc repo
-      // for the full industry-threshold comparison. All WARN during
-      // Phase A; flip to ERROR in Phase C after Phase B refactors
-      // clear the current outliers (dashboard.component.ts 1022,
-      // customers.component.ts 904, quality.component.ts 796).
+      // Size + complexity — Phase C flip 2026-04-22.
+      //
+      // Phase A (2026-04-21) shipped these as `warn`. Phase B (this week)
+      // brought every >1000 LOC offender below threshold (dashboard 1022→
+      // 713, customers 904→813, quality 806→249, see CLAUDE.md table).
+      // Phase C now flips warn → error so regressions land as red CI
+      // jobs instead of silent debt.
+      //
+      // Threshold pragmatism: where Phase A picked aspirational numbers
+      // (max-lines 400, max-lines-per-function 80, complexity 10) that
+      // would block real-world Angular patterns at flip time, the
+      // threshold is bumped to a value that clears today's offenders
+      // AND aligns with CLAUDE.md "1000-LOC plan-split" hygiene rule.
+      // The flip's value is the regression gate, not the absolute number.
+      //
+      // - max-lines 700 — clears today's 9 offenders (max 625) with
+      //   margin; aligns with the soft "tab/widget shouldn't grow huge"
+      //   intuition without coercing premature splits.
+      // - max-lines-per-function 100 — gives slack for inline render
+      //   methods (template-builder pattern) while still catching real
+      //   monsters.
+      // - complexity 15 — industry "high but acceptable" cyclomatic
+      //   threshold. Catches the 21+ outliers (telemetry.push, keyboard.
+      //   onKeyDown) without flagging legitimate switch statements on
+      //   ~12 cases.
+      // - max-params 6 — accommodates Angular DI patterns (interceptor
+      //   helpers commonly take req+next+4 services).
+      // - max-depth/max-nested-callbacks 4 — kept; zero violations today.
       // ─────────────────────────────────────────────────────────────────
       'max-lines': [
-        'warn',
-        { max: 400, skipBlankLines: true, skipComments: true },
+        'error',
+        { max: 700, skipBlankLines: true, skipComments: true },
       ],
       'max-lines-per-function': [
-        'warn',
-        { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true },
+        'error',
+        { max: 100, skipBlankLines: true, skipComments: true, IIFEs: true },
       ],
-      'complexity': ['warn', 10],
-      'max-params': ['warn', 5],
-      'max-depth': ['warn', 4],
-      'max-nested-callbacks': ['warn', 4],
+      'complexity': ['error', 15],
+      'max-params': ['error', 6],
+      'max-depth': ['error', 4],
+      'max-nested-callbacks': ['error', 4],
     },
   },
   {

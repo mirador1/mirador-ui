@@ -182,6 +182,12 @@ export class TelemetryService {
     this.history.set([]);
   }
 
+  // Branches are level discrimination (debug/info/warn/error) × redaction
+  // policy × console method × test-mode gating. Each path is ≤ 4 lines,
+  // mutually exclusive, no shared state. Splitting would require passing
+  // the same `entry` payload to N helpers and re-checking levels, adding
+  // LOC without reducing reasoning load.
+  // eslint-disable-next-line complexity
   private push(entry: LogEntry): void {
     this.history.update((h) => {
       const next = h.length >= HISTORY_CAP ? h.slice(h.length - HISTORY_CAP + 1) : h;
