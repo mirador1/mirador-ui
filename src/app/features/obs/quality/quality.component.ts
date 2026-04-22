@@ -13,6 +13,8 @@ import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EnvService } from '../../../core/env/env.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { QcTabPipelineComponent } from './tabs/qc-tab-pipeline.component';
+import { QcTabBranchesComponent } from './tabs/qc-tab-branches.component';
 
 /**
  * A slow test entry from the Surefire report.
@@ -534,7 +536,7 @@ export interface MavenSiteReport {
 @Component({
   selector: 'app-quality',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, RouterLink, QcTabPipelineComponent, QcTabBranchesComponent],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })

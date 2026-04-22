@@ -1634,74 +1634,12 @@
       <!-- end runtime tab -->
 
       @if (selectedTab() === 'pipeline') {
-        <!-- Pipeline tab — ADR-0052: backend no longer calls GitLab REST.
-             Dashboard links out to GitLab's own pipelines page directly
-             (single source of truth, no proxy, no token on prod JVM). -->
-        <section class="tab-section">
-          <h2 class="section-title">🚀 Pipeline History</h2>
-          <div class="external-link-card">
-            <p>
-              Pipeline history is served by GitLab's own CI/CD page — Mirador no longer proxies it
-              (see
-              <a
-                href="https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/adr/0052-backend-not-coupled-to-build-tools.md"
-                target="_blank"
-                rel="noopener"
-                >ADR-0052</a
-              >).
-            </p>
-            <a
-              class="btn-sonar"
-              href="https://gitlab.com/mirador1/mirador-service/-/pipelines"
-              target="_blank"
-              rel="noopener"
-            >
-              View pipelines on GitLab ↗
-            </a>
-          </div>
-        </section>
+        <qc-tab-pipeline />
       }
-      <!-- end pipeline tab -->
 
-      <!-- ================================================================== -->
-      <!-- BRANCHES TAB — remote git branches with last-commit date           -->
-      <!-- ================================================================== -->
       @if (selectedTab() === 'branches') {
-        <section class="quality-section">
-          <h3><span class="section-icon">🌿</span> Active Branches</h3>
-
-          @if (!r.branches?.available) {
-            <p class="muted">{{ r.branches?.reason ?? 'Branch data not available.' }}</p>
-          } @else {
-            <p class="muted" style="margin-bottom: 0.75rem">
-              {{ r.branches!.total }} remote branches — sorted by most recently updated.
-            </p>
-            <div class="table-wrap">
-              <table class="quality-table">
-                <thead>
-                  <tr>
-                    <th>Branch</th>
-                    <th style="width: 14em">Last Commit</th>
-                    <th style="width: 12em">Author</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (b of r.branches!.branches; track b.name) {
-                    <tr>
-                      <td>
-                        <span class="branch-name">{{ b.name }}</span>
-                      </td>
-                      <td class="muted">{{ b.lastCommit.substring(0, 19) }}</td>
-                      <td class="muted">{{ b.author }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </section>
+        <qc-tab-branches [branches]="r.branches" />
       }
-      <!-- end branches tab -->
     }
   }
   <!-- end @if (auth.isAdmin()) -->
