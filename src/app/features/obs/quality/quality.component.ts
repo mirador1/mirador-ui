@@ -421,12 +421,22 @@ export interface QualityReport {
   owasp?: OwaspReport;
   /** PIT mutation testing results. */
   pitest?: PitestReport;
-  /** SonarQube analysis results fetched live from the local SonarQube instance. */
-  sonar?: SonarReport;
   /** Live runtime metadata. */
   runtime?: RuntimeReport;
-  /** GitLab CI/CD pipeline history (last 10 runs). */
+  /**
+   * @deprecated Removed 2026-04-22 per ADR-0052 — the backend no longer
+   * calls the GitLab REST API. Dashboard's Pipeline tab links to
+   * gitlab.com/mirador1/mirador-service/-/pipelines directly. Kept on
+   * the interface with an optional type so older cached responses don't
+   * fail to parse; new responses never set it.
+   */
   pipeline?: PipelineReport;
+  /**
+   * @deprecated Removed 2026-04-22 per ADR-0052 — SonarCloud REST call
+   * moved out of the runtime path. Dashboard links to sonarcloud.io
+   * directly.
+   */
+  sonar?: SonarReport;
   /** Remote git branches with last-commit date (up to 20, sorted by recency). */
   branches?: BranchesReport;
   /** Third-party dependency license compliance (from license-maven-plugin:add-third-party). */

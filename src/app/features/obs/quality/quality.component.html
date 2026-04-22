@@ -1634,65 +1634,31 @@
       <!-- end runtime tab -->
 
       @if (selectedTab() === 'pipeline') {
+        <!-- Pipeline tab — ADR-0052: backend no longer calls GitLab REST.
+             Dashboard links out to GitLab's own pipelines page directly
+             (single source of truth, no proxy, no token on prod JVM). -->
         <section class="tab-section">
           <h2 class="section-title">🚀 Pipeline History</h2>
-          @if (r.pipeline?.available) {
-            <div class="info-grid">
-              <span class="info-label">Project</span>
-              <span class="info-value">
-                <a
-                  [href]="r.pipeline!.host + '/' + 'mirador1/mirador-service'"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  #{{ r.pipeline!.projectId }}
-                </a>
-              </span>
-            </div>
-            <table class="data-table" style="margin-top: 1rem">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Branch / Ref</th>
-                  <th>Status</th>
-                  <th>Started</th>
-                  <th>Duration</th>
-                  <th>Link</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (p of r.pipeline!.pipelines; track p.id) {
-                  <tr>
-                    <td>{{ p.id }}</td>
-                    <td>{{ p.ref }}</td>
-                    <td>
-                      <span [class]="'pipeline-status pipeline-' + p.status">
-                        {{ p.status }}
-                      </span>
-                    </td>
-                    <td>{{ p.createdAt.substring(0, 10) }}</td>
-                    <td>
-                      @if (p.durationSeconds != null) {
-                        {{ p.durationSeconds | number: '1.0-0' }}s
-                      } @else {
-                        —
-                      }
-                    </td>
-                    <td>
-                      <a [href]="p.webUrl" target="_blank" rel="noopener">↗</a>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          } @else {
-            <p class="na-message">
-              {{
-                r.pipeline?.reason ??
-                  'Pipeline history not available (configure GITLAB_PROJECT_ID).'
-              }}
+          <div class="external-link-card">
+            <p>
+              Pipeline history is served by GitLab's own CI/CD page — Mirador no longer proxies it
+              (see
+              <a
+                href="https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/adr/0052-backend-not-coupled-to-build-tools.md"
+                target="_blank"
+                rel="noopener"
+                >ADR-0052</a
+              >).
             </p>
-          }
+            <a
+              class="btn-sonar"
+              href="https://gitlab.com/mirador1/mirador-service/-/pipelines"
+              target="_blank"
+              rel="noopener"
+            >
+              View pipelines on GitLab ↗
+            </a>
+          </div>
         </section>
       }
       <!-- end pipeline tab -->
