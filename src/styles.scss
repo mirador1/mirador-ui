@@ -1,3 +1,20 @@
+// ── Responsive breakpoints (mobile-first — see CLAUDE.md "Mobile-responsive by default") ──
+// CSS custom properties CANNOT be used inside @media query conditions (spec
+// limitation). Components that need `@media` use the literal values below.
+// The `--bp-*` property form is useful for JS consumers (`matchMedia`) and
+// documents the canonical breakpoints in one place. Keep these in sync if
+// the literals change.
+//
+// Canonical literals (use directly in @media):
+//   @media (max-width: 768px)   { ... }  // mobile  — sidebar collapses
+//   @media (max-width: 1024px)  { ... }  // tablet  — single-column below
+//   @media (min-width: 1280px)  { ... }  // desktop — spacious multi-column above
+:root {
+  --bp-mobile: 768px;
+  --bp-tablet: 1024px;
+  --bp-desktop: 1280px;
+}
+
 // ── Theme variables ──────────────────────────────────────────────────────────
 :root,
 [data-theme='light'] {
