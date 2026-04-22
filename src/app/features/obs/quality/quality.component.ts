@@ -20,6 +20,7 @@ import { QcTabSecurityComponent } from './tabs/qc-tab-security.component';
 import { QcTabAnalysisComponent } from './tabs/qc-tab-analysis.component';
 import { QcTabBuildComponent } from './tabs/qc-tab-build.component';
 import { QcTabMutationComponent } from './tabs/qc-tab-mutation.component';
+import { QcTabTestsComponent } from './tabs/qc-tab-tests.component';
 
 /**
  * A slow test entry from the Surefire report.
@@ -551,6 +552,7 @@ export interface MavenSiteReport {
     QcTabAnalysisComponent,
     QcTabBuildComponent,
     QcTabMutationComponent,
+    QcTabTestsComponent,
   ],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
