@@ -1,0 +1,48 @@
+# .gitlab-ci/release.yml — extracted 2026-04-22 from .gitlab-ci.yml
+# Phase B-4 CI modularisation (ADR-0050). Contains: release-please.
+# The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
+# + the `.install:` hidden job used via `extends:` across files.
+
+release-please:
+  stage: deploy
+  image: node:22-alpine
+  needs: []
+  rules:
+    # DISABLED 2026-04-22 — googleapis/release-please is GitHub-API-only (401 Bad
+    # Credentials on api.github.com/graphql with GitLab PAT). See svc commit +
+    # TASKS.md "Release automation — tool swap".
+    - when: never
+  before_script:
+    - apk add --no-cache git
+  script:
+    - |
+      npx --yes release-please release-pr \
+        --token "$RELEASE_PLEASE_TOKEN" \
+        --repo-url "$CI_PROJECT_URL" \
+        --target-branch main \
+        --config-file config/release-please-config.json \
+        --manifest-file .release-please-manifest.json
+      npx --yes release-please github-release \
+        --token "$RELEASE_PLEASE_TOKEN" \
+        --repo-url "$CI_PROJECT_URL" \
+        --target-branch main \
+        --config-file config/release-please-config.json \
+        --manifest-file .release-please-manifest.json
+  allow_failure: true
+
+# ── Stage: deploy ─────────────────────────────────────────────────────────────
+#
+# Six deployment targets — one auto (GKE Autopilot, default) + five manual.
+# Mirrors the backend deploy stage. All targets deploy the image from the
+# GitLab Container Registry built in the docker stage above.
+#
+# Provider         Required variables (same as backend, shared across projects)
+# ──────────────── ─────────────────────────────────────────────────────────────
+# GKE Autopilot ✓  GCP_SA_KEY, GCP_PROJECT, GKE_CLUSTER, GKE_REGION, K8S_HOST
+# AWS EKS          AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, EKS_CLUSTER, K8S_HOST
+# Azure AKS        AZURE_APP_ID, AZURE_PASSWORD, AZURE_TENANT, AKS_RG, AKS_CLUSTER, K8S_HOST
+# Google Cloud Run GCP_SA_KEY, GCP_PROJECT, GCP_REGION
+# Fly.io           FLY_API_TOKEN
+# k3s / bare metal K8S_SERVER, K8S_TOKEN, K8S_CA_CERT, K8S_HOST
+
+# Common kubectl apply fragment — applies the frontend k8s manifests.

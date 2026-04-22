@@ -45,14 +45,24 @@ pre-commit:
       stage_fixed: true
 
     # Catch .gitlab-ci.yml errors locally (saves a 15-min failed pipeline for a YAML typo).
+    # `--ref <branch> --dry-run` REQUIRED since Phase B-4 modularisation (2026-04-22):
+    # the parent now uses `- local: .gitlab-ci/*.yml` which GitLab only resolves
+    # against committed state. Exit-1 on "pipeline did not run" is normal for
+    # dry-run mode and tolerated here.
     gitlab-ci-lint:
-      glob: ".gitlab-ci.yml"
+      glob: "{.gitlab-ci.yml,.gitlab-ci/*.yml}"
       run: |
-        if command -v glab >/dev/null 2>&1; then
-          glab ci lint
-        else
+        if ! command -v glab >/dev/null 2>&1; then
           echo "⚠️  glab not installed — skipping CI lint. Install: brew install glab"
+          exit 0
         fi
+        branch=$(git branch --show-current)
+        output=$(glab ci lint --ref "$branch" --dry-run 2>&1)
+        printf '%s\n' "$output"
+        if printf '%s' "$output" | grep -Eiq 'syntax|invalid keyword|unknown key|does not exist|unknown value|undefined anchor'; then
+          exit 1
+        fi
+        exit 0
 
     dockerfile-lint:
       # --failure-threshold error: warnings don't block (matches CI policy).

@@ -1,0 +1,217 @@
+# .gitlab-ci/test.yml — extracted 2026-04-22 from .gitlab-ci.yml
+# Phase B-4 CI modularisation (ADR-0050). Contains: unit-tests, unit-tests, bundle-size-check, e2e.
+# The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
+# + the `.install:` hidden job used via `extends:` across files.
+
+unit-tests:
+  stage: test
+  extends: .install
+  # vitest's fork-pool workers can time out under runner CPU pressure when
+  # multiple pipelines schedule concurrently (pipeline #257 died with
+  # "Timeout waiting for worker to respond" after 60 s with zero tests run).
+  # One retry on runner_system_failure absorbs the flake; real test
+  # failures still exit 1 and won't loop.
+  retry:
+    max: 1
+    when: runner_system_failure
+  script:
+    - npx ng test --watch=false
+  coverage: '/All files\s*\|\s*[\d.]+/'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Node 20 compat ──────────────────────────────────────────────────────────
+unit-tests:node20:
+  stage: test
+  extends: .install
+  image: node:20-alpine
+  # Same flake class as unit-tests above — vitest forks timing out on
+  # runner pressure. Identical retry policy.
+  retry:
+    max: 1
+    when: runner_system_failure
+  script:
+    - npx ng test --watch=false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: build ─────────────────────────────────────────────────────────────
+bundle-size-check:
+  stage: quality
+  needs: ["build:production"]
+  script:
+    - |
+      MAX_SIZE_KB=500
+      MAIN_JS=$(ls dist/mirador-ui/browser/main-*.js 2>/dev/null | head -1)
+      if [ -z "$MAIN_JS" ]; then
+        echo "WARN: No main-*.js found in dist, skipping bundle size check"
+        exit 0
+      fi
+      INITIAL=$(du -sk "$MAIN_JS" | cut -f1)
+      echo "Initial bundle: ${INITIAL}kB (max: ${MAX_SIZE_KB}kB)"
+      if [ "$INITIAL" -gt "$MAX_SIZE_KB" ]; then
+        echo "WARN: Initial bundle exceeds ${MAX_SIZE_KB}kB"
+      else
+        echo "OK: Bundle within budget"
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+e2e:kind:
+  stage: e2e
+  # macbook-local gives us Docker-in-Docker so docker-compose works for
+  # the backend deps (postgres + redis + kafka). Shared GitLab runners
+  # don't expose /var/run/docker.sock.
+  tags:
+    - macbook-local
+  # Large image — Playwright + Chromium + Node + Java 25. We ship a
+  # custom image in a future iteration; for now use the official
+  # Playwright container (ships Chromium pre-installed) and add Java
+  # + Maven in the before_script.
+  image: mcr.microsoft.com/playwright:v1.59.1-jammy
+  needs:
+    - job: build:production
+      artifacts: true    # consume the dist/ artefact produced upstream
+  rules:
+    # MR pipelines + default branch + weekly schedule (detects slow
+    # upstream drift in Spring / Angular minor bumps).
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true    # see ADR-0033; flip to false after 10 green runs
+  variables:
+    # Backend service repo — cloned next to the UI checkout so we can
+    # run `./run.sh app` against postgres/kafka/redis in compose. Token
+    # is read-only, scoped to the `mirador-service` project.
+    SERVICE_REPO: "https://gitlab.com/mirador1/mirador-service.git"
+    E2E_BASE_URL: "http://localhost:4200"
+  before_script:
+    # Install Java 25 + Maven (Playwright image is Debian jammy-based).
+    # Also docker CLI + compose plugin: the runner mounts /var/run/docker.sock
+    # but the Playwright image ships no docker client, so any `docker compose`
+    # invocation in the script fails with `command not found`. We use the
+    # official Docker apt repo for compose v2 (Ubuntu's docker.io ships only
+    # docker-compose v1 which is EOL).
+    - apt-get update -qq && apt-get install -y -qq curl gnupg openjdk-21-jdk-headless maven
+    - install -m 0755 -d /etc/apt/keyrings
+    - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
+    - apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin
+    - npm ci --prefer-offline
+  script:
+    - |
+      set -euxo pipefail
+
+      # 1. Bring up the backend's infra deps via the service repo's
+      #    docker-compose.yml. We only need db + kafka + redis —
+      #    the rest (observability, Keycloak) is demo eye candy.
+      # The Postgres service is named `db` in svc's compose file (not
+      # `postgres`); calling it by the wrong name fails fast with
+      # `no such service`.
+      # The compose file references DB_USER/DB_PASSWORD/etc from .env
+      # which doesn't exist in the fresh clone — we set sane defaults
+      # so the warnings don't cause empty-string container args that
+      # crash on first connection.
+      # svc's compose file pins container_names AND publishes ports
+      # to the host (5432/9092/6379), which collides with the
+      # developer's local dev stack on macbook-local (shared docker
+      # socket). Three sed-strips make the compose CI-safe:
+      #   1. `container_name:` — global names, can't run two stacks
+      #   2. `^    ports:` + indented children — host port bindings
+      #      collide if local dev has redis/postgres/kafka on the
+      #      same ports.
+      #   3. `expose:` already present in svc's compose, so
+      #      service-to-service network calls keep working.
+      # Combined with `-p ci-${CI_JOB_ID}` we get a fully isolated
+      # stack on a private bridge network, no host port footprint.
+      git clone --depth=1 "$SERVICE_REPO" /tmp/svc
+      sed -i '/^[[:space:]]*container_name:/d' /tmp/svc/docker-compose.yml
+      # Strip `ports:` block (the line + its `- "x:y"` children up
+      # to the next sibling key). Python is more reliable than sed
+      # for indented YAML blocks.
+      python3 -c "
+      import re, sys
+      p = '/tmp/svc/docker-compose.yml'
+      with open(p) as f: txt = f.read()
+      # Match `    ports:` then any number of more-indented lines.
+      txt = re.sub(r'^( +)ports:\s*\n(\1 +- .*\n)+', '', txt, flags=re.MULTILINE)
+      with open(p, 'w') as f: f.write(txt)
+      "
+      COMPOSE_PROJECT="ci-${CI_JOB_ID}"
+      (cd /tmp/svc && \
+        DB_PORT=5432 DB_USER=mirador DB_PASSWORD=mirador DB_NAME=mirador \
+        SERVER_PORT=8080 \
+        docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d db kafka redis)
+
+      # 2. Connect THIS job container to the compose bridge network
+      #    so Spring Boot can reach `db`, `kafka`, `redis` by docker
+      #    DNS — no host port footprint needed. The job container's
+      #    hostname is its own container ID (set by GitLab runner).
+      JOB_CTR=$(hostname)
+      NET="${COMPOSE_PROJECT}_default"
+      docker network connect "$NET" "$JOB_CTR" 2>/dev/null || true
+
+      # 3. Compile + start the Spring Boot app in the background. The
+      #    `./run.sh app` script blocks on the foreground; we daemonise
+      #    with `nohup &` and wait for /actuator/health to return UP.
+      #    SPRING_* env vars point at the compose service names,
+      #    bypassing the default localhost: addresses that worked
+      #    only on the developer's host-mode dev stack.
+      # `-Dcompat` activates the SB4+Java 21 profile in svc's pom.xml
+      # — the default profile targets Java 25 which the playwright
+      # image's openjdk-21 can't compile (release version 25 not
+      # supported). Installing JDK 25 in the container would add ~500
+      # MB and slow every CI run; -Dcompat is a 4-byte change with
+      # the same runtime behavior for our integration purposes.
+      (cd /tmp/svc && \
+        SPRING_DATASOURCE_URL="jdbc:postgresql://db:5432/mirador" \
+        SPRING_DATASOURCE_USERNAME=mirador \
+        SPRING_DATASOURCE_PASSWORD=mirador \
+        SPRING_DATA_REDIS_HOST=redis \
+        SPRING_DATA_REDIS_PORT=6379 \
+        SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
+        nohup mvn -q -Dcompat -DskipTests spring-boot:run > /tmp/app.log 2>&1 &)
+      for i in $(seq 1 60); do
+        curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1 && break
+        sleep 2
+      done
+      curl -sSf http://localhost:8080/actuator/health || { tail -40 /tmp/app.log; exit 1; }
+
+      # 3. Serve the Angular production build on :4200 (http-server is
+      #    a transient dep — lighter than ng serve, static, fast).
+      npx --yes http-server dist/mirador-ui/browser -p 4200 -s &
+      for i in $(seq 1 30); do
+        curl -sSf http://localhost:4200 >/dev/null 2>&1 && break
+        sleep 1
+      done
+
+      # 4. Run the Playwright golden-path suite only. `@demo` is the
+      #    recording spec used by bin/record-demo.sh for the README
+      #    GIF and takes ~30 s of cosmetic delays — exclude in CI.
+      #    retries:2 + CI env var flips to CI mode (see playwright.config.ts).
+      CI=1 npx playwright test --grep @golden
+  after_script:
+    # Always stop compose — leaking postgres on the runner would
+    # accumulate disk. `|| true` because the job may fail before
+    # `docker compose up` ran. `-p ci-${CI_JOB_ID}` matches the
+    # project namespace from before_script so we tear down THIS
+    # job's stack only (no risk of nuking a parallel CI job's
+    # containers, nor the developer's local dev stack).
+    - (cd /tmp/svc && docker compose -p "ci-${CI_JOB_ID}" -f docker-compose.yml down -v) || true
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    reports:
+      junit: playwright-report/results.xml
+    expire_in: 14 days
+
+# ── Stage: quality ───────────────────────────────────────────────────────────
+# Shield removed 2026-04-20 — the script itself never exits non-zero
+# (even when the bundle exceeds MAX_SIZE_KB it only echoes WARN and
+# returns 0), so `allow_failure: true` was redundant. Ran green 5+
+# consecutive pipelines on main. If we ever harden the check to exit 1
+# on budget-exceeded, that's a deliberate decision worth surfacing as
+# a red job; re-add the shield only with a dated exit ticket.

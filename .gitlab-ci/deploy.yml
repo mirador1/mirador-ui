@@ -1,0 +1,143 @@
+# .gitlab-ci/deploy.yml — extracted 2026-04-22 from .gitlab-ci.yml
+# Phase B-4 CI modularisation (ADR-0050). Contains: .kubectl-apply-ui, deploy, deploy, deploy, deploy, deploy.
+# The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
+# + the `.install:` hidden job used via `extends:` across files.
+
+.kubectl-apply-ui:
+  script:
+    - export IMAGE_REGISTRY="$CI_REGISTRY_IMAGE"
+    - export UI_IMAGE_TAG="$CI_COMMIT_SHA"
+    - |
+      kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      # GitLab registry pull secret (idempotent)
+      kubectl create secret docker-registry gitlab-registry \
+        --docker-server="$CI_REGISTRY" \
+        --docker-username="$CI_REGISTRY_USER" \
+        --docker-password="$CI_REGISTRY_PASSWORD" \
+        --namespace=app --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      # Apply frontend manifests — envsubst replaces ${IMAGE_REGISTRY}, ${UI_IMAGE_TAG}
+      for f in deploy/kubernetes/frontend/deployment.yaml deploy/kubernetes/frontend/service.yaml; do
+        [ -f "$f" ] && envsubst < "$f" | kubectl apply -f -
+      done
+    - kubectl rollout status deployment/customer-ui -n app --timeout=120s
+
+# deploy:gke + smoke-test retired with mirador-service ADR-0025 + ADR-0027:
+# the UI is no longer deployed to any Kubernetes cluster — it runs on the
+# developer's laptop and reaches the cluster through bin/pf-prod.sh tunnels.
+# The image is still built and scanned (test-image stage above) as a
+# validation artefact.
+#
+# If you ever need a one-off manual push, the remaining deploy:* jobs
+# (EKS, AKS, Cloud Run, Fly, k3s) are all when:manual.
+
+# ── AWS EKS — manual ──────────────────────────────────────────────────────────
+deploy:eks:
+  stage: deploy
+  image: alpine/k8s:1.30.2
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/eks
+    url: "https://$K8S_HOST"
+  script:
+    - aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+    - !reference [.kubectl-apply-ui, script]
+
+# ── Azure AKS — manual ────────────────────────────────────────────────────────
+deploy:aks:
+  stage: deploy
+  image: mcr.microsoft.com/azure-cli:latest
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/aks
+    url: "https://$K8S_HOST"
+  before_script:
+    - az aks install-cli --only-show-errors
+  script:
+    - az login --service-principal -u "$AZURE_APP_ID" -p "$AZURE_PASSWORD"
+        --tenant "$AZURE_TENANT" --output none
+    - az aks get-credentials --resource-group "$AKS_RG" --name "$AKS_CLUSTER"
+    - !reference [.kubectl-apply-ui, script]
+
+# ── Google Cloud Run — manual ─────────────────────────────────────────────────
+# Serves the pre-built Nginx image on Cloud Run. No k8s needed.
+# Note: Cloud Run serves port 80 from the container directly.
+deploy:cloud-run:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/cloud-run
+  script:
+    - echo "$GCP_SA_KEY" | base64 -d > /tmp/sa.json
+    - gcloud auth activate-service-account --key-file=/tmp/sa.json
+    - gcloud config set project "$GCP_PROJECT"
+    - |
+      gcloud run deploy customer-ui \
+        --image "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+        --region "${GCP_REGION:-europe-west1}" \
+        --platform managed \
+        --allow-unauthenticated \
+        --port 80 \
+        --cpu 1 --memory 256Mi \
+        --quiet
+
+# ── Fly.io — manual ───────────────────────────────────────────────────────────
+deploy:fly:
+  stage: deploy
+  image: flyio/flyctl:latest
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/fly
+  script:
+    - flyctl auth token "$FLY_API_TOKEN"
+    - flyctl deploy --image "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" --remote-only
+
+# ── k3s / self-hosted — manual ─────────────────────────────────────────────────
+deploy:k3s:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  needs:
+    - job: docker-build
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: true
+  environment:
+    name: production/k3s
+    url: "https://$K8S_HOST"
+  script:
+    - |
+      kubectl config set-cluster self-hosted \
+        --server="$K8S_SERVER" \
+        --certificate-authority=<(echo "$K8S_CA_CERT" | base64 -d)
+      kubectl config set-credentials ci-runner --token="$K8S_TOKEN"
+      kubectl config set-context default --cluster=self-hosted --user=ci-runner
+      kubectl config use-context default
+    - !reference [.kubectl-apply-ui, script]

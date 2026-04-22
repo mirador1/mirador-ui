@@ -1,0 +1,98 @@
+# .gitlab-ci/quality.yml — extracted 2026-04-22 from .gitlab-ci.yml
+# Phase B-4 CI modularisation (ADR-0050). Contains: sonarcloud, typedoc.
+# The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
+# + the `.install:` hidden job used via `extends:` across files.
+
+sonarcloud:
+  stage: quality
+  image:
+    name: sonarsource/sonar-scanner-cli:11
+    entrypoint: [""]
+  needs:
+    - job: unit-tests
+    - job: build:production
+    # ESLint SARIF — ingested by sonar via config/sonar-project.properties
+    # → sonar.sarifReportPaths. `optional: true` so the sonar step still
+    # runs on branches that didn't trigger lint:eslint (path-filtered).
+    - job: lint:eslint
+      artifacts: true
+      optional: true
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"    # full clone for accurate blame/line info
+  cache:
+    key: sonar-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .sonar/cache
+  script:
+    # config/sonar-project.properties provides org/projectKey; token from CI variable.
+    # -Dproject.settings points the scanner at the moved config file.
+    # sonar.javascript.node.maxspace=4096 + node.timeout=600 — the JS bridge
+    # subprocess (analyses .ts/.js) needs ≥2GB heap for our codebase and
+    # the default 300s startup timeout is too tight on a busy macbook-local
+    # runner; pipeline #271 failed with "Failed to start the bridge server
+    # (300s timeout)" before we landed on these values.
+    - sonar-scanner
+        -Dproject.settings=config/sonar-project.properties
+        -Dsonar.host.url="https://sonarcloud.io"
+        -Dsonar.token="${SONAR_TOKEN}"
+        -Dsonar.javascript.node.maxspace=4096
+        -Dsonar.javascript.node.timeout=600
+  # TODO: flip to false by 2026-05-20 (30d) — RED 3/3 on main (pipelines
+  # #294/#296/#300 on 2026-04-19) with a concrete, non-outage error:
+  # "Failed to create directory: /home/scanner-cli/.tree-sitter/lib" →
+  # "Analysis of JS/TS files failed". This is a container HOME perms/
+  # scanner-version issue, NOT a Sonar outage — the shield's stated
+  # purpose (outage tolerance) no longer justifies it. Fix path:
+  # either pin sonar-scanner-cli to a known-good image with writable
+  # HOME, or set HOME to a writable scratch dir in before_script.
+  allow_failure: true    # SonarCloud outage must not block deployments
+  rules:
+    - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── TypeDoc API documentation ─────────────────────────────────────────────────
+#
+# Generates TypeScript API docs from JSDoc comments in Angular services, components,
+# and interfaces. Output is published as a pipeline artifact (browsable in GitLab).
+#
+# The backend's generate-reports job can also invoke `npm run typedoc` as part
+# of a combined site that includes Maven site + Compodoc + TypeDoc.
+#
+# config/typedoc.json controls entry points, output dir, and theme.
+# Shield removed 2026-04-20 — `npm run typedoc 2>&1 | tee` pipes through
+# tee which exits 0 regardless of typedoc's exit code, so the job was
+# already de-facto non-blocking (5+ consecutive green runs on main).
+# If typedoc itself breaks (config drift, TypeScript upgrade, missing
+# entry point), that's a real doc-build regression and should fail
+# loudly; relying on the shell pipe's 0-exit hid that signal.
+typedoc:
+  stage: quality
+  extends: .install
+  needs: ["build:production"]
+  script:
+    # Run TypeDoc — warns are informational; docs still generate cleanly
+    - npm run typedoc 2>&1 | tee typedoc-output.txt
+    - echo "TypeDoc docs generated at docs/typedoc/"
+  artifacts:
+    name: "typedoc-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - docs/typedoc/
+    expire_in: 30 days
+    when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: docker ─────────────────────────────────────────────────────────────
+#
+# Build the Angular Docker image (Nginx + compiled SPA) and push it to the
+# GitLab Container Registry. Runs only on main and version tags — not on MRs
+# to avoid flooding the registry with images that are never deployed.
+#
+# One tag pushed: $CI_COMMIT_SHA (immutable, traceable).
+# Per ADR-0025 the UI is never deployed to Kubernetes, so there is no
+# Argo CD puller that would consume a moving :main tag. The downstream
+# scan jobs (trivy, syft, dockle, cosign) all reference :$CI_COMMIT_SHA.
