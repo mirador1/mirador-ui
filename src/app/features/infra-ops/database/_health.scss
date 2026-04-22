@@ -1,0 +1,131 @@
+// ── Health checks ─────────────────────────────────────────────────────────────
+.health-intro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.health-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.magic-btn {
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+  }
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.magic-spin {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.health-card {
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+
+  &.hc-ok {
+    border-left: 4px solid #4ade80;
+  }
+  &.hc-warn {
+    border-left: 4px solid #fbbf24;
+  }
+  &.hc-crit {
+    border-left: 4px solid #f87171;
+  }
+  &.hc-loading {
+    opacity: 0.6;
+  }
+  &.hc-error {
+    border-left: 4px solid #6b7280;
+  }
+}
+
+.hc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.hc-icon {
+  font-size: 1rem;
+}
+
+.hc-label {
+  font-weight: 700;
+  font-size: 0.83rem;
+  color: var(--text-primary);
+}
+
+.hc-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0 0 0.35rem;
+}
+
+.hc-detail {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+  font-family: monospace;
+}
+
+.hc-query-btn {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: 0.7rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}

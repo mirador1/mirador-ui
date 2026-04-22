@@ -1,0 +1,52 @@
+h2 {
+  margin: 0 0 0.25rem;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.subtitle {
+  margin: 0;
+  color: var(--text-label);
+  font-size: 0.9rem;
+}
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.alert-warn {
+  background: var(--bg-warn);
+  color: var(--text-warn);
+  border: 1px solid var(--border-warn);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  a {
+    color: var(--text-link);
+  }
+}
+
+.monitor-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  &:hover {
+    background: var(--color-accent-hover);
+  }
+  &.active {
+    background: #dc2626;
+    &:hover {
+      background: #b91c1c;
+    }
+  }
+}
