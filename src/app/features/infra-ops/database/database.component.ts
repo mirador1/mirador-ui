@@ -12,57 +12,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../core/auth/auth.service';
 import { EnvService } from '../../../core/env/env.service';
 import { RouterLink } from '@angular/router';
-
-/** Active tab in the Database page explorer. */
-type DbTab = 'health' | 'customer' | 'diagnostics' | 'schema' | 'investigation' | 'performance';
-
-/**
- * Shape returned by the pgweb REST API (`GET /api/query`) for SQL execution.
- * Rows contain mixed primitive types (number, string, boolean, null) from PostgreSQL.
- * The `error` field is set when the SQL fails or pgweb is unreachable.
- */
-interface SqlQueryResult {
-  /** Column names from the SELECT result set. */
-  columns?: string[];
-  /** Row data as a 2D array indexed `[row][column]`. */
-  rows?: unknown[][];
-  /** Error message from pgweb or the proxy if the query failed. */
-  error?: string;
-}
-
-/**
- * Shape returned by the Spring Boot `/actuator/maintenance` custom endpoint.
- * Called when the user triggers a VACUUM operation from the Health tab.
- */
-interface MaintenanceResult {
-  /** The operation type that was executed (e.g., `'vacuum'`, `'vacuumFull'`). */
-  operation: string;
-  /** How long the maintenance operation took in milliseconds. */
-  durationMs: number;
-  /** Result status string (e.g., `'OK'`). */
-  status: string;
-}
-
-/**
- * Definition of a database health check displayed in the Health tab.
- * Each check runs a read-only SQL query via pgweb and evaluates the result.
- */
-interface HealthCheck {
-  /** Unique string identifier for this check (used as a React-style key). */
-  id: string;
-  /** Display label shown as the check's heading. */
-  label: string;
-  /** Tooltip description explaining what the check measures. */
-  description: string;
-  /** The SQL query to execute against PostgreSQL via pgweb. */
-  query: string;
-  /**
-   * Evaluate the first row's first value and return a traffic-light status.
-   * @param rows Result rows from the SQL query.
-   * @returns Status (`'ok'`=green, `'warn'`=orange, `'crit'`=red) with a detail message.
-   */
-  evaluate: (rows: string[][]) => { status: 'ok' | 'warn' | 'crit'; detail: string };
-}
+import type { DbTab, SqlQueryResult, MaintenanceResult, HealthCheck } from './database-types';
 
 @Component({
   selector: 'app-database',
