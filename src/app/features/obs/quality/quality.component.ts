@@ -9,7 +9,6 @@
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EnvService } from '../../../core/env/env.service';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -21,6 +20,7 @@ import { QcTabAnalysisComponent } from './tabs/qc-tab-analysis.component';
 import { QcTabBuildComponent } from './tabs/qc-tab-build.component';
 import { QcTabMutationComponent } from './tabs/qc-tab-mutation.component';
 import { QcTabTestsComponent } from './tabs/qc-tab-tests.component';
+import { QcTabOverviewComponent } from './tabs/qc-tab-overview.component';
 
 /**
  * A slow test entry from the Surefire report.
@@ -543,7 +543,6 @@ export interface MavenSiteReport {
   selector: 'app-quality',
   standalone: true,
   imports: [
-    DecimalPipe,
     RouterLink,
     QcTabPipelineComponent,
     QcTabBranchesComponent,
@@ -553,6 +552,7 @@ export interface MavenSiteReport {
     QcTabBuildComponent,
     QcTabMutationComponent,
     QcTabTestsComponent,
+    QcTabOverviewComponent,
   ],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
