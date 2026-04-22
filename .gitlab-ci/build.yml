@@ -1,0 +1,85 @@
+# .gitlab-ci/build.yml — extracted 2026-04-22 from .gitlab-ci.yml
+# Phase B-4 CI modularisation (ADR-0050). Contains: build, docker-build.
+# The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
+# + the `.install:` hidden job used via `extends:` across files.
+
+build:production:
+  stage: build
+  extends: .install
+  # Route to macbook-local so the build has the full host RAM available
+  # instead of being confined to the shared-runner container memory tier.
+  # Pipeline #264 SIGKILL'd (exit 137) on the shared runner; macbook-local
+  # gets the host's full 8 GB Docker Desktop allocation.
+  tags:
+    - macbook-local
+  retry:
+    max: 1
+    when: runner_system_failure
+  # `resource_group: heavy-build` serialises with docker-build (also
+  # macbook-local + memory-heavy) so we never run two memory-hungry
+  # jobs concurrently on the same runner — pipeline #265 OOM-killed
+  # because build:production + something else were both fighting for
+  # the same 4 GB cgroup.
+  resource_group: heavy-build
+  variables:
+    # Angular 21 production build with sourceMap=false + extractLicenses=false
+    # + namedChunks=false (set in angular.json) brings peak heap from
+    # ~2.4 GB down to ~1.6 GB. NODE_OPTIONS=2048 forces Node's GC to
+    # kick in earlier — ironically lower limits help the OS-level OOM
+    # avoidance because Node releases memory to the cgroup more often.
+    NODE_OPTIONS: "--max-old-space-size=2048"
+  script:
+    - |
+      BUILD_OUT=$(npx ng build --configuration production 2>&1)
+      echo "$BUILD_OUT"
+      mkdir -p dist
+      echo "$BUILD_OUT" > dist/build-warnings.txt
+    - |
+      echo "── Bundle analysis ──"
+      du -sh dist/mirador-ui/browser/*.js 2>/dev/null | sort -rh | head -10 || true
+      echo ""
+      TOTAL=$(du -sh dist/mirador-ui/browser/ 2>/dev/null | cut -f1 || echo "n/a")
+      echo "Total bundle size: $TOTAL"
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+docker-build:
+  # Runs on macbook-local (Apple Silicon arm64) with host Docker socket + buildx.
+  # Cross-compile to amd64 via QEMU so the image matches GKE node arch.
+  # Never uses SaaS shared runners (CI quota policy, see ADR-0004 in the
+  # sibling service repo).
+  stage: test-image
+  interruptible: false   # Expensive — don't restart mid-build on a new push.
+  image: docker:28
+  tags:
+    - macbook-local
+  needs:
+    - job: build:production    # Angular bundle must pass before building the image
+      artifacts: false
+    - job: unit-tests
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    # Register QEMU user-mode emulation for cross-compilation (arm64 host → amd64 image).
+    - docker run --privileged --rm tonistiigi/binfmt --install amd64 || true
+    # Create (or reuse) a buildx builder supporting multi-platform targets.
+    - docker buildx create --name multi --use 2>/dev/null || docker buildx use multi
+  script:
+    - |
+      docker buildx build \
+        -f build/Dockerfile \
+        --platform linux/amd64 \
+        --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
+        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE:cache" \
+        --cache-to "type=registry,ref=$CI_REGISTRY_IMAGE:cache,mode=max" \
+        --push \
+        .

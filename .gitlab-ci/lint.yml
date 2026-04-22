@@ -1,0 +1,159 @@
+# .gitlab-ci/lint.yml — extracted 2026-04-22 from .gitlab-ci.yml
+# Phase B-4 CI modularisation (ADR-0050). Contains: typecheck, lint, openapi, lint, lint, hadolint, renovate-lint.
+# The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
+# + the `.install:` hidden job used via `extends:` across files.
+
+typecheck:
+  stage: validate
+  extends: .install
+  script:
+    - npx tsc --noEmit -p tsconfig.app.json
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+lint:format:
+  stage: validate
+  extends: .install
+  script:
+    - npx prettier --check "src/**/*.{ts,html,scss,json}"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── OpenAPI → TS types drift gate ─────────────────────────────────────────────
+# Verifies src/app/core/api/generated.types.ts matches what `openapi-typescript`
+# would produce from the committed docs/api/openapi.json snapshot. Drift here
+# means a reviewer edited the snapshot (via `npm run gen:openapi-snapshot`) but
+# forgot to regenerate the typed surface, so any UI HTTP call that typechecks
+# against the stale shape will break at runtime on a field the server added.
+# Fix: `npm run gen:api-types && git add src/app/core/api/generated.types.ts`.
+# Rationale: see docs/how-to/openapi-types-generation.md.
+openapi:types-drift:
+  stage: validate
+  extends: .install
+  # node:22-alpine doesn't ship bash; the gen scripts use `${BASH_SOURCE[0]}`
+  # (the only bashism). Add bash on top of the inherited .install: install
+  # cache-hit logic — keeps the skip-if-fresh npm optimization active while
+  # still providing the bash runtime this one job needs.
+  before_script:
+    - apk add --no-cache bash
+    - |
+      set -e
+      LOCK_SHA=$(sha256sum package-lock.json | cut -d' ' -f1)
+      MARK=node_modules/.package-lock-sha
+      if [ -d node_modules/.bin ] && [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$LOCK_SHA" ]; then
+        echo "✓ node_modules cache fresh ($LOCK_SHA) — skipping npm ci"
+      else
+        echo "▶ installing dependencies (lock SHA: $LOCK_SHA)"
+        npm ci --prefer-offline --no-audit --no-fund
+        echo "$LOCK_SHA" > "$MARK"
+      fi
+  script:
+    - npm run verify:api-types
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - docs/api/openapi.json
+        - src/app/core/api/generated.types.ts
+        - scripts/gen-api-types.sh
+        - scripts/check-api-types-drift.sh
+        - package-lock.json
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── ESLint (Angular + TypeScript + a11y) ──────────────────────────────────
+#
+# ESLint 9 flat config lives at `eslint.config.mjs`. Rules span
+# @typescript-eslint (TS strictness), angular-eslint (Angular-specific
+# anti-patterns — standalone, control-flow, selector style), and a
+# subset of a11y checks on templates.
+#
+# What ESLint catches that tsc / Prettier / SonarCloud don't:
+#   - RxJS subscribe-leak patterns (the reason ESLint was added
+#     2026-04-21 — 86 `.subscribe()` without takeUntilDestroyed were
+#     scanned at setup).
+#   - Accessibility (click without keyboard, focusable gate).
+#   - Control-flow regressions (*ngIf vs @if).
+#
+# Output: SARIF file at `eslint-report.sarif`, ingested by SonarCloud
+# via `sonar.sarifReportPaths` in config/sonar-project.properties.
+# `|| true` on lint:sarif ensures the file is generated even if there
+# are errors (we want Sonar to see them, not CI to bail early).
+lint:eslint:
+  stage: validate
+  extends: .install
+  script:
+    - npm run lint
+    - npm run lint:sarif
+  artifacts:
+    when: always
+    paths:
+      - eslint-report.sarif
+    expire_in: 1 week
+  # Currently configured with 10 known warnings — goal is 0 errors
+  # reached at install time, warning-only so the initial rollout
+  # doesn't fail CI. Tighten specific rules to "error" as legacy tech
+  # debt gets cleaned up.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: test ──────────────────────────────────────────────────────────────
+lint:circular-deps:
+  stage: build
+  needs: ["build:production"]
+  script:
+    - |
+      echo "Checking for circular imports in build output..."
+      if grep -qi "circular" dist/build-warnings.txt 2>/dev/null; then
+        echo "FAIL: Circular dependencies detected"
+        grep -i "circular" dist/build-warnings.txt
+        exit 1
+      fi
+      echo "OK: No circular dependencies"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: e2e ───────────────────────────────────────────────────────────────
+# Playwright browser suite against a live backend. Rationale + scope:
+# `docs/adr/0033-playwright-e2e-in-kind-in-ci.md` in the mirador-service
+# repo.
+#
+# Topology: the backend runs inside this job (docker-compose from the
+# sibling service repo), not inside the kind cluster. The ADR chose
+# option A (compose-up) over option B (multi-arch kind image): the E2E
+# asserts the user-visible contract, not the deployment topology, and
+# the ADR-0028 kind job already validates manifests separately.
+#
+# `allow_failure: true` initially — Playwright flakiness is real until
+# the suite has 10 green runs in a row, at which point we flip to
+# hard-fail per ADR-0033 "Revisit this when" clause.
+hadolint:
+  stage: validate
+  image:
+    name: hadolint/hadolint:v2.12.0-debian
+    entrypoint: [""]
+  rules:
+    - changes: [build/Dockerfile]
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - hadolint --failure-threshold error build/Dockerfile
+
+# ── Secret scan (gitleaks) ────────────────────────────────────────────────────
+renovate-lint:
+  stage: validate
+  image: node:22-alpine
+  rules:
+    - changes: [renovate.json]
+  script:
+    - npx --yes --package renovate renovate-config-validator --strict renovate.json
+
+# ── SBOM (Trivy) — CycloneDX + SPDX ───────────────────────────────────────────
+# Switched from anchore/syft to aquasec/trivy because syft's amd64
+# Go binary panics deterministically under QEMU emulation on the
+# arm64 macbook-local runner (`fatal error: lfstack.push` during
+# the javascript cataloger init — see project_lgtm_pitfalls memory
+# file). Trivy generates the same SBOM formats and is already
+# pinned in `trivy:scan` for CVE work — one tool, two outputs.
+# Job name kept as `sbom:syft` to avoid renaming `needs:` chains
+# in grype:scan + downstream; comment captures the actual tool.
