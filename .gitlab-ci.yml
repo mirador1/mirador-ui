@@ -25,20 +25,14 @@ workflow:
         # would have caught the threads-vs-forks regression earlier
         # if this path had been in the allowlist.
         - "config/vitest.config.ts"
-        # eslint.config.mjs is the source-of-truth for the lint:eslint job
-        # — adding a `max-lines` rule there must trigger a fresh pipeline
-        # (otherwise UI MR !68 merges silently with no lint re-validation,
-        # exactly what happened during Phase A 2026-04-22 at 02:48).
-        # gitleaks.toml gates the secret-scan job — same rationale.
-        - "eslint.config.mjs"
-        - ".gitleaks.toml"
-        # eslint.config.mjs is the source-of-truth for the lint:eslint job
-        # — adding a `max-lines` rule there must trigger a fresh pipeline
-        # (otherwise UI MR !68 merges silently with no lint re-validation,
-        # exactly what happened during Phase A 2026-04-22 at 02:48).
-        # gitleaks.toml gates the secret-scan job — same rationale.
-        - "eslint.config.mjs"
-        - ".gitleaks.toml"
+        # Tool config files that gate specific lint/scan jobs. Adding any
+        # rule to one of these MUST trigger CI so reviewers see the new
+        # signal (otherwise the change merges with stale validation,
+        # exactly what happened to UI MR !68 on 2026-04-22 02:48 before
+        # eslint.config.mjs was added here).
+        - "eslint.config.mjs"          # gates lint:eslint
+        - ".gitleaks.toml"             # gates secret-scan
+        - ".prettierrc"                # gates lint:format
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - "src/**/*"
@@ -61,20 +55,14 @@ workflow:
         # would have caught the threads-vs-forks regression earlier
         # if this path had been in the allowlist.
         - "config/vitest.config.ts"
-        # eslint.config.mjs is the source-of-truth for the lint:eslint job
-        # — adding a `max-lines` rule there must trigger a fresh pipeline
-        # (otherwise UI MR !68 merges silently with no lint re-validation,
-        # exactly what happened during Phase A 2026-04-22 at 02:48).
-        # gitleaks.toml gates the secret-scan job — same rationale.
-        - "eslint.config.mjs"
-        - ".gitleaks.toml"
-        # eslint.config.mjs is the source-of-truth for the lint:eslint job
-        # — adding a `max-lines` rule there must trigger a fresh pipeline
-        # (otherwise UI MR !68 merges silently with no lint re-validation,
-        # exactly what happened during Phase A 2026-04-22 at 02:48).
-        # gitleaks.toml gates the secret-scan job — same rationale.
-        - "eslint.config.mjs"
-        - ".gitleaks.toml"
+        # Tool config files that gate specific lint/scan jobs. Adding any
+        # rule to one of these MUST trigger CI so reviewers see the new
+        # signal (otherwise the change merges with stale validation,
+        # exactly what happened to UI MR !68 on 2026-04-22 02:48 before
+        # eslint.config.mjs was added here).
+        - "eslint.config.mjs"          # gates lint:eslint
+        - ".gitleaks.toml"             # gates secret-scan
+        - ".prettierrc"                # gates lint:format
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - when: never
 
