@@ -111,6 +111,46 @@ AppShellComponent (layout: topbar + sidebar + router-outlet)
 - Global tokens (colours, spacing, shadows) are defined in `src/styles.scss` as CSS custom properties — use them instead of hardcoding values.
 - Dashboard and observability components have large SCSS files by design (complex layout, many states). Do not refactor unless explicitly asked.
 
+## Mobile-responsive by default (hard constraint)
+
+Every UI change MUST work on mobile viewports (≤ 768 px). This is
+non-negotiable — a component that only works on desktop is broken
+on ~50 % of real traffic. See `~/.claude/CLAUDE.md` → "UI must
+work on mobile" for the full rule + verification steps. Project-specific
+specifics:
+
+- **Breakpoints live in `src/styles.scss`** — use the CSS custom
+  properties (`--bp-mobile`, `--bp-tablet`, `--bp-desktop`) rather
+  than hardcoding `768px` / `1024px` in each component's `.scss`.
+  If they're not defined yet, add them in `styles.scss` in the same
+  commit as the first consumer.
+- **`AppShellComponent` sidebar** is the canonical mobile-collapse
+  pattern: > 768 px = sidebar visible, ≤ 768 px = hamburger opens
+  a drawer. Every new multi-pane layout (dashboard, observability,
+  quality) follows the same pattern.
+- **SVG charts** must use `viewBox="0 0 W H" preserveAspectRatio="xMidYMid meet"`
+  + `width="100%"` — never fixed pixel widths. The chart inherits
+  its container's width and scales cleanly.
+- **Angular Material / CDK** — we don't use either (raw SVG + CSS
+  Grid / Flex). That's an active constraint, NOT a mobile excuse
+  — we're responsible for responsive behaviour ourselves.
+- **Signal-based viewport queries** for conditional rendering:
+
+  ```ts
+  readonly isMobile = signal(window.matchMedia('(max-width: 768px)').matches);
+  @HostListener('window:resize') onResize() {
+    this.isMobile.set(window.matchMedia('(max-width: 768px)').matches);
+  }
+  ```
+
+  Use `@if (isMobile()) { … } @else { … }` in the template — no
+  `ngIf` / `BreakpointObserver` dependency added.
+- **E2E coverage** — Playwright projects include a `mobile` variant
+  (390 × 844) for the home + dashboard routes. When adding a new
+  load-bearing route, add a mobile spec alongside the desktop one.
+- **Code review checklist** below has a dedicated mobile item —
+  don't approve a PR that wasn't checked at 375 px wide.
+
 ## File length hygiene (segmenter les fichiers trop longs)
 
 When a hand-written source file crosses **~1 000 lines**, plan a split at
@@ -220,6 +260,12 @@ will reshape UI metrics — re-audit post-Phase-B to update.
       counts as a task. Warnings (bundle budget, deprecations,
       `allow_failure` shields) are fix-now unless carried by a dated
       follow-up. See ~/.claude/CLAUDE.md → "Pipelines stay green".
+- [ ] **Mobile-responsive**: every visual change was checked at
+      375 px (iPhone SE), 390 px (iPhone 12-14), AND 1280 px
+      desktop. No horizontal scrollbar at mobile widths; tap
+      targets ≥ 44 px; hover-only interactions paired with a
+      tap affordance. See the "Mobile-responsive by default"
+      section above + global rule in ~/.claude/CLAUDE.md.
 
 ## Docker Cleanup — TIGHTENED CADENCE (2026-04-21)
 
