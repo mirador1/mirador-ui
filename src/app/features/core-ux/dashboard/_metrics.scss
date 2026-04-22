@@ -1,0 +1,197 @@
+// ── Latency history chart legend ──────────────────────────────────────────────
+.latency-legend {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.leg-p50 {
+  color: #22c55e;
+  font-weight: 600;
+}
+.leg-p95 {
+  color: #f59e0b;
+  font-weight: 600;
+}
+.leg-p99 {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+// ── JVM & System grid ─────────────────────────────────────────────────────────
+.jvm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.jvm-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
+}
+
+.jvm-card-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-label);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+// Horizontal bar gauge (heap, CPU)
+.jvm-bar-track {
+  height: 8px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+}
+
+.jvm-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+
+  &.jvm-bar-warn {
+    background: #f59e0b;
+  }
+  &.jvm-bar-crit {
+    background: #ef4444;
+  }
+}
+
+.jvm-bar-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+.jvm-pct {
+  font-weight: 600;
+  color: var(--color-accent);
+  &.warn {
+    color: #f59e0b;
+  }
+}
+
+// Stat cards (threads, total requests, customer count)
+.jvm-card-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.jvm-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.jvm-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-label);
+  margin-top: 0.15rem;
+}
+
+.jvm-stat-sub {
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+  .warn {
+    color: #f59e0b;
+    font-weight: 600;
+  }
+}
+
+// HikariCP pool card
+.pool-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pool-row {
+  display: grid;
+  grid-template-columns: 46px 1fr 24px;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pool-label {
+  font-size: 0.72rem;
+  color: var(--text-label);
+}
+
+.pool-track {
+  height: 6px;
+  background: var(--bg-hover);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pool-fill {
+  height: 100%;
+  border-radius: 3px;
+  min-width: 3px;
+  transition: width 0.4s ease;
+
+  &.pool-active {
+    background: var(--color-accent);
+  }
+  &.pool-idle {
+    background: #22c55e;
+  }
+  &.pool-pending {
+    background: #ef4444;
+  }
+}
+
+.pool-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  &.warn {
+    color: #f59e0b;
+  }
+}
+
+// Latency snapshot card
+.jvm-card-latency {
+}
+
+.latency-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.lat-pct {
+  font-weight: 700;
+  font-size: 0.72rem;
+  width: 28px;
+}
+
+.lat-val {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
