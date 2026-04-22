@@ -1,0 +1,245 @@
+// quality.component.scss partial — _page-chrome
+// Extracted 2026-04-22 from quality.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_page-chrome';` in quality.component.scss.
+
+// =============================================================================
+// Quality Report — styles
+// =============================================================================
+
+.quality-page {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Page header
+// ---------------------------------------------------------------------------
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+}
+
+.header-icon {
+  font-size: 1.5rem;
+}
+
+.generated-at {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+// Refresh instructions banner
+// ---------------------------------------------------------------------------
+.refresh-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.refresh-info-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.refresh-info-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  line-height: 1.5;
+}
+
+.refresh-cmd {
+  display: inline-block;
+  background: var(--bg-code);
+  color: var(--text-primary);
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.3rem;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.82rem;
+  user-select: all;
+}
+
+.refresh-variant {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.refresh-variant-label {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.refresh-hint {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+// Container holding the GitLab link and the Refresh button side by side.
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// GitLab repository link — rendered as a button-like anchor in the page header.
+.btn-gitlab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--color-accent);
+  }
+
+  .gitlab-icon {
+    flex-shrink: 0;
+    color: #fc6d26; // GitLab orange — brand colour
+  }
+}
+
+// SonarCloud button — same shape as .btn-gitlab, orange SonarCloud brand colour
+.btn-sonar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: #f37021;
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: #f37021; // SonarCloud orange brand colour
+  }
+}
+
+.hash-link {
+  text-decoration: none;
+  &:hover code {
+    text-decoration: underline;
+  }
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.refresh-icon {
+  font-size: 1rem;
+  display: inline-block;
+  transition: transform 0.3s;
+
+  &.spinning {
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Loading / error
+// ---------------------------------------------------------------------------
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  justify-content: center;
+  color: var(--text-muted);
+
+  .spinner {
+    font-size: 1.4rem;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--color-error, #f87171);
+  color: var(--color-error, #ef4444);
+  margin-bottom: 1rem;
+}
+
+// Summary row — 4 cards
+// ---------------------------------------------------------------------------

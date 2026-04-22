@@ -1,0 +1,109 @@
+// quality.component.scss partial — _overview-cards
+// Extracted 2026-04-22 from quality.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_overview-cards';` in quality.component.scss.
+
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  // Secondary row (PMD, Checkstyle, OWASP, Pitest) — smaller gap from primary row
+  &.summary-row-secondary {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Smaller variant for secondary overview cards
+.summary-card-sm {
+  padding: 0.65rem 0.9rem;
+
+  .card-value {
+    font-size: 1.2rem;
+  }
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.6rem;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &.card-pass {
+    border-left: 4px solid #22c55e;
+  }
+
+  &.card-fail {
+    border-left: 4px solid #ef4444;
+  }
+}
+
+// Clickable card variant — used on Overview cards that navigate to a detail tab
+.summary-card-link {
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-accent, #3b82f6);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15);
+  }
+}
+
+.card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.card-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+
+  &.card-na {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+  }
+
+  &.build-version {
+    font-size: 1.1rem;
+    font-family: monospace;
+  }
+}
+
+.card-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.card-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.coverage-bar-wrap {
+  margin-top: 0.4rem;
+}
+
+// Badges
+// ---------------------------------------------------------------------------

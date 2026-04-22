@@ -1,0 +1,66 @@
+// ── History ─────────────────────────────────────────────────────────────────
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    small {
+      color: var(--text-muted);
+      font-weight: normal;
+      margin-left: 0.3rem;
+    }
+  }
+}
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 0.75rem;
+  &:last-child {
+    border-bottom: none;
+  }
+}
+.scenario-tag {
+  padding: 0.1rem 0.35rem;
+  background: var(--bg-code);
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.history-time {
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.7rem;
+}
+.history-duration {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+.history-last-log {
+  flex: 1;
+  color: var(--text-secondary);
+  font-family: monospace;
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

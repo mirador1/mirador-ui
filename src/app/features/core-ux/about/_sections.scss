@@ -1,0 +1,310 @@
+// about.component.scss partial — _sections
+// Extracted 2026-04-22 from about.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_sections';` in about.component.scss.
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.about-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  align-items: flex-start;
+
+  strong {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    display: block;
+  }
+  span {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+  }
+}
+
+.about-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: monospace;
+  }
+}
+
+// ── Port Map ────────────────────────────────────────────────────────────────
+.port-group {
+  margin-bottom: 0.75rem;
+}
+
+.port-cat-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.port-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.port-row {
+  display: grid;
+  grid-template-columns: 60px 160px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.port-num {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  background: var(--bg-code);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  text-align: right;
+}
+
+.port-name {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.port-note {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.port-auth {
+  margin-top: 0.5rem;
+  code {
+    background: var(--bg-code);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: monospace;
+  }
+}
+
+// ── run.sh Commands ─────────────────────────────────────────────────────────
+.run-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.run-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.run-cmd {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #86efac;
+  background: var(--bg-terminal);
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.run-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+// ── Technologies table ───────────────────────────────────────────────────────
+.tech-card {
+  overflow-x: auto;
+}
+
+.tech-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+
+  thead tr {
+    border-bottom: 2px solid var(--border-default);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-default);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: var(--bg-card-hover);
+    }
+  }
+
+  td {
+    padding: 0.45rem 0.6rem;
+    vertical-align: top;
+    line-height: 1.45;
+  }
+}
+
+.tech-col-name {
+  width: 140px;
+}
+.tech-col-desc {
+  width: 35%;
+}
+.tech-col-usage {
+  // fills remainder
+}
+
+.tech-name {
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+.tech-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+.tech-desc {
+  color: var(--text-secondary);
+}
+.tech-usage {
+  color: var(--text-secondary);
+}
+
+.quickstart-code {
+  background: var(--bg-terminal);
+  color: #86efac;
+  padding: 1rem;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.78rem;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.5;
+  margin: 0;
+}
+
+// ── Architecture overview table ───────────────────────────────────────────────
+.arch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+  th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 2px solid var(--border-default);
+    color: var(--text-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: top;
+  }
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+}
+.arch-col-layer {
+  width: 14%;
+}
+.arch-col-role {
+  width: 32%;
+}
+.arch-col-tech {
+  width: 54%;
+}
+.arch-layer {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.arch-role {
+  color: var(--text-secondary);
+}
+.arch-tech {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+// ── Architecture diagram ──────────────────────────────────────────────────────
+.arch-diagram {
+  display: block;
+  margin-top: 1rem;
+  border-radius: 8px;
+  background: var(--bg-terminal);
+  overflow: hidden;
+}
+
+// ── Stack links ───────────────────────────────────────────────────────────────
+.stack-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ── Port links ────────────────────────────────────────────────────────────────
+.port-link {
+  display: contents;
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover code,
+  &:hover strong {
+    text-decoration: underline;
+  }
+}
+
+// ── Compatibility / shared detail table ──────────────────────────────────────

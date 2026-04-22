@@ -1,0 +1,462 @@
+// quality.component.scss partial — _section-layout
+// Extracted 2026-04-22 from quality.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_section-layout';` in quality.component.scss.
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-pass {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.badge-fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.badge-warn {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+}
+
+.badge-ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+// Color utilities
+// ---------------------------------------------------------------------------
+.pct-good,
+.pct-ok {
+  color: #4ade80;
+}
+.pct-warn {
+  color: #facc15;
+}
+.pct-bad {
+  color: #f87171;
+}
+
+// Quality sections
+// ---------------------------------------------------------------------------
+.quality-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.6rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+}
+
+.section-icon {
+  font-size: 1.1rem;
+}
+
+.section-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+
+  &.badge-pass {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+  }
+
+  &.badge-fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+
+  &.badge-warn {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+}
+
+// Test summary line
+// ---------------------------------------------------------------------------
+.test-summary-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+
+  .sep {
+    color: var(--text-muted);
+  }
+}
+
+// Tables
+// ---------------------------------------------------------------------------
+.table-wrap {
+  overflow-x: auto;
+}
+
+.quality-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--border-default);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: middle;
+    color: var(--text-primary);
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-card-hover);
+  }
+
+  tr.row-fail td {
+    background: rgba(239, 68, 68, 0.08);
+  }
+
+  .num-col {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .pct-col {
+    width: 120px;
+    padding-right: 0.75rem;
+  }
+}
+
+.suite-name,
+.pkg-name,
+.bug-type {
+  font-family: monospace;
+  font-size: 0.825rem;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+// Coverage counters grid
+// ---------------------------------------------------------------------------
+.coverage-counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 700px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.counter-card {
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.counter-pct {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.counter-abs {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+// Coverage bars
+// ---------------------------------------------------------------------------
+.coverage-bar {
+  width: 100%;
+  height: 5px;
+  display: block;
+}
+
+.pkg-bar {
+  width: 100%;
+  height: 8px;
+  display: block;
+}
+
+// Bug section
+// ---------------------------------------------------------------------------
+.bug-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+
+  .sep {
+    color: var(--text-muted);
+  }
+}
+
+.success-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.4rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+  font-size: 0.875rem;
+}
+
+.info-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+
+  code {
+    background: var(--bg-code);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+  }
+}
+
+// Build section
+// ---------------------------------------------------------------------------
+.build-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.build-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+}
+
+.build-key {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.build-val {
+  font-size: 0.9rem;
+  font-family: monospace;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+// Access denied
+// ---------------------------------------------------------------------------
+.access-denied {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.section-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+}
+
+.hash {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+.ep-path {
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.method-badge {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-right: 2px;
+
+  &.method-get {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  &.method-post {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+  }
+  &.method-put {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+  &.method-patch {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+  }
+  &.method-delete {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+}
+
+.scope-badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  &.scope-compile {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+  }
+  &.scope-test {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  &.scope-provided {
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+  }
+  &.scope-runtime {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+}
+
+// Outdated dependency row highlight
+.row-outdated {
+  background: rgba(234, 179, 8, 0.06); // subtle amber tint for outdated rows
+}
+
+// Latest version on Maven Central
+.latest-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: #f59e0b; // amber — indicates upgrade available
+}
+
+// Violation summary badges row
+.violation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+// Ruleset chips (PMD)
+.ruleset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.ruleset-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+}
+.ruleset-name {
+  color: var(--text-secondary);
+}
+.ruleset-count {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.metrics-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+  min-width: 100px;
+}
+.metric-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+.metric-lbl {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+// Tabs

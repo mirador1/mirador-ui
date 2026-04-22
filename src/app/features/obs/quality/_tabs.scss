@@ -1,0 +1,266 @@
+// quality.component.scss partial — _tabs
+// Extracted 2026-04-22 from quality.component.scss under Phase B-7
+// (file-length hygiene). Loaded via `@use '_tabs';` in quality.component.scss.
+
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 0.5rem;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+
+  &.tab-active {
+    background: var(--bg-card);
+    border-color: var(--border-default);
+    border-bottom-color: var(--bg-card);
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-bottom: -1px;
+  }
+}
+
+.cve-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.85rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.info-label {
+  width: 130px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--text-primary);
+}
+
+.na-message {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.badge-profile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+  margin-right: 0.3rem;
+}
+
+// Per-tab bar linking to the corresponding full Maven Site report
+// ---------------------------------------------------------------------------
+.tab-maven-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.tab-maven-bar-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.tab-maven-link {
+  color: var(--color-accent, #3b82f6);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: var(--color-accent, #3b82f6);
+  }
+}
+
+// Maven Site availability badge
+// ---------------------------------------------------------------------------
+.maven-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.3rem;
+
+  &.maven-status-up {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.1);
+  }
+
+  &.maven-status-down {
+    color: var(--text-muted);
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  }
+}
+
+// Raw reports section — fixed above the tab bar
+// ---------------------------------------------------------------------------
+.maven-raw-section {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.maven-raw-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+  flex-wrap: wrap;
+}
+
+.maven-raw-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.maven-fullpage-link {
+  margin-left: auto; // push to right side of the flex row
+  font-size: 0.78rem;
+  color: var(--text-link, #60a5fa);
+  text-decoration: none;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+
+  &:hover {
+    text-decoration: underline;
+    background: var(--bg-hover);
+  }
+}
+
+.maven-raw-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+
+  code {
+    background: var(--bg-code, rgba(0, 0, 0, 0.08));
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    font-style: normal;
+    font-size: 0.78rem;
+  }
+}
+
+.maven-raw-grid {
+  display: grid;
+  // Fit as many columns as possible — each at least 180px wide
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.maven-raw-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+
+  // Last column: no right border (tricky with auto-fill — suppress with nth-child logic omitted;
+  // the slight double-border on edges is acceptable)
+}
+
+.maven-raw-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.maven-raw-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.maven-raw-btn {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.15s;
+  border: 1px solid var(--border-default);
+
+  // When available: styled as a link-button
+  &:not(.maven-raw-disabled) {
+    color: var(--color-accent, #3b82f6);
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+  }
+
+  // When not deployed: greyed out, no pointer
+  &.maven-raw-disabled {
+    color: var(--text-muted);
+    background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+    cursor: default;
+    opacity: 0.7;
+  }
+}
+
+// Pipeline status badges

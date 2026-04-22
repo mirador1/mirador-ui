@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import type { BuildReport, CheckstyleReport, PmdReport } from '../quality.component';
+import type { BuildReport, CheckstyleReport, PmdReport } from '../quality-types';
 import { entriesOf, severityColor } from '../quality-helpers';
 
 /**

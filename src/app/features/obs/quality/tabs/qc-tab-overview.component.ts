@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import type { QualityReport } from '../quality.component';
+import type { QualityReport } from '../quality-types';
 import { coverageColor } from '../quality-helpers';
 
 /**

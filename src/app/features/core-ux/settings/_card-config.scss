@@ -1,0 +1,116 @@
+// ── Card ────────────────────────────────────────────────────────────────────
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    small {
+      color: var(--text-muted);
+      font-weight: normal;
+      margin-left: 0.4rem;
+      font-size: 0.78rem;
+    }
+  }
+}
+
+// ── Config table ────────────────────────────────────────────────────────────
+.config-table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 2px solid var(--border-default);
+    color: var(--text-label);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: top;
+    color: var(--text-primary);
+  }
+}
+
+.key-cell {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  word-break: break-all;
+}
+.value-cell {
+  font-family: monospace;
+  font-size: 0.78rem;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.source-cell {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Endpoint explorer ───────────────────────────────────────────────────────
+.endpoint-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.endpoint-btn {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.82rem;
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+  &.active {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+  }
+}
+
+.result-panel {
+  background: var(--bg-terminal);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  max-height: 400px;
+  overflow: auto;
+
+  pre {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #86efac;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}

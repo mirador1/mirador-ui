@@ -1,0 +1,181 @@
+// ── SQL Explorer ────────────────────────────────────────────────────────────
+.sql-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.sql-preset {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-family: monospace;
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.sql-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background: var(--bg-terminal);
+  color: #86efac;
+  font-family: monospace;
+  font-size: 0.82rem;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.sql-run {
+  margin-top: 0.5rem;
+}
+
+.sql-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-warn);
+  color: var(--text-warn);
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+
+.card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem;
+}
+
+.ext-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+
+.ext-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: border-color 0.15s;
+
+  strong {
+    font-size: 0.88rem;
+    color: var(--color-accent);
+  }
+  small {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+// ── (block 2 — same theme, separated in the original monolith) ──────────────
+
+// ── SQL Explorer ────────────────────────────────────────────────────────────
+.sql-presets {
+  margin-bottom: 0.75rem;
+}
+.sql-cat {
+  margin-bottom: 0.5rem;
+}
+.sql-cat-label {
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.sql-cat-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.sql-preset-btn {
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.72rem;
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+.sql-editor {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+.sql-textarea {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-terminal);
+  color: #86efac;
+  font-family: monospace;
+  font-size: 0.78rem;
+  resize: vertical;
+}
+.run-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  &:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+.sql-result {
+  overflow-x: auto;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    th {
+      text-align: left;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 2px solid var(--border-default);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    td {
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-family: monospace;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+  }
+}

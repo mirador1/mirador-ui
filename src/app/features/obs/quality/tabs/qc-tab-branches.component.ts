@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import type { BranchesReport } from '../quality.component';
+import type { BranchesReport } from '../quality-types';
 
 /**
  * Branches tab — renders the `branches` section of the quality report
