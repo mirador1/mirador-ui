@@ -713,84 +713,12 @@
       <!-- end tests tab -->
 
       @if (selectedTab() === 'analysis') {
-        <!-- ================================================================== -->
-        <!-- SPOTBUGS SECTION -->
-        <!-- ================================================================== -->
-        @if (mavenSiteAvailable()) {
-          <div class="tab-maven-bar">
-            <span class="tab-maven-bar-label">Full report:</span>
-            <a
-              class="tab-maven-link"
-              [href]="mavenSiteBase + '/spotbugs.html'"
-              target="_blank"
-              rel="noopener"
-              >SpotBugs ↗</a
-            >
-          </div>
-        }
-        <section class="quality-section">
-          <h3>
-            <span class="section-icon">🐛</span>
-            SpotBugs Analysis
-          </h3>
-
-          @if (!r.bugs.available) {
-            <div class="info-card">
-              <span
-                >ℹ No SpotBugs report available. Run <code>mvn verify</code> to generate one.</span
-              >
-            </div>
-          } @else if (r.bugs.total === 0) {
-            <div class="success-card">
-              <span>✅ No bugs found — SpotBugs analysis passed cleanly.</span>
-            </div>
-          } @else {
-            <div class="bug-summary">
-              <strong>{{ r.bugs.total }}</strong> bug{{ r.bugs.total! > 1 ? 's' : '' }} found
-
-              @if (entries(r.bugs.byPriority).length > 0) {
-                <span class="sep">—</span>
-                @for (entry of entries(r.bugs.byPriority); track entry[0]) {
-                  <span class="badge badge-warn">{{ entry[0] }}: {{ entry[1] }}</span>
-                }
-              }
-            </div>
-
-            <div class="table-wrap">
-              <table class="quality-table">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Priority</th>
-                    <th>Type</th>
-                    <th>Class</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (bug of r.bugs.items; track $index) {
-                    <tr>
-                      <td>
-                        <span class="badge badge-warn">{{ bug.category }}</span>
-                      </td>
-                      <td
-                        [class.pct-bad]="bug.priority === '1'"
-                        [class.pct-warn]="bug.priority === '2'"
-                      >
-                        {{
-                          bug.priority === '1' ? 'High' : bug.priority === '2' ? 'Normal' : 'Low'
-                        }}
-                      </td>
-                      <td class="bug-type">{{ bug.type }}</td>
-                      <td class="muted">{{ bug.className }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </section>
+        <qc-tab-analysis
+          [bugsReport]="r.bugs"
+          [mavenSiteAvailable]="mavenSiteAvailable()"
+          [mavenSiteBase]="mavenSiteBase"
+        />
       }
-      <!-- end mutation tab -->
 
       @if (selectedTab() === 'build') {
         <!-- ================================================================== -->
@@ -990,106 +918,12 @@
       <!-- end analysis tab -->
 
       @if (selectedTab() === 'security') {
-        <!-- ================================================================== -->
-        <!-- OWASP CVE SECTION -->
-        <!-- ================================================================== -->
-        @if (mavenSiteAvailable()) {
-          <div class="tab-maven-bar">
-            <span class="tab-maven-bar-label">Full report:</span>
-            <a
-              class="tab-maven-link"
-              [href]="mavenSiteBase + '/dependency-check-report.html'"
-              target="_blank"
-              rel="noopener"
-              >CVE Scan ↗</a
-            >
-          </div>
-        }
-        @if (r.owasp) {
-          <section class="quality-section">
-            <h3>
-              <span class="section-icon">🛡️</span>
-              OWASP Dependency Check
-              @if (r.owasp.available) {
-                <span class="section-count">{{ r.owasp.total }} CVEs</span>
-                <span
-                  class="section-badge"
-                  [class.badge-pass]="r.owasp.total === 0"
-                  [class.badge-fail]="r.owasp.total! > 0"
-                >
-                  {{ r.owasp.total === 0 ? 'CLEAN' : 'VULNERABLE' }}
-                </span>
-              }
-            </h3>
-
-            @if (!r.owasp.available) {
-              <div class="info-card">
-                ℹ Run <code>./run.sh security-check</code> to generate the CVE report.
-              </div>
-            } @else if (r.owasp.total === 0) {
-              <div class="success-card">✅ No known vulnerabilities found in dependencies.</div>
-            } @else {
-              <div class="violation-summary">
-                @for (entry of entries(r.owasp.bySeverity); track entry[0]) {
-                  <span class="badge" [class]="'badge-' + severityColor(entry[0])"
-                    >{{ entry[0] }}: {{ entry[1] }}</span
-                  >
-                }
-              </div>
-              <div class="table-wrap" style="margin-top: 0.75rem">
-                <table class="quality-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 13em; white-space: nowrap">CVE</th>
-                      <th style="width: 6em">Severity</th>
-                      <th style="width: 4em">Score</th>
-                      <th>Dependency</th>
-                      <th>Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (v of r.owasp.vulnerabilities; track v.cve) {
-                      <tr>
-                        <td>
-                          <a
-                            [href]="nvdUrl(v.cve)"
-                            target="_blank"
-                            rel="noopener"
-                            class="hash cve-link"
-                            >{{ v.cve }}</a
-                          >
-                        </td>
-                        <td [class]="'pct-' + severityColor(v.severity)">
-                          <strong>{{ v.severity }}</strong>
-                        </td>
-                        <td
-                          class="num-col"
-                          [class.pct-bad]="v.score >= 7"
-                          [class.pct-warn]="v.score >= 4 && v.score < 7"
-                        >
-                          {{ v.score | number: '1.1-1' }}
-                        </td>
-                        <td class="muted" style="font-size: 0.78rem">{{ v.dependency }}</td>
-                        <td
-                          style="
-                            font-size: 0.78rem;
-                            max-width: 400px;
-                            overflow-wrap: break-word;
-                            word-break: break-word;
-                          "
-                        >
-                          {{ v.description }}
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          </section>
-        }
+        <qc-tab-security
+          [owaspReport]="r.owasp"
+          [mavenSiteAvailable]="mavenSiteAvailable()"
+          [mavenSiteBase]="mavenSiteBase"
+        />
       }
-      <!-- end security tab -->
 
       @if (selectedTab() === 'mutation') {
         <!-- ================================================================== -->
@@ -1574,64 +1408,8 @@
       <!-- end build tab -->
 
       @if (selectedTab() === 'runtime') {
-        <!-- Runtime section: active profiles, JVM uptime, JAR layers -->
-        <section class="report-section">
-          <h3>Runtime</h3>
-          @if (r.runtime?.available) {
-            <div class="info-grid">
-              <div class="info-row">
-                <span class="info-label">Active Profiles</span>
-                <span class="info-value">
-                  @for (profile of r.runtime!.activeProfiles; track profile) {
-                    <span class="badge badge-profile">{{ profile }}</span>
-                  }
-                </span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Uptime</span>
-                <span class="info-value">{{ r.runtime!.uptimeHuman }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Started At</span>
-                <span class="info-value">{{ r.runtime!.startedAt }}</span>
-              </div>
-              @if (r.runtime!.startupDurationMs) {
-                <div class="info-row">
-                  <span class="info-label">Startup Time</span>
-                  <span class="info-value"
-                    >{{ r.runtime!.startupDurationSeconds!.toFixed(2) }}s</span
-                  >
-                </div>
-              }
-            </div>
-
-            @if (r.runtime!.jarLayers && r.runtime!.jarLayers!.length > 0) {
-              <h4>JAR Layers</h4>
-              <div class="table-wrap">
-                <table class="report-table">
-                  <thead>
-                    <tr>
-                      <th>Layer</th>
-                      <th class="num-col">Entries</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (layer of r.runtime!.jarLayers; track layer.name) {
-                      <tr>
-                        <td>{{ layer.name }}</td>
-                        <td class="num-col">{{ layer.entries }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          } @else {
-            <p class="na-message">Runtime info not available.</p>
-          }
-        </section>
+        <qc-tab-runtime [runtime]="r.runtime" />
       }
-      <!-- end runtime tab -->
 
       @if (selectedTab() === 'pipeline') {
         <qc-tab-pipeline />

@@ -15,6 +15,9 @@ import { EnvService } from '../../../core/env/env.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { QcTabPipelineComponent } from './tabs/qc-tab-pipeline.component';
 import { QcTabBranchesComponent } from './tabs/qc-tab-branches.component';
+import { QcTabRuntimeComponent } from './tabs/qc-tab-runtime.component';
+import { QcTabSecurityComponent } from './tabs/qc-tab-security.component';
+import { QcTabAnalysisComponent } from './tabs/qc-tab-analysis.component';
 
 /**
  * A slow test entry from the Surefire report.
@@ -536,7 +539,15 @@ export interface MavenSiteReport {
 @Component({
   selector: 'app-quality',
   standalone: true,
-  imports: [DecimalPipe, RouterLink, QcTabPipelineComponent, QcTabBranchesComponent],
+  imports: [
+    DecimalPipe,
+    RouterLink,
+    QcTabPipelineComponent,
+    QcTabBranchesComponent,
+    QcTabRuntimeComponent,
+    QcTabSecurityComponent,
+    QcTabAnalysisComponent,
+  ],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })
