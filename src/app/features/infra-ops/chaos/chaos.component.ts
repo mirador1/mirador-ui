@@ -26,38 +26,7 @@ import { EnvService } from '../../../core/env/env.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ActivityService } from '../../../core/activity/activity.service';
-
-/**
- * Definition of a single chaos engineering action shown as a button in the UI.
- * The `action` callback performs the actual HTTP calls when the button is clicked.
- */
-interface ChaosAction {
-  /** Short label displayed on the button. */
-  name: string;
-  /** Explanation of what the action does and which backend behavior it triggers. */
-  description: string;
-  /** Emoji icon displayed on the button for quick visual identification. */
-  icon: string;
-  /** CSS color string for the button border/glow effect. */
-  color: string;
-  /** Callback executed when the user clicks the action button. */
-  action: () => void;
-}
-
-/**
- * A single impact monitoring sample from the 2-second health poll.
- * Used to build the live stacked bar chart (OK vs errors over time).
- */
-interface ImpactSample {
-  /** Wall-clock time of this sample. */
-  time: Date;
-  /** Number of health probe requests that returned 2xx in this sample. */
-  ok: number;
-  /** Number of health probe requests that returned non-2xx in this sample. */
-  errors: number;
-  /** Average response latency in milliseconds across all probes in this sample. */
-  avgMs: number;
-}
+import type { ChaosAction, ImpactSample } from './chaos-types';
 
 @Component({
   selector: 'app-chaos',
