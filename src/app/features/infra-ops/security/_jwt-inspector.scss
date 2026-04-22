@@ -1,0 +1,70 @@
+// ── JWT Inspector ─────────────────────────────────────────────────────────────
+.jwt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.jwt-section {
+  background: var(--card-bg, #1e2330);
+  border: 1px solid var(--border, #2d3447);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+
+  &.jwt-section-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.jwt-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 0.5rem;
+}
+
+.jwt-claims {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.jwt-claim {
+  display: grid;
+  grid-template-columns: 50px 1fr 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &.jwt-claim-expired {
+    background: rgba(185, 28, 28, 0.15);
+    border-radius: 4px;
+  }
+}
+
+.jwt-claim-key {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--accent, #6366f1);
+  font-weight: 600;
+}
+
+.jwt-claim-value {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  word-break: break-all;
+}
+
+.jwt-claim-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted, #9ca3af);
+}
