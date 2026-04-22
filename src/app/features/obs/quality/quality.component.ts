@@ -9,10 +9,19 @@
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EnvService } from '../../../core/env/env.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { QcTabPipelineComponent } from './tabs/qc-tab-pipeline.component';
+import { QcTabBranchesComponent } from './tabs/qc-tab-branches.component';
+import { QcTabRuntimeComponent } from './tabs/qc-tab-runtime.component';
+import { QcTabSecurityComponent } from './tabs/qc-tab-security.component';
+import { QcTabAnalysisComponent } from './tabs/qc-tab-analysis.component';
+import { QcTabBuildComponent } from './tabs/qc-tab-build.component';
+import { QcTabMutationComponent } from './tabs/qc-tab-mutation.component';
+import { QcTabTestsComponent } from './tabs/qc-tab-tests.component';
+import { QcTabOverviewComponent } from './tabs/qc-tab-overview.component';
+import { gitWebUrl } from './quality-helpers';
 
 /**
  * A slow test entry from the Surefire report.
@@ -534,7 +543,18 @@ export interface MavenSiteReport {
 @Component({
   selector: 'app-quality',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [
+    RouterLink,
+    QcTabPipelineComponent,
+    QcTabBranchesComponent,
+    QcTabRuntimeComponent,
+    QcTabSecurityComponent,
+    QcTabAnalysisComponent,
+    QcTabBuildComponent,
+    QcTabMutationComponent,
+    QcTabTestsComponent,
+    QcTabOverviewComponent,
+  ],
   templateUrl: './quality.component.html',
   styleUrl: './quality.component.scss',
 })
@@ -647,73 +667,11 @@ export class QualityComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Returns a CSS color class based on coverage percentage. */
-  coverageColor(pct: number): string {
-    if (pct >= 70) return 'good';
-    if (pct >= 50) return 'warn';
-    return 'bad';
-  }
-
-  /** Returns object entries from a Record for iteration in templates. */
-  entries(obj: Record<string, number> | undefined): [string, number][] {
-    if (!obj) return [];
-    return Object.entries(obj);
-  }
-
-  /**
-   * Map a severity string to a CSS color class for badge styling.
-   * Accepts both CVSS severity names (CRITICAL/HIGH/MEDIUM) and numeric PMD priorities (1/2/3).
-   *
-   * @param severity Severity string or priority number.
-   * @returns CSS class: `'bad'`=red, `'warn'`=orange, `'ok'`=green/gray.
-   */
-  severityColor(severity: string): string {
-    const s = severity.toUpperCase();
-    if (s === 'CRITICAL' || s === 'HIGH' || s === '1') return 'bad';
-    if (s === 'MEDIUM' || s === 'WARNING' || s === '2') return 'warn';
-    return 'ok';
-  }
-
-  /**
-   * Convert a numeric SpotBugs/PMD priority to a human-readable label.
-   *
-   * @param p Priority string: `'1'`, `'2'`, or other.
-   * @returns `'High'`, `'Medium'`, or `'Low'`.
-   */
-  priorityLabel(p: string): string {
-    return p === '1' ? 'High' : p === '2' ? 'Medium' : 'Low';
-  }
-
-  /**
-   * Build the NVD (National Vulnerability Database) detail URL for a CVE ID.
-   *
-   * @param cve CVE identifier string (e.g., `'CVE-2023-12345'`).
-   * @returns Full NVD URL for the CVE.
-   */
-  nvdUrl(cve: string): string {
-    return `https://nvd.nist.gov/vuln/detail/${cve}`;
-  }
-
-  /**
-   * Converts a git remote URL (SSH or HTTPS) to a browseable web URL.
-   * e.g. git@gitlab.com:foo/bar.git  → https://gitlab.com/foo/bar
-   *      https://gitlab.com/foo/bar  → https://gitlab.com/foo/bar
-   */
-  gitWebUrl(remoteUrl: string): string {
-    // SSH format: git@host:path.git
-    const ssh = remoteUrl.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
-    if (ssh) return `https://${ssh[1]}/${ssh[2]}`;
-    // HTTPS format: https://host/path.git
-    return remoteUrl.replace(/\.git$/, '');
-  }
-
-  /** Returns the commit URL for a given hash on the git remote. */
-  commitUrl(remoteUrl: string, hash: string): string {
-    const base = this.gitWebUrl(remoteUrl);
-    // GitLab and GitHub both use /-/commit/<hash>... but GitHub uses /commit/<hash>
-    if (base.includes('gitlab')) return `${base}/-/commit/${hash}`;
-    return `${base}/commit/${hash}`;
-  }
+  // Format helpers (severityColor, priorityLabel, nvdUrl, entriesOf,
+  // coverageColor, commitUrl) moved to ./quality-helpers.ts under Phase B-5
+  // — each tab child imports what it needs locally. The parent only uses
+  // gitWebUrl in its template (GitLab button link), exposed below.
+  readonly gitWebUrl = gitWebUrl;
 
   checkMavenSite(): void {
     // Probe the Maven site server (dedicated nginx at mavenSiteUrl, or backend fallback).
