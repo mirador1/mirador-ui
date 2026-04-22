@@ -8,7 +8,8 @@
  *
  * SQL Explorer has moved to DatabaseComponent (/database).
  */
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -34,6 +35,11 @@ export class SettingsComponent implements OnInit {
   /** Feature flags from unleash-proxy — isAvailable() false on Local compose. */
   readonly flags = inject(FeatureFlagService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /** Flag names sorted alphabetically for deterministic rendering.
    *  Explicit `localeCompare` — JS `Array.sort()` with no comparator coerces
    *  to string and uses UTF-16 code-unit order, which is locale-unaware
@@ -104,45 +110,54 @@ export class SettingsComponent implements OnInit {
     this.error.set('');
     const base = this.env.baseUrl();
 
-    this.http.get(`${base}/actuator/info`).subscribe({
-      next: (v) => {
-        this.actuatorInfo.set(v);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Could not reach Actuator endpoints');
-        this.loading.set(false);
-      },
-    });
+    this.http
+      .get(`${base}/actuator/info`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => {
+          this.actuatorInfo.set(v);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Could not reach Actuator endpoints');
+          this.loading.set(false);
+        },
+      });
 
-    this.http.get<ActuatorEnv>(`${base}/actuator/env`).subscribe({
-      next: (v) => {
-        this.actuatorEnv.set(v);
-      },
-      // /actuator/env is restricted to ROLE_ADMIN — anonymous or basic-auth
-      // sessions get 401/403. Surface the failure as a left-pane null state
-      // (the template renders "—" when actuatorEnv is null) rather than a
-      // toast (it's not actionable for non-admin users).
-      error: () => {
-        this.actuatorEnv.set(null);
-      },
-    });
+    this.http
+      .get<ActuatorEnv>(`${base}/actuator/env`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => {
+          this.actuatorEnv.set(v);
+        },
+        // /actuator/env is restricted to ROLE_ADMIN — anonymous or basic-auth
+        // sessions get 401/403. Surface the failure as a left-pane null state
+        // (the template renders "—" when actuatorEnv is null) rather than a
+        // toast (it's not actionable for non-admin users).
+        error: () => {
+          this.actuatorEnv.set(null);
+        },
+      });
 
-    this.http.get<ActuatorBeans>(`${base}/actuator/beans`).subscribe({
-      next: (v) => {
-        const ctx = Object.values(v.contexts ?? {});
-        let count = 0;
-        for (const c of ctx) {
-          count += Object.keys(c.beans ?? {}).length;
-        }
-        this.actuatorBeans.set(count);
-      },
-      // Same rationale as above: /actuator/beans requires ROLE_ADMIN.
-      // We reset the count to 0 to indicate "unknown / not authorised".
-      error: () => {
-        this.actuatorBeans.set(0);
-      },
-    });
+    this.http
+      .get<ActuatorBeans>(`${base}/actuator/beans`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => {
+          const ctx = Object.values(v.contexts ?? {});
+          let count = 0;
+          for (const c of ctx) {
+            count += Object.keys(c.beans ?? {}).length;
+          }
+          this.actuatorBeans.set(count);
+        },
+        // Same rationale as above: /actuator/beans requires ROLE_ADMIN.
+        // We reset the count to 0 to indicate "unknown / not authorised".
+        error: () => {
+          this.actuatorBeans.set(0);
+        },
+      });
   }
 
   // ── Endpoint explorer ─────────────────────────────────────────────────────
@@ -154,9 +169,28 @@ export class SettingsComponent implements OnInit {
     const isText = path.includes('prometheus');
 
     if (isText) {
-      this.http.get(`${this.env.baseUrl()}${path}`, { responseType: 'text' }).subscribe({
+      this.http
+        .get(`${this.env.baseUrl()}${path}`, { responseType: 'text' })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (v) => {
+            this.endpointResult.set(v);
+            this.endpointLoading.set(false);
+          },
+          error: (e) => {
+            this.endpointResult.set(`Error ${e.status}: ${e.message}`);
+            this.endpointLoading.set(false);
+          },
+        });
+      return;
+    }
+
+    this.http
+      .get(`${this.env.baseUrl()}${path}`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
         next: (v) => {
-          this.endpointResult.set(v);
+          this.endpointResult.set(JSON.stringify(v, null, 2));
           this.endpointLoading.set(false);
         },
         error: (e) => {
@@ -164,19 +198,6 @@ export class SettingsComponent implements OnInit {
           this.endpointLoading.set(false);
         },
       });
-      return;
-    }
-
-    this.http.get(`${this.env.baseUrl()}${path}`).subscribe({
-      next: (v) => {
-        this.endpointResult.set(JSON.stringify(v, null, 2));
-        this.endpointLoading.set(false);
-      },
-      error: (e) => {
-        this.endpointResult.set(`Error ${e.status}: ${e.message}`);
-        this.endpointLoading.set(false);
-      },
-    });
   }
 
   // ── Loggers ───────────────────────────────────────────────────────────────
@@ -186,6 +207,7 @@ export class SettingsComponent implements OnInit {
       .get<{
         loggers: Record<string, { effectiveLevel: string }>;
       }>(`${this.env.baseUrl()}/actuator/loggers`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (v) => {
           const entries = Object.entries(v.loggers ?? {})
@@ -204,6 +226,7 @@ export class SettingsComponent implements OnInit {
   setLoggerLevel(name: string, level: string): void {
     this.http
       .post(`${this.env.baseUrl()}/actuator/loggers/${name}`, { configuredLevel: level })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.toast.show(`Logger "${name}" set to ${level}`, 'success');
@@ -233,16 +256,19 @@ export class SettingsComponent implements OnInit {
     const token = this.auth.token();
     const headers = new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
 
-    this.http.get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers }).subscribe({
-      next: (jobs) => {
-        this.scheduledJobs.set(jobs);
-        this.scheduledJobsLoading.set(false);
-      },
-      error: (e) => {
-        this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
-        this.scheduledJobsLoading.set(false);
-      },
-    });
+    this.http
+      .get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (jobs) => {
+          this.scheduledJobs.set(jobs);
+          this.scheduledJobsLoading.set(false);
+        },
+        error: (e) => {
+          this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
+          this.scheduledJobsLoading.set(false);
+        },
+      });
   }
 
   /** A job is "active" (locked) when lockUntil is in the future */

@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -26,6 +27,11 @@ export class MavenSiteFullComponent implements OnInit {
   private readonly env = inject(EnvService);
   private readonly sanitizer = inject(DomSanitizer);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   readonly available = signal<boolean | null>(null); // null = loading
 
   /** Raw URL string — used for the anchor href and the availability probe. */
@@ -47,6 +53,7 @@ export class MavenSiteFullComponent implements OnInit {
   ngOnInit(): void {
     this.http
       .get(`${this.siteUrl}/index.html`, { responseType: 'text', observe: 'response' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.available.set(true),
         error: () => this.available.set(false),

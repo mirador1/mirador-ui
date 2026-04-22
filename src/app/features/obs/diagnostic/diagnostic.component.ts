@@ -15,7 +15,8 @@
  * "Run All" executes scenarios 1-5 sequentially (polls `running` signal).
  * History is kept in-memory (last 50 runs) and exportable as JSON.
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -65,6 +66,11 @@ export class DiagnosticComponent {
   private readonly activity = inject(ActivityService);
   private readonly env = inject(EnvService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   readonly Math = Math;
 
   // ── Run history ────────────────────────────────────────────────────────────
@@ -83,7 +89,10 @@ export class DiagnosticComponent {
 
     forkJoin({
       v1: this.api.getCustomers(0, 3, '1.0').pipe(catchError((e) => of({ error: e.status }))),
-      v2: this.api.getCustomers(0, 3, '2.0').pipe(catchError((e) => of({ error: e.status }))),
+      v2: this.api.getCustomers(0, 3, '2.0').pipe(
+        catchError((e) => of({ error: e.status })),
+        takeUntilDestroyed(this.destroyRef),
+      ),
     }).subscribe(({ v1, v2 }) => {
       const logs: LogLine[] = [
         ...this.versionLog(),
@@ -128,48 +137,57 @@ export class DiagnosticComponent {
       { kind: 'req', text: `[${ts()}] POST /customers  (request 1)` },
     ]);
 
-    this.api.createCustomer(payload, key).subscribe({
-      next: (r1) => {
-        this.idemLog.update((l) => [
-          ...l,
-          { kind: 'res', text: `201 → id=${r1.id}  name=${r1.name}` },
-          { kind: 'req', text: `[${ts()}] POST /customers  (request 2 — same key)` },
-        ]);
-        this.api.createCustomer(payload, key).subscribe({
-          next: (r2) => {
-            const match = r1.id === r2.id;
-            const logs: LogLine[] = [
-              ...this.idemLog(),
-              { kind: 'res', text: `${match ? '200' : '201'} → id=${r2.id}  name=${r2.name}` },
-              {
-                kind: match ? 'info' : 'err',
-                text: match
-                  ? '✓ Same ID returned — idempotency cache hit, no duplicate created.'
-                  : '⚠ Different ID — idempotency did not fire (key may have expired).',
+    this.api
+      .createCustomer(payload, key)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r1) => {
+          this.idemLog.update((l) => [
+            ...l,
+            { kind: 'res', text: `201 → id=${r1.id}  name=${r1.name}` },
+            { kind: 'req', text: `[${ts()}] POST /customers  (request 2 — same key)` },
+          ]);
+          this.api
+            .createCustomer(payload, key)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (r2) => {
+                const match = r1.id === r2.id;
+                const logs: LogLine[] = [
+                  ...this.idemLog(),
+                  { kind: 'res', text: `${match ? '200' : '201'} → id=${r2.id}  name=${r2.name}` },
+                  {
+                    kind: match ? 'info' : 'err',
+                    text: match
+                      ? '✓ Same ID returned — idempotency cache hit, no duplicate created.'
+                      : '⚠ Different ID — idempotency did not fire (key may have expired).',
+                  },
+                ];
+                this.idemLog.set(logs);
+                this.idemRunning.set(false);
+                this.recordRun('Idempotency', logs, Date.now() - t0);
               },
-            ];
-            this.idemLog.set(logs);
-            this.idemRunning.set(false);
-            this.recordRun('Idempotency', logs, Date.now() - t0);
-          },
-          error: (e) => {
-            const logs = [...this.idemLog(), { kind: 'err' as const, text: `Error ${e.status}` }];
-            this.idemLog.set(logs);
-            this.idemRunning.set(false);
-            this.recordRun('Idempotency', logs, Date.now() - t0);
-          },
-        });
-      },
-      error: (e) => {
-        const logs = [
-          ...this.idemLog(),
-          { kind: 'err' as const, text: `Error ${e.status}: ${e.error?.detail ?? e.message}` },
-        ];
-        this.idemLog.set(logs);
-        this.idemRunning.set(false);
-        this.recordRun('Idempotency', logs, Date.now() - t0);
-      },
-    });
+              error: (e) => {
+                const logs = [
+                  ...this.idemLog(),
+                  { kind: 'err' as const, text: `Error ${e.status}` },
+                ];
+                this.idemLog.set(logs);
+                this.idemRunning.set(false);
+                this.recordRun('Idempotency', logs, Date.now() - t0);
+              },
+            });
+        },
+        error: (e) => {
+          const logs = [
+            ...this.idemLog(),
+            { kind: 'err' as const, text: `Error ${e.status}: ${e.error?.detail ?? e.message}` },
+          ];
+          this.idemLog.set(logs);
+          this.idemRunning.set(false);
+          this.recordRun('Idempotency', logs, Date.now() - t0);
+        },
+      });
   }
 
   // ── 3. Rate Limiting ───────────────────────────────────────────────────────
@@ -185,9 +203,10 @@ export class DiagnosticComponent {
     ]);
 
     const requests = Array.from({ length: this.rateLimitCount }, (_, i) =>
-      this.api
-        .getCustomers(0, 1)
-        .pipe(catchError((e) => of({ __error: e.status as number, index: i }))),
+      this.api.getCustomers(0, 1).pipe(
+        catchError((e) => of({ __error: e.status as number, index: i })),
+        takeUntilDestroyed(this.destroyRef),
+      ),
     );
 
     forkJoin(requests).subscribe((results) => {
@@ -235,35 +254,38 @@ export class DiagnosticComponent {
       },
     ]);
 
-    this.api.enrichCustomer(id).subscribe({
-      next: (r) => {
-        const elapsed = Date.now() - t0;
-        const logs: LogLine[] = [
-          ...this.enrichLog(),
-          { kind: 'res', text: `200 in ${elapsed} ms → displayName: "${r.displayName}"` },
-          { kind: 'res', text: JSON.stringify(r, null, 2) },
-        ];
-        this.enrichLog.set(logs);
-        this.enrichRunning.set(false);
-        this.recordRun('Kafka Enrich', logs, elapsed);
-      },
-      error: (e) => {
-        const elapsed = Date.now() - t0;
-        const logs: LogLine[] = [
-          ...this.enrichLog(),
-          {
-            kind: 'err',
-            text:
-              e.status === 504
-                ? `504 after ${elapsed} ms — Kafka reply timed out (consumer not running?)`
-                : `${e.status} after ${elapsed} ms`,
-          },
-        ];
-        this.enrichLog.set(logs);
-        this.enrichRunning.set(false);
-        this.recordRun('Kafka Enrich', logs, elapsed);
-      },
-    });
+    this.api
+      .enrichCustomer(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          const elapsed = Date.now() - t0;
+          const logs: LogLine[] = [
+            ...this.enrichLog(),
+            { kind: 'res', text: `200 in ${elapsed} ms → displayName: "${r.displayName}"` },
+            { kind: 'res', text: JSON.stringify(r, null, 2) },
+          ];
+          this.enrichLog.set(logs);
+          this.enrichRunning.set(false);
+          this.recordRun('Kafka Enrich', logs, elapsed);
+        },
+        error: (e) => {
+          const elapsed = Date.now() - t0;
+          const logs: LogLine[] = [
+            ...this.enrichLog(),
+            {
+              kind: 'err',
+              text:
+                e.status === 504
+                  ? `504 after ${elapsed} ms — Kafka reply timed out (consumer not running?)`
+                  : `${e.status} after ${elapsed} ms`,
+            },
+          ];
+          this.enrichLog.set(logs);
+          this.enrichRunning.set(false);
+          this.recordRun('Kafka Enrich', logs, elapsed);
+        },
+      });
   }
 
   // ── 5. Aggregate (Virtual Threads) ─────────────────────────────────────────
@@ -281,28 +303,31 @@ export class DiagnosticComponent {
       },
     ]);
 
-    this.api.getAggregate().subscribe({
-      next: (r) => {
-        const elapsed = Date.now() - t0;
-        const logs: LogLine[] = [
-          ...this.aggregateLog(),
-          { kind: 'res', text: `200 in ${elapsed} ms` },
-          { kind: 'res', text: JSON.stringify(r, null, 2) },
-        ];
-        this.aggregateLog.set(logs);
-        this.aggregateRunning.set(false);
-        this.recordRun('Virtual Threads', logs, elapsed);
-      },
-      error: (e) => {
-        const logs: LogLine[] = [
-          ...this.aggregateLog(),
-          { kind: 'err', text: `${e.status}: ${e.message}` },
-        ];
-        this.aggregateLog.set(logs);
-        this.aggregateRunning.set(false);
-        this.recordRun('Virtual Threads', logs, Date.now() - t0);
-      },
-    });
+    this.api
+      .getAggregate()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          const elapsed = Date.now() - t0;
+          const logs: LogLine[] = [
+            ...this.aggregateLog(),
+            { kind: 'res', text: `200 in ${elapsed} ms` },
+            { kind: 'res', text: JSON.stringify(r, null, 2) },
+          ];
+          this.aggregateLog.set(logs);
+          this.aggregateRunning.set(false);
+          this.recordRun('Virtual Threads', logs, elapsed);
+        },
+        error: (e) => {
+          const logs: LogLine[] = [
+            ...this.aggregateLog(),
+            { kind: 'err', text: `${e.status}: ${e.message}` },
+          ];
+          this.aggregateLog.set(logs);
+          this.aggregateRunning.set(false);
+          this.recordRun('Virtual Threads', logs, Date.now() - t0);
+        },
+      });
   }
 
   // ── 6. Version Diff ────────────────────────────────────────────────────────
@@ -332,7 +357,10 @@ export class DiagnosticComponent {
     this.versionDiff.set([]);
     forkJoin({
       v1: this.api.getCustomers(0, 1, '1.0').pipe(catchError((e) => of({ error: e.status }))),
-      v2: this.api.getCustomers(0, 1, '2.0').pipe(catchError((e) => of({ error: e.status }))),
+      v2: this.api.getCustomers(0, 1, '2.0').pipe(
+        catchError((e) => of({ error: e.status })),
+        takeUntilDestroyed(this.destroyRef),
+      ),
     }).subscribe(({ v1, v2 }) => {
       const c1 = (v1 as { content?: unknown[] }).content?.[0] ?? v1;
       const c2 = (v2 as { content?: unknown[] }).content?.[0] ?? v2;
@@ -512,16 +540,19 @@ export class DiagnosticComponent {
     const base = this.env.baseUrl();
     const token = this.auth.token();
     const headers = new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
-    this.http.get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers }).subscribe({
-      next: (jobs) => {
-        this.scheduledJobs.set(jobs);
-        this.scheduledJobsLoading.set(false);
-      },
-      error: (e) => {
-        this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
-        this.scheduledJobsLoading.set(false);
-      },
-    });
+    this.http
+      .get<ScheduledJob[]>(`${base}/scheduled/jobs`, { headers })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (jobs) => {
+          this.scheduledJobs.set(jobs);
+          this.scheduledJobsLoading.set(false);
+        },
+        error: (e) => {
+          this.scheduledJobsError.set(`Error ${e.status}: ${e.message}`);
+          this.scheduledJobsLoading.set(false);
+        },
+      });
   }
 
   isJobActive(job: ScheduledJob): boolean {
@@ -584,42 +615,45 @@ export class DiagnosticComponent {
   sankeyFlows = signal<SankeyFlow[]>([]);
 
   fetchSankeyData(): void {
-    this.http.get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' }).subscribe({
-      next: (text) => {
-        const flows: SankeyFlow[] = [];
-        const regex =
-          /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
-        let m;
-        const byEndpoint: Record<string, Record<string, number>> = {};
-        while ((m = regex.exec(text)) !== null) {
-          const uri = m[3];
-          const status = m[2][0] + 'xx';
-          const count = parseFloat(m[4]);
-          if (!byEndpoint[uri]) byEndpoint[uri] = {};
-          byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
-        }
-        const colors: Record<string, string> = {
-          '2xx': '#4ade80',
-          '3xx': '#60a5fa',
-          '4xx': '#fbbf24',
-          '5xx': '#f87171',
-        };
-        for (const [uri, statuses] of Object.entries(byEndpoint)) {
-          for (const [status, count] of Object.entries(statuses)) {
-            if (count > 0) {
-              flows.push({
-                from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
-                to: status,
-                value: count,
-                color: colors[status] || '#94a3b8',
-              });
+    this.http
+      .get(`${this.env.baseUrl()}/actuator/prometheus`, { responseType: 'text' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (text) => {
+          const flows: SankeyFlow[] = [];
+          const regex =
+            /http_server_requests_seconds_count\{[^}]*method="(\w+)"[^}]*status="(\d+)"[^}]*uri="([^"]+)"[^}]*\}\s+(\d+\.?\d*)/g;
+          let m;
+          const byEndpoint: Record<string, Record<string, number>> = {};
+          while ((m = regex.exec(text)) !== null) {
+            const uri = m[3];
+            const status = m[2][0] + 'xx';
+            const count = parseFloat(m[4]);
+            if (!byEndpoint[uri]) byEndpoint[uri] = {};
+            byEndpoint[uri][status] = (byEndpoint[uri][status] || 0) + count;
+          }
+          const colors: Record<string, string> = {
+            '2xx': '#4ade80',
+            '3xx': '#60a5fa',
+            '4xx': '#fbbf24',
+            '5xx': '#f87171',
+          };
+          for (const [uri, statuses] of Object.entries(byEndpoint)) {
+            for (const [status, count] of Object.entries(statuses)) {
+              if (count > 0) {
+                flows.push({
+                  from: uri.length > 25 ? uri.slice(0, 25) + '...' : uri,
+                  to: status,
+                  value: count,
+                  color: colors[status] || '#94a3b8',
+                });
+              }
             }
           }
-        }
-        flows.sort((a, b) => b.value - a.value);
-        this.sankeyFlows.set(flows.slice(0, 20));
-      },
-    });
+          flows.sort((a, b) => b.value - a.value);
+          this.sankeyFlows.set(flows.slice(0, 20));
+        },
+      });
   }
 
   sankeyMaxValue(): number {

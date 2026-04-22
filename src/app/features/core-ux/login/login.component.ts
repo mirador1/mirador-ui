@@ -7,7 +7,8 @@
  * 2. Local JWT form (development) — calls POST /auth/login on the Spring Boot backend.
  *    Default credentials: admin / admin.
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -28,6 +29,11 @@ export class LoginComponent {
   private readonly auth0 = inject(Auth0Service);
   private readonly router = inject(Router);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /** Pre-filled username — default `admin` matches the Spring Boot in-memory user. */
   username = 'admin';
 
@@ -74,36 +80,41 @@ export class LoginComponent {
     this.loading.set(true);
     this.error.set('');
     this.errorType.set('');
-    this.api.login(this.username, this.password).subscribe({
-      next: ({ accessToken, refreshToken }) => {
-        this.auth.setTokens(accessToken, refreshToken);
-        this.router.navigateByUrl('/');
-      },
-      error: (err: HttpErrorResponse) => {
-        this.loading.set(false);
-        if (!err.status || err.status === 0) {
-          // Network error — backend unreachable
-          this.errorType.set('backend');
-          this.error.set('Backend unreachable — is the backend server running on localhost:8080?');
-        } else if (err.status === 429) {
-          this.errorType.set('blocked');
-          const minutes = err.error?.retryAfterMinutes ?? 15;
-          this.error.set(
-            `Too many failed attempts — account locked for ${minutes} min. Try again later.`,
-          );
-        } else if (err.status === 401) {
-          this.errorType.set('credentials');
-          const remaining = err.error?.remainingAttempts;
-          this.error.set(
-            remaining != null
-              ? `Wrong credentials — ${remaining} attempt${remaining !== 1 ? 's' : ''} left before lockout.`
-              : 'Wrong username or password.',
-          );
-        } else {
-          this.errorType.set('backend');
-          this.error.set(`Unexpected error (HTTP ${err.status}) — check backend logs.`);
-        }
-      },
-    });
+    this.api
+      .login(this.username, this.password)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ accessToken, refreshToken }) => {
+          this.auth.setTokens(accessToken, refreshToken);
+          this.router.navigateByUrl('/');
+        },
+        error: (err: HttpErrorResponse) => {
+          this.loading.set(false);
+          if (!err.status || err.status === 0) {
+            // Network error — backend unreachable
+            this.errorType.set('backend');
+            this.error.set(
+              'Backend unreachable — is the backend server running on localhost:8080?',
+            );
+          } else if (err.status === 429) {
+            this.errorType.set('blocked');
+            const minutes = err.error?.retryAfterMinutes ?? 15;
+            this.error.set(
+              `Too many failed attempts — account locked for ${minutes} min. Try again later.`,
+            );
+          } else if (err.status === 401) {
+            this.errorType.set('credentials');
+            const remaining = err.error?.remainingAttempts;
+            this.error.set(
+              remaining != null
+                ? `Wrong credentials — ${remaining} attempt${remaining !== 1 ? 's' : ''} left before lockout.`
+                : 'Wrong username or password.',
+            );
+          } else {
+            this.errorType.set('backend');
+            this.error.set(`Unexpected error (HTTP ${err.status}) — check backend logs.`);
+          }
+        },
+      });
   }
 }

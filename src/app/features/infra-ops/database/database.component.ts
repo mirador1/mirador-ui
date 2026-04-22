@@ -6,7 +6,8 @@
  * - 27 preset queries in 5 categories: Customer Data, PG Diagnostics,
  *   Schema & Flyway, Production Investigation, Performance Optimization
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -32,6 +33,11 @@ export class DatabaseComponent {
    */
   readonly env = inject(EnvService);
 
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
   /** Signal: currently active tab in the Database page. */
   activeTab = signal<DbTab>('health');
 
@@ -72,6 +78,7 @@ export class DatabaseComponent {
     // Base URL is env-aware — Local = :8080, Prod tunnel = :18080.
     this.http
       .post<MaintenanceResult>(`${this.env.baseUrl()}/actuator/maintenance`, { operation })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (r) => {
           this.vacuumResult.set(r);
@@ -235,6 +242,7 @@ export class DatabaseComponent {
     for (const check of this.healthChecks) {
       this.http
         .get<SqlQueryResult>(`${pgweb}/api/query`, { params: { query: check.query } })
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (res) => {
             const rows: string[][] = (res.rows ?? []).map((r) =>
@@ -567,6 +575,7 @@ export class DatabaseComponent {
       .get<SqlQueryResult>(`${pgweb}/api/query`, {
         params: { query: this.sqlQuery },
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           const rows = res.rows ?? [];

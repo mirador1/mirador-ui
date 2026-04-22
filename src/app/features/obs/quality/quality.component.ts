@@ -7,7 +7,8 @@
  * - Static analysis (SpotBugs) bug list
  * - Build metadata (artifact, version, timestamps)
  */
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { EnvService } from '../../../core/env/env.service';
@@ -46,6 +47,11 @@ export class QualityComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   readonly env = inject(EnvService);
   readonly auth = inject(AuthService);
+  /**
+   * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
+   * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
+   */
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Signal: the full quality report loaded from `/actuator/quality`. Null until first load. */
   report = signal<QualityReport | null>(null);
@@ -139,16 +145,19 @@ export class QualityComponent implements OnInit, OnDestroy {
   loadReport(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.http.get<QualityReport>(`${this.env.baseUrl()}/actuator/quality`).subscribe({
-      next: (data) => {
-        this.report.set(data);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.error.set(err?.message ?? 'Failed to load quality report');
-        this.loading.set(false);
-      },
-    });
+    this.http
+      .get<QualityReport>(`${this.env.baseUrl()}/actuator/quality`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          this.report.set(data);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.error.set(err?.message ?? 'Failed to load quality report');
+          this.loading.set(false);
+        },
+      });
   }
 
   // Format helpers (severityColor, priorityLabel, nvdUrl, entriesOf,
@@ -167,6 +176,7 @@ export class QualityComponent implements OnInit, OnDestroy {
         responseType: 'text',
         observe: 'response',
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.mavenSiteAvailable.set(true);
@@ -194,18 +204,21 @@ export class QualityComponent implements OnInit, OnDestroy {
     const url = this.env.compodocUrl();
     if (!url) return;
     this.clearCompodocRetry();
-    this.http.get(`${url}/index.html`, { responseType: 'text', observe: 'response' }).subscribe({
-      next: () => {
-        this.compodocAvailable.set(true);
-        this.clearCompodocRetry();
-      },
-      error: () => {
-        this.compodocAvailable.set(false);
-        if (!this._compodocRetryTimer) {
-          this._compodocRetryTimer = setInterval(() => this.checkCompodoc(), 10_000);
-        }
-      },
-    });
+    this.http
+      .get(`${url}/index.html`, { responseType: 'text', observe: 'response' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.compodocAvailable.set(true);
+          this.clearCompodocRetry();
+        },
+        error: () => {
+          this.compodocAvailable.set(false);
+          if (!this._compodocRetryTimer) {
+            this._compodocRetryTimer = setInterval(() => this.checkCompodoc(), 10_000);
+          }
+        },
+      });
   }
 
   private clearCompodocRetry(): void {
@@ -225,18 +238,21 @@ export class QualityComponent implements OnInit, OnDestroy {
     if (!url) return;
     this.clearSonarRetry();
     // Probe /api/system/status — returns 200 JSON regardless of auth
-    this.http.get(`${url}/api/system/status`, { observe: 'response' }).subscribe({
-      next: () => {
-        this.sonarAvailable.set(true);
-        this.clearSonarRetry();
-      },
-      error: () => {
-        this.sonarAvailable.set(false);
-        if (!this._sonarRetryTimer) {
-          this._sonarRetryTimer = setInterval(() => this.checkSonar(), 10_000);
-        }
-      },
-    });
+    this.http
+      .get(`${url}/api/system/status`, { observe: 'response' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.sonarAvailable.set(true);
+          this.clearSonarRetry();
+        },
+        error: () => {
+          this.sonarAvailable.set(false);
+          if (!this._sonarRetryTimer) {
+            this._sonarRetryTimer = setInterval(() => this.checkSonar(), 10_000);
+          }
+        },
+      });
   }
 
   private clearSonarRetry(): void {
