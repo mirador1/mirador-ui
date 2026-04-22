@@ -44,5 +44,18 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // Mobile project — added 2026-04-22 to support the new hard rule
+      // "UI must work on mobile" (see CLAUDE.md). iPhone 12 Pro = 390×844,
+      // the current sweet-spot iOS 14+ baseline. A test in this project
+      // catches layouts that overflow at mobile width BEFORE they land
+      // on main. Runs only a subset of specs for now: home + dashboard +
+      // any spec explicitly tagged with `mobile.spec.ts`. Extend the
+      // `testMatch` as mobile coverage grows — every new load-bearing
+      // route should add its own mobile spec.
+      name: 'mobile-chromium',
+      use: { ...devices['iPhone 12 Pro'] },
+      testMatch: /home\.spec\.ts|dashboard\.spec\.ts|mobile\.spec\.ts/,
+    },
   ],
 });
