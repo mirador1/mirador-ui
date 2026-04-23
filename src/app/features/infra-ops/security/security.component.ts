@@ -14,8 +14,6 @@
  */
 import { Component, OnDestroy, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
-import { JsonPipe, KeyValuePipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { EnvService } from '../../../core/env/env.service';
@@ -24,7 +22,6 @@ import { ToastService } from '../../../core/toast/toast.service';
 import {
   AUDIT_ACTIONS,
   type SecurityTab,
-  type AuditEvent,
   type AuditPage,
   type SqliResult,
   type CorsInfo,
@@ -35,18 +32,24 @@ import {
 import { SecurityMechanismsTabComponent } from './widgets/security-mechanisms-tab.component';
 import { SecurityCorsTabComponent } from './widgets/security-cors-tab.component';
 import { SecurityHeadersTabComponent } from './widgets/security-headers-tab.component';
+import { SecuritySqliTabComponent } from './widgets/security-sqli-tab.component';
+import { SecurityXssTabComponent } from './widgets/security-xss-tab.component';
+import { SecurityIdorTabComponent } from './widgets/security-idor-tab.component';
+import { SecurityJwtTabComponent } from './widgets/security-jwt-tab.component';
+import { SecurityAuditTabComponent } from './widgets/security-audit-tab.component';
 
 @Component({
   selector: 'app-security',
   standalone: true,
   imports: [
-    FormsModule,
-    JsonPipe,
-    KeyValuePipe,
-    DatePipe,
     SecurityMechanismsTabComponent,
     SecurityCorsTabComponent,
     SecurityHeadersTabComponent,
+    SecuritySqliTabComponent,
+    SecurityXssTabComponent,
+    SecurityIdorTabComponent,
+    SecurityJwtTabComponent,
+    SecurityAuditTabComponent,
   ],
   templateUrl: './security.component.html',
   styleUrl: './security.component.scss',
@@ -80,6 +83,14 @@ export class SecurityComponent implements OnDestroy {
   xssLoading = signal(false);
   xssError = signal('');
   xssMode = signal<'none' | 'vulnerable' | 'safe'>('none');
+  /**
+   * Adapter: parent uses `'none'` sentinel ; widget input expects `null` for
+   * "no run yet". One-line `computed()` keeps the parent contract unchanged
+   * while letting the widget stay framework-agnostic about sentinel values.
+   */
+  readonly xssModeForWidget = computed<'vulnerable' | 'safe' | null>(() =>
+    this.xssMode() === 'none' ? null : (this.xssMode() as 'vulnerable' | 'safe'),
+  );
 
   // ── CORS ──────────────────────────────────────────────────────────────────
   corsInfo = signal<CorsInfo | null>(null);
@@ -183,10 +194,6 @@ export class SecurityComponent implements OnDestroy {
           this.sqliLoading.set(false);
         },
       });
-  }
-
-  sqliResultRows(result: SqliResult | null): unknown[] {
-    return result?.results ?? [];
   }
 
   // ── XSS ───────────────────────────────────────────────────────────────────
@@ -342,11 +349,6 @@ export class SecurityComponent implements OnDestroy {
     }
   }
 
-  formatTs(epoch: number | undefined): string {
-    if (!epoch) return '—';
-    return new Date(epoch * 1000).toLocaleString();
-  }
-
   jwtExpiryLabel(): string {
     if (this.jwtExpired()) return '⛔ Expired';
     const s = this.jwtSecondsLeft();
@@ -423,13 +425,5 @@ export class SecurityComponent implements OnDestroy {
       this.auditPage.update((p) => p + 1);
       this.loadAudit();
     }
-  }
-
-  auditBadgeClass(action: string): string {
-    if (action === 'LOGIN_BLOCKED') return 'badge-red';
-    if (action.startsWith('LOGIN') || action === 'TOKEN_REFRESH' || action === 'API_KEY_AUTH')
-      return 'badge-blue';
-    if (action.startsWith('CUSTOMER')) return 'badge-green';
-    return 'badge-gray';
   }
 }
