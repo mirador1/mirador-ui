@@ -130,7 +130,12 @@ sbom:syft:
 grype:scan:
   stage: test-image
   image:
-    name: anchore/grype:v0.87.0
+    # 2026-04-23: bumped v0.87.0 → v0.111.0-debug (matches svc).
+    # v0.87.0 (non-debug) doesn't ship /bin/sh so GitLab's `script:`
+    # wrapper fails with "exec: sh: executable file not found"
+    # (pipeline #403 job evidence). v0.111.0-debug is multi-arch
+    # (amd64 + arm64 + ppc64le + s390x) AND ships /bin/sh.
+    name: anchore/grype:v0.111.0-debug
     entrypoint: [""]
   tags:
     - macbook-local
@@ -140,6 +145,10 @@ grype:scan:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+  # Shield retained — the UI grype scan was failing on image shell
+  # absence, not on a real CVE. Keep allow_failure until we verify
+  # the v0.111.0-debug variant stabilises on main; then remove this
+  # per CLAUDE.md "Pipelines stay green" rule.
   allow_failure: true
   script:
     - grype sbom:bom.cdx.json --fail-on high --output table
