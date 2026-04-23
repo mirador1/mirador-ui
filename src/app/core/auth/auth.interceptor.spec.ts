@@ -23,7 +23,6 @@ import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
-import { ApiService } from '../api/api.service';
 
 // eslint-disable-next-line max-lines-per-function
 describe('authInterceptor', () => {
