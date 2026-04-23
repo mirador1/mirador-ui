@@ -16,11 +16,15 @@ import { expect, test } from '@playwright/test';
  * mobile-broken — root-cause before merging the next MR.
  */
 test.describe('Mobile viewport smoke', () => {
-    test('home page — no horizontal overflow, main heading visible', async ({ page, viewportSize }) => {
+    test('home page — no horizontal overflow, main heading visible', async ({ page }) => {
         // Sanity check — we MUST be running in a mobile viewport.
         // If the project config drifts back to desktop, this guards against
         // a silently-skipped mobile check.
-        expect(viewportSize?.width, 'mobile.spec.ts must run at mobile viewport').toBeLessThanOrEqual(500);
+        // page.viewportSize() returns the current viewport at runtime
+        // (replaces the now-removed `viewportSize` test fixture per
+        // Playwright's typed API).
+        const vp = page.viewportSize();
+        expect(vp?.width, 'mobile.spec.ts must run at mobile viewport').toBeLessThanOrEqual(500);
 
         await page.goto('/');
 

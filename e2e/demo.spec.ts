@@ -71,6 +71,20 @@ const REDIS_COMMANDER = 'http://localhost:8082';
 test.describe('Demo recording for README @demo', () => {
   test('full walkthrough: create → traffic → Grafana → trace → logs → Kafka', async ({ page }) => {
     // ═══════════════════════════════════════════════════════════════
+    // 0. PRE-FLIGHT — dismiss the first-visitor tour overlay
+    // ═══════════════════════════════════════════════════════════════
+    // TourService.maybeAutoStart() fires the welcome tour on first
+    // visit (localStorage 'mirador:tour:seen' missing). The tour's
+    // backdrop intercepts pointer events on every link in the layout
+    // — including the `Customers` nav link the demo clicks at step 3.
+    // Use addInitScript (NOT page.evaluate after goto) so the flag is
+    // set BEFORE Angular boots — page.evaluate after goto runs too
+    // late, the tour is already mounted.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('mirador:tour:seen', '1');
+    });
+
+    // ═══════════════════════════════════════════════════════════════
     // 1. LOGIN
     // ═══════════════════════════════════════════════════════════════
     await page.goto(`${UI}/login`);
@@ -82,6 +96,14 @@ test.describe('Demo recording for README @demo', () => {
     await page.getByLabel('Password').pressSequentially('admin', { delay: 70 });
     await page.waitForTimeout(400);
     await page.getByRole('button', { name: /^Sign in$/ }).click();
+
+    // Defensive : if the tour still fires despite the addInitScript
+    // localStorage flag (e.g. some component re-triggers it on login),
+    // dismiss it by pressing Escape (per TourOverlayComponent's onKey
+    // handler : Escape → service.end()).
+    await page.waitForTimeout(1500); // let post-login redirect settle
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(300);
 
     // ═══════════════════════════════════════════════════════════════
     // 2. SIDEBAR SWEEP — establish the scope of the UI
