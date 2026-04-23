@@ -25,7 +25,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { JsonPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
   ApiService,
@@ -44,11 +44,12 @@ import { FeatureFlagService } from '../../../core/feature-flags/feature-flag.ser
 import { InfoTipComponent } from '../../../shared/info-tip/info-tip.component';
 import { uuid, randomCustomer } from './customers-helpers';
 import type { DetailTab, SortField, SortDir } from './customers-types';
+import { CustomerDetailPanelComponent } from './widgets/customer-detail-panel.component';
 
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [FormsModule, JsonPipe, DatePipe, RouterLink, InfoTipComponent],
+  imports: [FormsModule, DatePipe, RouterLink, InfoTipComponent, CustomerDetailPanelComponent],
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss',
 })
