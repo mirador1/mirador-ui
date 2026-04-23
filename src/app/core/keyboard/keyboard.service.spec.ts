@@ -202,7 +202,7 @@ describe('KeyboardService', () => {
 
   describe('Single-key actions', () => {
     it('D toggles theme', () => {
-      const toggleSpy = vi.spyOn(theme, 'toggle').mockImplementation(() => {});
+      const toggleSpy = vi.spyOn(theme, 'toggle').mockReturnValue(undefined);
       pressKey('d');
 
       expect(toggleSpy).toHaveBeenCalledTimes(1);
@@ -222,7 +222,7 @@ describe('KeyboardService', () => {
     });
 
     it('D in input field does NOT toggle theme', () => {
-      const toggleSpy = vi.spyOn(theme, 'toggle').mockImplementation(() => {});
+      const toggleSpy = vi.spyOn(theme, 'toggle').mockReturnValue(undefined);
       const input = document.createElement('textarea');
       document.body.appendChild(input);
       try {
