@@ -71,6 +71,20 @@ const REDIS_COMMANDER = 'http://localhost:8082';
 test.describe('Demo recording for README @demo', () => {
   test('full walkthrough: create → traffic → Grafana → trace → logs → Kafka', async ({ page }) => {
     // ═══════════════════════════════════════════════════════════════
+    // 0. PRE-FLIGHT — dismiss the first-visitor tour overlay
+    // ═══════════════════════════════════════════════════════════════
+    // TourService.maybeAutoStart() fires the welcome tour on first
+    // visit (localStorage 'mirador:tour:seen' missing). The tour's
+    // backdrop intercepts pointer events on every link in the layout
+    // — including the `Customers` nav link the demo clicks at step 3.
+    // Use addInitScript (NOT page.evaluate after goto) so the flag is
+    // set BEFORE Angular boots — page.evaluate after goto runs too
+    // late, the tour is already mounted.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('mirador:tour:seen', '1');
+    });
+
+    // ═══════════════════════════════════════════════════════════════
     // 1. LOGIN
     // ═══════════════════════════════════════════════════════════════
     await page.goto(`${UI}/login`);
