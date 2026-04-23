@@ -34,6 +34,7 @@ import {
 } from './security-types';
 import { SecurityMechanismsTabComponent } from './widgets/security-mechanisms-tab.component';
 import { SecurityCorsTabComponent } from './widgets/security-cors-tab.component';
+import { SecurityHeadersTabComponent } from './widgets/security-headers-tab.component';
 
 @Component({
   selector: 'app-security',
@@ -45,6 +46,7 @@ import { SecurityCorsTabComponent } from './widgets/security-cors-tab.component'
     DatePipe,
     SecurityMechanismsTabComponent,
     SecurityCorsTabComponent,
+    SecurityHeadersTabComponent,
   ],
   templateUrl: './security.component.html',
   styleUrl: './security.component.scss',

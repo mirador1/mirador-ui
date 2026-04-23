@@ -392,47 +392,14 @@
     </div>
   }
 
-  <!-- ── Security Headers Tab ──────────────────────────────────────────────── -->
+  <!-- ── Security Headers Tab — extracted to widgets/security-headers-tab -->
   @if (activeTab() === 'headers') {
-    <div class="tab-content">
-      <div class="explanation-card info">
-        <strong>ℹ️ Security Headers</strong> — HTTP response headers that instruct the browser on
-        security policies. Set by <code>SecurityHeadersFilter</code> on every response from this
-        backend. The table below shows the expected value, the actual value from a live request, and
-        an explanation of what each header does.
-      </div>
-
-      <div class="action-row">
-        <button class="btn btn-ghost" [disabled]="headersLoading()" (click)="loadHeaders()">
-          {{ headersLoading() ? '⟳ Loading…' : '↻ Check live headers' }}
-        </button>
-      </div>
-
-      @if (headersError()) {
-        <div class="error-banner">{{ headersError() }}</div>
-      }
-
-      @if (headersResult().length) {
-        <div class="headers-table">
-          <div class="headers-row headers-header">
-            <span>Header</span>
-            <span>Expected</span>
-            <span>Actual (live)</span>
-            <span>Status</span>
-            <span>Purpose</span>
-          </div>
-          @for (h of headersResult(); track h.name) {
-            <div class="headers-row" [class.headers-ok]="h.ok" [class.headers-missing]="!h.ok">
-              <code class="header-name">{{ h.name }}</code>
-              <code class="header-expected">{{ h.expected }}</code>
-              <code class="header-actual">{{ h.actual }}</code>
-              <span class="header-status">{{ h.ok ? '✅' : '⚠️' }}</span>
-              <span class="header-explanation">{{ h.explanation }}</span>
-            </div>
-          }
-        </div>
-      }
-    </div>
+    <app-security-headers-tab
+      [loading]="headersLoading()"
+      [errorMsg]="headersError()"
+      [results]="headersResult()"
+      (loadRequested)="loadHeaders()"
+    />
   }
   <!-- ── Audit Trail tab ──────────────────────────────────────────────────── -->
   @if (activeTab() === 'audit') {
