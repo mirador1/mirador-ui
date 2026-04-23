@@ -45,11 +45,19 @@ import { InfoTipComponent } from '../../../shared/info-tip/info-tip.component';
 import { uuid, randomCustomer } from './customers-helpers';
 import type { DetailTab, SortField, SortDir } from './customers-types';
 import { CustomerDetailPanelComponent } from './widgets/customer-detail-panel.component';
+import { CustomerCreateFormComponent } from './widgets/customer-create-form.component';
 
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, InfoTipComponent, CustomerDetailPanelComponent],
+  imports: [
+    FormsModule,
+    DatePipe,
+    RouterLink,
+    InfoTipComponent,
+    CustomerDetailPanelComponent,
+    CustomerCreateFormComponent,
+  ],
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss',
 })
@@ -150,33 +158,14 @@ export class CustomersComponent implements OnInit, OnDestroy {
   /** Signal: true when the "select all on current page" checkbox is checked. */
   selectAll = signal(false);
 
-  // ── Create form ────────────────────────────────────────────────────────────
+  // ── Create form (state owned by the widget — see widgets/customer-create-form) ──
 
   /**
-   * Template reference to the name input element.
-   * Read directly from the DOM in `createCustomer()` because in zoneless mode
-   * the signal bound via two-way binding may not have updated synchronously.
+   * Template ref to the create-form widget. Used to call `clearForm()`
+   * after a successful create (parent doesn't own the input state ;
+   * the widget does, so we call its method).
    */
-  readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
-
-  /** Template reference to the email input (same zoneless reason as `nameInput`). */
-  readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
-
-  /** Signal: current value of the name create-form field. */
-  newName = signal('');
-
-  /** Signal: current value of the email create-form field. */
-  newEmail = signal('');
-
-  /** Signal: whether to attach an idempotency key to the create request. */
-  useIdempotencyKey = signal(false);
-
-  /**
-   * Signal: the current idempotency key UUID.
-   * Initialized with a fresh UUID and regenerable via `resetIdempotencyKey()`.
-   * Sent as the `Idempotency-Key` header when `useIdempotencyKey` is true.
-   */
-  idempotencyKey = signal(uuid());
+  readonly createForm = viewChild<CustomerCreateFormComponent>('createForm');
 
   /** Signal: true while the create HTTP request is in flight. */
   createLoading = signal(false);
@@ -422,32 +411,25 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 
   // ── Create ─────────────────────────────────────────────────────────────────
-  createCustomer(): void {
-    // Read directly from DOM — signals may not be synced in zoneless mode
-    const nameEl = this.nameInput()?.nativeElement;
-    const emailEl = this.emailInput()?.nativeElement;
-    const name = (nameEl?.value ?? this.newName()).trim();
-    const email = (emailEl?.value ?? this.newEmail()).trim();
-
-    if (!name || !email) {
-      this.createError.set('Name and email are required.');
-      return;
-    }
+  /**
+   * Handler for the create-form widget's `createRequested` event.
+   * Receives the validated {name, email, idempotencyKey} payload from
+   * the widget, performs the POST, surfaces toasts + refreshes the list.
+   * Calls `createForm.clearForm()` on success to reset the widget's
+   * internal input signals.
+   */
+  onCreateRequested(payload: { name: string; email: string; idempotencyKey?: string }): void {
     this.createLoading.set(true);
     this.createError.set('');
     this.createSuccess.set(null);
 
-    const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
     this.api
-      .createCustomer({ name, email }, key)
+      .createCustomer({ name: payload.name, email: payload.email }, payload.idempotencyKey)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (c) => {
           this.createSuccess.set(c);
-          this.newName.set('');
-          this.newEmail.set('');
-          if (nameEl) nameEl.value = '';
-          if (emailEl) emailEl.value = '';
+          this.createForm()?.clearForm();
           this.createLoading.set(false);
           this.toast.show(`Customer "${c.name}" created (ID ${c.id})`, 'success');
           this.activity.log('customer-create', `Created "${c.name}" (ID ${c.id})`);
@@ -460,15 +442,12 @@ export class CustomersComponent implements OnInit, OnDestroy {
       });
   }
 
-  resetIdempotencyKey(): void {
-    this.idempotencyKey.set(uuid());
-  }
-
   /**
    * Create a customer with a randomly-generated name + email in one click.
    * Useful for demos, soak-tests, and seeding the list without retyping.
-   * Reuses the same API call + toast + activity log as the manual create
-   * path, and refreshes the list on success.
+   * Bypasses the form widget — uses the random helper directly. The
+   * widget's "🎲 Add random customer" button emits createRandomRequested
+   * which the parent template binds to this method.
    */
   addRandomCustomer(): void {
     const { name, email } = randomCustomer();
@@ -476,9 +455,8 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.createError.set('');
     this.createSuccess.set(null);
 
-    const key = this.useIdempotencyKey() ? this.idempotencyKey() : undefined;
     this.api
-      .createCustomer({ name, email }, key)
+      .createCustomer({ name, email })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (c) => {

@@ -60,67 +60,18 @@
 
     <!-- Create + List layout -->
     <div class="main-layout">
-      <!-- Create form -->
-      <article class="card create-card">
-        <h3>Create Customer</h3>
-
-        <label>
-          Name
-          <input #nameInput placeholder="ex: Alice Martin" (input)="newName.set(nameInput.value)" />
-        </label>
-        <label>
-          Email
-          <input
-            #emailInput
-            type="email"
-            placeholder="ex: alice@example.com"
-            (input)="newEmail.set(emailInput.value)"
-          />
-        </label>
-
-        <div class="idem-row">
-          <label class="idem-label">
-            <input
-              type="checkbox"
-              [ngModel]="useIdempotencyKey()"
-              (ngModelChange)="useIdempotencyKey.set($event)"
-            />
-            Idempotency-Key
-            <app-info-tip
-              text="When enabled, sends an Idempotency-Key header (UUID). The backend caches the response in an LRU cache (10k entries). Sending the same key twice returns the cached result without creating a duplicate."
-              command="Idempotency-Key: &lt;uuid&gt;"
-              source="LRU cache"
-            />
-          </label>
-          @if (useIdempotencyKey()) {
-            <code class="idem-key">{{ idempotencyKey() }}</code>
-            <button class="sm-btn" (click)="resetIdempotencyKey()">New key</button>
-          }
-        </div>
-
-        <div class="create-actions">
-          <button class="primary-btn" (click)="createCustomer()" [disabled]="createLoading()">
-            {{ createLoading() ? 'Creating...' : '+ Create' }}
-          </button>
-          <button
-            class="secondary-btn"
-            (click)="addRandomCustomer()"
-            [disabled]="createLoading()"
-            title="Create a customer with a random name + email (demo helper)"
-          >
-            🎲 Add random customer
-          </button>
-        </div>
-
-        @if (createError()) {
-          <p class="error-text">{{ createError() }}</p>
-        }
-        @if (createSuccess()) {
-          <div class="success-box">
-            Created → ID {{ createSuccess()!.id }}: <strong>{{ createSuccess()!.name }}</strong>
-          </div>
-        }
-      </article>
+      <!-- Create form — extracted to widgets/customer-create-form
+           (B-7-2b follow-up, 2026-04-23). Widget owns its own form
+           state ; parent listens to createRequested / createRandomRequested
+           events + calls createForm.clearForm() after success. -->
+      <app-customer-create-form
+        #createForm
+        [createLoading]="createLoading()"
+        [createError]="createError()"
+        [createSuccess]="createSuccess()"
+        (createRequested)="onCreateRequested($event)"
+        (createRandomRequested)="addRandomCustomer()"
+      />
 
       <!-- Customer list -->
       <article class="card list-card">
