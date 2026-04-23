@@ -9,7 +9,7 @@
 // Subject ≤ 72 chars, no trailing period.
 // Optional scope in parens. Optional `!` marks a breaking change.
 //
-// Enables release-please CHANGELOG + semver bumps on main.
+// Powers bin/ship/changelog.sh categorisation (feat/fix/perf → sections).
 // =============================================================================
 
 export default {
