@@ -155,6 +155,12 @@ specifics:
 
 When a hand-written source file crosses **~1 000 lines**, plan a split at
 the next touch; at **1 500+**, split NOW before shipping any other change.
+**Plancher : 500 LOC.** Décidé 2026-04-22 — un fichier sous 500 LOC
+ne se redécoupe PAS, même si certains standards stricts (MISRA aérospatial,
+banking interne) suggèrent 300-500. Sur-fragmenter un fichier cohérent de
+480 LOC en 8 fichiers de 60 LOC noie le concept et casse git blame sans
+gain de lisibilité. Voir `~/.claude/CLAUDE.md` → "File length hygiene"
+pour la justification complète.
 
 **Wave landed 2026-04-22** — UI Phase B-7 sub-tasks shipped:
 
