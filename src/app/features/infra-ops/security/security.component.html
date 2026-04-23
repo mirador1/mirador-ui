@@ -205,58 +205,14 @@
     </div>
   }
 
-  <!-- ── CORS Tab ───────────────────────────────────────────────────────────── -->
+  <!-- ── CORS Tab — extracted to widgets/security-cors-tab (B-7-4 follow-up) -->
   @if (activeTab() === 'cors') {
-    <div class="tab-content">
-      <div class="explanation-card info">
-        <strong>ℹ️ Cross-Origin Resource Sharing (CORS)</strong> — Browsers enforce the same-origin
-        policy. CORS headers tell the browser which origins are allowed to make cross-origin
-        requests. A misconfigured CORS policy (e.g. <code>Access-Control-Allow-Origin: *</code> with
-        credentials) can let an attacker steal authenticated data.
-        <br />
-        This project's CORS is <strong>correctly restricted</strong> to
-        <code>http://localhost:4200</code> only.
-      </div>
-
-      @if (corsLoading()) {
-        <div class="loading-row">⟳ Loading CORS info…</div>
-      }
-
-      @if (corsError()) {
-        <div class="error-banner">{{ corsError() }}</div>
-      }
-
-      @if (corsInfo(); as c) {
-        <div class="cors-grid">
-          <div class="cors-card">
-            <div class="cors-label">Current Origin Policy</div>
-            <code class="cors-value">{{ c.currentOriginPolicy }}</code>
-          </div>
-          <div class="cors-card cors-danger">
-            <div class="cors-label">Dangerous Config</div>
-            <code class="cors-value">{{ c.dangerousConfig }}</code>
-          </div>
-          <div class="cors-card">
-            <div class="cors-label">Your Origin</div>
-            <code class="cors-value">{{ c.yourOrigin }}</code>
-          </div>
-          <div class="cors-card cors-danger">
-            <div class="cors-label">Risk</div>
-            <span class="cors-value text">{{ c.risk }}</span>
-          </div>
-          <div class="cors-card cors-full">
-            <div class="cors-label">Attack Vector</div>
-            <span class="cors-value text">{{ c.attack }}</span>
-          </div>
-          <div class="cors-card cors-full cors-safe">
-            <div class="cors-label">Fix</div>
-            <span class="cors-value text">{{ c.fix }}</span>
-          </div>
-        </div>
-
-        <button class="btn btn-ghost mt-1" (click)="loadCors()">↻ Refresh</button>
-      }
-    </div>
+    <app-security-cors-tab
+      [loading]="corsLoading()"
+      [errorMsg]="corsError()"
+      [info]="corsInfo()"
+      (refreshRequested)="loadCors()"
+    />
   }
 
   <!-- ── IDOR Tab ───────────────────────────────────────────────────────────── -->
@@ -436,47 +392,14 @@
     </div>
   }
 
-  <!-- ── Security Headers Tab ──────────────────────────────────────────────── -->
+  <!-- ── Security Headers Tab — extracted to widgets/security-headers-tab -->
   @if (activeTab() === 'headers') {
-    <div class="tab-content">
-      <div class="explanation-card info">
-        <strong>ℹ️ Security Headers</strong> — HTTP response headers that instruct the browser on
-        security policies. Set by <code>SecurityHeadersFilter</code> on every response from this
-        backend. The table below shows the expected value, the actual value from a live request, and
-        an explanation of what each header does.
-      </div>
-
-      <div class="action-row">
-        <button class="btn btn-ghost" [disabled]="headersLoading()" (click)="loadHeaders()">
-          {{ headersLoading() ? '⟳ Loading…' : '↻ Check live headers' }}
-        </button>
-      </div>
-
-      @if (headersError()) {
-        <div class="error-banner">{{ headersError() }}</div>
-      }
-
-      @if (headersResult().length) {
-        <div class="headers-table">
-          <div class="headers-row headers-header">
-            <span>Header</span>
-            <span>Expected</span>
-            <span>Actual (live)</span>
-            <span>Status</span>
-            <span>Purpose</span>
-          </div>
-          @for (h of headersResult(); track h.name) {
-            <div class="headers-row" [class.headers-ok]="h.ok" [class.headers-missing]="!h.ok">
-              <code class="header-name">{{ h.name }}</code>
-              <code class="header-expected">{{ h.expected }}</code>
-              <code class="header-actual">{{ h.actual }}</code>
-              <span class="header-status">{{ h.ok ? '✅' : '⚠️' }}</span>
-              <span class="header-explanation">{{ h.explanation }}</span>
-            </div>
-          }
-        </div>
-      }
-    </div>
+    <app-security-headers-tab
+      [loading]="headersLoading()"
+      [errorMsg]="headersError()"
+      [results]="headersResult()"
+      (loadRequested)="loadHeaders()"
+    />
   }
   <!-- ── Audit Trail tab ──────────────────────────────────────────────────── -->
   @if (activeTab() === 'audit') {
