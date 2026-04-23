@@ -246,8 +246,8 @@
         loadingLabel="Deleting..."
         variant="danger"
         [loading]="deleteLoading()"
-        (cancel)="cancelDelete()"
-        (confirm)="confirmDelete()"
+        (cancelled)="cancelDelete()"
+        (confirmed)="confirmDelete()"
       />
     }
 
@@ -260,8 +260,8 @@
         loadingLabel="Deleting..."
         variant="danger"
         [loading]="batchDeleteLoading()"
-        (cancel)="cancelBatchDelete()"
-        (confirm)="executeBatchDelete()"
+        (cancelled)="cancelBatchDelete()"
+        (confirmed)="executeBatchDelete()"
       />
     }
 

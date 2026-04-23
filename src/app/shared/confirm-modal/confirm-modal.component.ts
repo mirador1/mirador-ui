@@ -25,7 +25,7 @@ import { Component, input, output } from '@angular/core';
   selector: 'app-confirm-modal',
   standalone: true,
   template: `
-    <div class="modal-overlay" (click)="cancel.emit()">
+    <div class="modal-overlay" (click)="cancelled.emit()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h3>{{ title() }}</h3>
         @if (body()) {
@@ -33,10 +33,10 @@ import { Component, input, output } from '@angular/core';
         }
         <ng-content></ng-content>
         <div class="modal-actions">
-          <button class="sm-btn" (click)="cancel.emit()">{{ cancelLabel() }}</button>
+          <button class="sm-btn" (click)="cancelled.emit()">{{ cancelLabel() }}</button>
           <button
             [class]="variant() === 'danger' ? 'danger-btn' : 'primary-btn'"
-            (click)="confirm.emit()"
+            (click)="confirmed.emit()"
             [disabled]="loading()"
           >
             {{ loading() ? loadingLabel() : confirmLabel() }}
@@ -64,6 +64,9 @@ export class ConfirmModalComponent {
   /** 'primary' (default blue) or 'danger' (red) — matches global button styles. */
   readonly variant = input<'primary' | 'danger'>('primary');
 
-  readonly cancel = output<void>();
-  readonly confirm = output<void>();
+  // ESLint @angular-eslint/no-output-native flags `cancel` + `confirm` as
+  // shadowing native DOM events ; renamed to `cancelled` / `confirmed` past
+  // tense (avoids the lint error + keeps semantic meaning clear).
+  readonly cancelled = output<void>();
+  readonly confirmed = output<void>();
 }
