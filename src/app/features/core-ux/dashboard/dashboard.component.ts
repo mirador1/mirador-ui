@@ -19,10 +19,9 @@
  */
 import { Component, DestroyRef, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../../../core/api/api.service';
 import { EnvService } from '../../../core/env/env.service';
@@ -30,24 +29,29 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { ActivityService } from '../../../core/activity/activity.service';
 import { DeepLinkService } from '../../../core/deep-link/deep-link.service';
 import { InfoTipComponent } from '../../../shared/info-tip/info-tip.component';
-import { SVC, type ActuatorHealth, type DockerContainer } from './dashboard-types';
+import {
+  SVC,
+  type ActuatorHealth,
+  type DockerContainer,
+  type QualitySummary,
+} from './dashboard-types';
 import {
   DASHBOARD_TOPO_COLUMNS,
   DASHBOARD_TOPO_NODES,
   DASHBOARD_TOPO_EDGES,
 } from './dashboard-topology-data';
 import { DashboardHealthProbesComponent } from './widgets/dashboard-health-probes.component';
+import { DashboardQualitySummaryComponent } from './widgets/dashboard-quality-summary.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
     DatePipe,
-    DecimalPipe,
     FormsModule,
     InfoTipComponent,
-    RouterLink,
     DashboardHealthProbesComponent,
+    DashboardQualitySummaryComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -90,15 +94,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Shows tests/coverage/bugs/sonar at a glance — links to the full /quality page.
    * Not refreshed on every auto-refresh cycle (quality data only changes after a rebuild).
    */
-  qualitySummary = signal<{
-    testsTotal: number | null;
-    testsPassed: boolean | null;
-    coveragePct: number | null;
-    bugsTotal: number | null;
-    sonarRating: string | null;
-    sonarUrl: string | null;
-    available: boolean;
-  } | null>(null);
+  qualitySummary = signal<QualitySummary | null>(null);
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
 

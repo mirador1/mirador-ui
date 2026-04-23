@@ -37,6 +37,27 @@ export interface ActuatorHealth {
 }
 
 /**
+ * Aggregated quality snapshot fetched once on init from /actuator/quality.
+ * Shows tests/coverage/bugs/sonar at-a-glance — links to the full /quality
+ * page for detail. Not refreshed on auto-refresh cycles (quality data only
+ * changes after a rebuild).
+ *
+ * Extracted to this file (instead of inline in dashboard.component.ts)
+ * 2026-04-23 under Phase B-6b so the standalone DashboardQualitySummary
+ * widget can reuse the type without duplicating it.
+ */
+export interface QualitySummary {
+  testsTotal: number | null;
+  testsPassed: boolean | null;
+  coveragePct: number | null;
+  bugsTotal: number | null;
+  sonarRating: string | null;
+  sonarUrl: string | null;
+  /** False = the /actuator/quality endpoint returned no data (mvn verify not run yet). */
+  available: boolean;
+}
+
+/**
  * Fields from a Docker Engine API container list item that the dashboard uses.
  * The full Docker API response contains many more fields that are ignored here.
  */
