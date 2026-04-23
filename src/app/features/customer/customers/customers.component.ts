@@ -46,6 +46,7 @@ import { uuid, randomCustomer } from './customers-helpers';
 import type { DetailTab, SortField, SortDir } from './customers-types';
 import { CustomerDetailPanelComponent } from './widgets/customer-detail-panel.component';
 import { CustomerCreateFormComponent } from './widgets/customer-create-form.component';
+import { ConfirmModalComponent } from '../../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-customers',
@@ -57,6 +58,7 @@ import { CustomerCreateFormComponent } from './widgets/customer-create-form.comp
     InfoTipComponent,
     CustomerDetailPanelComponent,
     CustomerCreateFormComponent,
+    ConfirmModalComponent,
   ],
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss',

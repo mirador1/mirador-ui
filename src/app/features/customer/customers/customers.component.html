@@ -229,45 +229,40 @@
       </div>
     }
 
-    <!-- Delete confirmation modal -->
+    <!-- Delete confirmation modal — uses generic ConfirmModal widget
+         (shared/confirm-modal). Body is interpolated as innerHTML to
+         keep the strong-tag formatting. -->
     @if (deletingCustomer()) {
-      <div class="modal-overlay" (click)="cancelDelete()">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <h3>Delete Customer</h3>
-          <p class="modal-text">
-            Are you sure you want to delete <strong>{{ deletingCustomer()!.name }}</strong> (ID
-            {{ deletingCustomer()!.id }})?
-          </p>
-          <div class="modal-actions">
-            <button class="sm-btn" (click)="cancelDelete()">Cancel</button>
-            <button class="danger-btn" (click)="confirmDelete()" [disabled]="deleteLoading()">
-              {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <app-confirm-modal
+        title="Delete Customer"
+        [body]="
+          'Are you sure you want to delete <strong>' +
+          deletingCustomer()!.name +
+          '</strong> (ID ' +
+          deletingCustomer()!.id +
+          ')?'
+        "
+        confirmLabel="Delete"
+        loadingLabel="Deleting..."
+        variant="danger"
+        [loading]="deleteLoading()"
+        (cancel)="cancelDelete()"
+        (confirm)="confirmDelete()"
+      />
     }
 
     <!-- Batch delete confirmation modal -->
     @if (confirmBatchDelete()) {
-      <div class="modal-overlay" (click)="cancelBatchDelete()">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <h3>Batch Delete</h3>
-          <p class="modal-text">
-            Delete {{ selectedIds().size }} selected customers? This cannot be undone.
-          </p>
-          <div class="modal-actions">
-            <button class="sm-btn" (click)="cancelBatchDelete()">Cancel</button>
-            <button
-              class="danger-btn"
-              (click)="executeBatchDelete()"
-              [disabled]="batchDeleteLoading()"
-            >
-              {{ batchDeleteLoading() ? 'Deleting...' : 'Delete All' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <app-confirm-modal
+        title="Batch Delete"
+        [body]="'Delete ' + selectedIds().size + ' selected customers? This cannot be undone.'"
+        confirmLabel="Delete All"
+        loadingLabel="Deleting..."
+        variant="danger"
+        [loading]="batchDeleteLoading()"
+        (cancel)="cancelBatchDelete()"
+        (confirm)="executeBatchDelete()"
+      />
     }
 
     <!-- Customer detail panel — extracted to widgets/customer-detail-panel
