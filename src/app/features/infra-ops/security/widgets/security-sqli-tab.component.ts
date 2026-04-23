@@ -37,8 +37,8 @@ import type { SqliResult } from '../security-types';
         />
         <div class="preset-row">
           <span class="preset-label">Presets:</span>
-          <button class="preset-btn" (click)="name.set(\`Alice' OR '1'='1\`)">Dump all rows</button>
-          <button class="preset-btn" (click)="name.set(\`Alice'; DROP TABLE customer; --\`)">
+          <button class="preset-btn" (click)="name.set(presetDumpAll)">Dump all rows</button>
+          <button class="preset-btn" (click)="name.set(presetDropTable)">
             DROP TABLE (blocked by driver)
           </button>
           <button class="preset-btn" (click)="name.set('Alice')">Normal name</button>
@@ -102,6 +102,16 @@ export class SecuritySqliTabComponent {
 
   readonly runVulnerable = output<void>();
   readonly runSafe = output<void>();
+
+  /**
+   * Preset payloads — hoisted to TS constants because Angular's template
+   * parser chokes on escaped backticks (`\``) inside an inline template
+   * literal. The escape is necessary at JS level (the outer template uses
+   * backticks too) but the parser doesn't unescape before tokenising.
+   * Constants keep the content readable + lint-clean.
+   */
+  readonly presetDumpAll = "Alice' OR '1'='1";
+  readonly presetDropTable = "Alice'; DROP TABLE customer; --";
 
   /** Helper : extract `results` rows from a SqliResult, or empty array. */
   readonly vulnResultRows = computed(() => this.vulnResult()?.results ?? []);

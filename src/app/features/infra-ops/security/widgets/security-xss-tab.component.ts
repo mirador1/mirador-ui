@@ -34,15 +34,9 @@ import { SafeHtml } from '@angular/platform-browser';
         />
         <div class="preset-row">
           <span class="preset-label">Presets:</span>
-          <button class="preset-btn" (click)="name.set(\`<img src=x onerror=alert('XSS')>\`)">
-            img onerror
-          </button>
-          <button class="preset-btn" (click)="name.set(\`<script>alert('XSS')</script>\`)">
-            script tag
-          </button>
-          <button class="preset-btn" (click)="name.set(\`<b>Bold</b> &amp; <i>italic</i>\`)">
-            HTML formatting
-          </button>
+          <button class="preset-btn" (click)="name.set(presetImgOnerror)">img onerror</button>
+          <button class="preset-btn" (click)="name.set(presetScriptTag)">script tag</button>
+          <button class="preset-btn" (click)="name.set(presetHtmlFormat)">HTML formatting</button>
           <button class="preset-btn" (click)="name.set('Alice')">Normal name</button>
         </div>
       </div>
@@ -112,4 +106,13 @@ export class SecurityXssTabComponent {
 
   readonly runVulnerable = output<void>();
   readonly runSafe = output<void>();
+
+  /**
+   * Preset payloads — hoisted to TS constants because Angular's template
+   * parser chokes on escaped backticks (`\``) inside an inline template
+   * literal. Same fix as SqliTab.
+   */
+  readonly presetImgOnerror = "<img src=x onerror=alert('XSS')>";
+  readonly presetScriptTag = "<script>alert('XSS')</script>";
+  readonly presetHtmlFormat = '<b>Bold</b> &amp; <i>italic</i>';
 }
