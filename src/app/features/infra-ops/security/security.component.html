@@ -205,58 +205,14 @@
     </div>
   }
 
-  <!-- ── CORS Tab ───────────────────────────────────────────────────────────── -->
+  <!-- ── CORS Tab — extracted to widgets/security-cors-tab (B-7-4 follow-up) -->
   @if (activeTab() === 'cors') {
-    <div class="tab-content">
-      <div class="explanation-card info">
-        <strong>ℹ️ Cross-Origin Resource Sharing (CORS)</strong> — Browsers enforce the same-origin
-        policy. CORS headers tell the browser which origins are allowed to make cross-origin
-        requests. A misconfigured CORS policy (e.g. <code>Access-Control-Allow-Origin: *</code> with
-        credentials) can let an attacker steal authenticated data.
-        <br />
-        This project's CORS is <strong>correctly restricted</strong> to
-        <code>http://localhost:4200</code> only.
-      </div>
-
-      @if (corsLoading()) {
-        <div class="loading-row">⟳ Loading CORS info…</div>
-      }
-
-      @if (corsError()) {
-        <div class="error-banner">{{ corsError() }}</div>
-      }
-
-      @if (corsInfo(); as c) {
-        <div class="cors-grid">
-          <div class="cors-card">
-            <div class="cors-label">Current Origin Policy</div>
-            <code class="cors-value">{{ c.currentOriginPolicy }}</code>
-          </div>
-          <div class="cors-card cors-danger">
-            <div class="cors-label">Dangerous Config</div>
-            <code class="cors-value">{{ c.dangerousConfig }}</code>
-          </div>
-          <div class="cors-card">
-            <div class="cors-label">Your Origin</div>
-            <code class="cors-value">{{ c.yourOrigin }}</code>
-          </div>
-          <div class="cors-card cors-danger">
-            <div class="cors-label">Risk</div>
-            <span class="cors-value text">{{ c.risk }}</span>
-          </div>
-          <div class="cors-card cors-full">
-            <div class="cors-label">Attack Vector</div>
-            <span class="cors-value text">{{ c.attack }}</span>
-          </div>
-          <div class="cors-card cors-full cors-safe">
-            <div class="cors-label">Fix</div>
-            <span class="cors-value text">{{ c.fix }}</span>
-          </div>
-        </div>
-
-        <button class="btn btn-ghost mt-1" (click)="loadCors()">↻ Refresh</button>
-      }
-    </div>
+    <app-security-cors-tab
+      [loading]="corsLoading()"
+      [errorMsg]="corsError()"
+      [info]="corsInfo()"
+      (refreshRequested)="loadCors()"
+    />
   }
 
   <!-- ── IDOR Tab ───────────────────────────────────────────────────────────── -->

@@ -33,11 +33,19 @@ import {
   type JwtClaims,
 } from './security-types';
 import { SecurityMechanismsTabComponent } from './widgets/security-mechanisms-tab.component';
+import { SecurityCorsTabComponent } from './widgets/security-cors-tab.component';
 
 @Component({
   selector: 'app-security',
   standalone: true,
-  imports: [FormsModule, JsonPipe, KeyValuePipe, DatePipe, SecurityMechanismsTabComponent],
+  imports: [
+    FormsModule,
+    JsonPipe,
+    KeyValuePipe,
+    DatePipe,
+    SecurityMechanismsTabComponent,
+    SecurityCorsTabComponent,
+  ],
   templateUrl: './security.component.html',
   styleUrl: './security.component.scss',
 })
