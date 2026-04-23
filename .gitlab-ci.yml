@@ -15,6 +15,7 @@ workflow:
         - ".dockerignore"
         - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
+        - ".gitlab-ci/**/*"        # Phase B-4 includes — changes MUST trigger CI
         - "public/**/*"
         # E2E spec changes retrigger CI so Playwright runs against the
         # updated flow. `playwright.config.ts` + `e2e/**` tracked here.
@@ -45,6 +46,7 @@ workflow:
         - ".dockerignore"
         - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
+        - ".gitlab-ci/**/*"        # Phase B-4 includes — changes MUST trigger CI
         - "public/**/*"
         # E2E spec changes retrigger CI so Playwright runs against the
         # updated flow. `playwright.config.ts` + `e2e/**` tracked here.
