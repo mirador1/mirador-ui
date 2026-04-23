@@ -2,16 +2,11 @@
 
 All notable changes to Mirador UI — Angular 21 frontend.
 
-Format: hand-rolled summary per `stable-vX.Y.Z` tag. Same pattern as
-the [svc repo CHANGELOG.md](https://gitlab.com/mirador1/mirador-service/-/blob/main/CHANGELOG.md).
-
-[release-please](https://github.com/googleapis/release-please) is
-configured (`config/release-please-config.json`) but dormant pending
-`$RELEASE_PLEASE_TOKEN` CI variable provisioning — see the shared
-activation runbook at
-[mirador-service/docs/how-to/activate-release-please.md](https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/how-to/activate-release-please.md).
-Once activated on this repo too, release-please appends new entries
-above this historical block.
+Format: hand-rolled summary per `stable-vX.Y.Z` tag, maintained by
+`bin/ship/changelog.sh` (Conventional-Commits → emoji sections). Same
+pattern as the [svc repo CHANGELOG.md](https://gitlab.com/mirador1/mirador-service/-/blob/main/CHANGELOG.md).
+See the shared workflow guide at
+[mirador-service/docs/how-to/changelog-workflow.md](https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/how-to/changelog-workflow.md).
 
 ## [stable-v1.0.11] — 2026-04-22
 

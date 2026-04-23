@@ -43,7 +43,6 @@
 ![lefthook](https://img.shields.io/badge/lefthook-pre--push_gates-000000)
 ![commitlint](https://img.shields.io/badge/Conventional_Commits-enforced-FE5196)
 ![Renovate](https://img.shields.io/badge/Renovate-bump_bot-1A1F6C?logo=renovatebot&logoColor=white)
-![release-please](https://img.shields.io/badge/release--please-CHANGELOG_+_semver-4285F4)
 ![gitleaks](https://img.shields.io/badge/gitleaks-secret_scan-FD7014)
 
 # Mirador UI — front-row seat

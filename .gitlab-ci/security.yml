@@ -234,4 +234,3 @@ cosign:sign:
     - cosign login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
     - cosign sign --identity-token "$SIGSTORE_ID_TOKEN" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
 
-# ── release-please — auto CHANGELOG + semver tags on main ───────────────────

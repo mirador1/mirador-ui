@@ -141,4 +141,7 @@ include:
   - local: .gitlab-ci/security.yml  # audit, trivy, sbom, grype, dockle, cosign, gitleaks
   - local: .gitlab-ci/quality.yml   # sonarcloud, typedoc
   - local: .gitlab-ci/deploy.yml    # .kubectl-apply-ui + 5 deploy targets
-  - local: .gitlab-ci/release.yml   # release-please (disabled)
+# Release automation — 2026-04-23 : release-please removed (GitHub-API-only,
+# 401 Bad Credentials on GitLab PAT). Replaced by bin/ship/changelog.sh +
+# bin/ship/gitlab-release.sh invoked manually after a stable-v* tag push.
+# See docs/reference/technologies.md → release workflow.

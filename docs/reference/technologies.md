@@ -834,7 +834,7 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 ### 📝 [Conventional Commits](https://www.conventionalcommits.org/)
 - **What it is** — a commit-message convention (`<type>(<scope>)!?: <subject>`).
 - **Usage here** — pure-bash regex enforcement in `lefthook.yml` (commit-msg hook); `config/commitlint.config.mjs` documents the intent.
-- **Why it's pertinent** — machine-parseable history powers release-please's automatic semver bumps and CHANGELOG sections.
+- **Why it's pertinent** — machine-parseable history powers `bin/ship/changelog.sh`'s emoji-section categorisation + downstream Renovate / SonarCloud metadata.
 
 ### 🧹 [commitlint (documentary)](https://commitlint.js.org/)
 - **What it is** — a Node-based commit-message linter.
@@ -858,7 +858,7 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 
 ### 📦 [`npx`](https://docs.npmjs.com/cli/v10/commands/npx)
 - **What it is** — a tool for running npm-distributed binaries without global install.
-- **Usage here** — `npx ng`, `npx prettier`, `npx tsc`, `npx renovate-config-validator`, `npx release-please`.
+- **Usage here** — `npx ng`, `npx prettier`, `npx tsc`, `npx renovate-config-validator`.
 - **Why it's pertinent** — CI doesn't need global installs; lockfile-pinned local binaries always match the build.
 
 ### 📦 [`npm ci --prefer-offline --no-audit --no-fund`](https://docs.npmjs.com/cli/v10/commands/npm-ci)
@@ -878,7 +878,7 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 
 ### 🦊 [`allow_failure: true`](https://docs.gitlab.com/ee/ci/yaml/#allow_failure)
 - **What it is** — a GitLab CI attribute where a failed job doesn't block the pipeline.
-- **Usage here** — `bundle-size-check`, `sonarcloud`, `typedoc`, `trivy:scan`, `grype:scan`, `dockle`, `cosign:sign`, `release-please`.
+- **Usage here** — `bundle-size-check`, `sonarcloud`, `typedoc`, `trivy:scan`, `grype:scan`, `dockle`, `cosign:sign`.
 - **Why it's pertinent** — informational/security jobs must not gate delivery; failures are visible without being blocking.
 
 ### 🦊 [GitLab CI stages](https://docs.gitlab.com/ee/ci/yaml/#stages)
@@ -935,7 +935,7 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 - **Usage here** — cosign publishes signature metadata to Rekor as part of `cosign sign`.
 - **Why it's pertinent** — anyone can audit the provenance of our images from our GitLab org back to a Rekor entry.
 
-### 🔐 [`SONAR_TOKEN` / `RELEASE_PLEASE_TOKEN` / `GCP_SA_KEY` / registry creds](https://docs.gitlab.com/ee/ci/variables/)
+### 🔐 [`SONAR_TOKEN` / `GCP_SA_KEY` / registry creds](https://docs.gitlab.com/ee/ci/variables/)
 - **What it is** — GitLab CI variable secrets.
 - **Usage here** — masked variables at the group level; never committed; `gitleaks` guards against accidents.
 - **Why it's pertinent** — a leaked token can publish images, upload packages, or deploy clusters — the gitleaks + secret-scan layers exist for this reason.
@@ -964,20 +964,10 @@ Vitest, standalone components), see [`docs/adr/`](../adr/).
 - **Usage here** — only triggered when `renovate.json` changes (`rules: - changes: [renovate.json]`).
 - **Why it's pertinent** — typos in Renovate config silently disable rules; this catches them at MR time.
 
-### 🚀 [`release-please`](https://github.com/googleapis/release-please)
-- **What it is** — Google's release automation tool that creates "release PRs" and tags.
-- **Usage here** — `release-please` CI job on main; config `config/release-please-config.json`; manifest `.release-please-manifest.json`.
-- **Why it's pertinent** — reads Conventional Commits, auto-generates CHANGELOG and semver bumps; no manual tag/changelog rituals.
-
-### 🚀 [`release-please` changelog sections](https://github.com/googleapis/release-please/blob/main/docs/customizing.md#changelog-types)
-- **What it is** — config mapping commit types to CHANGELOG section headers.
-- **Usage here** — `config/release-please-config.json` hides `test`, `ci`, `chore`, `style`; exposes `feat`, `fix`, `perf`, `revert`, `docs`, `refactor`, `build`.
-- **Why it's pertinent** — keeps the CHANGELOG readable by users, not noisy with CI/test noise.
-
-### 🔐 **`RELEASE_PLEASE_TOKEN`**
-- **What it is** — a GitLab token with permission to create branches/MRs for release PRs.
-- **Usage here** — gated by rule: `$CI_COMMIT_BRANCH == "main" && $RELEASE_PLEASE_TOKEN`.
-- **Why it's pertinent** — forks or contributors without the token skip the release job cleanly instead of failing mysteriously.
+### 🚀 [`bin/ship/changelog.sh`](../../bin/ship/changelog.sh) + [`gitlab-release.sh`](../../bin/ship/gitlab-release.sh)
+- **What it is** — two local shell scripts (~200 LOC total) that generate CHANGELOG entries from Conventional Commits and promote a `stable-v*` tag to a GitLab Release.
+- **Usage here** — run manually after a tag push : `bin/ship/changelog.sh` prepends the new entry, commit + tag, `bin/ship/gitlab-release.sh <tag>` creates the Release via `glab`. Shared workflow with the svc repo — see [`mirador-service/docs/how-to/changelog-workflow.md`](https://gitlab.com/mirador1/mirador-service/-/blob/main/docs/how-to/changelog-workflow.md).
+- **Why it's pertinent** — replaced `googleapis/release-please` 2026-04-23 (that tool is GitHub-API-only, 401 Bad Credentials on GitLab PAT). Shell version adds zero node_modules to an Angular repo's supply chain and burns zero CI runner time (local-only execution).
 
 ---
 
