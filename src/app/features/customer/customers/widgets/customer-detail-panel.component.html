@@ -1,0 +1,171 @@
+<!-- Customer detail panel — extracted from customers.component.html
+     (lines 322-491 pre-extraction) per B-7-2b follow-up, 2026-04-23.
+     Parent owns the HTTP fetching + state ; widget emits tabChanged
+     + closeRequested events. -->
+@if (selectedCustomer()) {
+  <article class="card detail-card">
+    <div class="detail-header">
+      <h3>
+        Customer #{{ selectedCustomer()!.id }} —
+        <strong>{{ selectedCustomer()!.name }}</strong>
+        <small>{{ selectedCustomer()!.email }}</small>
+      </h3>
+      <button class="sm-btn" (click)="closeRequested.emit()">✕ Close</button>
+    </div>
+
+    <div class="tabs">
+      @if (bioEnabled()) {
+        <button [class.tab-active]="activeTab() === 'bio'" (click)="tabChanged.emit('bio')">
+          🤖 AI Bio <small>Ollama</small>
+          <app-info-tip
+            text="Generates a fictional biography using Ollama (llama3.2 model). Protected by a Resilience4j circuit breaker — returns fallback text if Ollama is down. Hide this tab via the `mirador.bio.enabled` Unleash flag when the LLM pod is unhealthy."
+            command="GET /customers/{id}/bio"
+            source="Ollama + CircuitBreaker + Unleash flag"
+          />
+        </button>
+      }
+      <button [class.tab-active]="activeTab() === 'todos'" (click)="tabChanged.emit('todos')">
+        ✅ Todos <small>JSONPlaceholder</small>
+        <app-info-tip
+          text="Fetches todos from jsonplaceholder.typicode.com via Spring's @HttpExchange declarative client. Has a Resilience4j retry policy on failure."
+          command="GET /customers/{id}/todos"
+          source="External API + Retry"
+        />
+      </button>
+      <button [class.tab-active]="activeTab() === 'enrich'" (click)="tabChanged.emit('enrich')">
+        📨 Enrich <small>Kafka sync</small>
+      </button>
+    </div>
+
+    @if (detailLoading()) {
+      <p class="muted">Calling backend...</p>
+    }
+    @if (detailError()) {
+      <p class="error-text">{{ detailError() }}</p>
+    }
+
+    @if (activeTab() === 'bio') {
+      <div class="detail-body">
+        <div class="enrich-flow">
+          <div class="flow-step flow-client">
+            <span class="flow-icon">🌐</span>
+            <span class="flow-label">HTTP</span>
+            <code>GET /customers/{{ selectedCustomer()!.id }}/bio</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-produce">
+            <span class="flow-icon">🛡️</span>
+            <span class="flow-label">Bulkhead + CB</span>
+            <code>Resilience4j</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-consumer">
+            <span class="flow-icon">🤖</span>
+            <span class="flow-label">LLM</span>
+            <code>Ollama llama3.2:1b</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-response">
+            <span class="flow-icon">✅</span>
+            <span class="flow-label">HTTP 200</span>
+            <code>bio text</code>
+          </div>
+        </div>
+        <p class="enrich-note">
+          <strong>Bulkhead</strong> — max concurrent LLM calls. <strong>Circuit breaker</strong> —
+          open after failures, fallback: "Bio temporarily unavailable."
+        </p>
+        @if (bio()) {
+          <blockquote>{{ bio() }}</blockquote>
+        }
+      </div>
+    }
+
+    @if (activeTab() === 'todos') {
+      <div class="detail-body">
+        <div class="enrich-flow">
+          <div class="flow-step flow-client">
+            <span class="flow-icon">🌐</span>
+            <span class="flow-label">HTTP</span>
+            <code>GET /customers/{{ selectedCustomer()!.id }}/todos</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-produce">
+            <span class="flow-icon">🔁</span>
+            <span class="flow-label">Retry</span>
+            <code>Resilience4j</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-consumer">
+            <span class="flow-icon">🌍</span>
+            <span class="flow-label">@HttpExchange</span>
+            <code>jsonplaceholder</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-response">
+            <span class="flow-icon">✅</span>
+            <span class="flow-label">HTTP 200</span>
+            <code>Todo[]</code>
+          </div>
+        </div>
+        <p class="enrich-note">
+          <strong>@HttpExchange</strong> — client HTTP déclaratif Spring 6. <strong>Retry</strong> —
+          3 tentatives avec backoff exponentiel si jsonplaceholder est lent.
+        </p>
+        @if (todos()) {
+          <ul class="todos-list">
+            @for (t of todos()!.slice(0, 8); track t.id) {
+              <li [class.done]="t.completed">
+                <span class="todo-check">{{ t.completed ? '✓' : '○' }}</span>
+                {{ t.title }}
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @if (activeTab() === 'enrich') {
+      <div class="detail-body">
+        <div class="enrich-flow">
+          <div class="flow-step flow-client">
+            <span class="flow-icon">🌐</span>
+            <span class="flow-label">HTTP</span>
+            <code>GET /customers/{{ selectedCustomer()!.id }}/enrich</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-produce">
+            <span class="flow-icon">📤</span>
+            <span class="flow-label">Kafka PRODUCE</span>
+            <code>customer.request</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-consumer">
+            <span class="flow-icon">⚙️</span>
+            <span class="flow-label">@KafkaListener</span>
+            <code>CustomerEnrichHandler</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-reply">
+            <span class="flow-icon">📥</span>
+            <span class="flow-label">Kafka REPLY</span>
+            <code>customer.reply</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-response">
+            <span class="flow-icon">✅</span>
+            <span class="flow-label">HTTP 200</span>
+            <code>EnrichedCustomer</code>
+          </div>
+        </div>
+        <p class="enrich-note">
+          <strong>ReplyingKafkaTemplate</strong> — appel bloquant avec corrélation automatique.
+          Timeout 5 s → 504 si le consumer ne répond pas.
+        </p>
+        @if (enriched()) {
+          <pre>{{ enriched() | json }}</pre>
+        }
+      </div>
+    }
+  </article>
+}
