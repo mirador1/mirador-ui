@@ -162,173 +162,18 @@
     [liveness]="liveness()"
   />
 
-  <!-- Architecture & Service Control (merged) -->
-  <div class="section-header">
-    <h3>
-      Architecture & Services
-      <span
-        class="dep-aggregate"
-        [class.dep-all-up]="
-          dockerRunningCount() === dockerContainers().length && dockerContainers().length > 0
-        "
-        [class.dep-some-down]="
-          dockerRunningCount() < dockerContainers().length && dockerContainers().length > 0
-        "
-      >
-        @if (dockerContainers().length) {
-          {{
-            dockerRunningCount() === dockerContainers().length
-              ? '✓ All running'
-              : dockerRunningCount() + '/' + dockerContainers().length + ' running'
-          }}
-        }
-      </span>
-      <app-info-tip
-        text="Service dependency map with live controls. Green = running, Red = down. Click Open to access the UI, Stop/Start to control Docker containers."
-        [wide]="true"
-      />
-    </h3>
-    <div class="docker-meta">
-      <button class="refresh-btn" (click)="loadContainers()" [disabled]="dockerLoading()">
-        {{ dockerLoading() ? '...' : '↻ Refresh' }}
-      </button>
-    </div>
-  </div>
-
-  @if (dockerError()) {
-    <div class="alert-error">{{ dockerError() }}</div>
-  }
-
-  <p class="archi-legend">
-    Status sources vary by service — <strong>API, DB, Redis</strong>: live
-    <code>/actuator/health</code> probe · <strong>most containers</strong>: Docker daemon via
-    <code>localhost:2375</code> · <strong>gitlab.com</strong>: HEAD request ·
-    <strong>Browser, Consumer, Swagger, Actuator</strong>: derived from their parent service.
-    Start/Stop buttons control Docker containers directly.
-  </p>
-
-  <div class="archi-columns">
-    @for (colLabel of topoColumns; track colLabel; let colIdx = $index) {
-      <div class="archi-col">
-        <div class="archi-col-header">{{ colLabel }}</div>
-        @for (node of topoNodesInCol(colIdx); track node.id) {
-          <div
-            class="archi-card"
-            [class.archi-up]="topoStatus()[node.id] === 'up'"
-            [class.archi-down]="topoStatus()[node.id] === 'down'"
-          >
-            <span class="archi-indicator" [style.background]="topoNodeColor(node.id)"></span>
-            <div class="archi-body">
-              <div class="archi-header">
-                <span class="archi-icon">{{ node.icon }}</span>
-                <strong class="archi-name">{{ node.label }}</strong>
-                @if (node.port) {
-                  <span class="archi-port">:{{ node.port }}</span>
-                }
-                <app-info-tip
-                  [title]="node.label"
-                  [text]="node.detail"
-                  [image]="node.image || ''"
-                  [source]="node.url || ''"
-                  [wide]="true"
-                />
-              </div>
-              <span class="archi-desc">{{
-                node.tip.split('—')[1]?.trim() || node.tip.split('.')[0]
-              }}</span>
-              @if (topoConnections(node.id).from.length) {
-                <span class="archi-conn">← {{ topoConnections(node.id).from.join(', ') }}</span>
-              }
-              @if (topoConnections(node.id).to.length) {
-                <span class="archi-conn">→ {{ topoConnections(node.id).to.join(', ') }}</span>
-              }
-              <div class="archi-footer">
-                <span
-                  class="archi-status"
-                  [style.color]="topoNodeColor(node.id)"
-                  [title]="topoStatusTooltip(node.id)"
-                >
-                  {{
-                    topoStatus()[node.id] === 'up'
-                      ? 'UP'
-                      : topoStatus()[node.id] === 'down'
-                        ? 'DOWN'
-                        : '—'
-                  }}
-                </span>
-                <div class="archi-actions">
-                  @if (node.url) {
-                    <a
-                      class="docker-btn docker-link"
-                      [href]="node.url"
-                      target="_blank"
-                      rel="noopener"
-                      [title]="
-                        'Open ' + node.label + ' in a new browser tab (localhost:' + node.port + ')'
-                      "
-                      >Open ↗</a
-                    >
-                  }
-                  @if (node.container) {
-                    <!--
-                      docker-desktop:// deep-link. Falls through silently if
-                      Docker Desktop is not installed (the OS doesn't route
-                      the scheme anywhere). Per mirador-service
-                      docs/getting-started/dev-tooling.md.
-                    -->
-                    <a
-                      class="docker-btn docker-link"
-                      [href]="deepLink.dockerContainer(node.container)"
-                      [title]="
-                        'Open ' +
-                        node.container +
-                        ' in Docker Desktop (silent no-op if not installed)'
-                      "
-                      >🐳 DD</a
-                    >
-                  }
-                  @if (topoContainer(node); as c) {
-                    @if (c.running) {
-                      <button
-                        class="docker-btn docker-down"
-                        (click)="dockerAction(c.name, 'stop')"
-                        [disabled]="isDockerActionLoading(c.name, 'stop')"
-                        [title]="
-                          'Stop the ' +
-                          c.name +
-                          ' Docker container (docker stop ' +
-                          c.name +
-                          '). The service will show as DOWN until restarted.'
-                        "
-                      >
-                        {{ isDockerActionLoading(c.name, 'stop') ? '...' : '↓ Down' }}
-                      </button>
-                    } @else {
-                      <button
-                        class="docker-btn docker-up"
-                        (click)="dockerAction(c.name, 'start')"
-                        [disabled]="isDockerActionLoading(c.name, 'start')"
-                        [title]="
-                          'Start the ' +
-                          c.name +
-                          ' Docker container (docker start ' +
-                          c.name +
-                          '). The service will show as UP once healthy.'
-                        "
-                      >
-                        {{ isDockerActionLoading(c.name, 'start') ? '...' : '↑ Up' }}
-                      </button>
-                    }
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-      </div>
-      @if (colIdx < topoColumns.length - 1) {
-        <div class="archi-arrow">→</div>
-      }
-    }
-  </div>
+  <!-- Architecture & Services map — extracted to
+       widgets/dashboard-architecture-map.component.ts (Phase B-6b widget
+       split, slice 3). Parent owns the state + HTTP ; widget handles
+       rendering + emits refresh/action events back. -->
+  <app-dashboard-architecture-map
+    [topoStatus]="topoStatus()"
+    [dockerContainers]="dockerContainers()"
+    [dockerLoading]="dockerLoading()"
+    [dockerError]="dockerError()"
+    [dockerRunningCount]="dockerRunningCount()"
+    [dockerActionLoading]="dockerActionLoading()"
+    (refreshRequested)="loadContainers()"
+    (actionRequested)="dockerAction($event.name, $event.op)"
+  />
 </section>

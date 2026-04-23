@@ -37,6 +37,29 @@ export interface ActuatorHealth {
 }
 
 /**
+ * Enriched Docker container entry shown in the Architecture & Services
+ * widget. The base Docker API fields (name/status/image/running) are
+ * augmented by Mirador-side metadata (icon/label/description/detail/url/port)
+ * derived from the SVC port registry.
+ *
+ * Extracted from the inline signal type in dashboard.component.ts
+ * 2026-04-23 under Phase B-6b so the widget can reuse the type.
+ */
+export interface EnrichedDockerContainer {
+  name: string;
+  status: string;
+  image: string;
+  running: boolean;
+  icon: string;
+  label: string;
+  description: string;
+  detail: string;
+  screenshot?: string;
+  port?: string;
+  url?: string;
+}
+
+/**
  * Aggregated quality snapshot fetched once on init from /actuator/quality.
  * Shows tests/coverage/bugs/sonar at-a-glance — links to the full /quality
  * page for detail. Not refreshed on auto-refresh cycles (quality data only

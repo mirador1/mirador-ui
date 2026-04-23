@@ -27,21 +27,18 @@ import { ApiService } from '../../../core/api/api.service';
 import { EnvService } from '../../../core/env/env.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ActivityService } from '../../../core/activity/activity.service';
-import { DeepLinkService } from '../../../core/deep-link/deep-link.service';
 import { InfoTipComponent } from '../../../shared/info-tip/info-tip.component';
 import {
   SVC,
   type ActuatorHealth,
   type DockerContainer,
+  type EnrichedDockerContainer,
   type QualitySummary,
 } from './dashboard-types';
-import {
-  DASHBOARD_TOPO_COLUMNS,
-  DASHBOARD_TOPO_NODES,
-  DASHBOARD_TOPO_EDGES,
-} from './dashboard-topology-data';
+import { DASHBOARD_TOPO_NODES } from './dashboard-topology-data';
 import { DashboardHealthProbesComponent } from './widgets/dashboard-health-probes.component';
 import { DashboardQualitySummaryComponent } from './widgets/dashboard-quality-summary.component';
+import { DashboardArchitectureMapComponent } from './widgets/dashboard-architecture-map.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -52,6 +49,7 @@ import { DashboardQualitySummaryComponent } from './widgets/dashboard-quality-su
     InfoTipComponent,
     DashboardHealthProbesComponent,
     DashboardQualitySummaryComponent,
+    DashboardArchitectureMapComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -62,8 +60,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly env = inject(EnvService);
   private readonly toast = inject(ToastService);
   private readonly activity = inject(ActivityService);
-  /** Desktop deep-link helpers (docker-desktop://, vscode://, idea://). */
-  readonly deepLink = inject(DeepLinkService);
   /**
    * DestroyRef used by `takeUntilDestroyed()` on every HTTP subscribe to
    * stop the post-destroy `signal.set()` callback (Phase 4.1, 2026-04-22).
@@ -429,21 +425,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Populated by `loadContainers()` after filtering the Docker API response.
    * Sorted: running containers first, then alphabetically.
    */
-  dockerContainers = signal<
-    {
-      name: string;
-      status: string;
-      image: string;
-      running: boolean;
-      icon: string;
-      label: string;
-      description: string;
-      detail: string;
-      screenshot?: string;
-      port?: string;
-      url?: string;
-    }[]
-  >([]);
+  dockerContainers = signal<EnrichedDockerContainer[]>([]);
 
   /** Signal: true while the Docker container list request is in flight. */
   dockerLoading = signal(false);
@@ -570,12 +552,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   //                                               Kafka UI
   //
   // Topology data extracted to `dashboard-topology-data.ts` (Phase B-6,
-  // 2026-04-22 — file-length hygiene). Re-exposed here as readonly class
-  // members so the template can keep referencing `topoColumns` /
-  // `topoNodes` / `topoEdgeList` unchanged.
-  readonly topoColumns = DASHBOARD_TOPO_COLUMNS;
-  readonly topoNodes = DASHBOARD_TOPO_NODES;
-  readonly topoEdgeList = DASHBOARD_TOPO_EDGES;
+  // 2026-04-22). Rendering + navigation helpers moved to
+  // widgets/dashboard-architecture-map.component.ts (Phase B-6b, 2026-04-23).
+  // The parent only holds the topoStatus signal + the refreshTopology()
+  // pipeline that populates it — the widget reads the signal via input.
+  private readonly topoNodes = DASHBOARD_TOPO_NODES;
 
   topoStatus = signal<Record<string, 'up' | 'down' | 'unknown'>>({});
 
@@ -633,62 +614,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .catch(() => update('gitlab-com', 'down'));
   }
 
-  topoNodesInCol(col: number) {
-    return this.topoNodes.filter((n) => n.col === col).sort((a, b) => a.row - b.row);
-  }
-
-  /** Get the list of nodes this node connects to (→) and is connected from (←) */
-  topoConnections(nodeId: string): { to: string[]; from: string[] } {
-    const nodeMap = new Map(this.topoNodes.map((n) => [n.id, n.label]));
-    const to: string[] = [];
-    const from: string[] = [];
-    for (const e of this.topoEdgeList) {
-      if (e.from === nodeId) to.push(nodeMap.get(e.to) ?? e.to);
-      if (e.to === nodeId) from.push(nodeMap.get(e.from) ?? e.from);
-    }
-    return { to, from };
-  }
-
-  topoContainer(node: { container?: string }): { running: boolean; name: string } | null {
-    if (!node.container) return null;
-    return this.dockerContainers().find((c) => c.name === node.container) ?? null;
-  }
-
-  topoNodeColor(id: string): string {
-    const s = this.topoStatus()[id];
-    if (s === 'up') return '#4ade80';
-    if (s === 'down') return '#f87171';
-    return '#94a3b8';
-  }
-
-  /** Tooltip explaining how the UP/DOWN status of each node is probed. */
-  private readonly statusProbeDescriptions: Record<string, string> = {
-    client: 'Always UP — represents your browser, no probe needed.',
-    api: 'GET /actuator/health → HTTP 200 + JSON { status: "UP" }.',
-    swagger: 'Derived from API status — UP when the Spring Boot app is running.',
-    actuator: 'Derived from API status — UP when the Spring Boot app is running.',
-    keycloak: 'Docker container state via Docker Engine API (container running = UP).',
-    pg: 'Spring Boot health component "db" inside /actuator/health/components.',
-    redis: 'Spring Boot health component "redis" inside /actuator/health/components.',
-    kafka: 'Docker container state via Docker Engine API (container running = UP).',
-    ollama: 'Docker container state via Docker Engine API (container running = UP).',
-    cloudbeaver: 'Docker container state via Docker Engine API (container running = UP).',
-    redisinsight: 'Docker container state via Docker Engine API (container running = UP).',
-    consumer: 'Inferred from Kafka container state — shown as UP when kafka-demo is running.',
-    'kafka-ui': 'Docker container state via Docker Engine API (container running = UP).',
-    loki: 'Docker container state via Docker Engine API (container running = UP).',
-    'spring-app': 'Docker container state via Docker Engine API (container running = UP).',
-    'gitlab-com':
-      'HEAD https://gitlab.com (no-cors) — UP if reachable from the browser, DOWN if network error.',
-  };
-
-  topoStatusTooltip(nodeId: string): string {
-    const probe =
-      this.statusProbeDescriptions[nodeId] ?? 'Docker container state via Docker Engine API.';
-    const s = this.topoStatus()[nodeId];
-    const stateLabel = s === 'up' ? '✅ UP' : s === 'down' ? '❌ DOWN' : '— unknown';
-    return `${stateLabel}\nProbe: ${probe}`;
-  }
+  // Rendering helpers (topoNodesInCol / topoConnections / topoNodeColor /
+  // topoStatusTooltip / topoContainer / isDockerActionLoading) + their
+  // statusProbeDescriptions map moved to
+  // widgets/dashboard-architecture-map.component.ts (Phase B-6b, 2026-04-23).
+  // They only served that one section — grouping them with the template
+  // removes ~70 LOC of incidental complexity from the parent.
 
   // ── Heatmap ───────────────────────────────────────────────────────────────
   heatmapData = signal<{ hour: number; count: number }[]>([]);
