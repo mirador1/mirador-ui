@@ -97,6 +97,14 @@ test.describe('Demo recording for README @demo', () => {
     await page.waitForTimeout(400);
     await page.getByRole('button', { name: /^Sign in$/ }).click();
 
+    // Defensive : if the tour still fires despite the addInitScript
+    // localStorage flag (e.g. some component re-triggers it on login),
+    // dismiss it by pressing Escape (per TourOverlayComponent's onKey
+    // handler : Escape → service.end()).
+    await page.waitForTimeout(1500); // let post-login redirect settle
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(300);
+
     // ═══════════════════════════════════════════════════════════════
     // 2. SIDEBAR SWEEP — establish the scope of the UI
     // ═══════════════════════════════════════════════════════════════
