@@ -266,72 +266,14 @@
     }
   </section>
 
-  <h3>
-    Health Probes
-    <app-info-tip
-      text="Spring Boot Actuator exposes 3 probes: health (overall status), readiness (ready for traffic), liveness (process alive). Used by Kubernetes for health checks."
-      command="GET /actuator/health/readiness"
-      source="/actuator/health/*"
-    />
-  </h3>
-
-  <!-- ADR-0008 aftermath: the UP/DOWN sparkline was client-side-only and
-       duplicated (weakly) the "up" Micrometer metric that Grafana plots in
-       the Golden Signals dashboard. The three probe cards below show the
-       current status — history lives in Grafana. -->
-
-  <div class="probes-grid">
-    <article class="card">
-      <div class="card-title">
-        <span class="badge" [class]="statusClass(health())">{{ statusLabel(health()) }}</span>
-        <span class="probe-icon">💚</span>
-        <strong>Health</strong>
-        <small>/actuator/health</small>
-        <app-info-tip
-          title="Health (composite)"
-          text="Overall backend health. Aggregates all components: database (PostgreSQL), Redis, disk space, ping. Returns UP only if ALL components are UP. HTTP 200 when UP, 503 when DOWN. Stop a service in Service Control to see it change."
-          command="curl http://localhost:8080/actuator/health"
-          source="/actuator/health"
-          [wide]="true"
-        />
-      </div>
-      <pre>{{ health() | json }}</pre>
-    </article>
-
-    <article class="card">
-      <div class="card-title">
-        <span class="badge" [class]="statusClass(readiness())">{{ statusLabel(readiness()) }}</span>
-        <span class="probe-icon">🚦</span>
-        <strong>Readiness</strong>
-        <small>/actuator/health/readiness</small>
-        <app-info-tip
-          title="Readiness probe"
-          text="Indicates whether the app is ready to accept traffic. Used by Kubernetes to decide if a pod should receive requests. Includes database connectivity and other critical dependencies. When NOT ready, the load balancer stops sending traffic."
-          command="curl http://localhost:8080/actuator/health/readiness"
-          source="/actuator/health/readiness"
-          [wide]="true"
-        />
-      </div>
-      <pre>{{ readiness() | json }}</pre>
-    </article>
-
-    <article class="card">
-      <div class="card-title">
-        <span class="badge" [class]="statusClass(liveness())">{{ statusLabel(liveness()) }}</span>
-        <span class="probe-icon">🫀</span>
-        <strong>Liveness</strong>
-        <small>/actuator/health/liveness</small>
-        <app-info-tip
-          title="Liveness probe"
-          text="Indicates whether the app process is alive and not deadlocked. Used by Kubernetes to decide if a pod should be restarted. Unlike readiness, liveness does NOT check external dependencies — a DB outage should not cause a restart. If this is DOWN, the JVM itself is broken."
-          command="curl http://localhost:8080/actuator/health/liveness"
-          source="/actuator/health/liveness"
-          [wide]="true"
-        />
-      </div>
-      <pre>{{ liveness() | json }}</pre>
-    </article>
-  </div>
+  <!-- Health probes — extracted to widgets/dashboard-health-probes.component.ts
+       (Phase B-6b widget split). Stays in the dashboard as a visible block
+       between Runtime metrics and Architecture sections. -->
+  <app-dashboard-health-probes
+    [health]="health()"
+    [readiness]="readiness()"
+    [liveness]="liveness()"
+  />
 
   <!-- Architecture & Service Control (merged) -->
   <div class="section-header">

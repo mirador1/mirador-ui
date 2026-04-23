@@ -19,7 +19,7 @@
  */
 import { Component, DestroyRef, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { JsonPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -36,11 +36,19 @@ import {
   DASHBOARD_TOPO_NODES,
   DASHBOARD_TOPO_EDGES,
 } from './dashboard-topology-data';
+import { DashboardHealthProbesComponent } from './widgets/dashboard-health-probes.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [JsonPipe, DatePipe, DecimalPipe, FormsModule, InfoTipComponent, RouterLink],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    FormsModule,
+    InfoTipComponent,
+    RouterLink,
+    DashboardHealthProbesComponent,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -729,17 +737,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-
-  statusClass(data: unknown): string {
-    const d = data as { status?: string } | null;
-    if (!d) return 'badge-unknown';
-    if (d.status === 'UP') return 'badge-up';
-    return 'badge-down';
-  }
-
-  statusLabel(data: unknown): string {
-    const d = data as { status?: string } | null;
-    if (!d) return '...';
-    return d.status ?? '?';
-  }
+  // statusClass / statusLabel moved to
+  // widgets/dashboard-health-probes.component.ts (Phase B-6b, 2026-04-23) —
+  // they were only used by the probe cards, which now live in that widget.
 }
