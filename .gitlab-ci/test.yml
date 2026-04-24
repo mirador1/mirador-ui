@@ -183,9 +183,37 @@ e2e:kind:
       #    so Spring Boot can reach `db`, `kafka`, `redis` by docker
       #    DNS — no host port footprint needed. The job container's
       #    hostname is its own container ID (set by GitLab runner).
+      #    Pipeline #2478522873 evidence : pg_isready was green (postgres
+      #    up) but Spring Boot Flyway 'Connection attempt failed' minutes
+      #    later → job container couldn't resolve `db`. Likely the
+      #    silent `2>/dev/null || true` was masking a real network-connect
+      #    failure (e.g. JOB_CTR already on the network from a previous
+      #    run, or the network name resolution was off).
+      #
+      #    Fix : remove the silent suppression + add an explicit
+      #    `getent hosts db` check after connect that fails fast with
+      #    a clear error if DNS resolution doesn't work. Saves ~10 min
+      #    of debugging when Spring Boot's eventual "connection refused"
+      #    is the symptom of a network-connect issue 2 minutes upstream.
       JOB_CTR=$(hostname)
       NET="${COMPOSE_PROJECT}_default"
-      docker network connect "$NET" "$JOB_CTR" 2>/dev/null || true
+      # `|| true` retained ONLY for the case where the container is
+      # already on the network (idempotent), but stderr now visible
+      # (no `2>/dev/null`) so real network errors surface.
+      docker network connect "$NET" "$JOB_CTR" || true
+      # Verify Spring Boot can resolve `db` BEFORE launching the app —
+      # cheaper to fail here with a clear DNS error than to wait 10 min
+      # for Flyway to time out.
+      if ! getent hosts db >/dev/null 2>&1; then
+        echo "FAIL: hostname 'db' not resolvable from job container" >&2
+        echo "Job container : $JOB_CTR" >&2
+        echo "Networks attached :" >&2
+        docker inspect "$JOB_CTR" --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' >&2 || true
+        echo "Compose network containers :" >&2
+        docker network inspect "$NET" --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' >&2 || true
+        exit 1
+      fi
+      echo "DNS OK : db → $(getent hosts db | awk '{print $1}')"
 
       # 3. Compile + start the Spring Boot app in the background. The
       #    `./run.sh app` script blocks on the foreground; we daemonise
