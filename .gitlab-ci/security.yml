@@ -145,14 +145,16 @@ grype:scan:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
-  # Shield retained — the UI grype scan was failing on image shell
-  # absence, not on a real CVE. Keep allow_failure until we verify
-  # the v0.111.0-debug variant stabilises on main; then remove this
-  # per CLAUDE.md "Pipelines stay green" rule.
-  allow_failure: true
+  # Shield removed 2026-04-24 — root cause of "grype: not found" was
+  # that the v0.111.0-debug image installs grype at /grype (root) but
+  # /grype is NOT on the PATH (busybox PATH is /usr/local/sbin:/usr/
+  # local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/busybox). Verified locally
+  # via `docker run --rm --entrypoint sh anchore/grype:v0.111.0-debug
+  # -c "which grype; ls /grype"` → /grype exists, which grype empty.
+  # Calling /grype with absolute path fixes it without env tweaks.
   script:
-    - grype sbom:bom.cdx.json --fail-on high --output table
-    - grype sbom:bom.cdx.json --output json > grype-report.json
+    - /grype sbom:bom.cdx.json --fail-on high --output table
+    - /grype sbom:bom.cdx.json --output json > grype-report.json
   artifacts:
     when: always
     expire_in: 30 days
