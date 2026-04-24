@@ -51,9 +51,9 @@
     }
 
     <!-- Batch delete bar -->
-    @if (hasSelection()) {
+    @if (selection.hasSelection()) {
       <div class="batch-bar">
-        <span>{{ selectedIds().size }} selected</span>
+        <span>{{ selection.selectedIds().size }} selected</span>
         <button class="danger-btn" (click)="openBatchDelete()">Delete selected</button>
       </div>
     }
@@ -137,7 +137,11 @@
               <thead>
                 <tr>
                   <th class="check-col">
-                    <input type="checkbox" [checked]="selectAll()" (change)="toggleSelectAll()" />
+                    <input
+                      type="checkbox"
+                      [checked]="selection.selectAll()"
+                      (change)="toggleSelectAll()"
+                    />
                   </th>
                   <th class="sortable" (click)="toggleSort('id')">
                     ID <span class="sort-icon">{{ sortIcon('id') }}</span>
@@ -162,7 +166,7 @@
                     <td class="check-col">
                       <input
                         type="checkbox"
-                        [checked]="selectedIds().has(c.id!)"
+                        [checked]="selection.selectedIds().has(c.id!)"
                         (change)="toggleSelectOne(c.id!)"
                       />
                     </td>
@@ -252,14 +256,16 @@
     }
 
     <!-- Batch delete confirmation modal -->
-    @if (confirmBatchDelete()) {
+    @if (selection.confirmBatchDelete()) {
       <app-confirm-modal
         title="Batch Delete"
-        [body]="'Delete ' + selectedIds().size + ' selected customers? This cannot be undone.'"
+        [body]="
+          'Delete ' + selection.selectedIds().size + ' selected customers? This cannot be undone.'
+        "
         confirmLabel="Delete All"
         loadingLabel="Deleting..."
         variant="danger"
-        [loading]="batchDeleteLoading()"
+        [loading]="selection.batchDeleteLoading()"
         (cancelled)="cancelBatchDelete()"
         (confirmed)="executeBatchDelete()"
       />
