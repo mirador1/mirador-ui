@@ -51,9 +51,9 @@
     }
 
     <!-- Batch delete bar -->
-    @if (hasSelection()) {
+    @if (selection.hasSelection()) {
       <div class="batch-bar">
-        <span>{{ selectedIds().size }} selected</span>
+        <span>{{ selection.selectedIds().size }} selected</span>
         <button class="danger-btn" (click)="openBatchDelete()">Delete selected</button>
       </div>
     }
@@ -137,7 +137,11 @@
               <thead>
                 <tr>
                   <th class="check-col">
-                    <input type="checkbox" [checked]="selectAll()" (change)="toggleSelectAll()" />
+                    <input
+                      type="checkbox"
+                      [checked]="selection.selectAll()"
+                      (change)="toggleSelectAll()"
+                    />
                   </th>
                   <th class="sortable" (click)="toggleSort('id')">
                     ID <span class="sort-icon">{{ sortIcon('id') }}</span>
@@ -162,7 +166,7 @@
                     <td class="check-col">
                       <input
                         type="checkbox"
-                        [checked]="selectedIds().has(c.id!)"
+                        [checked]="selection.selectedIds().has(c.id!)"
                         (change)="toggleSelectOne(c.id!)"
                       />
                     </td>
@@ -204,25 +208,25 @@
     </div>
 
     <!-- Edit modal -->
-    @if (editingCustomer()) {
+    @if (crud.editingCustomer()) {
       <div class="modal-overlay" (click)="cancelEdit()">
         <div class="modal" (click)="$event.stopPropagation()">
-          <h3>Edit Customer #{{ editingCustomer()!.id }}</h3>
+          <h3>Edit Customer #{{ crud.editingCustomer()!.id }}</h3>
           <label>
             Name
-            <input [(ngModel)]="editName" />
+            <input [(ngModel)]="crud.editName" />
           </label>
           <label>
             Email
-            <input [(ngModel)]="editEmail" type="email" />
+            <input [(ngModel)]="crud.editEmail" type="email" />
           </label>
-          @if (editError()) {
-            <p class="error-text">{{ editError() }}</p>
+          @if (crud.editError()) {
+            <p class="error-text">{{ crud.editError() }}</p>
           }
           <div class="modal-actions">
             <button class="sm-btn" (click)="cancelEdit()">Cancel</button>
-            <button class="primary-btn" (click)="saveEdit()" [disabled]="editLoading()">
-              {{ editLoading() ? 'Saving...' : 'Save' }}
+            <button class="primary-btn" (click)="saveEdit()" [disabled]="crud.editLoading()">
+              {{ crud.editLoading() ? 'Saving...' : 'Save' }}
             </button>
           </div>
         </div>
@@ -232,34 +236,36 @@
     <!-- Delete confirmation modal — uses generic ConfirmModal widget
          (shared/confirm-modal). Body is interpolated as innerHTML to
          keep the strong-tag formatting. -->
-    @if (deletingCustomer()) {
+    @if (crud.deletingCustomer()) {
       <app-confirm-modal
         title="Delete Customer"
         [body]="
           'Are you sure you want to delete <strong>' +
-          deletingCustomer()!.name +
+          crud.deletingCustomer()!.name +
           '</strong> (ID ' +
-          deletingCustomer()!.id +
+          crud.deletingCustomer()!.id +
           ')?'
         "
         confirmLabel="Delete"
         loadingLabel="Deleting..."
         variant="danger"
-        [loading]="deleteLoading()"
+        [loading]="crud.deleteLoading()"
         (cancelled)="cancelDelete()"
         (confirmed)="confirmDelete()"
       />
     }
 
     <!-- Batch delete confirmation modal -->
-    @if (confirmBatchDelete()) {
+    @if (selection.confirmBatchDelete()) {
       <app-confirm-modal
         title="Batch Delete"
-        [body]="'Delete ' + selectedIds().size + ' selected customers? This cannot be undone.'"
+        [body]="
+          'Delete ' + selection.selectedIds().size + ' selected customers? This cannot be undone.'
+        "
         confirmLabel="Delete All"
         loadingLabel="Deleting..."
         variant="danger"
-        [loading]="batchDeleteLoading()"
+        [loading]="selection.batchDeleteLoading()"
         (cancelled)="cancelBatchDelete()"
         (confirmed)="executeBatchDelete()"
       />

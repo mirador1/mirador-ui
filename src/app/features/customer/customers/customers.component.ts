@@ -42,12 +42,14 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { ActivityService } from '../../../core/activity/activity.service';
 import { FeatureFlagService } from '../../../core/feature-flags/feature-flag.service';
 import { InfoTipComponent } from '../../../shared/info-tip/info-tip.component';
-import { uuid, randomCustomer } from './customers-helpers';
+import { uuid, httpError } from './customers-helpers';
 import type { DetailTab, SortField, SortDir } from './customers-types';
 import { CustomerDetailPanelComponent } from './widgets/customer-detail-panel.component';
 import { CustomerCreateFormComponent } from './widgets/customer-create-form.component';
 import { ConfirmModalComponent } from '../../../shared/confirm-modal/confirm-modal.component';
 import { CustomerImportExportService } from './customer-import-export.service';
+import { CustomerSelectionService } from './customer-selection.service';
+import { CustomerCrudService } from './customer-crud.service';
 
 @Component({
   selector: 'app-customers',
@@ -153,13 +155,10 @@ export class CustomersComponent implements OnInit, OnDestroy {
   /** Signal: current sort direction, toggled per-column on click. */
   sortDir = signal<SortDir>('asc');
 
-  // ── Batch selection ───────────────────────────────────────────────────────
-
-  /** Signal: set of customer IDs currently checked for batch operations. */
-  selectedIds = signal<Set<number>>(new Set());
-
-  /** Signal: true when the "select all on current page" checkbox is checked. */
-  selectAll = signal(false);
+  // ── Batch selection — state + methods moved to CustomerSelectionService
+  //    (B-7-2c Step 2, 2026-04-24). Exposed here as `selection` so
+  //    templates can read / bind to `selection.selectedIds()` etc. ──
+  readonly selection = inject(CustomerSelectionService);
 
   // ── Create form (state owned by the widget — see widgets/customer-create-form) ──
 
@@ -179,36 +178,9 @@ export class CustomersComponent implements OnInit, OnDestroy {
   /** Signal: the newly created customer returned by the server. Shown as a success confirmation. */
   createSuccess = signal<Customer | null>(null);
 
-  // ── Edit modal ────────────────────────────────────────────────────────────
-
-  /** Signal: the customer currently open in the edit modal. Null when modal is closed. */
-  editingCustomer = signal<Customer | null>(null);
-
-  /** Mutable field for the edit modal name input (not a signal — bound via ngModel). */
-  editName = '';
-
-  /** Mutable field for the edit modal email input (not a signal — bound via ngModel). */
-  editEmail = '';
-
-  /** Signal: true while the update HTTP request is in flight. */
-  editLoading = signal(false);
-
-  /** Signal: error message from the most recent update attempt. */
-  editError = signal('');
-
-  // ── Delete confirm ────────────────────────────────────────────────────────
-
-  /** Signal: the customer for which a delete confirmation dialog is open. */
-  deletingCustomer = signal<Customer | null>(null);
-
-  /** Signal: true while a single-customer delete request is in flight. */
-  deleteLoading = signal(false);
-
-  /** Signal: true while any batch delete requests are in flight. */
-  batchDeleteLoading = signal(false);
-
-  /** Signal: true when the batch delete confirmation dialog is open. */
-  confirmBatchDelete = signal(false);
+  // ── Edit + delete + random-create — delegated to CustomerCrudService ──
+  //    (B-7-2c Step 3, 2026-04-24). Template accesses state via `crud.*`.
+  readonly crud = inject(CustomerCrudService);
 
   // ── Per-customer detail ────────────────────────────────────────────────────
 
@@ -250,8 +222,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
     return this.customers()?.totalPages ?? 1;
   });
 
-  /** Computed: true when at least one customer is selected for batch operations. */
-  readonly hasSelection = computed(() => this.selectedIds().size > 0);
+  // hasSelection computed moved to CustomerSelectionService.hasSelection
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
@@ -319,8 +290,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   loadCustomers(): void {
     this.listLoading.set(true);
     this.listError.set('');
-    this.selectedIds.set(new Set());
-    this.selectAll.set(false);
+    this.selection.clearSelection();
 
     const sort = this.sortField() ? `${this.sortField()},${this.sortDir()}` : undefined;
     const search = this.searchQuery() || undefined;
@@ -452,163 +422,58 @@ export class CustomersComponent implements OnInit, OnDestroy {
    * widget's "🎲 Add random customer" button emits createRandomRequested
    * which the parent template binds to this method.
    */
-  addRandomCustomer(): void {
-    const { name, email } = randomCustomer();
-    this.createLoading.set(true);
-    this.createError.set('');
-    this.createSuccess.set(null);
+  // ── CRUD wrappers — delegate to CustomerCrudService ───────────────────
 
-    this.api
-      .createCustomer({ name, email })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (c) => {
-          this.createSuccess.set(c);
-          this.createLoading.set(false);
-          this.toast.show(`Random customer "${c.name}" created (ID ${c.id})`, 'success');
-          this.activity.log('customer-create', `Random-created "${c.name}" (ID ${c.id})`);
-          this.loadCustomers();
-        },
-        error: (err) => {
-          this.createError.set(httpError(err));
-          this.createLoading.set(false);
-        },
-      });
+  addRandomCustomer(): void {
+    this.crud.addRandomCustomer(() => this.loadCustomers());
   }
 
-  // ── Edit ───────────────────────────────────────────────────────────────────
   openEdit(c: Customer): void {
-    this.editingCustomer.set(c);
-    this.editName = c.name;
-    this.editEmail = c.email;
-    this.editError.set('');
+    this.crud.openEdit(c);
   }
 
   cancelEdit(): void {
-    this.editingCustomer.set(null);
+    this.crud.cancelEdit();
   }
 
   saveEdit(): void {
-    const c = this.editingCustomer();
-    if (!c?.id || !this.editName.trim() || !this.editEmail.trim()) return;
-    this.editLoading.set(true);
-    this.editError.set('');
-
-    this.api
-      .updateCustomer(c.id, { name: this.editName.trim(), email: this.editEmail.trim() })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (updated) => {
-          this.editingCustomer.set(null);
-          this.editLoading.set(false);
-          this.toast.show(`Customer "${updated.name}" updated`, 'success');
-          this.activity.log('customer-update', `Updated "${updated.name}" (ID ${updated.id})`);
-          this.loadCustomers();
-        },
-        error: (err) => {
-          this.editError.set(httpError(err));
-          this.editLoading.set(false);
-        },
-      });
+    this.crud.saveEdit(() => this.loadCustomers());
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
   openDelete(c: Customer): void {
-    this.deletingCustomer.set(c);
+    this.crud.openDelete(c);
   }
 
   cancelDelete(): void {
-    this.deletingCustomer.set(null);
+    this.crud.cancelDelete();
   }
 
   confirmDelete(): void {
-    const c = this.deletingCustomer();
-    if (!c?.id) return;
-    this.deleteLoading.set(true);
-
-    this.api
-      .deleteCustomer(c.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.deletingCustomer.set(null);
-          this.deleteLoading.set(false);
-          this.toast.show(`Customer "${c.name}" deleted`, 'success');
-          this.activity.log('customer-delete', `Deleted "${c.name}" (ID ${c.id})`);
-          this.loadCustomers();
-        },
-        error: (err) => {
-          this.deleteLoading.set(false);
-          this.toast.show(httpError(err), 'error');
-          this.deletingCustomer.set(null);
-        },
-      });
+    this.crud.confirmDelete(() => this.loadCustomers());
   }
 
-  // ── Batch selection ───────────────────────────────────────────────────────
+  // ── Batch selection — delegated to CustomerSelectionService.
+  //    Thin wrappers below keep the template bindings stable ;
+  //    all state + logic lives in the service (B-7-2c Step 2). ──
+
   toggleSelectAll(): void {
-    const content = this.customers()?.content ?? [];
-    if (this.selectAll()) {
-      this.selectedIds.set(new Set());
-      this.selectAll.set(false);
-    } else {
-      this.selectedIds.set(new Set(content.map((c) => c.id!)));
-      this.selectAll.set(true);
-    }
+    this.selection.toggleSelectAll(this.customers()?.content ?? []);
   }
 
   toggleSelectOne(id: number): void {
-    this.selectedIds.update((set) => {
-      const next = new Set(set);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    this.selection.toggleSelectOne(id);
   }
 
   openBatchDelete(): void {
-    this.confirmBatchDelete.set(true);
+    this.selection.openBatchDelete();
   }
 
   cancelBatchDelete(): void {
-    this.confirmBatchDelete.set(false);
+    this.selection.cancelBatchDelete();
   }
 
   executeBatchDelete(): void {
-    const ids = [...this.selectedIds()];
-    if (!ids.length) return;
-    this.batchDeleteLoading.set(true);
-
-    let completed = 0;
-    let errors = 0;
-    for (const id of ids) {
-      this.api
-        .deleteCustomer(id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: () => {
-            completed++;
-            if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
-          },
-          error: () => {
-            errors++;
-            if (completed + errors === ids.length) this.finishBatchDelete(completed, errors);
-          },
-        });
-    }
-  }
-
-  private finishBatchDelete(ok: number, err: number): void {
-    this.batchDeleteLoading.set(false);
-    this.confirmBatchDelete.set(false);
-    this.selectedIds.set(new Set());
-    this.selectAll.set(false);
-    if (err > 0) {
-      this.toast.show(`Deleted ${ok} customers, ${err} failed`, 'warn');
-    } else {
-      this.toast.show(`Deleted ${ok} customers`, 'success');
-    }
-    this.loadCustomers();
+    this.selection.executeBatchDelete(() => this.loadCustomers());
   }
 
   // ── Bulk import / export delegated to CustomerImportExportService ─────
@@ -705,11 +570,4 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 }
 
-/** Extract a human-readable error message from HTTP error responses */
-function httpError(err: unknown): string {
-  const e = err as { status?: number; message?: string };
-  if (e.status === 401) return 'Not authenticated — please sign in.';
-  if (e.status === 429) return '429 Too Many Requests — rate limit exceeded.';
-  if (e.status === 504) return '504 Gateway Timeout — Kafka reply timed out (5 s).';
-  return `Error ${e.status ?? '?'}: ${e.message ?? 'unknown'}`;
-}
+// httpError() moved to customers-helpers.ts (B-7-2c Step 3) so services + component share it.

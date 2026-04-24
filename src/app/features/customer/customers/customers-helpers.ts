@@ -39,3 +39,19 @@ export function randomCustomer(): { name: string; email: string } {
     email: `${first.toLowerCase()}.${last.toLowerCase()}.${suffix}@example.com`,
   };
 }
+
+/**
+ * Extract a human-readable error message from HTTP error responses.
+ * Handles the 3 status codes with project-specific meaning (401 auth,
+ * 429 rate limit, 504 Kafka reply timeout) ; falls back to generic
+ * `Error {status}: {message}` for everything else. Moved here from
+ * `customers.component.ts` in B-7-2c Step 3 so CustomerCrudService
+ * + CustomersComponent can share one implementation.
+ */
+export function httpError(err: unknown): string {
+  const e = err as { status?: number; message?: string };
+  if (e.status === 401) return 'Not authenticated — please sign in.';
+  if (e.status === 429) return '429 Too Many Requests — rate limit exceeded.';
+  if (e.status === 504) return '504 Gateway Timeout — Kafka reply timed out (5 s).';
+  return `Error ${e.status ?? '?'}: ${e.message ?? 'unknown'}`;
+}
