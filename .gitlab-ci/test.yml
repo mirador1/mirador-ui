@@ -139,20 +139,37 @@ e2e:kind:
       with open(p, 'w') as f: f.write(txt)
       "
       COMPOSE_PROJECT="ci-${CI_JOB_ID}"
-      # `--wait` blocks until all services declare healthy via their
-      # healthcheck (svc compose has pg_isready for db). Without it,
-      # the script raced past `up -d` and Spring Boot's Flyway init
-      # tried to connect before postgres was ready → "Connection
-      # attempt failed" backend boot crash. Pipeline #2478105896
-      # (post-merge of !119) is the canonical example.
-      # `--wait-timeout 120` caps the wait at 2 min (postgres healthy
-      # in ~5-10 s typically ; kafka in ~15-30 s). If a service doesn't
-      # become healthy in 2 min, fail fast with a clear error rather
-      # than letting the 10-min app-boot loop time out cryptically.
+      # Earlier attempt with `--wait --wait-timeout 120` regressed the
+      # job (pipeline #2478423586 : postgres exited(1) within 2 s of
+      # start, root cause unclear — possibly docker-compose --wait
+      # interacting badly with kafka's longer healthcheck on this
+      # runner). Reverted to plain `up -d` + explicit pg_isready
+      # poll loop below : more verbose but more diagnosable + matches
+      # the existing pattern used for /actuator/health waiting later
+      # in this script.
       (cd /tmp/svc && \
         DB_PORT=5432 DB_USER=mirador DB_PASSWORD=mirador DB_NAME=mirador \
         SERVER_PORT=8080 \
-        docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d --wait --wait-timeout 120 db kafka redis)
+        docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d db kafka redis)
+
+      # Explicit pg_isready loop : was missing entirely before, so the
+      # script raced past `up -d` and Spring Boot's Flyway init tried
+      # to connect before postgres was ready → "Connection attempt
+      # failed" backend boot crash (pipeline #2478105896 evidence).
+      # 60 × 2 s = up to 2 min ceiling. Postgres typically healthy in
+      # 5-10 s on a clean run ; the 2-min cap fails fast with a clear
+      # error + grabs container logs for diagnosis.
+      DB_CTR="ci-${CI_JOB_ID}-db-1"
+      for i in $(seq 1 60); do
+        docker exec "$DB_CTR" pg_isready -U mirador -d mirador >/dev/null 2>&1 && break
+        [ $i -eq 60 ] && {
+          echo "FAIL: postgres not ready after 120 s — last container logs :"
+          docker logs --tail=50 "$DB_CTR" || true
+          exit 1
+        }
+        sleep 2
+      done
+      echo "postgres ready (waited ~$((i * 2)) s)"
 
       # 2. Connect THIS job container to the compose bridge network
       #    so Spring Boot can reach `db`, `kafka`, `redis` by docker
