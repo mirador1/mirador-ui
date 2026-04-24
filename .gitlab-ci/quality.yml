@@ -27,17 +27,33 @@ sonarcloud:
   script:
     # config/sonar-project.properties provides org/projectKey; token from CI variable.
     # -Dproject.settings points the scanner at the moved config file.
-    # sonar.javascript.node.maxspace=4096 + node.timeout=600 — the JS bridge
+    # sonar.javascript.node.maxspace=8192 + node.timeout=600 — the JS bridge
     # subprocess (analyses .ts/.js) needs ≥2GB heap for our codebase and
     # the default 300s startup timeout is too tight on a busy macbook-local
     # runner; pipeline #271 failed with "Failed to start the bridge server
     # (300s timeout)" before we landed on these values.
+    # Bumped 4096 → 8192 on 2026-04-24 after pipeline #2478287707 failed
+    # with "WebSocket connection closed abnormally" mid-analysis. The
+    # JS bridge crashes seem to correlate with heap pressure ; doubling
+    # the cap gives more headroom on the 32 GB macbook-local runner.
+    # If 8192 still flakes, next escalation : reduce parallelism via
+    # `-Dsonar.javascript.workerCount=2` (default 4) to lower the peak
+    # subprocess memory footprint.
     - sonar-scanner
         -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
-        -Dsonar.javascript.node.maxspace=4096
+        -Dsonar.javascript.node.maxspace=8192
         -Dsonar.javascript.node.timeout=600
+  # Retry on `runner_system_failure` ONLY (per CLAUDE.md "Retries are only
+  # for runner_system_failure"). The WebSocket-close flake observed
+  # 2026-04-24 is technically `script_failure` so this won't catch it,
+  # but it does protect against the legitimate runner Docker-daemon
+  # flakes that occasionally land mid-Sonar-analysis on the shared
+  # macbook-local runner.
+  retry:
+    max: 1
+    when: runner_system_failure
   # ⚠️ Long-standing failure — observed 2026-04-23/24 :
   # "Project not found. Please check the 'sonar.projectKey' and
   # 'sonar.organization' properties, the 'SONAR_TOKEN' environment
