@@ -62,7 +62,7 @@ openapi:types-drift:
 
 # ── ESLint (Angular + TypeScript + a11y) ──────────────────────────────────
 #
-# ESLint 9 flat config lives at `eslint.config.mjs`. Rules span
+# ESLint 9 flat config lives at `config/eslint.config.mjs`. Rules span
 # @typescript-eslint (TS strictness), angular-eslint (Angular-specific
 # anti-patterns — standalone, control-flow, selector style), and a
 # subset of a11y checks on templates.

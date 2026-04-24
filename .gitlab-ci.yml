@@ -31,7 +31,7 @@ workflow:
         # signal (otherwise the change merges with stale validation,
         # exactly what happened to UI MR !68 on 2026-04-22 02:48 before
         # eslint.config.mjs was added here).
-        - "eslint.config.mjs"          # gates lint:eslint
+        - "config/eslint.config.mjs"          # gates lint:eslint
         - ".gitleaks.toml"             # gates secret-scan
         - ".prettierrc"                # gates lint:format
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -62,7 +62,7 @@ workflow:
         # signal (otherwise the change merges with stale validation,
         # exactly what happened to UI MR !68 on 2026-04-22 02:48 before
         # eslint.config.mjs was added here).
-        - "eslint.config.mjs"          # gates lint:eslint
+        - "config/eslint.config.mjs"          # gates lint:eslint
         - ".gitleaks.toml"             # gates secret-scan
         - ".prettierrc"                # gates lint:format
     - if: $CI_PIPELINE_SOURCE == "schedule"
