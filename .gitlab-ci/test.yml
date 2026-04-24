@@ -139,10 +139,20 @@ e2e:kind:
       with open(p, 'w') as f: f.write(txt)
       "
       COMPOSE_PROJECT="ci-${CI_JOB_ID}"
+      # `--wait` blocks until all services declare healthy via their
+      # healthcheck (svc compose has pg_isready for db). Without it,
+      # the script raced past `up -d` and Spring Boot's Flyway init
+      # tried to connect before postgres was ready → "Connection
+      # attempt failed" backend boot crash. Pipeline #2478105896
+      # (post-merge of !119) is the canonical example.
+      # `--wait-timeout 120` caps the wait at 2 min (postgres healthy
+      # in ~5-10 s typically ; kafka in ~15-30 s). If a service doesn't
+      # become healthy in 2 min, fail fast with a clear error rather
+      # than letting the 10-min app-boot loop time out cryptically.
       (cd /tmp/svc && \
         DB_PORT=5432 DB_USER=mirador DB_PASSWORD=mirador DB_NAME=mirador \
         SERVER_PORT=8080 \
-        docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d db kafka redis)
+        docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml up -d --wait --wait-timeout 120 db kafka redis)
 
       # 2. Connect THIS job container to the compose bridge network
       #    so Spring Boot can reach `db`, `kafka`, `redis` by docker
