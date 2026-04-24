@@ -102,7 +102,7 @@ reste léger — l'UI elle-même est la démo ; la doc explique comment
 la lancer et ce que fait chaque page.
 
 Pour les sections techniques (architecture, quick start, référence
-`run.sh`, configuration environnement, manuel utilisateur, shortcuts
+`bin/run.sh`, configuration environnement, manuel utilisateur, shortcuts
 clavier, theming multi-environnement, etc.), voir la version
 anglaise : [README.md](README.md#documentation). Les commandes et
 chemins de fichiers sont identiques dans les deux versions.

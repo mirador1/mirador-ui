@@ -5,7 +5,7 @@ Extracted prose content of every tab from the About page (`src/app/features/abou
 | Page | Description |
 | --- | --- |
 | [Overview](overview.md) | Full-stack observability and management platform built with Angular 21 and Spring Boot 4. |
-| [Infrastructure](infrastructure.md) | All services, host ports, `run.sh` command reference and external SaaS dependencies. |
+| [Infrastructure](infrastructure.md) | All services, host ports, `bin/run.sh` command reference and external SaaS dependencies. |
 | [Deployment](deployment.md) | Architecture overview and comparison of the three supported deployment modes. |
 | [Docker](deployment-docker.md) | Local docker-compose deployment — the fastest way to run the full stack. |
 | [Kubernetes local](deployment-kubernetes.md) | kind (Kubernetes IN Docker) cluster mirroring the production setup on your laptop. |

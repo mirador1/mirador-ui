@@ -71,6 +71,7 @@ Budget limits in `angular.json`:
 - **Tag stable-vX.Y.Z ONLY after the post-merge `main` pipeline goes green.** Don't tag right after the merge while main is still running with a "I'll move the tag if it goes red" recovery plan — that pattern silently produces tags on red commits when the recovery is forgotten or interrupted. The MR pipeline succeeding is NOT enough; the post-merge main pipeline runs the full main-branch ruleset (deploys, scheduled-only jobs) which can fail even when the MR pipeline passed. See `~/.claude/CLAUDE.md` → "Tag every green stability checkpoint, never tag on red" for the operational pattern (Monitor on the post-merge main pipeline).
 - **Surface pending decisions on your own initiative** — when a session accumulates real forks-in-the-road (choice changes WHAT gets built, not just WHEN), list them at the next natural checkpoint. Don't wait for the user to ask. Dense one-liner per decision with concrete trade-off. See `~/.claude/CLAUDE.md` → "Surface pending decisions proactively — don't wait to be asked".
 - **Vulgariser le jargon avec une parenthèse** — every technical term (ReDoS, takeUntilDestroyed, flat config, SARIF, zoneless change detection, etc) gets a plain-language gloss in parens on first mention per turn. Format: `<term> (<what it means here>)`. Keep the term, ADD the gloss. See `~/.claude/CLAUDE.md` → "Write in plain language — jargon gets a parenthetical".
+- **Réduire les vagues CI** — quand plusieurs changements indépendants sont en cours, les **batcher en UN commit-set sur dev → UN push → UNE MR → UN cycle CI** plutôt que d'enchaîner N MRs séquentielles (économie : (N-1) × 10-15 min de wall-time par CI cycle évité). Le build local (`npm run build`) catch déjà 80 % des fails AVANT push ; les fails CI restants sont des patterns reconnaissables. Si un fail apparaît sur la batch, on identifie le coupable parmi les N commits en quelques minutes — beaucoup moins coûteux que d'attendre N CIs séquentielles. Anti-pattern : "1 micro-change = 1 MR = 1 CI" appliqué mécaniquement. Limite : sortir en MR seul un changement vraiment risqué (premier push image runner, refonte job critique). See `~/.claude/CLAUDE.md` → "Réduire les vagues CI — batch the changes per MR" pour la justification complète.
 
 ## Key architecture patterns
 
@@ -319,7 +320,7 @@ Run the prune trio at **each** of these moments, not just "start of session":
   earlier sessions — `lsof -i :4200` / `lsof -i :5173`, then
   `kill <pid>` if not currently in use.
 - **Dev Docker containers** — see svc CLAUDE.md for the list
-  (`postgres-demo` etc. started by the sibling repo's `./run.sh all`
+  (`postgres-demo` etc. started by the sibling repo's `./bin/run.sh all`
   leak into this repo's context too since they share the Docker VM).
 
 ### Prune trio + escalation

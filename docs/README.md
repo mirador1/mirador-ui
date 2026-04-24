@@ -60,7 +60,7 @@ the component because Markdown can't do SVG justice.
 | ---------------------------------------------------------------------------- | --------------------------------------------- |
 | [`architecture/README.md`](architecture/README.md)                           | Index with all 14 tabs                        |
 | [`architecture/overview.md`](architecture/overview.md)                       | Full-stack summary                            |
-| [`architecture/infrastructure.md`](architecture/infrastructure.md)           | Services, ports, `run.sh` reference           |
+| [`architecture/infrastructure.md`](architecture/infrastructure.md)           | Services, ports, `bin/run.sh` reference           |
 | [`architecture/deployment.md`](architecture/deployment.md)                   | Top-level deployment overview                 |
 | [`architecture/deployment-docker.md`](architecture/deployment-docker.md)     | Docker Compose deep-dive (every service).     |
 | [`architecture/deployment-kubernetes.md`](architecture/deployment-kubernetes.md) | K8s manifests + Argo CD reconciliation.   |

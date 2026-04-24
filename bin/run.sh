@@ -6,18 +6,18 @@
 # instead of duplicating Docker Compose logic.
 #
 # Usage:
-#   ./run.sh              # start everything (backend all + frontend)
-#   ./run.sh frontend     # frontend only (assumes backend is running)
-#   ./run.sh backend      # delegate to backend: infra + obs + spring app
-#   ./run.sh infra        # delegate to backend: db + kafka + redis + tools
-#   ./run.sh obs          # delegate to backend: observability stack
-#   ./run.sh app          # delegate to backend: spring boot only
-#   ./run.sh simulate     # delegate to backend: traffic simulation
-#   ./run.sh stop         # stop everything (frontend + backend stop)
-#   ./run.sh restart      # delegate to backend: restart + start frontend
-#   ./run.sh nuke         # delegate to backend: full cleanup
-#   ./run.sh status       # check what's running
-#   ./run.sh check        # run pre-push checks (typecheck + tests + build)
+#   ./bin/run.sh              # start everything (backend all + frontend)
+#   ./bin/run.sh frontend     # frontend only (assumes backend is running)
+#   ./bin/run.sh backend      # delegate to backend: infra + obs + spring app
+#   ./bin/run.sh infra        # delegate to backend: db + kafka + redis + tools
+#   ./bin/run.sh obs          # delegate to backend: observability stack
+#   ./bin/run.sh app          # delegate to backend: spring boot only
+#   ./bin/run.sh simulate     # delegate to backend: traffic simulation
+#   ./bin/run.sh stop         # stop everything (frontend + backend stop)
+#   ./bin/run.sh restart      # delegate to backend: restart + start frontend
+#   ./bin/run.sh nuke         # delegate to backend: full cleanup
+#   ./bin/run.sh status       # check what's running
+#   ./bin/run.sh check        # run pre-push checks (typecheck + tests + build)
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -uo pipefail
@@ -207,7 +207,7 @@ case "$MODE" in
 
   *)
     echo ""
-    echo "Usage: ./run.sh <command>"
+    echo "Usage: ./bin/run.sh <command>"
     echo ""
     echo "Stack:"
     echo "  all           start everything (backend all + frontend)"

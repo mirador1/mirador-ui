@@ -12,10 +12,10 @@ The fastest way to run the full stack locally. Two Docker Compose files bring up
 ## Quick start
 
 ```bash
-./run.sh all           # start infrastructure + observability + Spring Boot app
-./run.sh status        # check which services are up
-./run.sh stop          # stop app + all containers (data preserved)
-./run.sh nuke          # full cleanup — containers, volumes, build artifacts
+./bin/run.sh all           # start infrastructure + observability + Spring Boot app
+./bin/run.sh status        # check which services are up
+./bin/run.sh stop          # stop app + all containers (data preserved)
+./bin/run.sh nuke          # full cleanup — containers, volumes, build artifacts
 ```
 
 The Spring Boot backend starts on `:8080` and the Angular frontend on `:4200` (dev server with proxy). CORS is handled by the dev proxy — the browser talks only to `localhost:4200`.
@@ -24,14 +24,14 @@ The Spring Boot backend starts on `:8080` and the Angular frontend on `:4200` (d
 
 | Command | What it does |
 | --- | --- |
-| `./run.sh all` | Start everything (infra + obs + app) |
-| `./run.sh obs` | Start only the observability stack |
-| `./run.sh app` | Start only the Spring Boot app |
-| `./run.sh app-profiled` | Start app with Pyroscope profiling agent |
-| `./run.sh restart` | Stop + restart everything (keeps data) |
-| `./run.sh simulate` | Generate traffic (60 iterations, 2 s pause) |
-| `./run.sh sonar` | Run mvn verify + SonarQube analysis |
-| `./run.sh security-check` | OWASP CVE scan (Dependency-Check) |
+| `./bin/run.sh all` | Start everything (infra + obs + app) |
+| `./bin/run.sh obs` | Start only the observability stack |
+| `./bin/run.sh app` | Start only the Spring Boot app |
+| `./bin/run.sh app-profiled` | Start app with Pyroscope profiling agent |
+| `./bin/run.sh restart` | Stop + restart everything (keeps data) |
+| `./bin/run.sh simulate` | Generate traffic (60 iterations, 2 s pause) |
+| `./bin/run.sh sonar` | Run mvn verify + SonarQube analysis |
+| `./bin/run.sh security-check` | OWASP CVE scan (Dependency-Check) |
 
 ## Service access (all on localhost)
 
@@ -62,7 +62,7 @@ The Spring Boot backend starts on `:8080` and the Angular frontend on `:4200` (d
 ```bash
 # macOS
 brew install docker          # or install Docker Desktop
-brew install maven           # for ./run.sh build
+brew install maven           # for ./bin/run.sh build
 brew install node            # for Angular dev server
 
 # Verify
