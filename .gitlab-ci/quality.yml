@@ -38,15 +38,23 @@ sonarcloud:
         -Dsonar.token="${SONAR_TOKEN}"
         -Dsonar.javascript.node.maxspace=4096
         -Dsonar.javascript.node.timeout=600
-  # TODO: flip to false by 2026-05-20 (30d) — RED 3/3 on main (pipelines
-  # #294/#296/#300 on 2026-04-19) with a concrete, non-outage error:
-  # "Failed to create directory: /home/scanner-cli/.tree-sitter/lib" →
-  # "Analysis of JS/TS files failed". This is a container HOME perms/
-  # scanner-version issue, NOT a Sonar outage — the shield's stated
-  # purpose (outage tolerance) no longer justifies it. Fix path:
-  # either pin sonar-scanner-cli to a known-good image with writable
-  # HOME, or set HOME to a writable scratch dir in before_script.
-  allow_failure: true    # SonarCloud outage must not block deployments
+  # ⚠️ Long-standing failure — observed 2026-04-23/24 :
+  # "Project not found. Please check the 'sonar.projectKey' and
+  # 'sonar.organization' properties, the 'SONAR_TOKEN' environment
+  # variable, or contact the project administrator..."
+  #
+  # config/sonar-project.properties LOOKS right (org=mirador1,
+  # projectKey=mirador1_mirador-ui). So the cause is one of :
+  #   1. SonarCloud project deleted / inaccessible → restore via UI
+  #   2. SONAR_TOKEN rotated → set new value in GitLab CI/CD vars
+  #   3. Token's user lost access to the project → re-grant on Sonar UI
+  #
+  # USER ACTION REQUIRED (none of the 3 above can be fixed in code).
+  # Until then, allow_failure shields downstream merges. TODO 2026-05-24
+  # (30d after current observation) : either confirm fixed (drop the
+  # shield) or carry a fresh dated TODO with one of the 3 root causes
+  # ruled out.
+  allow_failure: true    # USER ACTION : SonarCloud project / token (see above)
   rules:
     - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
       when: never

@@ -12,7 +12,7 @@ How to install prerequisites, clone both repos, and boot the full stack for the 
 | **Java** | 17 / 21 / 25 (default: 25) | [sdkman.io](https://sdkman.io) `sdk install java 25-open` |
 | **Git** | any | pre-installed on most systems |
 
-Both repos must live as siblings (the frontend's `run.sh` locates the backend by relative path):
+Both repos must live as siblings (the frontend's `bin/run.sh` locates the backend by relative path):
 
 ```
 dev/

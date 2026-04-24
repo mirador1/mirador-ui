@@ -88,7 +88,7 @@ the UI itself is the demo; the docs explain how to run it and what each page doe
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | [Architecture](docs/reference/architecture.md)                             | Mermaid diagram of Angular + backend + observability stack; core services  |
 | [Quick start](docs/getting-started/quick-start.md)                               | Prereqs, cloning both repos, first-time boot                               |
-| [`run.sh` reference](docs/getting-started/run-sh.md)                             | Every subcommand of the launcher                                           |
+| [`bin/run.sh` reference](docs/getting-started/run-sh.md)                             | Every subcommand of the launcher                                           |
 | [Environment configuration](docs/getting-started/environment.md)                 | `.env` reference for every variable                                        |
 | [User manual](docs/guides/user-manual.md)                               | Per-feature walkthrough (Dashboard, Customers, Diagnostic, Chaos, …)       |
 | [Keyboard shortcuts](docs/guides/keyboard-shortcuts.md)                 | Vim-style `G`+key navigation, `D` for dark mode, `?` for help              |
@@ -119,7 +119,7 @@ Non-obvious choices are justified in ADRs under [`docs/adr/`](docs/adr/README.md
 
 ### Sibling repo
 
-- Backend: **[`mirador-service`](https://gitlab.com/mirador1/mirador-service)** — Spring Boot 4 / Java 25, lives as a sibling directory so `run.sh` can delegate infra commands.
+- Backend: **[`mirador-service`](https://gitlab.com/mirador1/mirador-service)** — Spring Boot 4 / Java 25, lives as a sibling directory so `bin/run.sh` can delegate infra commands.
 
 ---
 

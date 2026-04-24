@@ -10,7 +10,7 @@ The `.env` file is gitignored — only `.env.example` is committed.
 
 ## Variables
 
-Variables used by `run.sh` and `scripts/pre-push-checks.sh`:
+Variables used by `bin/run.sh` and `scripts/pre-push-checks.sh`:
 
 | Variable | Default | Used by |
 |---|---|---|
