@@ -50,144 +50,92 @@
 
   <!-- ── Scenarios grid (2 columns) ─────────────────────────────────────── -->
   <div class="scenario-grid">
-    <!-- 1. API Versioning -->
-    <div class="scenario-row">
-      <div class="scenario-meta">
-        <span class="scenario-badge version">🔀 Version</span>
-        <div class="scenario-desc">
-          <strong>API Versioning — v1 vs v2</strong>
-          <span
-            >Compare responses with <code>X-API-Version</code> header. v2 adds
-            <code>createdAt</code>.</span
-          >
-        </div>
-      </div>
-      <div class="scenario-action">
-        <button class="run-btn" (click)="runVersionComparison()" [disabled]="versionRunning()">
-          {{ versionRunning() ? '...' : '▶ Run' }}
-        </button>
-      </div>
-      @if (versionLog().length) {
-        <div class="scenario-output">
-          @for (line of versionLog(); track $index) {
-            <span class="log-line log-{{ line.kind }}">{{ line.text }}</span>
-          }
-        </div>
-      }
-    </div>
+    <!-- 1. API Versioning (uses generic DiagnosticScenarioComponent — B-7-6) -->
+    <app-diagnostic-scenario
+      badge="🔀 Version"
+      badgeClass="version"
+      title="API Versioning — v1 vs v2"
+      [running]="versionRunning()"
+      [logs]="versionLog()"
+      (runRequested)="runVersionComparison()"
+    >
+      <span scenario-desc
+        >Compare responses with <code>X-API-Version</code> header. v2 adds
+        <code>createdAt</code>.</span
+      >
+    </app-diagnostic-scenario>
 
     <!-- 2. Idempotency -->
-    <div class="scenario-row">
-      <div class="scenario-meta">
-        <span class="scenario-badge idem">🔁 Idem</span>
-        <div class="scenario-desc">
-          <strong>Idempotency — same key twice</strong>
-          <span
-            >POST /customers twice with <code>Idempotency-Key</code>. Second call returns cached
-            response.</span
-          >
-        </div>
-      </div>
-      <div class="scenario-action">
+    <app-diagnostic-scenario
+      badge="🔁 Idem"
+      badgeClass="idem"
+      title="Idempotency — same key twice"
+      [running]="idemRunning()"
+      [logs]="idemLog()"
+      (runRequested)="runIdempotency()"
+    >
+      <span scenario-desc
+        >POST /customers twice with <code>Idempotency-Key</code>. Second call returns cached
+        response.</span
+      >
+      <ng-container scenario-action>
         <code class="idem-key-sm">{{ idemKey().slice(0, 8) }}...</code>
         <button class="sm-btn" (click)="resetIdemKey()">↻</button>
-        <button class="run-btn" (click)="runIdempotency()" [disabled]="idemRunning()">
-          {{ idemRunning() ? '...' : '▶ Run' }}
-        </button>
-      </div>
-      @if (idemLog().length) {
-        <div class="scenario-output">
-          @for (line of idemLog(); track $index) {
-            <span class="log-line log-{{ line.kind }}">{{ line.text }}</span>
-          }
-        </div>
-      }
-    </div>
+      </ng-container>
+    </app-diagnostic-scenario>
 
     <!-- 3. Rate Limiting -->
-    <div class="scenario-row">
-      <div class="scenario-meta">
-        <span class="scenario-badge rate">🚦 Rate</span>
-        <div class="scenario-desc">
-          <strong>Rate Limiting — Bucket4j 100/min</strong>
-          <span>Burst concurrent requests. Excess returns <code>429 Too Many Requests</code>.</span>
-        </div>
-      </div>
-      <div class="scenario-action">
-        <label class="inline-param"
-          >×<input type="number" [(ngModel)]="rateLimitCount" min="2" max="20"
-        /></label>
-        <button class="run-btn" (click)="runRateLimit()" [disabled]="rateLimitRunning()">
-          {{ rateLimitRunning() ? '...' : '▶ Run' }}
-        </button>
-      </div>
-      @if (rateLimitLog().length) {
-        <div class="scenario-output">
-          @for (line of rateLimitLog(); track $index) {
-            <span class="log-line log-{{ line.kind }}">{{ line.text }}</span>
-          }
-        </div>
-      }
-    </div>
+    <app-diagnostic-scenario
+      badge="🚦 Rate"
+      badgeClass="rate"
+      title="Rate Limiting — Bucket4j 100/min"
+      [running]="rateLimitRunning()"
+      [logs]="rateLimitLog()"
+      (runRequested)="runRateLimit()"
+    >
+      <span scenario-desc
+        >Burst concurrent requests. Excess returns <code>429 Too Many Requests</code>.</span
+      >
+      <label scenario-action class="inline-param"
+        >×<input type="number" [(ngModel)]="rateLimitCount" min="2" max="20"
+      /></label>
+    </app-diagnostic-scenario>
 
     <!-- 4. Kafka Enrich -->
-    <div class="scenario-row">
-      <div class="scenario-meta">
-        <span class="scenario-badge kafka">📨 Kafka</span>
-        <div class="scenario-desc">
-          <strong>Kafka Request-Reply — enrich</strong>
-          <span
-            >Synchronous Kafka round-trip: <code>customer.request</code> →
-            <code>customer.reply</code>. 5s timeout → 504.</span
-          >
-        </div>
-      </div>
-      <div class="scenario-action">
-        <label class="inline-param"
-          >ID<input
-            type="number"
-            [ngModel]="enrichCustomerId()"
-            (ngModelChange)="enrichCustomerId.set($event)"
-            min="1"
-        /></label>
-        <button class="run-btn" (click)="runEnrich()" [disabled]="enrichRunning()">
-          {{ enrichRunning() ? '...' : '▶ Run' }}
-        </button>
-      </div>
-      @if (enrichLog().length) {
-        <div class="scenario-output">
-          @for (line of enrichLog(); track $index) {
-            <span class="log-line log-{{ line.kind }}">{{ line.text }}</span>
-          }
-        </div>
-      }
-    </div>
+    <app-diagnostic-scenario
+      badge="📨 Kafka"
+      badgeClass="kafka"
+      title="Kafka Request-Reply — enrich"
+      [running]="enrichRunning()"
+      [logs]="enrichLog()"
+      (runRequested)="runEnrich()"
+    >
+      <span scenario-desc
+        >Synchronous Kafka round-trip: <code>customer.request</code> → <code>customer.reply</code>.
+        5s timeout → 504.</span
+      >
+      <label scenario-action class="inline-param"
+        >ID<input
+          type="number"
+          [ngModel]="enrichCustomerId()"
+          (ngModelChange)="enrichCustomerId.set($event)"
+          min="1"
+      /></label>
+    </app-diagnostic-scenario>
 
-    <!-- 5. Virtual Threads -->
-    <div class="scenario-row">
-      <div class="scenario-meta">
-        <span class="scenario-badge vt">🧵 VT</span>
-        <div class="scenario-desc">
-          <strong>Virtual Threads — aggregate</strong>
-          <span
-            >Two parallel virtual threads: customer list + stats. Duration = max(task1,
-            task2).</span
-          >
-        </div>
-      </div>
-      <div class="scenario-action">
-        <button class="run-btn" (click)="runAggregate()" [disabled]="aggregateRunning()">
-          {{ aggregateRunning() ? '...' : '▶ Run' }}
-        </button>
-      </div>
-      @if (aggregateLog().length) {
-        <div class="scenario-output">
-          @for (line of aggregateLog(); track $index) {
-            <span class="log-line log-{{ line.kind }}">{{ line.text }}</span>
-          }
-        </div>
-      }
-    </div>
+    <!-- 5. Virtual Threads / Aggregate -->
+    <app-diagnostic-scenario
+      badge="🧵 VT"
+      badgeClass="vt"
+      title="Virtual Threads — aggregate"
+      [running]="aggregateRunning()"
+      [logs]="aggregateLog()"
+      (runRequested)="runAggregate()"
+    >
+      <span scenario-desc
+        >Two parallel virtual threads: customer list + stats. Duration = max(task1, task2).</span
+      >
+    </app-diagnostic-scenario>
 
     <!-- 6. Version Diff -->
     <div class="scenario-row">
