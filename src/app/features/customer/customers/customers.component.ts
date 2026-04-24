@@ -47,6 +47,7 @@ import type { DetailTab, SortField, SortDir } from './customers-types';
 import { CustomerDetailPanelComponent } from './widgets/customer-detail-panel.component';
 import { CustomerCreateFormComponent } from './widgets/customer-create-form.component';
 import { ConfirmModalComponent } from '../../../shared/confirm-modal/confirm-modal.component';
+import { CustomerImportExportService } from './customer-import-export.service';
 
 @Component({
   selector: 'app-customers',
@@ -610,147 +611,23 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.loadCustomers();
   }
 
-  // ── Bulk import ────────────────────────────────────────────────────────────
+  // ── Bulk import / export delegated to CustomerImportExportService ─────
+  readonly importExport = inject(CustomerImportExportService);
 
-  /** Signal: true while the bulk import loop is running. */
-  importLoading = signal(false);
-
-  /** Signal: number of records processed so far during bulk import. Used for the progress bar. */
-  importProgress = signal(0);
-
-  /** Signal: total number of records to import in the current batch. */
-  importTotal = signal(0);
-
-  /** Signal: final result of the last bulk import (ok/error counts). Shown after completion. */
-  importResults = signal<{ ok: number; errors: number } | null>(null);
-
+  /** Template delegates the file-input change event to the service. */
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content = reader.result as string;
-      // Declared without initialiser — every branch below assigns `records`
-      // before the first read (the dead initial `[]` tripped
-      // `no-useless-assignment`).
-      let records: { name: string; email: string }[];
-
-      if (file.name.endsWith('.json')) {
-        try {
-          records = JSON.parse(content);
-          if (!Array.isArray(records)) records = [records];
-        } catch {
-          this.toast.show('Invalid JSON file', 'error');
-          return;
-        }
-      } else if (file.name.endsWith('.csv')) {
-        const lines = content.split('\n').filter((l) => l.trim());
-        const header = lines[0].toLowerCase();
-        const hasHeader = header.includes('name') && header.includes('email');
-        const dataLines = hasHeader ? lines.slice(1) : lines;
-        records = dataLines
-          .map((line) => {
-            const parts = line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
-            return { name: parts[0] || '', email: parts[1] || '' };
-          })
-          .filter((r) => r.name && r.email);
-      } else {
-        this.toast.show('Unsupported file type. Use .json or .csv', 'error');
-        return;
-      }
-
-      if (!records.length) {
-        this.toast.show('No valid records found in file', 'warn');
-        return;
-      }
-
-      this.executeBulkImport(records);
-    };
-    reader.readAsText(file);
-    input.value = ''; // reset so same file can be re-selected
+    this.importExport.handleFileSelected(event, () => this.loadCustomers());
   }
 
-  private executeBulkImport(records: { name: string; email: string }[]): void {
-    this.importLoading.set(true);
-    this.importProgress.set(0);
-    this.importTotal.set(records.length);
-    this.importResults.set(null);
-
-    let ok = 0;
-    let errors = 0;
-    let done = 0;
-
-    for (const record of records) {
-      this.api
-        .createCustomer(record)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: () => {
-            ok++;
-            done++;
-            this.importProgress.set(done);
-            this.checkImportDone(done, records.length, ok, errors);
-          },
-          error: () => {
-            errors++;
-            done++;
-            this.importProgress.set(done);
-            this.checkImportDone(done, records.length, ok, errors);
-          },
-        });
-    }
-  }
-
-  private checkImportDone(done: number, total: number, ok: number, errors: number): void {
-    if (done < total) return;
-    this.importLoading.set(false);
-    this.importResults.set({ ok, errors });
-    this.toast.show(
-      `Import complete: ${ok} created, ${errors} failed`,
-      errors > 0 ? 'warn' : 'success',
-    );
-    this.activity.log(
-      'bulk-import',
-      `Imported ${ok} customers (${errors} errors)`,
-      `Total: ${total} records`,
-    );
-    this.loadCustomers();
-  }
-
-  // ── Export ────────────────────────────────────────────────────────────────
+  /** Export current page as JSON (full or summary per `summaryMode`). */
   exportJson(): void {
     const data = this.summaryMode() ? this.summaries()?.content : this.customers()?.content;
-    if (!data?.length) return;
-    this.downloadFile(JSON.stringify(data, null, 2), 'customers.json', 'application/json');
+    this.importExport.exportJson(data);
   }
 
+  /** Export full customer list as CSV (schema depends on apiVersion). */
   exportCsv(): void {
-    const data = this.customers()?.content;
-    if (!data?.length) return;
-    const headers = ['id', 'name', 'email'];
-    if (this.apiVersion() === '2.0') headers.push('createdAt');
-
-    const rows = data.map((c) =>
-      headers
-        .map((h) => {
-          const val = (c as unknown as Record<string, unknown>)[h] ?? '';
-          return `"${String(val).replace(/"/g, '""')}"`;
-        })
-        .join(','),
-    );
-    this.downloadFile([headers.join(','), ...rows].join('\n'), 'customers.csv', 'text/csv');
-  }
-
-  private downloadFile(content: string, filename: string, mime: string): void {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    this.importExport.exportCsv(this.customers()?.content, this.apiVersion());
   }
 
   // ── Per-customer actions ───────────────────────────────────────────────────

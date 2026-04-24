@@ -62,108 +62,12 @@
       </button>
     </div>
 
-    <!-- Health tab -->
+    <!-- Health tab — extracted to widgets/database-health-tab (B-7-7) -->
     @if (activeTab() === 'health') {
-      <div class="presets-area health-area">
-        <div class="health-intro">
-          <p class="health-desc">
-            Run 8 diagnostic checks in parallel — cache ratio, bloat, locks, idle transactions, long
-            queries, duplicate emails, seq scan patterns, unused indexes.
-          </p>
-          <button class="magic-btn" (click)="runHealthChecks()" [disabled]="healthRunning()">
-            @if (healthRunning()) {
-              <span class="magic-spin">⟳</span> Running checks…
-            } @else {
-              🪄 Run Diagnostic
-            }
-          </button>
-        </div>
-
-        @if (healthResults().length > 0) {
-          <div class="health-grid">
-            @for (r of healthResults(); track r.check.id) {
-              <div class="health-card" [class]="'hc-' + r.status">
-                <div class="hc-header">
-                  <span class="hc-icon">
-                    @switch (r.status) {
-                      @case ('ok') {
-                        ✅
-                      }
-                      @case ('warn') {
-                        ⚠️
-                      }
-                      @case ('crit') {
-                        ❌
-                      }
-                      @case ('loading') {
-                        ⟳
-                      }
-                      @case ('error') {
-                        🔌
-                      }
-                    }
-                  </span>
-                  <span class="hc-label">{{ r.check.label }}</span>
-                </div>
-                <p class="hc-desc">{{ r.check.description }}</p>
-                <p class="hc-detail">{{ r.detail }}</p>
-                @if (r.status !== 'loading' && r.status !== 'error') {
-                  <button class="hc-query-btn" (click)="sqlQuery = r.check.query; executeSql()">
-                    ▶ See raw data
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        }
-
-        <!-- Maintenance actions — VACUUM via /actuator/maintenance (pgweb is read-only) -->
-        <div class="maintenance-area">
-          <div class="maintenance-header">
-            <span class="maintenance-title">🧹 Maintenance</span>
-            <span class="maintenance-hint"
-              >Requires Spring Boot running — uses <code>/actuator/maintenance</code></span
-            >
-          </div>
-          <div class="maintenance-btns">
-            <button
-              class="maint-btn"
-              (click)="runVacuum('vacuum')"
-              [disabled]="vacuumRunning()"
-              title="VACUUM ANALYZE — reclaims dead tuples for reuse and refreshes planner stats. Fast, safe at any time."
-            >
-              🧹 VACUUM ANALYZE
-            </button>
-            <button
-              class="maint-btn maint-btn-warn"
-              (click)="runVacuum('vacuumFull')"
-              [disabled]="vacuumRunning()"
-              title="VACUUM FULL ANALYZE — physically compacts the table, shrinks file on disk. Requires exclusive lock, slower than regular VACUUM."
-            >
-              🗜️ VACUUM FULL
-            </button>
-            <button
-              class="maint-btn"
-              (click)="runVacuum('vacuumVerbose')"
-              [disabled]="vacuumRunning()"
-              title="VACUUM VERBOSE ANALYZE — same as VACUUM ANALYZE but logs detailed output to Spring Boot logs."
-            >
-              📋 VACUUM VERBOSE
-            </button>
-          </div>
-          @if (vacuumRunning()) {
-            <p class="maint-status maint-running">⟳ Running…</p>
-          }
-          @if (vacuumResult()) {
-            <p class="maint-status maint-ok">
-              ✅ {{ vacuumResult()!.operation }} completed in {{ vacuumResult()!.durationMs }} ms
-            </p>
-          }
-          @if (vacuumError()) {
-            <p class="maint-status maint-err">❌ {{ vacuumError() }}</p>
-          }
-        </div>
-      </div>
+      <app-database-health-tab
+        [healthChecks]="healthChecks"
+        (rawDataRequested)="onRawDataRequested($event)"
+      />
     }
 
     <!-- Tab preset buttons (hidden on Health tab) -->

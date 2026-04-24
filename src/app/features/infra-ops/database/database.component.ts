@@ -13,12 +13,13 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../core/auth/auth.service';
 import { EnvService } from '../../../core/env/env.service';
 import { RouterLink } from '@angular/router';
-import type { DbTab, SqlQueryResult, MaintenanceResult, HealthCheck } from './database-types';
+import type { DbTab, SqlQueryResult, HealthCheck } from './database-types';
+import { DatabaseHealthTabComponent } from './widgets/database-health-tab.component';
 
 @Component({
   selector: 'app-database',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DatabaseHealthTabComponent],
   templateUrl: './database.component.html',
   styleUrl: './database.component.scss',
 })
@@ -41,58 +42,8 @@ export class DatabaseComponent {
   /** Signal: currently active tab in the Database page. */
   activeTab = signal<DbTab>('health');
 
-  // ── Health checks ─────────────────────────────────────────────────────────
-
-  /**
-   * Signal: list of health check results from the most recent batch run.
-   * Populated by running all `healthChecks` queries against pgweb in sequence.
-   */
-  healthResults = signal<
-    {
-      check: HealthCheck;
-      status: 'ok' | 'warn' | 'crit' | 'loading' | 'error';
-      detail: string;
-      rows: string[][];
-    }[]
-  >([]);
-
-  /** Signal: true while the batch health check queries are in flight. */
-  healthRunning = signal(false);
-
-  // ── Maintenance actions (VACUUM via /actuator/maintenance) ──────────────
-
-  /** Signal: true while a VACUUM request to `/actuator/maintenance` is in flight. */
-  vacuumRunning = signal(false);
-
-  /** Signal: result of the last VACUUM operation. Null until first run. */
-  vacuumResult = signal<{ operation: string; durationMs: number; status: string } | null>(null);
-
-  /** Signal: error message if the VACUUM request failed. */
-  vacuumError = signal('');
-
-  runVacuum(operation: 'vacuum' | 'vacuumFull' | 'vacuumVerbose'): void {
-    this.vacuumRunning.set(true);
-    this.vacuumResult.set(null);
-    this.vacuumError.set('');
-    // Calls the custom Spring Boot actuator endpoint (POST /actuator/maintenance).
-    // Base URL is env-aware — Local = :8080, Prod tunnel = :18080.
-    this.http
-      .post<MaintenanceResult>(`${this.env.baseUrl()}/actuator/maintenance`, { operation })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (r) => {
-          this.vacuumResult.set(r);
-          this.vacuumRunning.set(false);
-        },
-        error: (e) => {
-          this.vacuumError.set(
-            e.error?.message ??
-              `Maintenance endpoint unreachable (${e.status || 'check Spring Boot'})`,
-          );
-          this.vacuumRunning.set(false);
-        },
-      });
-  }
+  // ── Health checks definitions (data only — state + run logic moved to
+  //    DatabaseHealthTabComponent widget per B-7-7, 2026-04-24). ──
 
   readonly healthChecks: HealthCheck[] = [
     {
@@ -225,47 +176,15 @@ export class DatabaseComponent {
     },
   ];
 
-  runHealthChecks(): void {
-    this.healthRunning.set(true);
-    this.healthResults.set(
-      this.healthChecks.map((c) => ({ check: c, status: 'loading', detail: '…', rows: [] })),
-    );
-    let done = 0;
-    const pgweb = this.env.pgwebUrl();
-    if (!pgweb) {
-      // Belt-and-braces: the template already gates the "Run Diagnostic" button on
-      // `@if (env.pgwebUrl())`, but keep a runtime check so a future code path
-      // that forgets the template guard cannot silently 404.
-      this.healthRunning.set(false);
-      return;
-    }
-    for (const check of this.healthChecks) {
-      this.http
-        .get<SqlQueryResult>(`${pgweb}/api/query`, { params: { query: check.query } })
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (res) => {
-            const rows: string[][] = (res.rows ?? []).map((r) =>
-              (r as unknown[]).map((c) => String(c ?? '')),
-            );
-            const evaluation = check.evaluate(rows);
-            this.healthResults.update((prev) =>
-              prev.map((r) => (r.check.id === check.id ? { ...r, ...evaluation, rows } : r)),
-            );
-            if (++done === this.healthChecks.length) this.healthRunning.set(false);
-          },
-          error: () => {
-            this.healthResults.update((prev) =>
-              prev.map((r) =>
-                r.check.id === check.id
-                  ? { ...r, status: 'error' as const, detail: 'pgweb unreachable' }
-                  : r,
-              ),
-            );
-            if (++done === this.healthChecks.length) this.healthRunning.set(false);
-          },
-        });
-    }
+  /**
+   * Called when DatabaseHealthTabComponent emits `rawDataRequested` —
+   * pipes the health-check's SQL into the SQL Explorer + runs it.
+   * Parent acts as the bridge between the 2 widgets rather than
+   * introducing a shared DatabaseStateService for one event hop.
+   */
+  onRawDataRequested(query: string): void {
+    this.sqlQuery = query;
+    this.executeSql();
   }
 
   // ── SQL Explorer ──────────────────────────────────────────────────────────

@@ -41,6 +41,7 @@ import type {
   LogLine,
   RunRecord,
 } from './diagnostic-types';
+import { DiagnosticScenarioComponent } from './widgets/diagnostic-scenario.component';
 
 /**
  * Format the current time as `HH:MM:SS.mmm` for use as a log line timestamp prefix.
@@ -54,7 +55,7 @@ function ts(): string {
 @Component({
   selector: 'app-diagnostic',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe, DecimalPipe],
+  imports: [FormsModule, RouterLink, DatePipe, DecimalPipe, DiagnosticScenarioComponent],
   templateUrl: './diagnostic.component.html',
   styleUrl: './diagnostic.component.scss',
 })
