@@ -1,14 +1,7 @@
 import { Component, signal } from '@angular/core';
-import {
-  TECHNOLOGIES,
-  PORT_MAP,
-  PORT_CATEGORIES,
-  RUN_COMMANDS,
-  QUICK_START,
-  type Technology,
-  type PortMapEntry,
-  type RunCommand,
-} from './about-data';
+import { AboutOverviewTabComponent } from './widgets/about-overview-tab.component';
+import { AboutInfraTabComponent } from './widgets/about-infra-tab.component';
+import { AboutTechTabComponent } from './widgets/about-tech-tab.component';
 
 /**
  * AboutComponent — Architecture documentation shell.
@@ -16,19 +9,22 @@ import {
  * Phase 2 of the About-page trim (ADR-0008 industrial pass): the template
  * used to inline ~2 900 lines of prose across 14 tabs. All prose now lives
  * in versioned Markdown under `docs/architecture/*.md`, rendered by GitLab.
- * The component keeps what is genuinely interactive:
- *   - 'overview' — hero SVG + tech-badges banner + link to overview.md
- *   - 'infra'    — port map + run.sh quick-start + external services grid
- *   - 'tech'     — sortable list of 207 technologies (driven by `technologies`)
- * Every other tab is a compact "doc pane" that links out to its Markdown
- * counterpart on GitLab. No HTTP calls, no runtime data fetching.
  *
- * Data lives in `./about-data.ts` (Phase B-7-5 Phase 1A — extracted
- * 2026-04-23, parent dropped from 652 → 90 LOC).
+ * Big-tab widgets live in `widgets/` (Phase B-7-5 P1B, 2026-04-24) :
+ *   - 'overview' → AboutOverviewTabComponent (hero SVG + tech badges)
+ *   - 'infra'    → AboutInfraTabComponent (port map + run.sh + ext services)
+ *   - 'tech'     → AboutTechTabComponent (sortable A→Z technologies table)
+ *
+ * The other 11 tabs are tiny doc-pane shells (~20 LOC each, pure static
+ * link-out) kept inline in the template — extracting them as widgets
+ * would add file-count friction without behavioural isolation gain.
+ *
+ * Data lives in `./about-data.ts` (Phase 1A, parent dropped 652 → 36 LOC).
  */
 @Component({
   selector: 'app-about',
   standalone: true,
+  imports: [AboutOverviewTabComponent, AboutInfraTabComponent, AboutTechTabComponent],
   templateUrl: './about.component.html',
   styleUrl: './about.component.scss',
 })
@@ -69,24 +65,13 @@ export class AboutComponent {
     { id: 'testing', label: '🧪 Testing' },
   ] as const;
 
-  // ── Data exposed to the template (re-exports from about-data.ts so the
-  //    template doesn't need to change after the Phase 1A extraction). ──
-  readonly technologies: Technology[] = TECHNOLOGIES;
-  readonly portMap: PortMapEntry[] = PORT_MAP;
-  readonly portCategories = PORT_CATEGORIES;
-  readonly runCommands: RunCommand[] = RUN_COMMANDS;
-  readonly quickStart = QUICK_START;
-
-  /** Filter helper used by the 'infra' tab to group ports per category. */
-  portsByCategory(cat: string) {
-    return this.portMap.filter((p) => p.category === cat);
-  }
-
   /**
-   * Root URL for architecture docs on GitLab. Tabs link here instead of
-   * inlining prose — the component is a UI shell around a set of Markdown
-   * pages that are rendered natively by GitLab (and versioned in-repo, so
-   * deep-links survive refactors unlike the old inline copy).
+   * Root URL for architecture docs on GitLab. Used by the 11 inline
+   * doc-pane tabs + passed to AboutOverviewTabComponent. Tabs link
+   * here instead of inlining prose — the component is a UI shell
+   * around a set of Markdown pages that are rendered natively by
+   * GitLab (and versioned in-repo, so deep-links survive refactors
+   * unlike the old inline copy).
    */
   readonly docsBase = 'https://gitlab.com/mirador1/mirador-ui/-/blob/main/docs/architecture';
 }
