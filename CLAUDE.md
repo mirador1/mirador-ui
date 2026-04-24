@@ -1,5 +1,28 @@
 # Mirador UI — Claude Instructions
 
+## Git Safety
+
+- NEVER `git reset --hard` without explicit user confirmation. Run `git status` + check unpushed commits first.
+- Before pushing : verify current branch (`dev` not `main`) + `git fetch` + check `HEAD..origin/<branch>` ; pull rebase if behind. See ~/.claude/CLAUDE.md → "Git Workflow".
+
+## CI/CD Scope
+
+- **GitLab CI exclusively** — do NOT modify `.github/workflows/*` unless explicitly requested.
+- When fixing a failing pipeline, read the **actual failure log** (`glab ci trace <job>`) before exploring the whole CI config.
+
+## Project Verification
+
+- State explicitly at the start of each response : (1) which repo (mirror-ui here), (2) current branch, (3) remote state. Prevents wrong-branch rework.
+- When resuming mid-session, `git fetch` + `glab mr list` + `glab ci list` before editing.
+
+## Verify commands before suggesting
+
+- Before suggesting any CLI flag, run `<cmd> --help | grep <flag>` to confirm. If unsure, say **"I'm not sure this exists"**. Meta-questions about Claude Code itself get extra skepticism — hallucinated `/resume`, `claude --remote`, `claude --rc` flags wasted hours previously. See ~/.claude/CLAUDE.md → "Verify commands before suggesting them".
+
+## CI failures : surgical fixes, not `allow_failure` bypasses
+
+When a CI job fails, NEVER reach for `allow_failure: true` as the fix. Pick (a) fix the root cause, (b) tag-gate the test (JUnit `@Tag` + Maven profile equivalents — for UI : Playwright `test.describe.skip` conditional on env var, or tag-based `test.describe` filtering via `playwright.config.ts projects[]` matrix), or (c) scope-out via CI `rules: when: never`. Always explain in the commit message. See ~/.claude/CLAUDE.md → "Surgical fixes, not allow_failure bypasses".
+
 ## Persistent task backlog
 
 **`TASKS.md`** (at the repo root) is the source of truth for pending work across sessions.
