@@ -129,13 +129,21 @@ e2e:kind:
       sed -i '/^[[:space:]]*container_name:/d' /tmp/svc/docker-compose.yml
       # Strip `ports:` block (the line + its `- "x:y"` children up
       # to the next sibling key). Python is more reliable than sed
-      # for indented YAML blocks.
+      # for indented YAML blocks. Also strips the init-sonar.sql
+      # bind mount line — the file may exist in svc's main but the
+      # bind-mount source resolution is fragile, and SonarQube DB
+      # provisioning isn't needed for e2e:kind (we don't run sonar
+      # in this job). Pipeline #2478482879 evidence : init-sonar.sql
+      # bind became a directory at runtime → postgres init crashed
+      # with "psql: ... could not read from input file: Is a directory".
       python3 -c "
       import re, sys
       p = '/tmp/svc/docker-compose.yml'
       with open(p) as f: txt = f.read()
       # Match `    ports:` then any number of more-indented lines.
       txt = re.sub(r'^( +)ports:\s*\n(\1 +- .*\n)+', '', txt, flags=re.MULTILINE)
+      # Drop the init-sonar.sql bind mount (single line under volumes:)
+      txt = re.sub(r'^.*init-sonar\.sql.*\n', '', txt, flags=re.MULTILINE)
       with open(p, 'w') as f: f.write(txt)
       "
       COMPOSE_PROJECT="ci-${CI_JOB_ID}"
