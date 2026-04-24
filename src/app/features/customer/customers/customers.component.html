@@ -9,12 +9,14 @@
     <div class="alert-warn">Please <a routerLink="/login">sign in</a> to access this feature.</div>
   } @else {
     <!-- Live new-customer notification banner -->
-    @if (newCustomerCount() > 0) {
+    @if (listState.newCustomerCount() > 0) {
       <div class="new-customer-banner">
-        ⚡ {{ newCustomerCount() }} new customer{{ newCustomerCount() === 1 ? '' : 's' }} added live
-        —
+        ⚡ {{ listState.newCustomerCount() }} new customer{{
+          listState.newCustomerCount() === 1 ? '' : 's'
+        }}
+        added live —
         <button class="banner-btn" (click)="dismissNewBanner()">Refresh to see</button>
-        <button class="banner-close" (click)="newCustomerCount.set(0)">✕</button>
+        <button class="banner-close" (click)="listState.newCustomerCount.set(0)">✕</button>
       </div>
     }
     <!-- Controls bar -->
@@ -29,8 +31,10 @@
           />
         </span>
         <div class="toggle-btns">
-          <button [class.active]="apiVersion() === '1.0'" (click)="setVersion('1.0')">v1.0</button>
-          <button [class.active]="apiVersion() === '2.0'" (click)="setVersion('2.0')">
+          <button [class.active]="listState.apiVersion() === '1.0'" (click)="setVersion('1.0')">
+            v1.0
+          </button>
+          <button [class.active]="listState.apiVersion() === '2.0'" (click)="setVersion('2.0')">
             v2.0 <small>+createdAt</small>
           </button>
         </div>
@@ -39,15 +43,15 @@
         <input
           type="text"
           placeholder="Search name or email..."
-          [value]="searchQuery()"
+          [value]="listState.searchQuery()"
           (input)="onSearchInput($any($event.target).value)"
         />
       </div>
       <button class="action-btn" (click)="loadCustomers()">↻ Refresh</button>
     </div>
 
-    @if (listError()) {
-      <div class="alert-error">⚠ {{ listError() }}</div>
+    @if (listState.listError()) {
+      <div class="alert-error">⚠ {{ listState.listError() }}</div>
     }
 
     <!-- Batch delete bar -->
@@ -77,39 +81,40 @@
       <article class="card list-card">
         <div class="list-header">
           <h3>
-            @if (summaryMode()) {
+            @if (listState.summaryMode()) {
               Summary
             } @else {
               Customer List
             }
-            @if (!summaryMode() && customers()) {
+            @if (!listState.summaryMode() && listState.customers()) {
               <small
-                >({{ customers()!.totalElements }} total · page {{ currentPage() + 1 }}/{{
-                  totalPages()
-                }})</small
+                >({{ listState.customers()!.totalElements }} total · page
+                {{ listState.currentPage() + 1 }}/{{ listState.totalPages() }})</small
               >
             }
-            @if (summaryMode() && summaries()) {
-              <small>({{ summaries()!.totalElements }} total)</small>
+            @if (listState.summaryMode() && listState.summaries()) {
+              <small>({{ listState.summaries()!.totalElements }} total)</small>
             }
           </h3>
           <div class="page-btns">
-            <button class="sm-btn" (click)="prevPage()" [disabled]="currentPage() === 0">‹</button>
+            <button class="sm-btn" (click)="prevPage()" [disabled]="listState.currentPage() === 0">
+              ‹
+            </button>
             <button
               class="sm-btn"
               (click)="nextPage()"
-              [disabled]="currentPage() >= totalPages() - 1"
+              [disabled]="listState.currentPage() >= listState.totalPages() - 1"
             >
               ›
             </button>
           </div>
         </div>
 
-        @if (listLoading()) {
+        @if (listState.listLoading()) {
           <p class="muted">Loading...</p>
-        } @else if (summaryMode()) {
+        } @else if (listState.summaryMode()) {
           <!-- Summary mode -->
-          @if (summaries()?.content?.length) {
+          @if (listState.summaries()?.content?.length) {
             <table>
               <thead>
                 <tr>
@@ -118,7 +123,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (s of summaries()!.content; track s.id) {
+                @for (s of listState.summaries()!.content; track s.id) {
                   <tr>
                     <td>{{ s.id }}</td>
                     <td>{{ s.name }}</td>
@@ -132,7 +137,7 @@
           }
         } @else {
           <!-- Full mode -->
-          @if (customers()?.content?.length) {
+          @if (listState.customers()?.content?.length) {
             <table>
               <thead>
                 <tr>
@@ -152,7 +157,7 @@
                   <th class="sortable" (click)="toggleSort('email')">
                     Email <span class="sort-icon">{{ sortIcon('email') }}</span>
                   </th>
-                  @if (apiVersion() === '2.0') {
+                  @if (listState.apiVersion() === '2.0') {
                     <th class="sortable" (click)="toggleSort('createdAt')">
                       Created at <span class="sort-icon">{{ sortIcon('createdAt') }}</span>
                     </th>
@@ -161,7 +166,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (c of customers()!.content; track c.id) {
+                @for (c of listState.customers()!.content; track c.id) {
                   <tr [class.selected-row]="selectedCustomer()?.id === c.id">
                     <td class="check-col">
                       <input
@@ -173,7 +178,7 @@
                     <td>{{ c.id }}</td>
                     <td>{{ c.name }}</td>
                     <td>{{ c.email }}</td>
-                    @if (apiVersion() === '2.0') {
+                    @if (listState.apiVersion() === '2.0') {
                       <td>{{ c.createdAt | date: 'short' }}</td>
                     }
                     <td class="actions-cell">
@@ -191,7 +196,7 @@
                 }
               </tbody>
             </table>
-            @if (apiVersion() === '2.0') {
+            @if (listState.apiVersion() === '2.0') {
               <p class="version-note">
                 v2.0 — X-API-Version: 2.0 · <code>createdAt</code> field included
               </p>

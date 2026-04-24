@@ -50,6 +50,7 @@ import { ConfirmModalComponent } from '../../../shared/confirm-modal/confirm-mod
 import { CustomerImportExportService } from './customer-import-export.service';
 import { CustomerSelectionService } from './customer-selection.service';
 import { CustomerCrudService } from './customer-crud.service';
+import { CustomerListStateService } from './customer-list-state.service';
 
 @Component({
   selector: 'app-customers',
@@ -93,67 +94,18 @@ export class CustomersComponent implements OnInit, OnDestroy {
     return 'mirador.bio.enabled' in map ? map['mirador.bio.enabled'] : true;
   });
 
-  // ── List state ─────────────────────────────────────────────────────────────
-
-  /** Signal: current page of full customer entities. Null until first load. */
-  customers = signal<Page<Customer> | null>(null);
-
-  /** Signal: current page of lightweight customer summaries (id+name only). Null until first load. */
-  summaries = signal<Page<CustomerSummary> | null>(null);
-
-  /** Signal: last 10 customers from the Redis ring buffer (`/customers/recent`). */
-  recent = signal<Customer[] | null>(null);
+  // ── List + pagination + sort + search state — delegated to
+  //    CustomerListStateService (B-7-2c Step 4, 2026-04-24). Template
+  //    accesses everything via `listState.*`.
+  //    `aggregate` signal stays here — different concern (virtual-thread
+  //    demo, not part of the list display pipeline). ──
+  readonly listState = inject(CustomerListStateService);
 
   /** Signal: result from `/customers/aggregate` — two parallel virtual thread tasks. */
   aggregate = signal<AggregatedResponse | null>(null);
 
-  /**
-   * Signal: active API version sent as the `X-API-Version` header.
-   * v2.0 adds the `createdAt` field to the response.
-   */
-  apiVersion = signal<'1.0' | '2.0'>('1.0');
-
-  /**
-   * Signal: when true, fetches summary projections instead of full customer entities.
-   * Demonstrates the `/customers/summary` lightweight endpoint.
-   */
-  summaryMode = signal(false);
-
-  /** Signal: zero-based current page index for list pagination. */
-  currentPage = signal(0);
-
-  /** Signal: true while a list or summary fetch is in flight. */
-  listLoading = signal(false);
-
-  /** Signal: error message from the most recent list fetch. */
-  listError = signal('');
-
-  // ── Search ────────────────────────────────────────────────────────────────
-
-  /** Signal: current search query string. Debounced 300ms before triggering a list reload. */
-  searchQuery = signal('');
-
-  /** Debounce timer for search input — prevents a request on every keystroke. */
-  private _searchTimer: ReturnType<typeof setTimeout> | null = null;
-
-  // ── Live new-customer notification (SSE) ──────────────────────────────────
-
-  /**
-   * Signal: count of new customers received via SSE since the list was last loaded.
-   * Shown as a banner to prompt the user to refresh the list.
-   */
-  newCustomerCount = signal(0);
-
   /** The active Server-Sent Events connection to `/customers/stream`. Null when disconnected. */
   private _sseSource: EventSource | null = null;
-
-  // ── Sort ──────────────────────────────────────────────────────────────────
-
-  /** Signal: the column currently used for sorting. Null means no explicit sort (default order). */
-  sortField = signal<SortField | null>(null);
-
-  /** Signal: current sort direction, toggled per-column on click. */
-  sortDir = signal<SortDir>('asc');
 
   // ── Batch selection — state + methods moved to CustomerSelectionService
   //    (B-7-2c Step 2, 2026-04-24). Exposed here as `selection` so
@@ -213,16 +165,8 @@ export class CustomersComponent implements OnInit, OnDestroy {
   /** Signal: result message from the aggregate call (timing or error). */
   aggregateError = signal('');
 
-  /**
-   * Computed: total number of pages for the currently active list mode.
-   * Switches between full and summary page counts based on `summaryMode`.
-   */
-  readonly totalPages = computed(() => {
-    if (this.summaryMode()) return this.summaries()?.totalPages ?? 1;
-    return this.customers()?.totalPages ?? 1;
-  });
-
-  // hasSelection computed moved to CustomerSelectionService.hasSelection
+  // totalPages computed moved to CustomerListStateService.
+  // hasSelection computed moved to CustomerSelectionService.
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
@@ -232,7 +176,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this._searchTimer) clearTimeout(this._searchTimer);
+    // _searchTimer cleanup moved to CustomerListStateService (owns it).
     this.disconnectSse();
   }
 
@@ -241,7 +185,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
       const base = this.env.baseUrl();
       this._sseSource = new EventSource(`${base}/customers/stream`);
       this._sseSource.addEventListener('customer', () => {
-        this.newCustomerCount.update((n) => n + 1);
+        this.listState.newCustomerCount.update((n) => n + 1);
       });
     } catch {
       /* SSE not available */
@@ -255,111 +199,49 @@ export class CustomersComponent implements OnInit, OnDestroy {
     }
   }
 
-  dismissNewBanner(): void {
-    this.newCustomerCount.set(0);
-    this.loadCustomers();
-  }
+  // ── List + pagination + sort + search — thin wrappers delegating to
+  //    CustomerListStateService. Parent's `loadCustomers()` bundles the
+  //    selection-clear side-effect so every caller gets consistent
+  //    behaviour without having to know about the selection service. ──
 
-  // ── Search ────────────────────────────────────────────────────────────────
-  onSearchInput(value: string): void {
-    this.searchQuery.set(value);
-    if (this._searchTimer) clearTimeout(this._searchTimer);
-    this._searchTimer = setTimeout(() => {
-      this.currentPage.set(0);
-      this.loadCustomers();
-    }, 300);
-  }
-
-  // ── Sort ──────────────────────────────────────────────────────────────────
-  toggleSort(field: SortField): void {
-    if (this.sortField() === field) {
-      this.sortDir.update((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      this.sortField.set(field);
-      this.sortDir.set('asc');
-    }
-    this.loadCustomers();
-  }
-
-  sortIcon(field: SortField): string {
-    if (this.sortField() !== field) return '↕';
-    return this.sortDir() === 'asc' ? '↑' : '↓';
-  }
-
-  // ── List ───────────────────────────────────────────────────────────────────
   loadCustomers(): void {
-    this.listLoading.set(true);
-    this.listError.set('');
-    this.selection.clearSelection();
-
-    const sort = this.sortField() ? `${this.sortField()},${this.sortDir()}` : undefined;
-    const search = this.searchQuery() || undefined;
-
-    if (this.summaryMode()) {
-      this.api
-        .getCustomerSummary(this.currentPage())
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (p) => {
-            this.summaries.set(p);
-            this.listLoading.set(false);
-          },
-          error: (err) => {
-            this.listError.set(httpError(err));
-            this.listLoading.set(false);
-          },
-        });
-    } else {
-      this.api
-        .getCustomers(this.currentPage(), 10, this.apiVersion(), search, sort)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (p) => {
-            this.customers.set(p);
-            this.listLoading.set(false);
-          },
-          error: (err) => {
-            this.listError.set(httpError(err));
-            this.listLoading.set(false);
-          },
-        });
-    }
-  }
-
-  setVersion(v: '1.0' | '2.0'): void {
-    this.apiVersion.set(v);
-    this.currentPage.set(0);
-    this.loadCustomers();
-  }
-
-  toggleSummaryMode(): void {
-    this.summaryMode.update((v) => !v);
-    this.currentPage.set(0);
-    this.loadCustomers();
-  }
-
-  prevPage(): void {
-    if (this.currentPage() > 0) {
-      this.currentPage.update((p) => p - 1);
-      this.loadCustomers();
-    }
-  }
-
-  nextPage(): void {
-    if (this.currentPage() < this.totalPages() - 1) {
-      this.currentPage.update((p) => p + 1);
-      this.loadCustomers();
-    }
+    this.listState.loadCustomers(() => this.selection.clearSelection());
   }
 
   loadRecent(): void {
-    this.api
-      .getRecentCustomers()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (r) => this.recent.set(r),
-        error: (err) => this.listError.set(httpError(err)),
-      });
+    this.listState.loadRecent();
+  }
+
+  dismissNewBanner(): void {
+    this.listState.dismissNewBanner(() => this.loadCustomers());
+  }
+
+  onSearchInput(value: string): void {
+    this.listState.onSearchInput(value, () => this.loadCustomers());
+  }
+
+  toggleSort(field: SortField): void {
+    this.listState.toggleSort(field, () => this.loadCustomers());
+  }
+
+  sortIcon(field: SortField): string {
+    return this.listState.sortIcon(field);
+  }
+
+  setVersion(v: '1.0' | '2.0'): void {
+    this.listState.setVersion(v, () => this.loadCustomers());
+  }
+
+  toggleSummaryMode(): void {
+    this.listState.toggleSummaryMode(() => this.loadCustomers());
+  }
+
+  prevPage(): void {
+    this.listState.prevPage(() => this.loadCustomers());
+  }
+
+  nextPage(): void {
+    this.listState.nextPage(() => this.loadCustomers());
   }
 
   runAggregate(): void {
@@ -457,7 +339,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   //    all state + logic lives in the service (B-7-2c Step 2). ──
 
   toggleSelectAll(): void {
-    this.selection.toggleSelectAll(this.customers()?.content ?? []);
+    this.selection.toggleSelectAll(this.listState.customers()?.content ?? []);
   }
 
   toggleSelectOne(id: number): void {
@@ -486,13 +368,15 @@ export class CustomersComponent implements OnInit, OnDestroy {
 
   /** Export current page as JSON (full or summary per `summaryMode`). */
   exportJson(): void {
-    const data = this.summaryMode() ? this.summaries()?.content : this.customers()?.content;
+    const data = this.listState.summaryMode()
+      ? this.listState.summaries()?.content
+      : this.listState.customers()?.content;
     this.importExport.exportJson(data);
   }
 
   /** Export full customer list as CSV (schema depends on apiVersion). */
   exportCsv(): void {
-    this.importExport.exportCsv(this.customers()?.content, this.apiVersion());
+    this.importExport.exportCsv(this.listState.customers()?.content, this.listState.apiVersion());
   }
 
   // ── Per-customer actions ───────────────────────────────────────────────────
