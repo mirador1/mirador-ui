@@ -5,7 +5,7 @@ done items removed (use `git tag -l` for history).
 
 ---
 
-## 🟡 Verification window — e2e:kind 3-step plan SHIPPED
+## 🟡 Verification window — e2e:kind 4-step plan SHIPPED
 
 `e2e:kind` job in [`.gitlab-ci/test.yml`](file:///Users/benoitbesson/dev/js/mirador-ui/.gitlab-ci/test.yml)
 keeps `allow_failure: true` until the verification window confirms green.
@@ -27,12 +27,30 @@ keeps `allow_failure: true` until the verification window confirms green.
   documented in `.gitlab-ci/test.yml` lines 281-285). 10s timeout was
   structurally doomed under documented CI Kafka conditions ; 25s gives 9s
   of headroom.
-- ☐ **Exit criterion** : wait for the next 5 main runs with all 3 steps
+- ✅ **Step 4 SHIPPED 2026-04-25** (this wave) — preflight POST
+  /customers in CI script (`.gitlab-ci/test.yml` step "3.5"). After
+  liveness UP, the script obtains a JWT via POST /auth/login then
+  loops POST /customers with a unique email until 2xx (60 attempts
+  × 3 s = 180 s budget). Kills the race where Playwright launched
+  BEFORE the Kafka producer finished metadata bootstrap : pipeline
+  [#2479264155](https://gitlab.com/mirador1/mirador-ui/-/pipelines/2479264155)
+  HAR trace showed POST /customers status=-1 timings={send:-1,wait:-1,
+  receive:-1}, evidencing the POST never completed server-side. Now
+  the CI script proves the actual write path is live before launching
+  Playwright ; if Kafka stays wedged > 180s, the preflight fails fast
+  with a curl + actuator/health dump (clearer than the cryptic
+  Playwright "Created → ID never appeared" timeout 5 min later).
+- ☐ **Exit criterion** : wait for the next 5 main runs with all 4 steps
   in effect (`gitlab-runner` currently OFFLINE — pipelines queue until
   the user starts the runner via `docker compose -f deploy/compose/runner.yml
-  up -d` from svc repo). If 5/5 still RED, scope-out via
-  `rules: - if: $CI_COMMIT_BRANCH == "main" when: never` + `- when: manual`
-  per CLAUDE.md "surgical fixes, not allow_failure bypasses" rule (c).
+  up -d` from svc repo). If 5/5 still RED, the issue is not timing but
+  a permanently stuck Kafka producer — fix becomes svc-side (make
+  [`KafkaCustomerEventPublisher.publishCreated()`](file:///Users/benoitbesson/dev/workspace-modern/mirador-service/src/main/java/com/mirador/messaging/KafkaCustomerEventPublisher.java)
+  truly fire-and-forget instead of blocking on `.get(5s)`, matching
+  the controller's documented "fire-and-forget" contract). If still
+  RED after that, scope-out via `rules: - if: $CI_COMMIT_BRANCH ==
+  "main" when: never` + `- when: manual` per CLAUDE.md "surgical
+  fixes, not allow_failure bypasses" rule (c).
 - ☐ **Final flip** : 10 consecutive green main runs before flipping
   `allow_failure: true` → `false` per ADR-0033.
 
