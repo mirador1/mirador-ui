@@ -60,10 +60,17 @@ sonarcloud:
     # try setting XDG_DATA_HOME which some tools respect for cache
     # dirs. If both fail, next escalation = custom Docker image with
     # /home/scanner-cli pre-chowned writable.
-    - chmod -R u+rwX /home/scanner-cli 2>/dev/null || true
-    - mkdir -p /home/scanner-cli/.tree-sitter/lib 2>/dev/null || true
+    # Wave 10 : symlink /home/scanner-cli/.tree-sitter to a writable
+    # location. tree-sitter HARDCODES the path via Node's os.homedir()
+    # which reads /etc/passwd, ignoring HOME env. The chmod attempt in
+    # wave 9 failed because /home/scanner-cli is root-owned in the
+    # scanner-cli image. Symlinking the .tree-sitter SUBDIR (not the
+    # whole home) might bypass perms because the scanner-cli user
+    # owns its own subdirs even if the parent is root.
     - mkdir -p "$SONAR_USER_HOME/.tree-sitter/lib"
-    - XDG_DATA_HOME="$SONAR_USER_HOME" HOME="$SONAR_USER_HOME" sonar-scanner
+    - rm -rf /home/scanner-cli/.tree-sitter 2>/dev/null || true
+    - ln -sf "$SONAR_USER_HOME/.tree-sitter" /home/scanner-cli/.tree-sitter 2>/dev/null || true
+    - sonar-scanner
         -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
