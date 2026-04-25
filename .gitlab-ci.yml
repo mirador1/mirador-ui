@@ -98,11 +98,15 @@ variables:
 
 default:
   image: node:${NODE_VERSION}-alpine
-  # No global runner tag — most jobs (lint, build, test) run on any available runner.
-  # Image-related jobs (docker-build, trivy, sbom, grype, dockle, cosign) are
-  # tagged macbook-local: they use the host Docker socket + buildx/QEMU for
-  # cross-compile (arm64 host → amd64 image). SaaS runners are never used
-  # (CI quota policy — see sibling service repo ADR-0004).
+  # All jobs route to macbook-local (= the group-level runner serving
+  # mirador1 — java, ui, python, shared). Updated 2026-04-25 after UI
+  # main pipelines started failing with `ci_quota_exceeded` on SaaS
+  # shared runners. Per global CLAUDE.md "Use local runners, never rely
+  # on GitLab SaaS quota". Image jobs (docker-build, trivy, sbom, grype,
+  # dockle, cosign) inherit this — they use the host Docker socket +
+  # buildx/QEMU for cross-compile (arm64 host → amd64 image).
+  tags:
+    - macbook-local
   cache:
     key:
       files:
