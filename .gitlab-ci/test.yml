@@ -257,12 +257,21 @@ e2e:kind:
       # BEFORE compilation finished → empty /tmp/app.log on
       # failure). Happy path unchanged (exits on first 2xx).
       # Progress line every ~30 s so the trace isn't a silent gap.
+      # Wave 10 : poll /actuator/health/liveness instead of /actuator/health.
+      # Pipeline #2478860588 evidence : Spring Boot started, postgres
+      # connected, network DNS worked — but /actuator/health composite
+      # never returned UP because Kafka health indicator is stuck in
+      # rebootstrap loop (kafka:9092 reachable but broker registration
+      # incomplete in CI's KRaft single-node mode).
+      # /actuator/health/liveness only checks "process is alive", not
+      # downstream dependencies → returns UP as soon as Spring's context
+      # is initialised, sufficient for e2e tests to start.
       for i in $(seq 1 300); do
-        curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1 && break
-        [ $((i % 15)) -eq 0 ] && echo "…waiting for /actuator/health (t+${i}×2s, app.log: $(wc -l < /tmp/app.log 2>/dev/null || echo 0) lines)"
+        curl -sSf http://localhost:8080/actuator/health/liveness >/dev/null 2>&1 && break
+        [ $((i % 15)) -eq 0 ] && echo "…waiting for /actuator/health/liveness (t+${i}×2s, app.log: $(wc -l < /tmp/app.log 2>/dev/null || echo 0) lines)"
         sleep 2
       done
-      curl -sSf http://localhost:8080/actuator/health || { tail -80 /tmp/app.log; exit 1; }
+      curl -sSf http://localhost:8080/actuator/health/liveness || { tail -80 /tmp/app.log; exit 1; }
 
       # 3. Serve the Angular production build on :4200 (http-server is
       #    a transient dep — lighter than ng serve, static, fast).
