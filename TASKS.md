@@ -19,14 +19,6 @@ keeps `allow_failure: true` with a 30-day exit ticket.
 
 ---
 
-## 👤 Manual user actions
-
-- ☐ **SonarCloud security_hotspots_reviewed = 0 %** — manual UI step on
-  https://sonarcloud.io/project/security_hotspots?id=<ui-project>.
-  Mark hotspots as "safe" with justification. Cannot be automated.
-
----
-
 ## 🟢 Nice-to-have
 
 - ☐ **Régénérer la GIF demo du README** (~30 min). Visual content has
