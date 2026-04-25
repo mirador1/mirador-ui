@@ -61,13 +61,26 @@ sonar-scanner:image:
       allow_failure: true   # manual trigger; pipeline still passes if the user doesn't run it
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - docker run --privileged --rm tonistiigi/binfmt --install amd64 || true
+    # Register both amd64 (cross-compile) and arm64 (native on Apple
+    # Silicon) emulators so the multi-platform manifest builds in one
+    # pass. The arm64 install is a no-op on Apple Silicon hosts but
+    # keeps the script portable to amd64-host runners.
+    - docker run --privileged --rm tonistiigi/binfmt --install amd64,arm64 || true
     - docker buildx create --name multi --use 2>/dev/null || docker buildx use multi
   script:
+    # Build a MULTI-PLATFORM manifest (linux/amd64 + linux/arm64).
+    # Pipeline #2479162314 evidence : sonarcloud failed to pull the
+    # image on macbook-local with `no matching manifest for
+    # linux/arm64/v8 in the manifest list entries`. The macbook-local
+    # runner is Apple Silicon (arm64) so its docker executor pulls
+    # arm64 by default; the previous amd64-only build couldn't satisfy
+    # that. Including both arches in one manifest means the same
+    # `:11.5.0.2154` tag works on either runner type without further
+    # routing logic.
     - |
       docker buildx build \
         -f build/sonar-scanner.Dockerfile \
-        --platform linux/amd64 \
+        --platform linux/amd64,linux/arm64 \
         --tag "$CI_REGISTRY_IMAGE/sonar-scanner:$SONAR_SCANNER_IMAGE_TAG" \
         --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
         --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
