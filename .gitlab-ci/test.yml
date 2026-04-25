@@ -273,11 +273,30 @@ e2e:kind:
       done
       curl -sSf http://localhost:8080/actuator/health/liveness || { tail -80 /tmp/app.log; exit 1; }
 
-      # 3. Serve the Angular production build on :4200 (http-server is
-      #    a transient dep — lighter than ng serve, static, fast).
-      npx --yes http-server dist/mirador-ui/browser -p 4200 -s &
+      # 3. Serve the Angular production build on :4200.
+      #    Wave 11 (pipeline #2479025472 evidence) : `http-server -s`
+      #    has NO SPA fallback — `-s` is "silent", not "single-page".
+      #    Requests to client-side routes like `/login` returned HTTP
+      #    404 because the file `dist/mirador-ui/browser/login` doesn't
+      #    exist on disk. Playwright then loaded an empty 404 body and
+      #    timed out waiting for `getByLabel('Username')` (login form
+      #    never rendered). All 3 @golden tests failed for the same
+      #    reason : login.spec, customer-crud.spec, health.spec all
+      #    start with `goto('/login')`.
+      #
+      #    `npx serve -s` (npm package `serve`, Vercel) DOES rewrite
+      #    not-found requests to `index.html` — `-s` here means
+      #    `--single` (SPA mode). Verified locally : http-server
+      #    returns 404 on /login, serve -s returns 200 with
+      #    index.html → Angular router resolves /login → form renders.
+      #    `-l 4200` listen on port 4200 (replaces http-server's `-p`).
+      npx --yes serve -s dist/mirador-ui/browser -l 4200 &
+      # Probe `/login` (a client-side route) not `/` so we exercise
+      # the SPA fallback path — catches the same regression class
+      # that broke wave 11 if `serve` ever gets swapped for a non-SPA
+      # static server again.
       for i in $(seq 1 30); do
-        curl -sSf http://localhost:4200 >/dev/null 2>&1 && break
+        curl -sSf http://localhost:4200/login >/dev/null 2>&1 && break
         sleep 1
       done
 
