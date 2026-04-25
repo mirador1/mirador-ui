@@ -80,8 +80,14 @@ test.describe('Demo recording for README @demo', () => {
     // Use addInitScript (NOT page.evaluate after goto) so the flag is
     // set BEFORE Angular boots — page.evaluate after goto runs too
     // late, the tour is already mounted.
+    //
+    // Value MUST be `'true'` literally — TourService#hasSeen() does
+    // `=== 'true'` (strict string compare). `'1'` was silently broken
+    // here for previous demo recordings (the tour fired anyway, the
+    // recording happened to dismiss it via the Escape fallback below).
+    // Fixed 2026-04-25 alongside the customer-crud spec same-day fix.
     await page.addInitScript(() => {
-      window.localStorage.setItem('mirador:tour:seen', '1');
+      window.localStorage.setItem('mirador:tour:seen', 'true');
     });
 
     // ═══════════════════════════════════════════════════════════════

@@ -18,6 +18,29 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Customer CRUD @golden', () => {
+  test.beforeEach(async ({ page }) => {
+    // Pre-flight : dismiss the first-visitor onboarding tour BEFORE
+    // Angular boots. TourService.maybeAutoStart() (app-shell.component
+    // effect) fires on auth.isAuthenticated() becoming true — so the
+    // tour-backdrop appears the moment the user lands on the dashboard
+    // post-login. The backdrop intercepts pointer events on every link
+    // in the layout, including the `Customers` nav link clicked at
+    // line ~33 below. Without this seed, customer-crud fails with :
+    //   `<div class="tour-backdrop"> ... subtree intercepts pointer events`
+    // (pipeline #2479222264 e2e:kind evidence, 2026-04-25 wave 12).
+    //
+    // `addInitScript` runs in the new page context BEFORE the document
+    // loads, so the localStorage value is set before Angular boots and
+    // before the AppShell effect reads `tour.hasSeen()`. `page.evaluate`
+    // after `goto` runs too late — the tour has already mounted by then.
+    //
+    // Value MUST be `'true'` literally — TourService#hasSeen() does
+    // `=== 'true'` (strict string compare). `'1'` would silently fail.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('mirador:tour:seen', 'true');
+    });
+  });
+
   test('creates a customer, sees it in the list, deletes it', async ({ page }) => {
     // ---- login ------------------------------------------------------
     await page.goto('/login');
