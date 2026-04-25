@@ -181,25 +181,27 @@ e2e:kind:
 
       # 2. Connect THIS job container to the compose bridge network
       #    so Spring Boot can reach `db`, `kafka`, `redis` by docker
-      #    DNS — no host port footprint needed. The job container's
-      #    hostname is its own container ID (set by GitLab runner).
-      #    Pipeline #2478522873 evidence : pg_isready was green (postgres
-      #    up) but Spring Boot Flyway 'Connection attempt failed' minutes
-      #    later → job container couldn't resolve `db`. Likely the
-      #    silent `2>/dev/null || true` was masking a real network-connect
-      #    failure (e.g. JOB_CTR already on the network from a previous
-      #    run, or the network name resolution was off).
+      #    DNS — no host port footprint needed.
       #
-      #    Fix : remove the silent suppression + add an explicit
-      #    `getent hosts db` check after connect that fails fast with
-      #    a clear error if DNS resolution doesn't work. Saves ~10 min
-      #    of debugging when Spring Boot's eventual "connection refused"
-      #    is the symptom of a network-connect issue 2 minutes upstream.
-      JOB_CTR=$(hostname)
+      #    Pipeline #2478601087 evidence (after wave 6 getent diagnostic) :
+      #    `docker inspect $(hostname) → no such object`. GitLab runner
+      #    sets the job container's HOSTNAME via --hostname (e.g.
+      #    runner-yt-cpyt8r-project-81241927-concurrent-1) but that's
+      #    NOT the docker container NAME — so `docker network connect
+      #    $NET $(hostname)` was failing silently for every previous run.
+      #    The "everything works" memory was actually hosts-mode-fallback
+      #    or coincidence.
+      #
+      #    Fix : derive the real container ID from /proc/self/cgroup
+      #    (works on cgroup v1 and v2 — the 64-hex-char container ID is
+      #    embedded in the cgroup hierarchy regardless of layout).
+      #    Fall back to hostname if cgroup parsing fails (degraded mode).
+      JOB_CTR=$(grep -oE '[a-f0-9]{64}' /proc/self/cgroup | head -1)
+      JOB_CTR="${JOB_CTR:-$(hostname)}"
       NET="${COMPOSE_PROJECT}_default"
-      # `|| true` retained ONLY for the case where the container is
-      # already on the network (idempotent), but stderr now visible
-      # (no `2>/dev/null`) so real network errors surface.
+      echo "Job container ID : $JOB_CTR (from /proc/self/cgroup)"
+      # `|| true` retained for idempotency (already-attached network is
+      # not an error). stderr is visible so real attach errors surface.
       docker network connect "$NET" "$JOB_CTR" || true
       # Verify Spring Boot can resolve `db` BEFORE launching the app —
       # cheaper to fail here with a clear DNS error than to wait 10 min
