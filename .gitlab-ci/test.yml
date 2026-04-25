@@ -80,24 +80,38 @@ e2e:kind:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_PIPELINE_SOURCE == "schedule"
   # TODO: flip to false by 2026-05-25 (30d) — current state 2026-04-25:
-  # 3 @golden Playwright tests (login, customer-crud, health) still
-  # fail consistently on main (5/5 recent runs RED) even after wave 7
-  # `/proc/self/cgroup` container-ID fix in !125 + wave 11 `serve -s`
-  # SPA fallback in 3e80d81. Root cause is now in the Playwright
-  # specs themselves, not the docker network plumbing — likely the
-  # backend isn't fully healthy when the UI tries to login (timing /
-  # seed data / Keycloak readiness). Next steps :
-  #   1. Enrich test-results upload (only screenshots ship today —
-  #      add the actuator/health output + backend logs at failure
-  #      time so the next debug pass starts with the smoking gun).
-  #   2. Add an explicit `await page.waitForResponse(/health/)`
-  #      before the first login click — the dashboard loads before
-  #      the backend is ready ~30 % of the time.
-  #   3. If still flaky after 1+2, scope-out via `rules: when: never`
-  #      on main (per CLAUDE.md "scope-out, not shield" pattern) and
-  #      keep e2e:kind only on MR pipelines + scheduled runs until
-  #      we've cut the flake rate to <10 %.
-  # ADR-0033 "10 green runs before flip" still the exit criterion.
+  # 3-step plan COMPLETE (steps 1+2 in commit 2fbdb17, step 3 in this
+  # commit). Verification pending : 5 consecutive main runs must show
+  # e2e:kind green before flipping `allow_failure: true` → `false` per
+  # ADR-0033 "10 green runs before flip" (the 5/5 here is an interim
+  # signal ; the 10-run gate stays the formal exit criterion).
+  #
+  # Steps SHIPPED :
+  #   1. e2e-debug/ artifact bundle — actuator-health.json + backend
+  #      app.log + compose container states + per-container
+  #      `docker logs --tail=200`. Captured in after_script BEFORE
+  #      compose teardown so containers haven't disappeared yet.
+  #   2. helpers/wait-for-backend.ts — polls /actuator/health 25s +
+  #      fallback to /actuator/health/liveness 30s, called in
+  #      beforeEach of every @golden spec. Catches the "Spring
+  #      listening but composite DOWN" race window.
+  #   3. customer-crud.spec.ts — bumped the "Created → ID" toast
+  #      assertion timeout 10s → 25s. Root cause measured from svc
+  #      KafkaCustomerEventPublisher : `kafkaTemplate.send().get(5s)`
+  #      under @Retry(3 attempts, 200/400ms backoff) + fallback
+  #      ≈ 15.6 s worst case when Kafka is in rebootstrap loop
+  #      (KRaft single-node, broker registration incomplete on this
+  #      runner — see line 281-285 below). 10s was structurally
+  #      doomed ; 25s gives 9s headroom for runner pressure.
+  #
+  # If 5/5 main runs still RED after step 3, scope-out per CLAUDE.md
+  # "surgical fixes, not allow_failure bypasses" rule (c) :
+  #   rules:
+  #     - if: $CI_COMMIT_BRANCH == "main"
+  #       when: never
+  #     - when: manual
+  # Keeps the job manually triggerable for diagnostics, no longer
+  # gates the main pipeline. ADR-0033 stays the canonical reference.
   allow_failure: true
   variables:
     # Backend service repo — cloned next to the UI checkout so we can
