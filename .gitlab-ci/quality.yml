@@ -19,14 +19,11 @@ sonarcloud:
       optional: true
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-    # Override HOME so tree-sitter (Sonar's JS parser) doesn't try to
-    # write to /home/scanner-cli/.tree-sitter/lib (read-only in the
-    # sonar-scanner-cli image). Pipeline #2478601087 evidence :
-    # `RuntimeException: Failed to create directory: /home/scanner-cli/
-    # .tree-sitter/lib` was the actual root of the WebSocket close cascade.
-    # Tree-sitter looks at $HOME/.tree-sitter ; pointing HOME into
-    # CI_PROJECT_DIR (writable) lets it provision its lib dir cleanly.
-    HOME: "${CI_PROJECT_DIR}/.sonar"
+    # NOTE : earlier wave 7 attempt set HOME at job level — broke
+    # `get_sources` (git tried to lock .gitconfig in non-existent dir).
+    # Wave 8 : override HOME ONLY on the sonar-scanner line below
+    # (after pre-creating the .tree-sitter dir). Job-level HOME is
+    # unsafe because GitLab runs git operations in earlier phases.
     GIT_DEPTH: "0"    # full clone for accurate blame/line info
   cache:
     key: sonar-${CI_COMMIT_REF_SLUG}
@@ -51,7 +48,15 @@ sonarcloud:
     # workerCount=2 + maxspace=8192, peak heap budget is 16 GB instead
     # of 32 GB (4 × 8 GB at default workerCount). Trade-off : analysis
     # ~1.5-2× longer wall-clock but stable. Added 2026-04-25 wave 6.
-    - sonar-scanner
+    # Pre-create the tree-sitter cache dir under SONAR_USER_HOME (writable)
+    # then point HOME there ONLY for the sonar-scanner invocation. tree-sitter
+    # writes lib files to $HOME/.tree-sitter/lib ; without this, the default
+    # /home/scanner-cli/.tree-sitter is read-only in the scanner-cli image
+    # and tree-sitter init fails with RuntimeException → cascade to
+    # WebSocket close abnormally. Wave 8 fix replacing the wave 7
+    # job-level HOME override (which broke `get_sources` git config).
+    - mkdir -p "$SONAR_USER_HOME/.tree-sitter/lib"
+    - HOME="$SONAR_USER_HOME" sonar-scanner
         -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
