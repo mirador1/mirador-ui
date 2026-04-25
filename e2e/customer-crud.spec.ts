@@ -84,7 +84,25 @@ test.describe('Customer CRUD @golden', () => {
     // the 201 round-trip returns. This is the tightest possible proof
     // that the full chain ran (form → JWT → CORS → POST → backend →
     // response → render) and is what the E2E actually guarantees.
-    await expect(page.getByText(/Created → ID \d+/)).toBeVisible({ timeout: 10_000 });
+    //
+    // Timeout bumped from 10s → 25s (Step 3 of the e2e:kind 3-step plan,
+    // 2026-04-25 wave 13). Worst-case timing measured from the backend :
+    // KafkaCustomerEventPublisher#publishCreated blocks on
+    // kafkaTemplate.send(...).get(SEND_TIMEOUT_SECONDS=5s, ...) under a
+    // Resilience4j @Retry(name="kafkaPublish") = 3 attempts with 200/400ms
+    // exponential backoff. Worst case in CI when Kafka is in rebootstrap
+    // loop (KRaft single-node, broker registration incomplete — see
+    // .gitlab-ci/test.yml line 281-285) :
+    //   attempt1 (5s timeout) + 200ms + attempt2 (5s) + 400ms + attempt3
+    //   (5s) + fallback (logs ERROR, returns silently, customer row was
+    //   already persisted before publishCreated) ≈ 15.6 s
+    // The HTTP 201 returns ONLY after the fallback runs, so the toast
+    // can't render before t+~16s. Previous 10s timeout was structurally
+    // doomed under the documented CI Kafka conditions. 25s adds 9s of
+    // headroom for runner pressure (mvn JIT, Spring serialisation, etc).
+    // If/when svc moves the Kafka publish to async (post-response) per
+    // ADR-0044 evolution note, lower this back to 10s.
+    await expect(page.getByText(/Created → ID \d+/)).toBeVisible({ timeout: 25_000 });
 
     // ---- list refresh ---------------------------------------------
     // The list is paginated 10/page and default-sorted by ID ascending,
