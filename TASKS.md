@@ -84,6 +84,17 @@ exit criterion.
   enregistrement (B-7 wave + Phase 4.1 SSE + tour-overlay tweaks).
   Run via `bin/record-demo.sh` after `bin/healthcheck-all.sh` returns
   all-green.
+  - **🚫 Blocked 2026-04-25 14:42** — sibling
+    `mirador-service/docker-compose.yml:426` pins
+    `rediscommander/redis-commander:0.8.1` which has been yanked
+    from Docker Hub (`docker pull` returns `not found`). Backend
+    bring-up via `./run.sh all` aborts on this missing image,
+    cascading into UI dev-server being unstartable. Fix in svc
+    repo (bump to `:latest` or pin a recent valid tag) before
+    retrying GIF regen. Side-effect of cleanup: dev containers
+    (`postgres-demo`, `kafka-demo`, `gitlab-runner`) attached to
+    the svc compose project were also stopped — restart from svc
+    repo when needed.
 
 - **GitLab Observability** activée 2026-04-23 (ADR-0054) — usage data
   surfaces in https://gitlab.com/groups/mirador1/-/observability after
