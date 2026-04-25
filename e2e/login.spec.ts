@@ -14,9 +14,18 @@
  * `api.service.spec.ts` + backend integration tests (cheaper signal there).
  */
 import { test, expect } from '@playwright/test';
+import { waitForBackendReady } from './helpers/wait-for-backend';
 
 test.describe('Login @golden', () => {
   test('admin / admin signs in and reaches the dashboard', async ({ page }) => {
+    // Wait for backend readiness before clicking Sign in — the local
+    // /auth/local handler depends on the JWT signer + Flyway-seeded
+    // admin user being available, both gated by Spring's actuator
+    // composite. Without this wait, login intermittently 503s during
+    // the 8-30 s cold start. Step 2 of the e2e:kind 3-step plan, see
+    // `helpers/wait-for-backend.ts` for the full rationale.
+    await waitForBackendReady(page);
+
     await page.goto('/login');
 
     // The local-dev form sits below an "or (local dev)" divider. We use

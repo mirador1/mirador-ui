@@ -45,24 +45,42 @@ Failure mode = race conditions between :
 - dashboard's first health-poll arriving before the backend's actuator
   endpoint has all its components UP
 
-**Latest BG agent run (2026-04-25 14:33)** : commits
+**Latest BG agent run (2026-04-25 15:02)** : commits
 [`a1eb0a8`](https://gitlab.com/mirador1/mirador-ui/-/commit/a1eb0a8)
 (npx serve `-s` + tour-seen seed via `addInitScript`) +
 sibling [Java MR !199](https://gitlab.com/mirador1/mirador-service/-/merge_requests/199)
 CORS allowlist for `traceparent`/`tracestate`/`baggage` headers.
 Progress : login.spec ✓ + health.spec ✓ + customer-crud.spec ✗
-(NEW failure — POST /customers hangs server-side, status -1).
+(POST /customers timeout — "Created → ID" toast never appears within
+10 s, confirmed in pipeline [#471](https://gitlab.com/mirador1/mirador-ui/-/pipelines/2479264155)
+e2e:kind job 14088316505 trace).
 2/3 @golden green. Plan continues per ADR-0033 "10 green runs"
 exit criterion.
 
 **3-step plan** (per refreshed inline TODO + audit at
 [docs/audit/ui-ci-debt-status.md](file:///Users/benoitbesson/dev/js/mirador-ui/docs/audit/ui-ci-debt-status.md)) :
-1. Enrich `test-results` upload — capture `/actuator/health` JSON +
-   backend container logs at failure time (only screenshots ship today).
-2. Add `await page.waitForResponse(/health/)` in spec helpers so the
-   dashboard's first interaction waits for backend readiness.
-3. If still flaky after (1)+(2), scope-out via `rules: when: never`
-   on main + leave the job manually triggerable per ADR-0033.
+1. ✅ **SHIPPED 2026-04-25 15:05** — `after_script` debug bundle now
+   captures `/actuator/health` (composite + liveness + readiness JSON),
+   backend `/tmp/app.log`, compose container states + per-container
+   `docker logs --tail=200`. Artifact path `e2e-debug/` added to
+   `artifacts.paths`. Reviewer opens GitLab artifact browser →
+   `e2e-debug/actuator-health.json` for the smoking gun on which
+   downstream was DOWN.
+2. ✅ **SHIPPED 2026-04-25 15:05** — [`e2e/helpers/wait-for-backend.ts`](file:///Users/benoitbesson/dev/js/mirador-ui/e2e/helpers/wait-for-backend.ts)
+   exports `waitForBackendReady(page)` — polls `/actuator/health`
+   composite for 25 s, falls back to `/actuator/health/liveness` for
+   30 s. Called at the START of all 3 `@golden` specs' `beforeEach`
+   so the first UI action never races past Spring's bootstrap.
+3. ⏳ **PENDING** — wait for next 5 main runs to confirm step 1+2
+   fixed customer-crud. If 5/5 still fail despite the fix, scope-out
+   via `rules: when: never` on main + leave the job manually
+   triggerable per ADR-0033.
+
+**Exit criterion per ADR-0033** : 10 consecutive green main runs
+before flipping `allow_failure: true` → `false`. Step 1+2 ship
+together so we don't burn cycles. The shield STAYS in place
+until 10 green runs are observed — per CLAUDE.md "no premature
+shield removal".
 
 ---
 

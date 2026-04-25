@@ -16,10 +16,21 @@
  * so a re-run does not accumulate state.
  */
 import { test, expect } from '@playwright/test';
+import { waitForBackendReady } from './helpers/wait-for-backend';
 
 test.describe('Customer CRUD @golden', () => {
   test.beforeEach(async ({ page }) => {
-    // Pre-flight : dismiss the first-visitor onboarding tour BEFORE
+    // Pre-flight 1 : wait for the backend's actuator/health (or fallback
+    // to liveness) to return UP before doing ANY UI action. Without
+    // this, the form posts to a backend whose Spring context is up but
+    // whose datasource/Flyway/Kafka indicators haven't all reported UP
+    // yet — POST /customers hangs server-side until the connection is
+    // killed by the Playwright 10-s timeout, the toast `Created → ID
+    // <n>` never renders. Step 2 of the e2e:kind 3-step plan, see
+    // `helpers/wait-for-backend.ts` header for the full rationale.
+    await waitForBackendReady(page);
+
+    // Pre-flight 2 : dismiss the first-visitor onboarding tour BEFORE
     // Angular boots. TourService.maybeAutoStart() (app-shell.component
     // effect) fires on auth.isAuthenticated() becoming true — so the
     // tour-backdrop appears the moment the user lands on the dashboard
