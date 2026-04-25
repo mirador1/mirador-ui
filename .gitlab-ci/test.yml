@@ -196,13 +196,21 @@ e2e:kind:
       #    (works on cgroup v1 and v2 — the 64-hex-char container ID is
       #    embedded in the cgroup hierarchy regardless of layout).
       #    Fall back to hostname if cgroup parsing fails (degraded mode).
-      # `|| true` on grep : when /proc/self/cgroup contains no docker
-      # container ID (cgroup v2 layouts vary, some platforms have
-      # different formats), grep exits 1 — without `|| true`, the
-      # `set -euxo pipefail` shell aborts before the fallback below
-      # ever runs. Pipeline #2478807674 evidence : JOB_CTR= (empty)
-      # immediately followed by job exit 1.
-      JOB_CTR=$(grep -oE '[a-f0-9]{64}' /proc/self/cgroup 2>/dev/null | head -1 || true)
+      # Wave 9 : both /proc/self/cgroup and $(hostname) fail to give a
+      # docker-recognised name. Pipeline #2478827101 evidence : grep
+      # returned empty (cgroup v2 doesn't have the 64-char ID inline)
+      # AND $(hostname) returned `runner-yt-cpyt8r-...` which docker
+      # daemon doesn't recognise (GitLab sets --hostname but the actual
+      # container NAME is longer with a `-build-N` suffix).
+      #
+      # New strategy : use `docker ps --filter name=$(hostname)` to find
+      # the actual container name (partial match on hostname prefix).
+      # Falls back through the chain :
+      #   1. docker ps filter on hostname prefix → real container name
+      #   2. /proc/self/cgroup 64-char ID extraction
+      #   3. raw $(hostname) (degraded — likely fails connect)
+      JOB_CTR=$(docker ps --filter "name=$(hostname)" --format '{{.Names}}' 2>/dev/null | head -1)
+      JOB_CTR="${JOB_CTR:-$(grep -oE '[a-f0-9]{64}' /proc/self/cgroup 2>/dev/null | head -1 || true)}"
       JOB_CTR="${JOB_CTR:-$(hostname)}"
       NET="${COMPOSE_PROJECT}_default"
       echo "Job container ID : $JOB_CTR (from /proc/self/cgroup)"
