@@ -12,6 +12,11 @@ workflow:
         - "tsconfig*.json"
         - "config/proxy.conf.json"
         - "build/Dockerfile*"
+        # Includes build/sonar-scanner.Dockerfile (extension-style name).
+        # Without this glob, changing the sonar image Dockerfile didn't
+        # trigger the validate stage's sonar-scanner:image job — observed
+        # 2026-04-25 with commit 5293974 (mkdir fix landed but no CI ran).
+        - "build/*.Dockerfile"
         - ".dockerignore"
         - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
@@ -43,6 +48,11 @@ workflow:
         - "tsconfig*.json"
         - "config/proxy.conf.json"
         - "build/Dockerfile*"
+        # Includes build/sonar-scanner.Dockerfile (extension-style name).
+        # Without this glob, changing the sonar image Dockerfile didn't
+        # trigger the validate stage's sonar-scanner:image job — observed
+        # 2026-04-25 with commit 5293974 (mkdir fix landed but no CI ran).
+        - "build/*.Dockerfile"
         - ".dockerignore"
         - "deploy/nginx.conf"
         - ".gitlab-ci.yml"
