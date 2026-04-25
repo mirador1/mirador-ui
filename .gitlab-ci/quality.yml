@@ -48,15 +48,22 @@ sonarcloud:
     # workerCount=2 + maxspace=8192, peak heap budget is 16 GB instead
     # of 32 GB (4 × 8 GB at default workerCount). Trade-off : analysis
     # ~1.5-2× longer wall-clock but stable. Added 2026-04-25 wave 6.
-    # Pre-create the tree-sitter cache dir under SONAR_USER_HOME (writable)
-    # then point HOME there ONLY for the sonar-scanner invocation. tree-sitter
-    # writes lib files to $HOME/.tree-sitter/lib ; without this, the default
-    # /home/scanner-cli/.tree-sitter is read-only in the scanner-cli image
-    # and tree-sitter init fails with RuntimeException → cascade to
-    # WebSocket close abnormally. Wave 8 fix replacing the wave 7
-    # job-level HOME override (which broke `get_sources` git config).
+    # Wave 9 : wave 8 `HOME=value command` override didn't propagate to
+    # Sonar's bundled Node subprocess (Node's os.homedir() reads
+    # /etc/passwd, ignores the env var). Pipeline #2478827101 still
+    # crashed with `Failed to create directory: /home/scanner-cli/
+    # .tree-sitter/lib`.
+    #
+    # New strategy : write-permission the actual /home/scanner-cli
+    # via chmod (running as scanner-cli user, may have insufficient
+    # perms — `|| true` for graceful degradation if owned by root) +
+    # try setting XDG_DATA_HOME which some tools respect for cache
+    # dirs. If both fail, next escalation = custom Docker image with
+    # /home/scanner-cli pre-chowned writable.
+    - chmod -R u+rwX /home/scanner-cli 2>/dev/null || true
+    - mkdir -p /home/scanner-cli/.tree-sitter/lib 2>/dev/null || true
     - mkdir -p "$SONAR_USER_HOME/.tree-sitter/lib"
-    - HOME="$SONAR_USER_HOME" sonar-scanner
+    - XDG_DATA_HOME="$SONAR_USER_HOME" HOME="$SONAR_USER_HOME" sonar-scanner
         -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
         -Dsonar.token="${SONAR_TOKEN}"
