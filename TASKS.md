@@ -29,7 +29,3 @@ keeps `allow_failure: true` with a 30-day exit ticket.
   [991f385](https://gitlab.com/mirador1/mirador-service/-/commit/991f385)
   (drop redis-commander from `./run.sh all`). Retry once svc main
   catches that commit.
-
-- ☐ **GitLab Observability** activée 2026-04-23 (ADR-0054) — usage data
-  surfaces in https://gitlab.com/groups/mirador1/-/observability after
-  a few `./run.sh obs` runs. Verify ingestion + dashboard surfaces.
