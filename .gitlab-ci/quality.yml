@@ -1,14 +1,94 @@
 # .gitlab-ci/quality.yml — extracted 2026-04-22 from .gitlab-ci.yml
-# Phase B-4 CI modularisation (ADR-0050). Contains: sonarcloud, typedoc.
+# Phase B-4 CI modularisation (ADR-0050). Contains: sonar-scanner:image,
+# sonarcloud, typedoc.
 # The parent `.gitlab-ci.yml` keeps workflow/stages/variables/default
 # + the `.install:` hidden job used via `extends:` across files.
 
+# ── Custom SonarScanner image (waves 1-10 root cause fix, 2026-04-25) ────────
+#
+# Build the thin custom image at build/sonar-scanner.Dockerfile and push
+# to the GitLab Container Registry under
+#   $CI_REGISTRY_IMAGE/sonar-scanner:11.5.0.2154
+#
+# WHY a custom image (full history in build/sonar-scanner.Dockerfile):
+#   The upstream sonarsource/sonar-scanner-cli:11.x ships /home/scanner-cli
+#   owned by root with mode 0755 — the runtime user can't mkdir
+#   ~/.tree-sitter/lib. Waves 7-10 (HOME override, chmod, XDG_DATA_HOME,
+#   symlink) all failed because Node's os.homedir() reads /etc/passwd
+#   (ignores HOME) and the symlink commands ran as a non-root user against
+#   a root-owned directory. Only chowning the directory at image build
+#   time (while still root) closes the loop.
+#
+# WHY a separate build job (and not just a one-off manual push):
+#   - Reproducible: every change to the Dockerfile rebuilds the image
+#     in CI under the same conditions.
+#   - Path-filtered: runs ONLY when build/sonar-scanner.Dockerfile changes,
+#     so day-to-day commits don't pay the rebuild cost (~2-3 min).
+#   - Audit trail: GitLab pipeline log shows exactly which commit produced
+#     each image tag.
+#
+# Tagged with the full sonar-scanner-cli version (11.5.0.2154) NOT a moving
+# `:latest` — per CLAUDE.md "pin every upstream reference." When a new
+# upstream version is desired, bump build/sonar-scanner.Dockerfile FROM
+# line + this tag in the same commit, ship as a dedicated MR.
+sonar-scanner:image:
+  stage: validate
+  # Routed to macbook-local because docker-build for amd64-target runs
+  # there (CI quota policy ADR-0004 forbids saas-linux-medium-amd64).
+  # Apple Silicon arm64 host → amd64 image via QEMU + buildx, same
+  # pattern as the main docker-build job below.
+  tags:
+    - macbook-local
+  image: docker:28
+  variables:
+    # Pinned to match the FROM line in build/sonar-scanner.Dockerfile.
+    # When bumping the upstream version, change BOTH lines in the same commit.
+    SONAR_SCANNER_IMAGE_TAG: "11.5.0.2154"
+  rules:
+    # Build the image whenever the Dockerfile changes (MR or main).
+    # Runs first on dev/main when the file is modified; downstream
+    # sonarcloud job picks up the resulting image via $CI_REGISTRY_IMAGE.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - build/sonar-scanner.Dockerfile
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - build/sonar-scanner.Dockerfile
+    # Manual trigger on any branch — useful when retagging or rebuilding
+    # without an actual Dockerfile diff (e.g. base image security update
+    # that doesn't change our layer's content).
+    - when: manual
+      allow_failure: true   # manual trigger; pipeline still passes if the user doesn't run it
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker run --privileged --rm tonistiigi/binfmt --install amd64 || true
+    - docker buildx create --name multi --use 2>/dev/null || docker buildx use multi
+  script:
+    - |
+      docker buildx build \
+        -f build/sonar-scanner.Dockerfile \
+        --platform linux/amd64 \
+        --tag "$CI_REGISTRY_IMAGE/sonar-scanner:$SONAR_SCANNER_IMAGE_TAG" \
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
+        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --push \
+        .
+
 sonarcloud:
   stage: quality
+  # Custom image with a writable /home/scanner-cli (see above + the
+  # Dockerfile at build/sonar-scanner.Dockerfile for the full why).
+  # The tag MUST match SONAR_SCANNER_IMAGE_TAG in sonar-scanner:image.
   image:
-    name: sonarsource/sonar-scanner-cli:11
+    name: $CI_REGISTRY_IMAGE/sonar-scanner:11.5.0.2154
     entrypoint: [""]
   needs:
+    # If the Dockerfile changed in this MR, the image needs to be
+    # (re)built first. `optional: true` so on the 99 % of pipelines
+    # where the Dockerfile didn't change, the image-build job didn't
+    # run and sonarcloud uses the previously-pushed registry image.
+    - job: sonar-scanner:image
+      optional: true
     - job: unit-tests
     - job: build:production
     # ESLint SARIF — ingested by sonar via config/sonar-project.properties
@@ -19,11 +99,6 @@ sonarcloud:
       optional: true
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-    # NOTE : earlier wave 7 attempt set HOME at job level — broke
-    # `get_sources` (git tried to lock .gitconfig in non-existent dir).
-    # Wave 8 : override HOME ONLY on the sonar-scanner line below
-    # (after pre-creating the .tree-sitter dir). Job-level HOME is
-    # unsafe because GitLab runs git operations in earlier phases.
     GIT_DEPTH: "0"    # full clone for accurate blame/line info
   cache:
     key: sonar-${CI_COMMIT_REF_SLUG}
@@ -32,44 +107,26 @@ sonarcloud:
   script:
     # config/sonar-project.properties provides org/projectKey; token from CI variable.
     # -Dproject.settings points the scanner at the moved config file.
+    #
     # sonar.javascript.node.maxspace=8192 + node.timeout=600 — the JS bridge
     # subprocess (analyses .ts/.js) needs ≥2GB heap for our codebase and
     # the default 300s startup timeout is too tight on a busy macbook-local
     # runner; pipeline #271 failed with "Failed to start the bridge server
-    # (300s timeout)" before we landed on these values.
-    # Bumped 4096 → 8192 on 2026-04-24 after pipeline #2478287707 failed
-    # with "WebSocket connection closed abnormally" mid-analysis. The
-    # JS bridge crashes seem to correlate with heap pressure ; doubling
-    # the cap gives more headroom on the 32 GB macbook-local runner.
+    # (300s timeout)" before we landed on these values. Bumped from 4096
+    # to 8192 on 2026-04-24 to give the bridge more headroom (kept here
+    # even after the tree-sitter root cause was fixed — the larger heap
+    # is still better hygiene on a 32 GB runner).
     #
-    # 8192 still flaked on pipeline #2478522873 (post-!121 merge) —
-    # next escalation : reduce parallelism via workerCount=2 (default 4)
-    # to lower the peak concurrent subprocess memory footprint. With
-    # workerCount=2 + maxspace=8192, peak heap budget is 16 GB instead
-    # of 32 GB (4 × 8 GB at default workerCount). Trade-off : analysis
-    # ~1.5-2× longer wall-clock but stable. Added 2026-04-25 wave 6.
-    # Wave 9 : wave 8 `HOME=value command` override didn't propagate to
-    # Sonar's bundled Node subprocess (Node's os.homedir() reads
-    # /etc/passwd, ignores the env var). Pipeline #2478827101 still
-    # crashed with `Failed to create directory: /home/scanner-cli/
-    # .tree-sitter/lib`.
+    # workerCount=2 (default 4) — reduces peak concurrent subprocess
+    # memory; with maxspace=8192 the peak budget is 16 GB instead of
+    # 32 GB. Trade-off : ~1.5-2× longer wall-clock but stable.
     #
-    # New strategy : write-permission the actual /home/scanner-cli
-    # via chmod (running as scanner-cli user, may have insufficient
-    # perms — `|| true` for graceful degradation if owned by root) +
-    # try setting XDG_DATA_HOME which some tools respect for cache
-    # dirs. If both fail, next escalation = custom Docker image with
-    # /home/scanner-cli pre-chowned writable.
-    # Wave 10 : symlink /home/scanner-cli/.tree-sitter to a writable
-    # location. tree-sitter HARDCODES the path via Node's os.homedir()
-    # which reads /etc/passwd, ignoring HOME env. The chmod attempt in
-    # wave 9 failed because /home/scanner-cli is root-owned in the
-    # scanner-cli image. Symlinking the .tree-sitter SUBDIR (not the
-    # whole home) might bypass perms because the scanner-cli user
-    # owns its own subdirs even if the parent is root.
-    - mkdir -p "$SONAR_USER_HOME/.tree-sitter/lib"
-    - rm -rf /home/scanner-cli/.tree-sitter 2>/dev/null || true
-    - ln -sf "$SONAR_USER_HOME/.tree-sitter" /home/scanner-cli/.tree-sitter 2>/dev/null || true
+    # Note : the wave 7-10 `mkdir`/`rm`/`ln -sf` workarounds for
+    # /home/scanner-cli/.tree-sitter were REMOVED 2026-04-25 once
+    # build/sonar-scanner.Dockerfile chowned that directory at image
+    # build time (while still root). The custom image now has a
+    # writable /home/scanner-cli, so the JS bridge subprocess can
+    # mkdir its tree-sitter cache without further ceremony.
     - sonar-scanner
         -Dproject.settings=config/sonar-project.properties
         -Dsonar.host.url="https://sonarcloud.io"
@@ -78,31 +135,12 @@ sonarcloud:
         -Dsonar.javascript.node.timeout=600
         -Dsonar.javascript.workerCount=2
   # Retry on `runner_system_failure` ONLY (per CLAUDE.md "Retries are only
-  # for runner_system_failure"). The WebSocket-close flake observed
-  # 2026-04-24 is technically `script_failure` so this won't catch it,
-  # but it does protect against the legitimate runner Docker-daemon
-  # flakes that occasionally land mid-Sonar-analysis on the shared
-  # macbook-local runner.
+  # for runner_system_failure"). Protects against the legitimate runner
+  # Docker-daemon flakes that occasionally land mid-Sonar-analysis on
+  # the shared macbook-local runner.
   retry:
     max: 1
     when: runner_system_failure
-  # ⚠️ Long-standing failure — observed 2026-04-23/24 :
-  # "Project not found. Please check the 'sonar.projectKey' and
-  # 'sonar.organization' properties, the 'SONAR_TOKEN' environment
-  # variable, or contact the project administrator..."
-  #
-  # config/sonar-project.properties LOOKS right (org=mirador1,
-  # projectKey=mirador1_mirador-ui). So the cause is one of :
-  #   1. SonarCloud project deleted / inaccessible → restore via UI
-  #   2. SONAR_TOKEN rotated → set new value in GitLab CI/CD vars
-  #   3. Token's user lost access to the project → re-grant on Sonar UI
-  #
-  # USER ACTION REQUIRED (none of the 3 above can be fixed in code).
-  # Until then, allow_failure shields downstream merges. TODO 2026-05-24
-  # (30d after current observation) : either confirm fixed (drop the
-  # shield) or carry a fresh dated TODO with one of the 3 root causes
-  # ruled out.
-  allow_failure: true    # USER ACTION : SonarCloud project / token (see above)
   rules:
     - if: '$SONAR_TOKEN == null || $SONAR_TOKEN == ""'
       when: never
