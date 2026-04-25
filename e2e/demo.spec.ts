@@ -307,13 +307,24 @@ test.describe('Demo recording for README @demo', () => {
     await page.waitForTimeout(4500); // flame graph renders
 
     // ═══════════════════════════════════════════════════════════════
-    // 11. REDIS COMMANDER — cache / idempotency / JWT blacklist
+    // 11. REDIS COMMANDER — cache / idempotency / JWT blacklist (optional)
     // ═══════════════════════════════════════════════════════════════
     // Redis is used for: Bucket4j rate-limit counters (ADR-0019),
     // the idempotency-key store, and the JWT refresh-token blacklist
     // (ADR-0018). Redis Commander lets the viewer see live keys from
     // the traffic burst above.
-    await page.goto(REDIS_COMMANDER, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(4000); // key browser renders
+    //
+    // Best-effort: redis-commander was dropped from `run.sh all` (svc
+    // commit 991f385) because the upstream image rediscommander/redis-
+    // commander:0.8.1 was yanked from Docker Hub. If :8082 is unreachable,
+    // skip this last segment without failing the recording — the demo
+    // value of the GIF is in the previous 10 segments. Restore the
+    // unconditional wait once a replacement image is wired in.
+    try {
+      await page.goto(REDIS_COMMANDER, { waitUntil: 'domcontentloaded', timeout: 5000 });
+      await page.waitForTimeout(4000); // key browser renders
+    } catch {
+      // Service down — record-demo.sh is the only consumer, no test value lost.
+    }
   });
 });
