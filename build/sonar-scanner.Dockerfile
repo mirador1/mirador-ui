@@ -80,6 +80,13 @@ FROM sonarsource/sonar-scanner-cli:11.5.0.2154_7.3.0
 # so this USER root only affects build-time RUN steps.
 USER root
 
+# 0. Pre-create /home/scanner-cli itself — the upstream
+#    sonarsource/sonar-scanner-cli:11.5.0.2154_7.3.0 image does NOT
+#    ship the home directory. Pipeline #2479153624 evidence :
+#    `chown -R scanner-cli:scanner-cli /home/scanner-cli` failed
+#    with `cannot access '/home/scanner-cli': No such file or
+#    directory`. `mkdir -p` is idempotent so a future upstream
+#    image that DOES create the home dir won't break.
 # 1. Make /home/scanner-cli writable by the scanner-cli user.
 # 2. Pre-create .tree-sitter so the bridge subprocess never has to
 #    mkdir at runtime (eliminates a race with overlay-fs propagation
@@ -87,12 +94,9 @@ USER root
 # 3. Pre-create .sonar (cache dir) for the same reason — it's
 #    overridden by SONAR_USER_HOME=$CI_PROJECT_DIR/.sonar in the CI
 #    job, but having it here doesn't hurt and matches the symmetry.
-RUN chown -R scanner-cli:scanner-cli /home/scanner-cli && \
-    chmod -R u+rwX,g+rwX /home/scanner-cli && \
-    mkdir -p /home/scanner-cli/.tree-sitter/lib && \
-    mkdir -p /home/scanner-cli/.sonar && \
-    chown -R scanner-cli:scanner-cli /home/scanner-cli/.tree-sitter \
-                                     /home/scanner-cli/.sonar
+RUN mkdir -p /home/scanner-cli/.tree-sitter/lib /home/scanner-cli/.sonar && \
+    chown -R scanner-cli:scanner-cli /home/scanner-cli && \
+    chmod -R u+rwX,g+rwX /home/scanner-cli
 
 # Drop back to the upstream runtime user. CMD/ENTRYPOINT inherit
 # from the base image — `sonar-scanner` on PATH is unchanged.
