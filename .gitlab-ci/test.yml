@@ -79,7 +79,26 @@ e2e:kind:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_PIPELINE_SOURCE == "schedule"
-  allow_failure: true    # see ADR-0033; flip to false after 10 green runs
+  # TODO: flip to false by 2026-05-25 (30d) — current state 2026-04-25:
+  # 3 @golden Playwright tests (login, customer-crud, health) still
+  # fail consistently on main (5/5 recent runs RED) even after wave 7
+  # `/proc/self/cgroup` container-ID fix in !125 + wave 11 `serve -s`
+  # SPA fallback in 3e80d81. Root cause is now in the Playwright
+  # specs themselves, not the docker network plumbing — likely the
+  # backend isn't fully healthy when the UI tries to login (timing /
+  # seed data / Keycloak readiness). Next steps :
+  #   1. Enrich test-results upload (only screenshots ship today —
+  #      add the actuator/health output + backend logs at failure
+  #      time so the next debug pass starts with the smoking gun).
+  #   2. Add an explicit `await page.waitForResponse(/health/)`
+  #      before the first login click — the dashboard loads before
+  #      the backend is ready ~30 % of the time.
+  #   3. If still flaky after 1+2, scope-out via `rules: when: never`
+  #      on main (per CLAUDE.md "scope-out, not shield" pattern) and
+  #      keep e2e:kind only on MR pipelines + scheduled runs until
+  #      we've cut the flake rate to <10 %.
+  # ADR-0033 "10 green runs before flip" still the exit criterion.
+  allow_failure: true
   variables:
     # Backend service repo — cloned next to the UI checkout so we can
     # run `./run.sh app` against postgres/kafka/redis in compose. Token
