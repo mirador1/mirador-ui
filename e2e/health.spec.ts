@@ -16,9 +16,18 @@
  * investigate slowness first (ADR-0033 "flakes > 2/week" clause).
  */
 import { test, expect } from '@playwright/test';
+import { waitForBackendReady } from './helpers/wait-for-backend';
 
 test.describe('Health @golden', () => {
   test('dashboard reports all-green within 15s', async ({ page }) => {
+    // Wait for backend readiness so the dashboard's first health-poll
+    // doesn't race past the actuator's UP transition. The 15-s budget
+    // below assumes a warm backend ; without this wait, half the
+    // budget is spent waiting for actuator bootstrap and the test
+    // trips at the assertion. Step 2 of the e2e:kind 3-step plan,
+    // see `helpers/wait-for-backend.ts` for the full rationale.
+    await waitForBackendReady(page);
+
     await page.goto('/');
 
     // The dashboard renders a status indicator per dependency. Without

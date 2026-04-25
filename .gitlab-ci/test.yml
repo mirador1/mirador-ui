@@ -325,6 +325,59 @@ e2e:kind:
       #    retries:2 + CI env var flips to CI mode (see playwright.config.ts).
       CI=1 npx playwright test --grep @golden
   after_script:
+    # Step 1 of e2e:kind 3-step plan (TODO 2026-05-25, see line ~82).
+    # When @golden specs fail, screenshots-only artifacts don't show
+    # WHY the backend was unhealthy — the next debugging pass reads
+    # Playwright's "Created → ID never appeared" without a way to
+    # tell if the POST hung server-side, returned 503, or never even
+    # left the browser. This block dumps the smoking gun BEFORE
+    # compose tears down (otherwise containers are gone and we lose
+    # the chance to capture their state).
+    #
+    # Cost : ~3 s on every run (success or fail), ~5 KB of artifacts
+    # added. The `|| true` after each capture means a failed dump
+    # never blocks compose teardown — the job's exit code stays
+    # owned by Playwright.
+    - |
+      set +e
+      mkdir -p e2e-debug
+      echo "=== capturing debug artifacts at $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+
+      # /actuator/health composite — JSON shows which downstream
+      # indicator (db/kafka/redis/diskSpace) was DOWN at failure time.
+      # Curl with --max-time so a hung actuator doesn't block the rest.
+      curl -sS --max-time 5 http://localhost:8080/actuator/health \
+        > e2e-debug/actuator-health.json 2>&1 || \
+        echo '{"error":"actuator-health unreachable"}' > e2e-debug/actuator-health.json
+      curl -sS --max-time 5 http://localhost:8080/actuator/health/liveness \
+        > e2e-debug/actuator-liveness.json 2>&1 || \
+        echo '{"error":"actuator-liveness unreachable"}' > e2e-debug/actuator-liveness.json
+      curl -sS --max-time 5 http://localhost:8080/actuator/health/readiness \
+        > e2e-debug/actuator-readiness.json 2>&1 || \
+        echo '{"error":"actuator-readiness unreachable"}' > e2e-debug/actuator-readiness.json
+
+      # Backend stdout/stderr — Spring runs as a `nohup mvn spring-boot:run`
+      # in the SAME container (not via docker compose), so the log lives
+      # on disk at /tmp/app.log. `|| true` covers the case where the
+      # script crashed before launching mvn.
+      cp /tmp/app.log e2e-debug/backend-app.log 2>/dev/null || \
+        echo "no /tmp/app.log (backend never started)" > e2e-debug/backend-app.log
+
+      # Compose container states + last 200 lines of each container.
+      # docker ps with the project filter shows what was actually running
+      # at failure time (kafka can crash silently mid-run on cgroup v2).
+      docker ps --filter "label=com.docker.compose.project=ci-${CI_JOB_ID}" \
+        --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' \
+        > e2e-debug/compose-ps.txt 2>&1 || true
+      for ctr in db kafka redis; do
+        docker logs --tail=200 "ci-${CI_JOB_ID}-${ctr}-1" \
+          > "e2e-debug/compose-${ctr}.log" 2>&1 || \
+          echo "container ci-${CI_JOB_ID}-${ctr}-1 not running" \
+          > "e2e-debug/compose-${ctr}.log"
+      done
+
+      ls -la e2e-debug/ || true
+      set -e
     # Always stop compose — leaking postgres on the runner would
     # accumulate disk. `|| true` because the job may fail before
     # `docker compose up` ran. `-p ci-${CI_JOB_ID}` matches the
@@ -337,6 +390,13 @@ e2e:kind:
     paths:
       - playwright-report/
       - test-results/
+      # Step 1 debug bundle — actuator JSON + backend log + compose
+      # container states. Captured in after_script BEFORE compose down.
+      # Reviewer's first stop after a red @golden : open `e2e-debug/`
+      # in the artifact browser, check actuator-health.json for which
+      # indicator was DOWN, then backend-app.log for the matching
+      # stack trace.
+      - e2e-debug/
     reports:
       junit: playwright-report/results.xml
     expire_in: 14 days
