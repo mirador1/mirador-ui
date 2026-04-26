@@ -57,9 +57,7 @@
           (input)="newQuantity.set($any($event.target).value)"
         />
       </label>
-      <button type="button" (click)="addLine()" [disabled]="!canAddLine() || loading()">
-        Add
-      </button>
+      <button type="button" (click)="addLine()" [disabled]="!canAddLine() || loading()">Add</button>
     </fieldset>
 
     @if (lines().length === 0) {
@@ -84,9 +82,7 @@
               <td class="num">#{{ line.productId }}</td>
               <td class="num">{{ line.quantity }}</td>
               <td class="num">{{ line.unitPriceAtOrder | number: '1.2-2' }} €</td>
-              <td class="num">
-                {{ line.quantity * line.unitPriceAtOrder | number: '1.2-2' }} €
-              </td>
+              <td class="num">{{ line.quantity * line.unitPriceAtOrder | number: '1.2-2' }} €</td>
               <td>
                 <span class="line-status-badge {{ lineStatusClass(line.status) }}">{{
                   line.status
