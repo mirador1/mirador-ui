@@ -8,42 +8,47 @@
 [![CodeQL](https://github.com/mirador1/mirador-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/mirador1/mirador-ui/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mirador1/mirador-ui/badge)](https://scorecard.dev/viewer/?uri=github.com/mirador1/mirador-ui)
 
-<!-- Tech badges grouped by concern. Mirrors docs/reference/technologies.md
-     and the banner SVG. Any bump here should also update both. -->
-
-**Frontend**
+<!-- Top-line badges : 8 essentials. The exhaustive tech matrix moved
+     to a "Technology coverage" section further down. -->
 ![Angular 21](https://img.shields.io/badge/Angular-21_zoneless-DD0031?logo=angular&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
-![Signals](https://img.shields.io/badge/Signals-no_Zone.js-e2e8f0)
-![Raw SVG](https://img.shields.io/badge/Raw_SVG-no_chart_lib-FFB13B)
-![SCSS](https://img.shields.io/badge/SCSS-custom_properties-CC6699?logo=sass&logoColor=white)
-
-**Observability (browser-side)**
 ![OpenTelemetry Web](https://img.shields.io/badge/OpenTelemetry-Web_SDK-7F52FF?logo=opentelemetry&logoColor=white)
-![OTLP HTTP](https://img.shields.io/badge/OTLP_HTTP-:4319_CORS_proxy-7F52FF)
-![Grafana Tempo](https://img.shields.io/badge/Grafana_Tempo-browser_traces-F46800?logo=grafana&logoColor=white)
-
-**Backend (consumed)**
-![Spring Boot 4](https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=springio&logoColor=white)
-![Java 25](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)
-![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-KRaft-231F20?logo=apachekafka&logoColor=white)
-![Redis 7](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
-![Auth0 + Keycloak](https://img.shields.io/badge/Auth0_+_Keycloak-OIDC-EB5424?logo=auth0&logoColor=white)
-![Unleash](https://img.shields.io/badge/Unleash-feature_flags-000000)
-
-**Quality**
 ![Vitest](https://img.shields.io/badge/Vitest-unit_zoneless-6E9F18?logo=vitest&logoColor=white)
-![SonarCloud](https://img.shields.io/badge/SonarCloud-static_analysis-F3702A?logo=sonarcloud&logoColor=white)
-![ESLint](https://img.shields.io/badge/ESLint-NG8113_zero-4B32C3?logo=eslint&logoColor=white)
-![Prettier](https://img.shields.io/badge/Prettier-formatted-F7B93E?logo=prettier&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-E2E_kind--in--CI-2EAD33?logo=playwright&logoColor=white)
+![SonarCloud](https://img.shields.io/badge/SonarCloud-quality_gate-F3702A?logo=sonarcloud&logoColor=white)
 
-**CI / release**
-![GitLab CI](https://img.shields.io/badge/GitLab_CI-local_runner-FC6D26?logo=gitlab&logoColor=white)
-![lefthook](https://img.shields.io/badge/lefthook-pre--push_gates-000000)
-![commitlint](https://img.shields.io/badge/Conventional_Commits-enforced-FE5196)
-![Renovate](https://img.shields.io/badge/Renovate-bump_bot-1A1F6C?logo=renovatebot&logoColor=white)
-![gitleaks](https://img.shields.io/badge/gitleaks-secret_scan-FD7014)
+## What this project proves
+
+Mirador-UI is the **front-row seat** of the [Mirador](https://gitlab.com/mirador1)
+polyrepo demo : an Angular 21 zoneless dashboard that observes a live
+backend (Java OR Python sibling) from every angle in one place.
+
+Industrial frontend concerns demonstrated :
+- **Zoneless Angular** : signals + computed only, no Zone.js, native change detection.
+- **OTel browser tracing** : every HTTP call carries a trace ID into the backend ; same
+  trace visible in Tempo end-to-end.
+- **No chart library** : raw SVG with `viewBox` + signals — full responsive,
+  no bundle bloat from Chart.js / Highcharts.
+- **Mobile-first responsive** : every component verified at 375 px (iPhone SE),
+  390 px (iPhone 12-14), 1280 px desktop ; sidebar collapses to drawer ≤ 768 px.
+- **E2E with kind-in-CI** : Playwright runs against a real Spring Boot backend
+  spawned in a kind cluster inside CI.
+- **CI quality gate** : zero NG8113 warnings, no `any` types, no silent error
+  handlers, conventional commits enforced.
+
+## TL;DR for hiring managers (60 sec read)
+
+- **Angular 21 zoneless** with signal-based state ; the demo proves you can
+  ship modern Angular without Zone.js + without legacy ngrx.
+- **Observability dashboard for a live backend** : not a CRUD demo — the UI
+  surfaces JVM metrics, OTel traces, error timelines, SLO status from
+  Prometheus / Tempo / Loki via a Grafana proxy.
+- **Polyrepo coherence** : same UI talks to either [Java backend](https://gitlab.com/mirador1/mirador-service-java)
+  or [Python backend](https://gitlab.com/mirador1/mirador-service-python) — same REST contract.
+- **Quality bar** : Vitest unit + Playwright E2E kind-in-CI + SonarCloud +
+  ESLint zero-warning + bundle size budget enforced.
+- **Local CI runner** : same group-level macbook-local runner as the
+  sibling repos (no SaaS quota burn).
 
 # Mirador UI — front-row seat
 
