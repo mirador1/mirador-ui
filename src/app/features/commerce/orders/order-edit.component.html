@@ -1,0 +1,140 @@
+@if (order(); as o) {
+  <section class="order-edit-page">
+    <header class="page-header">
+      <a [routerLink]="['/orders', o.id]" class="back-link">‹ Back to order</a>
+      <h1>Edit order #{{ o.id }}</h1>
+    </header>
+
+    <!-- Section 1 — read-only header info. Customer + creation date are immutable
+         on Order ; status gets its own section below. -->
+    <section class="header-info">
+      <h2>Header</h2>
+      <dl class="meta-grid">
+        <div>
+          <dt>Customer</dt>
+          <dd>#{{ o.customerId }}</dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd>{{ o.createdAt | date: 'short' }}</dd>
+        </div>
+        <div>
+          <dt>Current status</dt>
+          <dd>
+            <span class="status-badge {{ statusClass(o.status) }}">{{ o.status }}</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Live total</dt>
+          <dd class="num">{{ liveTotal() | number: '1.2-2' }} €</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Section 2 — status. <select> reflects intent for the future write
+         endpoint ; no Save button until the backend ships PUT /orders/{id}/status.
+         Hint banner tells the user what's not wired yet. -->
+    <section class="status-section">
+      <h2>Status</h2>
+      <p class="hint">
+        Saving status is not yet wired — backend follow-up MR will add
+        <code>PUT /orders/{{ '{' }}id{{ '}' }}/status</code>. The select below mirrors the
+        current value for now.
+      </p>
+      <label class="status-field">
+        <span>Status</span>
+        <select
+          [value]="statusDraft()"
+          (change)="onStatusChange($any($event.target).value)"
+          [disabled]="loading()"
+          aria-label="Order status"
+        >
+          @for (s of statusOptions; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </label>
+    </section>
+
+    <!-- Section 3 — line management. Mirrors order-detail's add + cancel flow,
+         live total in the header is recomputed from the in-memory line list. -->
+    <section class="lines-section">
+      <h2>Lines ({{ lines().length }})</h2>
+
+      <fieldset class="add-line-form" [disabled]="loading()">
+        <legend>Add line</legend>
+        <label>
+          <span>Product ID *</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            placeholder="1"
+            [value]="newProductId()"
+            (input)="newProductId.set($any($event.target).value)"
+          />
+        </label>
+        <label>
+          <span>Quantity *</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            [value]="newQuantity()"
+            (input)="newQuantity.set($any($event.target).value)"
+          />
+        </label>
+        <button type="button" (click)="addLine()" [disabled]="!canAddLine() || loading()">
+          Add
+        </button>
+      </fieldset>
+
+      @if (lines().length === 0) {
+        <p class="empty">No lines yet. Add one above.</p>
+      } @else {
+        <table class="lines-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Product</th>
+              <th class="num">Qty</th>
+              <th class="num">Unit price (snapshot)</th>
+              <th class="num">Subtotal</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track line.id) {
+              <tr>
+                <td class="num">{{ line.id }}</td>
+                <td class="num">#{{ line.productId }}</td>
+                <td class="num">{{ line.quantity }}</td>
+                <td class="num">{{ line.unitPriceAtOrder | number: '1.2-2' }} €</td>
+                <td class="num">
+                  {{ line.quantity * line.unitPriceAtOrder | number: '1.2-2' }} €
+                </td>
+                <td>
+                  <span class="line-status-badge {{ lineStatusClass(line.status) }}">{{
+                    line.status
+                  }}</span>
+                </td>
+                <td>
+                  <button type="button" class="danger" (click)="cancelLine(line)">Cancel</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <div class="page-actions">
+      <button type="button" class="secondary" (click)="goBack()" [disabled]="loading()">
+        Done
+      </button>
+    </div>
+  </section>
+} @else {
+  <p class="loading">Loading order…</p>
+}
