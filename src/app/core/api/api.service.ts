@@ -43,6 +43,58 @@ export interface CustomerSummary {
   name: string;
 }
 
+/** Order lifecycle states (mirrors Java's OrderStatus enum). */
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'CANCELLED';
+
+/**
+ * Order entity returned by `GET /orders` and write endpoints.
+ * Mirrors Java's `OrderDto` + Python's `OrderResponse`.
+ *
+ * Foundation MR : header only. OrderLine list embedded in follow-up
+ * MR once OrderLine entity ships (V9 / alembic 0004).
+ */
+export interface Order {
+  /** Server-assigned primary key. Absent in create request bodies. */
+  id?: number;
+  /** FK to customer. Required. */
+  customerId: number;
+  /** Order lifecycle state. Default PENDING on create. */
+  status: OrderStatus;
+  /** Sum of OrderLine.quantity × unit_price_at_order. App-managed. */
+  totalAmount: number;
+  /** ISO-8601 creation timestamp (response only). */
+  createdAt?: string;
+  /** ISO-8601 last-update timestamp (response only). */
+  updatedAt?: string;
+}
+
+/**
+ * Product entity returned by `GET /products` and write endpoints.
+ * Mirrors Java's `ProductDto` + Python's `ProductResponse` schemas.
+ *
+ * Foundation MR (2026-04-26) — entity from the e-commerce surface
+ * extension (TASKS.md). Two sibling entities are coming :
+ * - `Order` : FK customer_id, list of OrderLines
+ * - `OrderLine` : FK order_id + product_id, quantity + unit_price_at_order
+ *   (immutable price snapshot at the moment of order)
+ */
+export interface Product {
+  /** Server-assigned primary key. Absent in create request bodies. */
+  id?: number;
+  /** Product name (unique across the catalogue). 1-255 chars. */
+  name: string;
+  /** Optional long-form description (up to 10 000 chars). */
+  description?: string;
+  /** Unit price as a number. Backend stores NUMERIC(12,2) — UI uses number. */
+  unitPrice: number;
+  /** Current stock balance. >= 0. */
+  stockQuantity: number;
+  /** ISO-8601 creation timestamp (response only). */
+  createdAt?: string;
+  /** ISO-8601 last-update timestamp (response only). */
+  updatedAt?: string;
+}
+
 /**
  * Spring Data Page wrapper for paginated list responses.
  * All paginated endpoints (`/customers`, `/customers/summary`, `/audit`) return this shape.
@@ -298,6 +350,61 @@ export class ApiService {
    */
   deleteCustomer(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/customers/${id}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Product API — added 2026-04-26 (foundation MR — list/get/create/delete).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Paginated list of products. Page is 0-indexed. */
+  listProducts(page = 0, size = 20): Observable<Page<Product>> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http.get<Page<Product>>(`${this.url}/products`, { params });
+  }
+
+  /** Get a product by ID. Returns 404 → caller handles via catchError. */
+  getProduct(id: number): Observable<Product> {
+    return this.http.get<Product>(`${this.url}/products/${id}`);
+  }
+
+  /** Create a product. 409 if name conflicts. */
+  createProduct(payload: {
+    name: string;
+    description?: string;
+    unitPrice: number;
+    stockQuantity: number;
+  }): Observable<Product> {
+    return this.http.post<Product>(`${this.url}/products`, payload);
+  }
+
+  /** Delete a product by ID. Returns 204 on success, 404 if absent. */
+  deleteProduct(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/products/${id}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Order API — added 2026-04-26 (foundation MR — list/get/create/delete).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Paginated list of orders, newest first. */
+  listOrders(page = 0, size = 20): Observable<Page<Order>> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http.get<Page<Order>>(`${this.url}/orders`, { params });
+  }
+
+  /** Get an order by ID (header only — lines fetched separately). */
+  getOrder(id: number): Observable<Order> {
+    return this.http.get<Order>(`${this.url}/orders/${id}`);
+  }
+
+  /** Create an empty order attached to a customer. Lines added via separate endpoints. */
+  createOrder(payload: { customerId: number }): Observable<Order> {
+    return this.http.post<Order>(`${this.url}/orders`, payload);
+  }
+
+  /** Delete an order by ID. CASCADE removes its lines. */
+  deleteOrder(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/orders/${id}`);
   }
 
   /** Generate a customer bio using Ollama LLM (may be slow ~500ms+) */
