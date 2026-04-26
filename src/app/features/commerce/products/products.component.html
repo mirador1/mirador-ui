@@ -1,0 +1,116 @@
+<section class="products-page">
+  <header class="page-header">
+    <h1>Products</h1>
+    <p class="lead">
+      Catalogue (foundation MR — list + create + delete only). Edit endpoint missing on backend ;
+      will land separately. Deleting a Product referenced by an OrderLine fails with FK RESTRICT.
+    </p>
+  </header>
+
+  <fieldset class="create-form" [disabled]="loading()">
+    <legend>Create product</legend>
+    <label class="field-name">
+      <span>Name *</span>
+      <input
+        type="text"
+        placeholder="Widget"
+        [value]="newName()"
+        (input)="newName.set($any($event.target).value)"
+        required
+      />
+    </label>
+    <label class="field-desc">
+      <span>Description</span>
+      <input
+        type="text"
+        placeholder="Optional"
+        [value]="newDescription()"
+        (input)="newDescription.set($any($event.target).value)"
+      />
+    </label>
+    <label class="field-price">
+      <span>Unit price (€) *</span>
+      <input
+        type="number"
+        min="0.01"
+        step="0.01"
+        placeholder="9.99"
+        [value]="newUnitPrice()"
+        (input)="newUnitPrice.set($any($event.target).value)"
+        required
+      />
+    </label>
+    <label class="field-stock">
+      <span>Stock *</span>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        [value]="newStockQuantity()"
+        (input)="newStockQuantity.set($any($event.target).value)"
+        required
+      />
+    </label>
+    <button type="button" (click)="createProduct()" [disabled]="!canCreate() || loading()">
+      Create
+    </button>
+  </fieldset>
+
+  <div class="list-section">
+    <div class="list-header">
+      <h2>Products ({{ total() }} total)</h2>
+      <div class="pagination">
+        <button type="button" (click)="prevPage()" [disabled]="page() === 0 || loading()">
+          ‹ Prev
+        </button>
+        <span>Page {{ page() + 1 }} / {{ totalPages() }}</span>
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="(page() + 1) * size() >= total() || loading()"
+        >
+          Next ›
+        </button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="loading">Loading…</p>
+    } @else if (products().length === 0) {
+      <p class="empty">No products yet. Use the form above to create the first one.</p>
+    } @else {
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th class="num">Unit price</th>
+            <th class="num">Stock</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of products(); track p.id) {
+            <tr>
+              <td class="num">{{ p.id }}</td>
+              <td><strong>{{ p.name }}</strong></td>
+              <td class="desc">{{ p.description || '—' }}</td>
+              <td class="num">{{ p.unitPrice | number: '1.2-2' }} €</td>
+              <td class="num">
+                <span class="stock-badge {{ stockClass(p.stockQuantity) }}">{{
+                  p.stockQuantity
+                }}</span>
+              </td>
+              <td>{{ p.createdAt | date: 'short' }}</td>
+              <td>
+                <button type="button" class="danger" (click)="deleteProduct(p)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</section>
