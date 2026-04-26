@@ -337,8 +337,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       detail:
         'Keycloak 26 — OAuth2/OIDC provider. Optional: the app also supports its own JWT auth via /auth/login (admin/admin). When enabled, JWT tokens issued by Keycloak are validated alongside built-in tokens.',
       image: 'images/tools/keycloak.png',
-      port: '9090',
-      url: 'http://localhost:9090/admin',
+      port: '8888',
+      url: 'http://localhost:8888/admin',
     },
     'spring-app': {
       icon: '🍃',

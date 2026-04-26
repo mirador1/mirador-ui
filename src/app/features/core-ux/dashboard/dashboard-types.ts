@@ -20,7 +20,7 @@ export const SVC = {
   cloudbeaver: { port: '8978', url: 'http://localhost:8978' },
   'kafka-ui': { port: '9080', url: 'http://localhost:9080' },
   redisinsight: { port: '5540', url: 'http://localhost:5540' },
-  keycloak: { port: '9090', url: 'http://localhost:9090/admin' },
+  keycloak: { port: '8888', url: 'http://localhost:8888/admin' },
   lgtm: { port: '3000', url: 'http://localhost:3000/' },
   api: { port: '8080', url: 'http://localhost:8080' },
 } as const;

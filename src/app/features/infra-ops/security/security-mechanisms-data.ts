@@ -45,7 +45,7 @@ export const SECURITY_MECHANISMS: SecurityMechanismGroup[] = [
         status: 'optional',
         description:
           'Same JwtAuthenticationFilter also validates Keycloak-issued JWTs via JwtDecoder (JWKS endpoint). Roles extracted from realm_access.roles claim. Both auth modes coexist without filter conflicts.',
-        config: 'KEYCLOAK_URL env var activates it. Pre-configured realm on port 9090.',
+        config: 'KEYCLOAK_URL env var activates it. Pre-configured realm on port 8888.',
       },
       {
         name: 'API Key',

@@ -111,9 +111,9 @@ export const DASHBOARD_TOPO_NODES: readonly TopoNode[] = [
     col: 1,
     row: 3,
     icon: '🔐',
-    port: '9090',
+    port: '8888',
     container: 'keycloak',
-    url: 'http://localhost:9090/admin',
+    url: 'http://localhost:8888/admin',
     tip: 'Identity provider',
     detail:
       'Keycloak 26 — OAuth2/OIDC provider. Optional: the app also supports its own JWT auth via /auth/login (admin/admin). When enabled, JWT tokens issued by Keycloak are validated alongside built-in tokens. Manages realms, users, roles, and clients.',

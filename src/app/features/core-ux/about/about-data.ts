@@ -161,7 +161,7 @@ export const TECHNOLOGIES: Technology[] = [
     url: 'https://www.keycloak.org',
     description: 'Open-source Identity and Access Management (IAM) with OAuth2/OIDC support.',
     usage:
-      'Optional SSO provider on port 9090. The Spring Boot backend is configured to accept both local JWT tokens and Keycloak-issued OIDC tokens. A realm and client are pre-configured. The login page supports both paths.',
+      'Optional SSO provider on port 8888. The Spring Boot backend is configured to accept both local JWT tokens and Keycloak-issued OIDC tokens. A realm and client are pre-configured. The login page supports both paths.',
   },
   {
     name: 'kind',
@@ -471,11 +471,11 @@ export const PORT_MAP: PortMapEntry[] = [
     url: 'http://localhost:11434',
   },
   {
-    port: 9090,
+    port: 8888,
     name: 'Keycloak',
     category: 'Data',
     note: 'OAuth2/OIDC — admin / admin',
-    url: 'http://localhost:9090',
+    url: 'http://localhost:8888',
   },
   // Admin Tools. pgAdmin + pgweb + Redis Commander were dropped in
   // favour of CloudBeaver (one SQL client instead of two) + RedisInsight
