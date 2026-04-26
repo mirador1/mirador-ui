@@ -74,7 +74,12 @@ export class ProductDetailComponent {
   deleteProduct(): void {
     const p = this.product();
     if (!p?.id) return;
-    if (!confirm(`Delete product "${p.name}" ? Existing OrderLines keep their snapshot price (ADR-0059).`)) return;
+    if (
+      !confirm(
+        `Delete product "${p.name}" ? Existing OrderLines keep their snapshot price (ADR-0059).`,
+      )
+    )
+      return;
     this.loading.set(true);
     this.api.deleteProduct(p.id).subscribe({
       next: () => {
