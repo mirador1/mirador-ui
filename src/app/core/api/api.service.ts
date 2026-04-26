@@ -43,6 +43,31 @@ export interface CustomerSummary {
   name: string;
 }
 
+/** Order lifecycle states (mirrors Java's OrderStatus enum). */
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'CANCELLED';
+
+/**
+ * Order entity returned by `GET /orders` and write endpoints.
+ * Mirrors Java's `OrderDto` + Python's `OrderResponse`.
+ *
+ * Foundation MR : header only. OrderLine list embedded in follow-up
+ * MR once OrderLine entity ships (V9 / alembic 0004).
+ */
+export interface Order {
+  /** Server-assigned primary key. Absent in create request bodies. */
+  id?: number;
+  /** FK to customer. Required. */
+  customerId: number;
+  /** Order lifecycle state. Default PENDING on create. */
+  status: OrderStatus;
+  /** Sum of OrderLine.quantity × unit_price_at_order. App-managed. */
+  totalAmount: number;
+  /** ISO-8601 creation timestamp (response only). */
+  createdAt?: string;
+  /** ISO-8601 last-update timestamp (response only). */
+  updatedAt?: string;
+}
+
 /**
  * Product entity returned by `GET /products` and write endpoints.
  * Mirrors Java's `ProductDto` + Python's `ProductResponse` schemas.
@@ -329,9 +354,6 @@ export class ApiService {
 
   // ─────────────────────────────────────────────────────────────────────────
   // Product API — added 2026-04-26 (foundation MR — list/get/create/delete).
-  // Mirrors Java's ProductController + Python's product/router.py. Same
-  // OpenAPI contract — UI works against either backend transparently.
-  // PUT (update) deferred to follow-up MR with optimistic locking.
   // ─────────────────────────────────────────────────────────────────────────
 
   /** Paginated list of products. Page is 0-indexed. */
@@ -345,7 +367,7 @@ export class ApiService {
     return this.http.get<Product>(`${this.url}/products/${id}`);
   }
 
-  /** Create a product. 409 if name conflicts (caller handles via catchError). */
+  /** Create a product. 409 if name conflicts. */
   createProduct(payload: {
     name: string;
     description?: string;
@@ -358,6 +380,31 @@ export class ApiService {
   /** Delete a product by ID. Returns 204 on success, 404 if absent. */
   deleteProduct(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/products/${id}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Order API — added 2026-04-26 (foundation MR — list/get/create/delete).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Paginated list of orders, newest first. */
+  listOrders(page = 0, size = 20): Observable<Page<Order>> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http.get<Page<Order>>(`${this.url}/orders`, { params });
+  }
+
+  /** Get an order by ID (header only — lines fetched separately). */
+  getOrder(id: number): Observable<Order> {
+    return this.http.get<Order>(`${this.url}/orders/${id}`);
+  }
+
+  /** Create an empty order attached to a customer. Lines added via separate endpoints. */
+  createOrder(payload: { customerId: number }): Observable<Order> {
+    return this.http.post<Order>(`${this.url}/orders`, payload);
+  }
+
+  /** Delete an order by ID. CASCADE removes its lines. */
+  deleteOrder(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/orders/${id}`);
   }
 
   /** Generate a customer bio using Ollama LLM (may be slow ~500ms+) */
