@@ -30,6 +30,13 @@ export const routes: Routes = [
       import('./features/commerce/orders/orders.component').then((m) => m.OrdersComponent),
   },
   {
+    path: 'orders/:id',
+    loadComponent: () =>
+      import('./features/commerce/orders/order-detail.component').then(
+        (m) => m.OrderDetailComponent,
+      ),
+  },
+  {
     path: 'diagnostic',
     loadComponent: () =>
       import('./features/obs/diagnostic/diagnostic.component').then((m) => m.DiagnosticComponent),
