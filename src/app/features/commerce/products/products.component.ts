@@ -43,11 +43,7 @@ export class ProductsComponent {
     const price = Number(this.newUnitPrice());
     const stock = Number(this.newStockQuantity());
     return (
-      name.length > 0 &&
-      Number.isFinite(price) &&
-      price > 0 &&
-      Number.isFinite(stock) &&
-      stock >= 0
+      name.length > 0 && Number.isFinite(price) && price > 0 && Number.isFinite(stock) && stock >= 0
     );
   });
 
@@ -75,30 +71,37 @@ export class ProductsComponent {
   createProduct(): void {
     if (!this.canCreate()) return;
     this.loading.set(true);
-    this.api.createProduct({
-      name: this.newName().trim(),
-      description: this.newDescription().trim() || undefined,
-      unitPrice: Number(this.newUnitPrice()),
-      stockQuantity: Number(this.newStockQuantity()),
-    }).subscribe({
-      next: (created) => {
-        this.toast.show(`✓ Created product #${created.id} ${created.name}`);
-        this.newName.set('');
-        this.newDescription.set('');
-        this.newUnitPrice.set('');
-        this.newStockQuantity.set('0');
-        this.loadPage();
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.toast.show(`Create failed: ${err?.message ?? 'unknown'}`, 'error');
-      },
-    });
+    this.api
+      .createProduct({
+        name: this.newName().trim(),
+        description: this.newDescription().trim() || undefined,
+        unitPrice: Number(this.newUnitPrice()),
+        stockQuantity: Number(this.newStockQuantity()),
+      })
+      .subscribe({
+        next: (created) => {
+          this.toast.show(`✓ Created product #${created.id} ${created.name}`);
+          this.newName.set('');
+          this.newDescription.set('');
+          this.newUnitPrice.set('');
+          this.newStockQuantity.set('0');
+          this.loadPage();
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.toast.show(`Create failed: ${err?.message ?? 'unknown'}`, 'error');
+        },
+      });
   }
 
   deleteProduct(p: Product): void {
     if (!p.id) return;
-    if (!confirm(`Delete product #${p.id} "${p.name}" ? Existing OrderLines keep their snapshot price unchanged (ADR-0059).`)) return;
+    if (
+      !confirm(
+        `Delete product #${p.id} "${p.name}" ? Existing OrderLines keep their snapshot price unchanged (ADR-0059).`,
+      )
+    )
+      return;
     this.loading.set(true);
     this.api.deleteProduct(p.id).subscribe({
       next: () => {

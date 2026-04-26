@@ -95,7 +95,9 @@
           @for (p of products(); track p.id) {
             <tr>
               <td class="num">{{ p.id }}</td>
-              <td><strong>{{ p.name }}</strong></td>
+              <td>
+                <strong>{{ p.name }}</strong>
+              </td>
               <td class="desc">{{ p.description || '—' }}</td>
               <td class="num">{{ p.unitPrice | number: '1.2-2' }} €</td>
               <td class="num">
