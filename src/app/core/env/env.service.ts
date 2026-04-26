@@ -40,7 +40,7 @@ export interface Environment {
 
   /** Grafana instance (LGTM container port 3000 in compose, tunnelled 13000 in prod). */
   grafanaUrl?: string;
-  /** Keycloak admin console (port 9090 in compose, tunnelled 19091 in prod). */
+  /** Keycloak admin console (port 8888 in compose, tunnelled 19091 in prod). */
   keycloakUrl?: string;
   /** Unleash feature-flag UI (tunnelled 14242 in prod; not in compose today). */
   unleashUrl?: string;
@@ -109,7 +109,7 @@ const ENVIRONMENTS: Environment[] = [
     compodocUrl: 'http://localhost:8085',
     sonarUrl: 'http://localhost:9000',
     grafanaUrl: 'http://localhost:3000',
-    keycloakUrl: 'http://localhost:9090',
+    keycloakUrl: 'http://localhost:8888',
     pyroscopeUrl: 'http://localhost:4040',
     cloudbeaverUrl: 'http://localhost:8978',
     pgwebUrl: 'http://localhost:8081',
