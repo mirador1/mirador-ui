@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService, Order } from '../../../core/api/api.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -16,7 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './orders.component.html',
   styleUrl: './orders.component.scss',

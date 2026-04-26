@@ -68,6 +68,33 @@ export interface Order {
   updatedAt?: string;
 }
 
+/** OrderLine status (mirrors Java's OrderLineStatus). PENDING → SHIPPED → REFUNDED. */
+export type OrderLineStatus = 'PENDING' | 'SHIPPED' | 'REFUNDED';
+
+/**
+ * OrderLine entity returned by `GET /orders/{orderId}/lines`.
+ * Mirrors Java's `OrderLineDto` + Python's `OrderLineResponse`.
+ *
+ * Carries quantity + a SNAPSHOT of `Product.unitPrice` at insert time.
+ * The snapshot is immutable post-insert — see shared ADR-0059.
+ */
+export interface OrderLine {
+  /** Server-assigned primary key. */
+  id: number;
+  /** Parent order ID. */
+  orderId: number;
+  /** Catalogue product ID. */
+  productId: number;
+  /** Strictly positive quantity. */
+  quantity: number;
+  /** Snapshot of Product.unitPrice at the moment of order — never mutated. */
+  unitPriceAtOrder: number;
+  /** Per-line status (independent of parent Order). */
+  status: OrderLineStatus;
+  /** ISO-8601 creation timestamp. */
+  createdAt?: string;
+}
+
 /**
  * Product entity returned by `GET /products` and write endpoints.
  * Mirrors Java's `ProductDto` + Python's `ProductResponse` schemas.
@@ -405,6 +432,25 @@ export class ApiService {
   /** Delete an order by ID. CASCADE removes its lines. */
   deleteOrder(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/orders/${id}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // OrderLine API — nested under /orders/{orderId}/lines (foundation MR).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** List all lines of an order, oldest first. */
+  listOrderLines(orderId: number): Observable<OrderLine[]> {
+    return this.http.get<OrderLine[]>(`${this.url}/orders/${orderId}/lines`);
+  }
+
+  /** Add a line to an order — backend snapshots Product.unitPrice + recomputes Order.total. */
+  addOrderLine(orderId: number, payload: { productId: number; quantity: number }): Observable<OrderLine> {
+    return this.http.post<OrderLine>(`${this.url}/orders/${orderId}/lines`, payload);
+  }
+
+  /** Delete a line — backend recomputes Order.total. "Cancel" semantics in foundation. */
+  deleteOrderLine(orderId: number, lineId: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/orders/${orderId}/lines/${lineId}`);
   }
 
   /** Generate a customer bio using Ollama LLM (may be slow ~500ms+) */
