@@ -1,5 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Mirador UI — automated npm + Docker dependency updates.",
+    "Angular 21 is sensitive to cross-package version skew, so all @angular/*",
+    "packages are grouped and updated in lockstep. Node.js majors require",
+    "human review (may break Vitest / Angular CLI)."
+  ],
   "extends": [
     "config:recommended",
     ":semanticCommits",
@@ -10,67 +16,95 @@
     "schedule:weekends"
   ],
   "timezone": "Europe/Paris",
-  "description": [
-    "Mirador UI — automated npm + Docker dependency updates.",
-    "Angular 21 is sensitive to cross-package version skew, so all @angular/*",
-    "packages are grouped and updated in lockstep. Node.js majors require",
-    "human review (may break Vitest / Angular CLI)."
+  "labels": [
+    "dependencies",
+    "renovate"
   ],
-  "labels": ["dependencies", "renovate"],
+  "assigneesFromCodeOwners": true,
+  "reviewersFromCodeOwners": true,
   "platformAutomerge": true,
   "rebaseWhen": "conflicted",
   "prHourlyLimit": 4,
   "prConcurrentLimit": 10,
   "packageRules": [
     {
-      "description": "Auto-merge patch + minor updates after CI green. Majors need human review.",
-      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "description": "Common rule : auto-merge patch + pin + digest after CI green. All 4 repos share this.",
+      "matchUpdateTypes": [
+        "patch",
+        "pin",
+        "digest"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
     },
     {
+      "description": "Auto-merge minor updates for well-behaved ecosystems (Maven plugins, dev/build deps). Major bumps still need review.",
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "matchDepTypes": [
+        "build",
+        "dev",
+        "plugin"
+      ],
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Docker base images — pin by digest for reproducibility, but still upgrade.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "pinDigests": true
+    },
+    {
+      "description": "Never auto-merge SNAPSHOT dependencies (Maven snapshots, npm prerelease tags).",
+      "matchCurrentVersion": "/SNAPSHOT$/",
+      "enabled": false,
+      "matchPackageNames": [
+        "/.*/"
+      ]
+    },
+    {
       "description": "Group all Angular packages — must upgrade together.",
       "groupName": "Angular",
       "separateMinorPatch": true,
-      "matchPackageNames": ["/^@angular\\//"]
+      "matchPackageNames": [
+        "/^@angular\\//"
+      ]
     },
     {
       "description": "Group all @auth0/* packages together.",
       "groupName": "Auth0",
-      "matchPackageNames": ["/^@auth0\\//"]
+      "matchPackageNames": [
+        "/^@auth0\\//"
+      ]
     },
     {
       "description": "Group Vitest + jsdom — ecosystem moves together.",
       "groupName": "Vitest / jsdom",
-      "matchPackageNames": ["vitest", "jsdom"]
-    },
-    {
-      "description": "Node.js major bumps need manual review (Angular CLI compat).",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["node"],
-      "matchUpdateTypes": ["major"],
-      "labels": ["major-upgrade", "manual-review"],
-      "automerge": false
-    },
-    {
-      "description": "Pin Docker image digests for reproducibility.",
-      "matchDatasources": ["docker"],
-      "pinDigests": true
-    },
-    {
-      "description": "Flag archived sonar-scanner so it gets replaced — don't silently update it.",
-      "matchPackageNames": ["sonar-scanner"],
-      "enabled": false
+      "matchPackageNames": [
+        "vitest",
+        "jsdom"
+      ]
     }
   ],
   "vulnerabilityAlerts": {
-    "labels": ["security", "priority-high"],
+    "labels": [
+      "security",
+      "priority-high"
+    ],
     "automerge": false,
-    "schedule": ["at any time"]
+    "schedule": [
+      "at any time"
+    ]
   },
   "lockFileMaintenance": {
+    "description": "Refresh lockfiles weekly to pull in transitive dep patches.",
     "enabled": true,
-    "schedule": ["before 5am on monday"]
+    "schedule": [
+      "before 5am on monday"
+    ]
   }
 }
