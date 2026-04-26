@@ -181,16 +181,20 @@ export class TourOverlayComponent {
     const ringHeight = rect.height + padding * 2;
 
     // Tooltip position — adjacent to the ring in the requested direction.
-    // The card is CSS-sized at max-width 360px, so we offset by a generous
-    // amount to avoid clipping at the viewport edge. Clamping happens via
-    // CSS `max-left`/`max-top` rules in the sibling .scss.
+    // Width 360px (matches .tour-card max-width). We compute the raw
+    // position then CLAMP both axes so the card never exits the viewport.
+    // Without clamp, a target close to the right/bottom edge (e.g. the
+    // search button on the topbar's right) places the tooltip off-screen.
     const gap = 14;
+    const cardWidth = 360;
+    const cardHeight = 160; // approximate ; CSS clamps height to content
+    const margin = 16; // breathing room from viewport edges
     const position = step.position ?? 'bottom';
     let tooltipTop: number;
     let tooltipLeft: number;
     switch (position) {
       case 'top':
-        tooltipTop = ringTop - gap - 160; // approx card height
+        tooltipTop = ringTop - gap - cardHeight;
         tooltipLeft = ringLeft;
         break;
       case 'bottom':
@@ -199,13 +203,22 @@ export class TourOverlayComponent {
         break;
       case 'left':
         tooltipTop = ringTop;
-        tooltipLeft = ringLeft - gap - 360;
+        tooltipLeft = ringLeft - gap - cardWidth;
         break;
       case 'right':
         tooltipTop = ringTop;
         tooltipLeft = ringLeft + ringWidth + gap;
         break;
     }
+
+    // Clamp to viewport. `Math.max(margin, …)` keeps the card from going
+    // off the LEFT/TOP edges ; `Math.min(maxLeft/maxTop, …)` keeps it
+    // from leaving the RIGHT/BOTTOM. The ring stays anchored to the real
+    // target — only the tooltip card moves.
+    const maxLeft = window.innerWidth - cardWidth - margin;
+    const maxTop = window.innerHeight - cardHeight - margin;
+    tooltipLeft = Math.max(margin, Math.min(tooltipLeft, maxLeft));
+    tooltipTop = Math.max(margin, Math.min(tooltipTop, maxTop));
 
     return {
       tooltipTop,
