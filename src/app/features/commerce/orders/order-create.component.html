@@ -1,0 +1,214 @@
+<section class="order-create-page">
+  <header class="page-header">
+    <h1>Create order</h1>
+    <p class="lead">
+      Pick a customer, add product lines, and review the live total before submitting.
+    </p>
+  </header>
+
+  <!-- Section 1 — Customer picker -->
+  <fieldset class="section" [disabled]="submitting()">
+    <legend>1. Customer</legend>
+    @if (selectedCustomer(); as c) {
+      <div class="picked-row" data-testid="customer-picked">
+        <span class="picked-label">
+          <strong>{{ c.name }}</strong>
+          <small>#{{ c.id }} · {{ c.email }}</small>
+        </span>
+        <button type="button" class="link-btn" (click)="clearCustomer()">Change</button>
+      </div>
+    } @else {
+      <div class="autocomplete">
+        <label>
+          <span>Search customer by name *</span>
+          <input
+            type="text"
+            placeholder="Type at least one letter…"
+            autocomplete="off"
+            [value]="customerQuery()"
+            (input)="onCustomerInput($any($event.target).value)"
+            (focus)="customerDropdownOpen.set(true)"
+            data-testid="customer-input"
+          />
+        </label>
+        @if (customerDropdownOpen() && customerQuery().trim().length > 0) {
+          <ul class="dropdown" role="listbox">
+            @if (customerLoading()) {
+              <li class="dropdown-item loading">Searching…</li>
+            } @else if (customerResults().length === 0) {
+              <li class="dropdown-item empty">No match</li>
+            } @else {
+              @for (cust of customerResults(); track cust.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="dropdown-item"
+                    (click)="pickCustomer(cust)"
+                    data-testid="customer-result"
+                  >
+                    <strong>{{ cust.name }}</strong>
+                    <small>#{{ cust.id }} · {{ cust.email }}</small>
+                  </button>
+                </li>
+              }
+            }
+          </ul>
+        }
+      </div>
+    }
+  </fieldset>
+
+  <!-- Section 2 — Lines -->
+  <fieldset class="section" [disabled]="submitting()">
+    <legend>2. Lines</legend>
+
+    @if (lines().length === 0) {
+      <p class="empty-state">No line yet. Click <em>“+ Add line”</em> to pick a product.</p>
+    } @else {
+      <table class="lines-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th class="num">Unit price</th>
+            <th class="num">Quantity</th>
+            <th class="num">Subtotal</th>
+            <th aria-label="Actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of lines(); track l.draftId) {
+            <tr>
+              <td>{{ l.productName }}</td>
+              <td class="num">{{ l.unitPriceSnapshot | number: '1.2-2' }}</td>
+              <td class="num">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="qty-input"
+                  [value]="l.quantity"
+                  (input)="setLineQuantity(l.draftId, $any($event.target).value)"
+                  data-testid="line-qty"
+                />
+              </td>
+              <td class="num">
+                {{ l.quantity * l.unitPriceSnapshot | number: '1.2-2' }}
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="danger"
+                  (click)="removeLine(l.draftId)"
+                  aria-label="Remove line"
+                >
+                  Remove
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <button
+      type="button"
+      class="add-line-btn"
+      (click)="openProductPicker()"
+      data-testid="add-line-btn"
+    >
+      + Add line
+    </button>
+  </fieldset>
+
+  <!-- Section 3 — Total -->
+  <section class="total-section" aria-live="polite">
+    <div class="total-row">
+      <span class="total-label">Total</span>
+      <span class="total-value" data-testid="total-value">
+        {{ total() | number: '1.2-2' }}
+      </span>
+    </div>
+    <p class="hint">
+      The unit price shown is a snapshot at picking time (preview). The backend re-snapshots
+      authoritatively at submit (per shared ADR-0059) — a price change between picking and submit
+      may shift the final total.
+    </p>
+  </section>
+
+  <!-- Action bar -->
+  <div class="actions">
+    <button type="button" class="secondary" (click)="cancel()" [disabled]="submitting()">
+      Cancel
+    </button>
+    <button
+      type="button"
+      class="primary"
+      (click)="submit()"
+      [disabled]="!canSubmit()"
+      data-testid="submit-btn"
+    >
+      @if (submitting()) {
+        Submitting…
+      } @else {
+        Submit
+      }
+    </button>
+  </div>
+
+  <!-- Product picker modal-ish overlay -->
+  @if (productPickerOpen()) {
+    <div class="picker-overlay" role="dialog" aria-modal="true" aria-label="Pick a product">
+      <div class="picker-card">
+        <header class="picker-header">
+          <h2>Pick a product</h2>
+          <button
+            type="button"
+            class="link-btn"
+            (click)="closeProductPicker()"
+            aria-label="Close picker"
+          >
+            ✕
+          </button>
+        </header>
+        <label class="picker-search">
+          <span class="visually-hidden">Search product by name</span>
+          <input
+            type="text"
+            placeholder="Search by product name…"
+            autocomplete="off"
+            [value]="productQuery()"
+            (input)="onProductInput($any($event.target).value)"
+            data-testid="product-input"
+          />
+        </label>
+        <ul class="picker-list" role="listbox">
+          @if (productLoading()) {
+            <li class="picker-item loading">Loading…</li>
+          } @else if (productResults().length === 0) {
+            <li class="picker-item empty">No product matches</li>
+          } @else {
+            @for (p of productResults(); track p.id) {
+              <li>
+                <button
+                  type="button"
+                  class="picker-item"
+                  (click)="pickProduct(p)"
+                  data-testid="product-result"
+                >
+                  <strong>{{ p.name }}</strong>
+                  <small
+                    >#{{ p.id }} · {{ p.unitPrice | number: '1.2-2' }} · stock
+                    {{ p.stockQuantity }}</small
+                  >
+                </button>
+              </li>
+            }
+          }
+        </ul>
+        <footer class="picker-footer">
+          <a [routerLink]="['/products']" class="link-btn">Manage products →</a>
+        </footer>
+      </div>
+    </div>
+  }
+</section>
