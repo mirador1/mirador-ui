@@ -87,31 +87,37 @@ export class OrderDetailComponent {
     const id = this.orderId();
     if (id === null || !this.canAddLine()) return;
     this.loading.set(true);
-    this.api.addOrderLine(id, {
-      productId: Number(this.newProductId()),
-      quantity: Number(this.newQuantity()),
-    }).subscribe({
-      next: () => {
-        this.toast.show(`✓ Line added`);
-        this.newProductId.set('');
-        this.newQuantity.set('1');
-        this.reload();
-      },
-      error: (err) => {
-        this.loading.set(false);
-        if (err?.status === 422 || err?.status === 400) {
-          this.toast.show(`Product ${this.newProductId()} not found or invalid quantity`, 'error');
-        } else {
-          this.toast.show(`Add line failed: ${err?.message ?? 'unknown'}`, 'error');
-        }
-      },
-    });
+    this.api
+      .addOrderLine(id, {
+        productId: Number(this.newProductId()),
+        quantity: Number(this.newQuantity()),
+      })
+      .subscribe({
+        next: () => {
+          this.toast.show(`✓ Line added`);
+          this.newProductId.set('');
+          this.newQuantity.set('1');
+          this.reload();
+        },
+        error: (err) => {
+          this.loading.set(false);
+          if (err?.status === 422 || err?.status === 400) {
+            this.toast.show(
+              `Product ${this.newProductId()} not found or invalid quantity`,
+              'error',
+            );
+          } else {
+            this.toast.show(`Add line failed: ${err?.message ?? 'unknown'}`, 'error');
+          }
+        },
+      });
   }
 
   cancelLine(line: OrderLine): void {
     const id = this.orderId();
     if (id === null) return;
-    if (!confirm(`Cancel line #${line.id} (qty ${line.quantity}) ? Total will be recomputed.`)) return;
+    if (!confirm(`Cancel line #${line.id} (qty ${line.quantity}) ? Total will be recomputed.`))
+      return;
     this.loading.set(true);
     this.api.deleteOrderLine(id, line.id).subscribe({
       next: () => {

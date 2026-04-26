@@ -444,7 +444,10 @@ export class ApiService {
   }
 
   /** Add a line to an order — backend snapshots Product.unitPrice + recomputes Order.total. */
-  addOrderLine(orderId: number, payload: { productId: number; quantity: number }): Observable<OrderLine> {
+  addOrderLine(
+    orderId: number,
+    payload: { productId: number; quantity: number },
+  ): Observable<OrderLine> {
     return this.http.post<OrderLine>(`${this.url}/orders/${orderId}/lines`, payload);
   }
 
