@@ -47,6 +47,27 @@ When a CI job fails, NEVER reach for `allow_failure: true` as the fix. Pick (a) 
 - **Never modify files outside this project** unless explicitly asked.
 - **Reference pipelines/MRs/files as clickable URLs.** When a status update or commit message mentions an MR, pipeline, tag, ADR or audit report, emit it as a markdown link (`[!62](https://gitlab.com/mirador1/mirador-ui/-/merge_requests/62)`, `[#308](https://gitlab.com/mirador1/mirador-ui/-/pipelines/<id>)`, `[stable-v1.0.5](https://gitlab.com/mirador1/mirador-ui/-/tags/stable-v1.0.5)`, `[ADR](file:///<repo>/docs/adr/…md)`) so the user can open it in one click. Bare IDs are fine in subsequent prose once the clickable form has appeared earlier in the same turn. See `~/.claude/CLAUDE.md` → "Reference pipelines, MRs and config files as clickable URLs" for the full pattern list.
 
+## Submodule pattern (1 submodule — see common ADR-0060)
+
+This repo has **1 git submodule** (since 2026-04-26 split) :
+
+- `infra/common/` → [mirador-common](https://gitlab.com/mirador1/mirador-common) — universal cross-repo conventions (release scripts, ADR drift tooling, Conventional Commits CI template, Renovate base). Consumed by all 4 mirador1 repos.
+
+UI does **NOT** use `mirador-service-shared` because that submodule contains backend infra (clusters, terraform, K8s, OTel, postgres dev stack) that doesn't apply to a frontend repo. The 2-tier split was specifically motivated by UI's needs : pull only what applies. Full rationale : [common ADR-0060](https://gitlab.com/mirador1/mirador-common/-/blob/main/docs/adr/0060-flat-vs-transitive-submodule-inheritance.md).
+
+**Where to find what** :
+- Universal scripts (pre-sync, changelog, gitlab-release, regen-adr-index) → `infra/common/bin/...`
+- UI-local scripts (audit-lighthouse, record-demo, run.sh, ship.sh) → `bin/`
+
+**Tag prefix for this repo** : `stable-v` (default ; per [common ADR-0061](https://gitlab.com/mirador1/mirador-common/-/blob/main/docs/adr/0061-per-repo-tag-namespace-pattern.md)). Run release scripts as : `infra/common/bin/ship/changelog.sh` (no `--tag-prefix` flag needed).
+
+**Clone instruction** :
+```bash
+git clone https://gitlab.com/mirador1/mirador-ui.git
+cd mirador-ui
+git submodule update --init   # 1 submodule, NO --recursive needed
+```
+
 ## Project overview
 
 Angular 21 frontend for the `mirador-service` Spring Boot backend.
