@@ -154,6 +154,28 @@ export class AppShellComponent {
         },
       ],
     },
+    // E-commerce surface added 2026-04-26 (shared ADR-0059) : Order +
+    // OrderLine + Product. Foundation MRs landed in Java stable-v1.2.3,
+    // Python stable-py-v0.6.4, UI stable-v1.1.3. List + create + delete
+    // shipped today ; detail page in this MR ; Product list + edit pages
+    // are the next follow-up.
+    {
+      id: 'commerce',
+      icon: '🛒',
+      label: 'Commerce',
+      path: '/orders',
+      tip: 'Orders + OrderLine + Product (ADR-0059). Foundation : list + create + delete ; detail page with line management. Per-line refund state machine + Product CRUD pages are follow-ups.',
+      children: [
+        {
+          label: 'Orders list',
+          tip: 'Paginated list of orders ; create empty, navigate to detail, delete cascades to lines',
+        },
+        {
+          label: 'Order detail',
+          tip: 'Header (customer, status, total) + lines table ; add/cancel lines, cancel order',
+        },
+      ],
+    },
     // ADR-0008: Observability page retired. The nav entry is now a deep-link
     // into Grafana Explore (external target, opens in a new tab). The
     // session-local Activity timeline moves up to a top-level entry since
