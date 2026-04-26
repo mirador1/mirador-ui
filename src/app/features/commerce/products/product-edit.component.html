@@ -1,0 +1,74 @@
+@if (productId() !== null) {
+  <section class="product-edit-page">
+    <header class="page-header">
+      <a [routerLink]="['/products', productId()]" class="back-link">‹ Back to detail</a>
+      <h1>Edit product #{{ productId() }}</h1>
+    </header>
+
+    <fieldset class="edit-form" [disabled]="loading()">
+      <legend>Fields</legend>
+      <label class="field-name">
+        <span>Name *</span>
+        <input
+          type="text"
+          [value]="editName()"
+          (input)="editName.set($any($event.target).value)"
+          required
+        />
+      </label>
+      <label class="field-desc">
+        <span>Description</span>
+        <textarea
+          rows="3"
+          [value]="editDescription()"
+          (input)="editDescription.set($any($event.target).value)"
+        ></textarea>
+      </label>
+      <label class="field-price">
+        <span>Unit price (€) *</span>
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          [value]="editUnitPrice()"
+          (input)="editUnitPrice.set($any($event.target).value)"
+          required
+        />
+      </label>
+      <label class="field-stock">
+        <span>Stock *</span>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          [value]="editStockQuantity()"
+          (input)="editStockQuantity.set($any($event.target).value)"
+          required
+        />
+      </label>
+    </fieldset>
+
+    @if (priceChanged()) {
+      <aside class="price-change-warning">
+        <strong>Price change detected.</strong> Existing OrderLines that
+        snapshotted the previous price will <em>keep their snapshot</em>.
+        New OrderLines created after this save use the new price (per
+        <a
+          href="https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0059-customer-order-product-data-model.md"
+          target="_blank"
+          rel="noopener"
+          >ADR-0059</a
+        >).
+      </aside>
+    }
+
+    <div class="actions">
+      <button type="button" class="primary" (click)="save()" [disabled]="!canSave() || loading()">
+        Save
+      </button>
+      <button type="button" class="secondary" (click)="cancel()" [disabled]="loading()">
+        Cancel
+      </button>
+    </div>
+  </section>
+}
