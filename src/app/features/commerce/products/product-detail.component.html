@@ -1,0 +1,60 @@
+@if (product(); as p) {
+  <section class="product-detail-page">
+    <header class="page-header">
+      <a routerLink="/products" class="back-link">‹ Back to products</a>
+      <h1>{{ p.name }}</h1>
+    </header>
+
+    <dl class="product-meta">
+      <div>
+        <dt>ID</dt>
+        <dd>#{{ p.id }}</dd>
+      </div>
+      <div>
+        <dt>Unit price</dt>
+        <dd class="num">{{ p.unitPrice | number: '1.2-2' }} €</dd>
+      </div>
+      <div>
+        <dt>Stock</dt>
+        <dd>
+          <span class="stock-badge {{ stockClass() }}">{{ p.stockQuantity }}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Created</dt>
+        <dd>{{ p.createdAt | date: 'short' }}</dd>
+      </div>
+      <div>
+        <dt>Updated</dt>
+        <dd>{{ p.updatedAt | date: 'short' }}</dd>
+      </div>
+    </dl>
+
+    @if (p.description) {
+      <section class="description-block">
+        <h2>Description</h2>
+        <p>{{ p.description }}</p>
+      </section>
+    }
+
+    <aside class="immutability-note">
+      <strong>Note :</strong> changing this product's price (when the edit
+      screen ships) will <em>not</em> retroactively change the price on
+      historical orders — each OrderLine carries its own snapshot. See
+      <a
+        href="https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0059-customer-order-product-data-model.md"
+        target="_blank"
+        rel="noopener"
+        >ADR-0059</a
+      >.
+    </aside>
+
+    <div class="actions">
+      <button type="button" class="danger" (click)="deleteProduct()" [disabled]="loading()">
+        Delete product
+      </button>
+    </div>
+  </section>
+} @else {
+  <p class="loading">Loading product…</p>
+}
