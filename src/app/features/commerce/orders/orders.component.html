@@ -1,0 +1,82 @@
+<section class="orders-page">
+  <header class="page-header">
+    <h1>Orders</h1>
+    <p class="lead">
+      Manage orders (foundation MR — list + create empty + delete only). Lines added separately
+      via OrderLine endpoints once the UI follow-up ships.
+    </p>
+  </header>
+
+  <fieldset class="create-form" [disabled]="loading()">
+    <legend>Create empty order</legend>
+    <label>
+      <span>Customer ID *</span>
+      <input
+        type="number"
+        min="1"
+        step="1"
+        placeholder="1"
+        [value]="newCustomerId()"
+        (input)="newCustomerId.set($any($event.target).value)"
+        required
+      />
+    </label>
+    <button type="button" (click)="createOrder()" [disabled]="!canCreate() || loading()">
+      Create
+    </button>
+  </fieldset>
+
+  <div class="list-section">
+    <div class="list-header">
+      <h2>Orders ({{ total() }} total)</h2>
+      <div class="pagination">
+        <button type="button" (click)="prevPage()" [disabled]="page() === 0 || loading()">
+          ‹ Prev
+        </button>
+        <span>Page {{ page() + 1 }} / {{ totalPages() }}</span>
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="(page() + 1) * size() >= total() || loading()"
+        >
+          Next ›
+        </button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="loading">Loading…</p>
+    } @else if (orders().length === 0) {
+      <p class="empty">No orders yet. Use the form above to create the first one.</p>
+    } @else {
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th class="num">Total</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (o of orders(); track o.id) {
+            <tr>
+              <td class="num">{{ o.id }}</td>
+              <td class="num">{{ o.customerId }}</td>
+              <td>
+                <span class="status-badge {{ statusClass(o.status) }}">{{ o.status }}</span>
+              </td>
+              <td class="num">{{ o.totalAmount | number: '1.2-2' }}</td>
+              <td>{{ o.createdAt | date: 'short' }}</td>
+              <td>
+                <button type="button" class="danger" (click)="deleteOrder(o)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</section>
