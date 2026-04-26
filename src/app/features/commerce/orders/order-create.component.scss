@@ -1,0 +1,463 @@
+.order-create-page {
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+
+  .page-header {
+    margin-bottom: 1.5rem;
+
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.75rem;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--color-text-muted, #666);
+    }
+  }
+}
+
+.section {
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+
+  legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+    color: var(--color-text, #222);
+  }
+}
+
+// ── Section 1 — customer picker ──────────────────────────────────────────────
+
+.autocomplete {
+  position: relative;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+
+    span {
+      font-weight: 500;
+    }
+
+    input {
+      padding: 0.5rem;
+      border: 1px solid var(--color-border, #ddd);
+      border-radius: 0.25rem;
+      font-size: 1rem;
+      min-height: 44px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+    background: white;
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 0.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+
+  .dropdown-item {
+    width: 100%;
+    text-align: left;
+    background: white;
+    border: none;
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border, #eee);
+    font-size: 0.9rem;
+    min-height: 44px;
+    box-sizing: border-box;
+
+    strong {
+      font-weight: 600;
+    }
+
+    small {
+      color: var(--color-text-muted, #666);
+      font-size: 0.75rem;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-bg-subtle, #f5f5f5);
+      outline: none;
+    }
+
+    &.loading,
+    &.empty {
+      cursor: default;
+      color: var(--color-text-muted, #888);
+      font-style: italic;
+      pointer-events: none;
+    }
+  }
+}
+
+.picked-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-bg-subtle, #f5f5f5);
+  border-radius: 0.25rem;
+  padding: 0.625rem 0.875rem;
+  flex-wrap: wrap;
+
+  .picked-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+
+    strong {
+      font-weight: 600;
+    }
+
+    small {
+      color: var(--color-text-muted, #666);
+      font-size: 0.75rem;
+    }
+  }
+}
+
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-primary, #2563eb);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ── Section 2 — lines ────────────────────────────────────────────────────────
+
+.empty-state {
+  margin: 0 0 0.75rem;
+  color: var(--color-text-muted, #666);
+  font-style: italic;
+}
+
+.lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+
+  th,
+  td {
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border, #eee);
+    vertical-align: middle;
+  }
+
+  th {
+    background: var(--color-bg-subtle, #f5f5f5);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .qty-input {
+    width: 80px;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 0.25rem;
+    font-size: 0.95rem;
+    text-align: right;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  button.danger {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #dc2626;
+    background: white;
+    color: #dc2626;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    min-height: 44px;
+
+    &:hover {
+      background: #fee2e2;
+    }
+  }
+}
+
+.add-line-btn {
+  padding: 0.625rem 1rem;
+  border: 1px dashed var(--color-primary, #2563eb);
+  background: transparent;
+  color: var(--color-primary, #2563eb);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 500;
+  min-height: 44px;
+  width: 100%;
+
+  &:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
+}
+
+// ── Section 3 — total ────────────────────────────────────────────────────────
+
+.total-section {
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+
+    .total-label {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .total-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-primary, #2563eb);
+    }
+  }
+
+  .hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #666);
+    line-height: 1.4;
+  }
+}
+
+// ── Action bar ───────────────────────────────────────────────────────────────
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  button {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    min-height: 44px;
+    font-size: 1rem;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  button.primary {
+    background: var(--color-primary, #2563eb);
+    color: white;
+    border: 1px solid var(--color-primary, #2563eb);
+
+    &:hover:not(:disabled) {
+      background: #1e4fc6;
+    }
+  }
+
+  button.secondary {
+    background: white;
+    color: var(--color-text, #222);
+    border: 1px solid var(--color-border, #ddd);
+
+    &:hover:not(:disabled) {
+      background: var(--color-bg-subtle, #f5f5f5);
+    }
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column-reverse;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+
+// ── Product picker overlay ───────────────────────────────────────────────────
+
+.picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.picker-card {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-border, #eee);
+
+    h2 {
+      margin: 0;
+      font-size: 1.125rem;
+    }
+  }
+
+  .picker-search {
+    padding: 0.875rem 1rem 0.5rem;
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.5rem 0.625rem;
+      border: 1px solid var(--color-border, #ddd);
+      border-radius: 0.25rem;
+      font-size: 1rem;
+      min-height: 44px;
+    }
+  }
+
+  .picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0.5rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .picker-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.625rem 1rem;
+    background: white;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border, #eee);
+    font-size: 0.95rem;
+    min-height: 44px;
+    box-sizing: border-box;
+
+    strong {
+      font-weight: 600;
+    }
+
+    small {
+      color: var(--color-text-muted, #666);
+      font-size: 0.75rem;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-bg-subtle, #f5f5f5);
+      outline: none;
+    }
+
+    &.loading,
+    &.empty {
+      cursor: default;
+      color: var(--color-text-muted, #888);
+      font-style: italic;
+      pointer-events: none;
+    }
+  }
+
+  .picker-footer {
+    border-top: 1px solid var(--color-border, #eee);
+    padding: 0.5rem 1rem;
+    text-align: right;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ── Mobile-responsive ────────────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+  .order-create-page {
+    padding: 1rem;
+  }
+
+  .lines-table {
+    th,
+    td {
+      padding: 0.5rem 0.375rem;
+      font-size: 0.875rem;
+    }
+
+    .qty-input {
+      width: 64px;
+    }
+  }
+}

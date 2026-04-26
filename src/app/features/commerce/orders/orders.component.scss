@@ -6,9 +6,34 @@
   .page-header {
     margin-bottom: 1.5rem;
 
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.25rem;
+      flex-wrap: wrap;
+    }
+
     h1 {
-      margin: 0 0 0.25rem;
+      margin: 0;
       font-size: 1.75rem;
+    }
+
+    .primary-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      background: var(--color-primary, #2563eb);
+      color: white;
+      border-radius: 0.25rem;
+      text-decoration: none;
+      font-weight: 500;
+      min-height: 44px;
+
+      &:hover {
+        background: #1e4fc6;
+      }
     }
 
     .lead {

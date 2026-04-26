@@ -30,6 +30,15 @@ export const routes: Routes = [
       import('./features/commerce/orders/orders.component').then((m) => m.OrdersComponent),
   },
   {
+    // Order create form v2 — declared BEFORE `orders/:id` so the literal
+    // `new` segment doesn't get captured by the `:id` route param.
+    path: 'orders/new',
+    loadComponent: () =>
+      import('./features/commerce/orders/order-create.component').then(
+        (m) => m.OrderCreateComponent,
+      ),
+  },
+  {
     path: 'orders/:id',
     loadComponent: () =>
       import('./features/commerce/orders/order-detail.component').then(
