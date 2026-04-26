@@ -42,11 +42,7 @@ export class ProductEditComponent {
     const price = Number(this.editUnitPrice());
     const stock = Number(this.editStockQuantity());
     return (
-      name.length > 0 &&
-      Number.isFinite(price) &&
-      price > 0 &&
-      Number.isFinite(stock) &&
-      stock >= 0
+      name.length > 0 && Number.isFinite(price) && price > 0 && Number.isFinite(stock) && stock >= 0
     );
   });
 
@@ -95,25 +91,27 @@ export class ProductEditComponent {
     const id = this.productId();
     if (id === null || !this.canSave()) return;
     this.loading.set(true);
-    this.api.updateProduct(id, {
-      name: this.editName().trim(),
-      description: this.editDescription().trim() || undefined,
-      unitPrice: Number(this.editUnitPrice()),
-      stockQuantity: Number(this.editStockQuantity()),
-    }).subscribe({
-      next: (saved: Product) => {
-        this.toast.show(`✓ Saved product #${saved.id}`);
-        this.router.navigate(['/products', id]);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        if (err?.status === 404) {
-          this.toast.show(`Product #${id} not found`, 'error');
-        } else {
-          this.toast.show(`Save failed: ${err?.message ?? 'unknown'}`, 'error');
-        }
-      },
-    });
+    this.api
+      .updateProduct(id, {
+        name: this.editName().trim(),
+        description: this.editDescription().trim() || undefined,
+        unitPrice: Number(this.editUnitPrice()),
+        stockQuantity: Number(this.editStockQuantity()),
+      })
+      .subscribe({
+        next: (saved: Product) => {
+          this.toast.show(`✓ Saved product #${saved.id}`);
+          this.router.navigate(['/products', id]);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          if (err?.status === 404) {
+            this.toast.show(`Product #${id} not found`, 'error');
+          } else {
+            this.toast.show(`Save failed: ${err?.message ?? 'unknown'}`, 'error');
+          }
+        },
+      });
   }
 
   cancel(): void {
