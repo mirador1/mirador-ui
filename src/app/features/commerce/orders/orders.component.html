@@ -63,7 +63,9 @@
         <tbody>
           @for (o of orders(); track o.id) {
             <tr>
-              <td class="num">{{ o.id }}</td>
+              <td class="num">
+                <a [routerLink]="['/orders', o.id]" class="row-link">{{ o.id }}</a>
+              </td>
               <td class="num">{{ o.customerId }}</td>
               <td>
                 <span class="status-badge {{ statusClass(o.status) }}">{{ o.status }}</span>
@@ -71,6 +73,7 @@
               <td class="num">{{ o.totalAmount | number: '1.2-2' }}</td>
               <td>{{ o.createdAt | date: 'short' }}</td>
               <td>
+                <a [routerLink]="['/orders', o.id]" class="detail-link">Detail</a>
                 <button type="button" class="danger" (click)="deleteOrder(o)">Delete</button>
               </td>
             </tr>
