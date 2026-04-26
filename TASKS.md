@@ -2,6 +2,14 @@
 
 ## 🎯 Augmenter la surface fonctionnelle — nouvelles entités
 
+**🚩 État au flush 2026-04-26 12:14** : work pas encore démarré en UI.
+Bloqué sur backend (java + python) — UI ne peut commencer que quand
+les endpoints Order/Product/OrderLine existent. Voir
+[Java TASKS.md](https://gitlab.com/mirador1/mirador-service-java/-/blob/main/TASKS.md)
+"Awaiting clarification" : foundation Java a été démarrée puis
+interrompue par utilisateur, en attente de confirmation scope avant de
+reprendre.
+
 ☐ Ajouter les pages UI pour les 3 nouvelles entités (mirror du backend
 java + python).
 
