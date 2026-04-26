@@ -404,6 +404,23 @@ export class ApiService {
     return this.http.post<Product>(`${this.url}/products`, payload);
   }
 
+  /**
+   * Update a product. 404 if absent.
+   * Per ADR-0059, modifying unitPrice does NOT affect existing OrderLines —
+   * those carry an immutable snapshot.
+   */
+  updateProduct(
+    id: number,
+    payload: {
+      name: string;
+      description?: string;
+      unitPrice: number;
+      stockQuantity: number;
+    },
+  ): Observable<Product> {
+    return this.http.put<Product>(`${this.url}/products/${id}`, payload);
+  }
+
   /** Delete a product by ID. Returns 204 on success, 404 if absent. */
   deleteProduct(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/products/${id}`);
