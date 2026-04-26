@@ -48,9 +48,7 @@ export const routes: Routes = [
   {
     path: 'orders/:id/edit',
     loadComponent: () =>
-      import('./features/commerce/orders/order-edit.component').then(
-        (m) => m.OrderEditComponent,
-      ),
+      import('./features/commerce/orders/order-edit.component').then((m) => m.OrderEditComponent),
   },
   {
     path: 'diagnostic',

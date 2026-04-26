@@ -38,8 +38,8 @@
       <h2>Status</h2>
       <p class="hint">
         Saving status is not yet wired — backend follow-up MR will add
-        <code>PUT /orders/{{ '{' }}id{{ '}' }}/status</code>. The select below mirrors the
-        current value for now.
+        <code>PUT /orders/{{ '{' }}id{{ '}' }}/status</code>. The select below mirrors the current
+        value for now.
       </p>
       <label class="status-field">
         <span>Status</span>
@@ -111,9 +111,7 @@
                 <td class="num">#{{ line.productId }}</td>
                 <td class="num">{{ line.quantity }}</td>
                 <td class="num">{{ line.unitPriceAtOrder | number: '1.2-2' }} €</td>
-                <td class="num">
-                  {{ line.quantity * line.unitPriceAtOrder | number: '1.2-2' }} €
-                </td>
+                <td class="num">{{ line.quantity * line.unitPriceAtOrder | number: '1.2-2' }} €</td>
                 <td>
                   <span class="line-status-badge {{ lineStatusClass(line.status) }}">{{
                     line.status
