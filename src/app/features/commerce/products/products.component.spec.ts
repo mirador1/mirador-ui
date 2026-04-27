@@ -22,18 +22,25 @@ const mkProduct = (over: Partial<Product> = {}): Product => ({
   ...over,
 });
 
-describe('ProductsComponent — signal logic', () => {
+/**
+ * Spin up a fresh component instance per spec — extracted so each
+ * inner describe stays well below the project's 100-line cap on
+ * arrow-function bodies (eslint max-lines-per-function).
+ */
+async function setupComponent(): Promise<ProductsComponent> {
+  await TestBed.configureTestingModule({
+    imports: [ProductsComponent],
+    providers: [provideHttpClient(), provideRouter([])],
+  }).compileComponents();
+  return TestBed.createComponent(ProductsComponent).componentInstance;
+}
+
+describe('ProductsComponent — canCreate gating', () => {
   let cmp: ProductsComponent;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [ProductsComponent],
-      providers: [provideHttpClient(), provideRouter([])],
-    }).compileComponents();
-    cmp = TestBed.createComponent(ProductsComponent).componentInstance;
+    cmp = await setupComponent();
   });
-
-  // ── canCreate ─────────────────────────────────────────────────────────────
 
   it('canCreate: empty name ⇒ false', () => {
     cmp.newName.set('');
@@ -71,8 +78,14 @@ describe('ProductsComponent — signal logic', () => {
     cmp.newStockQuantity.set('1');
     expect(cmp.canCreate()).toBe(false);
   });
+});
 
-  // ── filteredProducts (search + stock filter) ─────────────────────────────
+describe('ProductsComponent — filteredProducts (search + stock filter)', () => {
+  let cmp: ProductsComponent;
+
+  beforeEach(async () => {
+    cmp = await setupComponent();
+  });
 
   it('default filter "all" returns the unfiltered list', () => {
     const a = mkProduct({ id: 1, name: 'A' });
@@ -156,8 +169,14 @@ describe('ProductsComponent — signal logic', () => {
     expect(cmp.searchQuery()).toBe('');
     expect(cmp.stockFilter()).toBe('all');
   });
+});
 
-  // ── stockClass + totalPages ──────────────────────────────────────────────
+describe('ProductsComponent — stockClass + totalPages', () => {
+  let cmp: ProductsComponent;
+
+  beforeEach(async () => {
+    cmp = await setupComponent();
+  });
 
   it('stockClass thresholds match the filter buckets', () => {
     expect(cmp.stockClass(0)).toBe('stock-out');

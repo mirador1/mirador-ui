@@ -140,10 +140,7 @@ export class ProductDetailComponent {
           },
           error: (err) => {
             this.consumerLoading.set(false);
-            this.toast.show(
-              `Consumer-orders lookup failed: ${err?.message ?? 'unknown'}`,
-              'error',
-            );
+            this.toast.show(`Consumer-orders lookup failed: ${err?.message ?? 'unknown'}`, 'error');
           },
         });
       },

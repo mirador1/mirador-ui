@@ -38,9 +38,8 @@
     }
 
     <aside class="immutability-note">
-      <strong>Note :</strong> changing this product's price will
-      <em>not</em> retroactively change the price on historical orders — each OrderLine carries its
-      own snapshot. See
+      <strong>Note :</strong> changing this product's price will <em>not</em> retroactively change
+      the price on historical orders — each OrderLine carries its own snapshot. See
       <a
         href="https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0059-customer-order-product-data-model.md"
         target="_blank"
@@ -52,8 +51,8 @@
     <section class="consumer-orders">
       <h2>Consumer orders</h2>
       <p class="hint">
-        Show the orders whose lines reference this product. Scans the first 50 orders ; backend
-        does not yet expose <code>/products/&#123;id&#125;/orders</code>.
+        Show the orders whose lines reference this product. Scans the first 50 orders ; backend does
+        not yet expose <code>/products/&#123;id&#125;/orders</code>.
       </p>
 
       @if (consumerOrders() === null) {

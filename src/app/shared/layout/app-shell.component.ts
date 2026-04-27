@@ -542,7 +542,8 @@ export class AppShellComponent {
     {
       label: '🛍️ Products',
       path: '/products',
-      keywords: 'products catalogue catalog list create commerce stock price inventory search filter',
+      keywords:
+        'products catalogue catalog list create commerce stock price inventory search filter',
     },
     {
       label: '🧪 Diagnostic',
