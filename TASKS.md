@@ -2,45 +2,33 @@
 
 ## 🎯 Surface fonctionnelle — pages e-commerce
 
-Foundation **shippée 2026-04-26** dans [stable-v1.1.3](https://gitlab.com/mirador1/mirador-ui/-/tags/stable-v1.1.3) :
-- ✅ `ApiService` : `Product` + `Order` interfaces + 8 CRUD methods (`OrderStatus`)
-- ✅ `OrdersComponent` (standalone, OnPush, signals, mobile-responsive 44px) :
-  liste paginée + create empty + delete. Route `/orders` lazy-loaded.
+Order + Product CRUD shipped in [stable-v1.1.6](https://gitlab.com/mirador1/mirador-ui/-/tags/stable-v1.1.6) :
+all 7 screens (Orders list/create/detail/edit + Products list/create/detail/edit),
+sidebar Commerce grouping, search + stock filter on Products, consumer-orders
+fan-out on Product detail, Vitest specs (54 cases) + Playwright e2e + mobile
+smoke. Form validation visible (disabled submit, hint banners) ; toast
+notifications on every mutation ; mobile-card layouts below 700 px.
 
-### Reste à compléter — 9 écrans + tests
+### 🤔 To consider
 
-**Order** (3 écrans manquants sur 4) :
-- ☐ **Détail** : header (customer, statut, total) + table OrderLine read-only,
-  actions "Add line" / "Cancel line" / "Cancel order".
-- ☐ **Création** : signal-driven form, Customer autocomplete, ajout dynamique
-  de lignes avec sélection Product + qty + calcul total live.
-- ☐ **Édition** : modifier statut + lignes (add/remove/change qty), total
-  recalculé live. Submit → PUT, Cancel → revert + redirect détail.
-
-**Product** (4 écrans manquants sur 4) :
-- ☐ **Liste** : table paginée + recherche par nom + filtre stock.
-- ☐ **Détail** : caractéristiques + stock + lien vers Orders consommateurs.
-- ☐ **Création** : form (name, description, prix, stock), validation
-  prix > 0 + stock ≥ 0.
-- ☐ **Édition** : modifier prix (NE PAS toucher `unit_price_at_order` des
-  OrderLines existantes — snapshot immutable côté backend).
-
-**Navigation + ergonomie** :
-- ☐ Sidebar entry groupée sous "Commerce".
-- ☐ Form validation visible (feedback rouge, disabled submit, loading state).
-- ☐ Toast notifications sur succès/erreur (déjà fait dans Orders foundation).
-
-**Tests** :
-- ☐ Vitest unit sur services (`OrderService`, `ProductService` — actuellement
-  inlined dans `ApiService`, à extraire ?) : mocks HTTP, error handling.
-- ☐ Vitest component tests sur forms d'édition : validation + computed signals
-  (total live) + interactions utilisateur simulées.
-- ☐ Playwright E2E happy path : login → créer Order avec 2 OrderLines →
-  éditer qty → cancel ligne → vérifier total → cancel order. Mobile 390×844 +
-  desktop.
+- ☐ **Server-side product search** — `/products?search=` not yet on backend.
+  Current implementation filters client-side over the current page slice.
+  Migration path documented in `products.component.ts` (300ms debounce
+  pattern from order-create autocomplete is the model).
+- ☐ **`PUT /orders/{id}/status` backend endpoint** — order edit shows a
+  status select but cannot save it yet. Fronted with a hint banner.
+  When backend ships, add `updateOrderStatus()` to `ApiService` + Save
+  button + dirty-tracking signal in `OrderEditComponent`.
+- ☐ **Per-line refund state machine** — `OrderLineStatus` PENDING →
+  SHIPPED → REFUNDED currently displays only ; transition actions missing
+  pending shared ADR for the state machine + backend write endpoint.
+- ☐ **`/products/{id}/orders` server-side filter** — replace the 50-order
+  client-side fan-out in `ProductDetailComponent#findConsumerOrders` once
+  backend ships the dedicated endpoint.
 
 ### Cross-repo coordination (ADR-0001 polyrepo)
 
-API client doit fonctionner contre [Java](https://gitlab.com/mirador1/mirador-service-java)
-ET [Python](https://gitlab.com/mirador1/mirador-service-python) — même contract
-OpenAPI. Tester contre les 2 backends.
+API client must function against
+[Java](https://gitlab.com/mirador1/mirador-service-java) AND
+[Python](https://gitlab.com/mirador1/mirador-service-python) — same
+OpenAPI contract. Test against both backends.
