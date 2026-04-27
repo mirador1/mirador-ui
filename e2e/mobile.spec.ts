@@ -50,4 +50,41 @@ test.describe('Mobile viewport smoke', () => {
         const heading = page.locator('h1, h2').first();
         await expect(heading).toBeVisible({ timeout: 5000 });
     });
+
+    /**
+     * Orders + Products list pages — mobile smoke. The two screens carry
+     * the heaviest tables in the commerce surface ; both ship a card-
+     * style layout below 700 px (see *.component.scss media queries).
+     * A regression that drops the responsive rules ships horizontal
+     * scroll on iPhones, which the desktop tests cannot catch. We do
+     * NOT log in here — the screens are unauthenticated-redirect
+     * targets ; the sign-in page is what actually renders. The mobile
+     * concern is the WHOLE shell rendering without overflow at the
+     * narrow viewport, regardless of which page is reached.
+     */
+    test('orders page — no horizontal overflow on mobile', async ({ page }) => {
+        await page.goto('/orders');
+        await page.waitForLoadState('networkidle');
+        const overflow = await page.evaluate(() => {
+            const el = document.documentElement;
+            return { scroll: el.scrollWidth, client: el.clientWidth };
+        });
+        expect(
+            overflow.scroll,
+            `Horizontal overflow on /orders : scrollWidth=${overflow.scroll} > clientWidth=${overflow.client}.`,
+        ).toBeLessThanOrEqual(overflow.client);
+    });
+
+    test('products page — no horizontal overflow on mobile', async ({ page }) => {
+        await page.goto('/products');
+        await page.waitForLoadState('networkidle');
+        const overflow = await page.evaluate(() => {
+            const el = document.documentElement;
+            return { scroll: el.scrollWidth, client: el.clientWidth };
+        });
+        expect(
+            overflow.scroll,
+            `Horizontal overflow on /products : scrollWidth=${overflow.scroll} > clientWidth=${overflow.client}.`,
+        ).toBeLessThanOrEqual(overflow.client);
+    });
 });
