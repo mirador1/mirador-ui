@@ -1,11 +1,12 @@
 /**
- * Unit specs for ProductsComponent — covers the create-form gate
- * (canCreate) + the filteredProducts computed pipeline (search by
- * name/description + stock-bucket filter).
+ * Unit specs for ProductsComponent — covers :
+ * - canCreate (the create-form gate)
+ * - filteredProducts (now stock-bucket only, since 2026-04-27 search
+ *   went server-side ; the substring filter is exercised by the
+ *   /products?search= backend tests)
+ * - clearFilters, stockClass, totalPages
  *
- * filteredProducts is the screen's load-bearing computation : a
- * regression here silently ships a list that always shows everything,
- * defeating the filter UI. Cheap to test in isolation.
+ * Cheap to test in isolation, no http roundtrip.
  */
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -80,7 +81,7 @@ describe('ProductsComponent — canCreate gating', () => {
   });
 });
 
-describe('ProductsComponent — filteredProducts (search + stock filter)', () => {
+describe('ProductsComponent — filteredProducts (stock filter only ; search is server-side)', () => {
   let cmp: ProductsComponent;
 
   beforeEach(async () => {
@@ -94,30 +95,16 @@ describe('ProductsComponent — filteredProducts (search + stock filter)', () =>
     expect(cmp.filteredProducts()).toEqual([a, b]);
   });
 
-  it('search by name (case-insensitive)', () => {
-    // Use empty descriptions so "widget" matches name only — keeps the
-    // assertion focused on the name-substring path. The description path
-    // has its own dedicated spec below.
-    cmp.products.set([
-      mkProduct({ id: 1, name: 'Alpha widget', description: '' }),
-      mkProduct({ id: 2, name: 'Beta widget', description: '' }),
-      mkProduct({ id: 3, name: 'Gamma', description: '' }),
-    ]);
+  it('search query does NOT filter client-side — it triggers a backend reload', () => {
+    // Since 2026-04-27 the search is server-side : the component
+    // delegates to /products?search= and stores the filtered result
+    // in `products()`. `filteredProducts` only applies the stock
+    // bucket on top. So setting `searchQuery` here without reloading
+    // must NOT prune the visible list (the API would have returned
+    // the pruned set already in production).
+    cmp.products.set([mkProduct({ id: 1, name: 'Alpha' }), mkProduct({ id: 2, name: 'Beta' })]);
     cmp.searchQuery.set('alpha');
-    expect(cmp.filteredProducts().map((p) => p.id)).toEqual([1]);
-    cmp.searchQuery.set('WIDGET');
     expect(cmp.filteredProducts().map((p) => p.id)).toEqual([1, 2]);
-    cmp.searchQuery.set('zz');
-    expect(cmp.filteredProducts()).toEqual([]);
-  });
-
-  it('search also matches the description text', () => {
-    cmp.products.set([
-      mkProduct({ id: 1, name: 'A', description: 'Bluetooth speaker' }),
-      mkProduct({ id: 2, name: 'B', description: 'Wired headset' }),
-    ]);
-    cmp.searchQuery.set('blue');
-    expect(cmp.filteredProducts().map((p) => p.id)).toEqual([1]);
   });
 
   it('stock filter "out" matches stock === 0 only', () => {
@@ -151,23 +138,21 @@ describe('ProductsComponent — filteredProducts (search + stock filter)', () =>
     expect(cmp.filteredProducts().map((p) => p.id)).toEqual([2, 3]);
   });
 
-  it('search + stock filter are AND-combined', () => {
-    cmp.products.set([
-      mkProduct({ id: 1, name: 'Premium hub', stockQuantity: 0 }),
-      mkProduct({ id: 2, name: 'Premium drive', stockQuantity: 5 }),
-      mkProduct({ id: 3, name: 'Basic cable', stockQuantity: 5 }),
-    ]);
-    cmp.searchQuery.set('premium');
-    cmp.setStockFilter('low');
-    expect(cmp.filteredProducts().map((p) => p.id)).toEqual([2]);
-  });
-
-  it('clearFilters resets both search and stock filter', () => {
+  it('clearFilters resets both search query and stock filter', () => {
     cmp.searchQuery.set('foo');
     cmp.setStockFilter('out');
     cmp.clearFilters();
     expect(cmp.searchQuery()).toBe('');
     expect(cmp.stockFilter()).toBe('all');
+  });
+
+  it('onSearchInput updates the bound signal (debounce + reload covered by integration tests)', () => {
+    // The signal mutation is what the template binds to ; the
+    // debounce → loadPage chain needs http roundtrip + fake timers
+    // (forbidden under Angular zoneless) so it's covered by the
+    // backend test suite + Playwright e2e elsewhere.
+    cmp.onSearchInput('  laptop  ');
+    expect(cmp.searchQuery()).toBe('  laptop  ');
   });
 });
 
