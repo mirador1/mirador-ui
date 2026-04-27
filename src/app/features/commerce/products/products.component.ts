@@ -1,7 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService, Product } from '../../../core/api/api.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -16,11 +25,16 @@ type StockFilter = 'all' | 'out' | 'low' | 'ok';
 /**
  * Products list page — list + search by name + stock filter + create + delete.
  *
- * Search and filter are client-side over the current page results. The
- * backend product list endpoint has no `search` param yet, so we filter
- * the in-memory page slice. When `/products?search=` lands, swap the
- * `filteredProducts` computation for a server-side query (300ms debounce
- * pattern in `OrderCreateComponent#onCustomerInput` is the model).
+ * SEARCH IS NOW SERVER-SIDE (since 2026-04-27, paired with the backend
+ * `/products?search=` filter shipped on Java + Python). Input changes
+ * pipe through a 300 ms debounce + `distinctUntilChanged`, then trigger
+ * a fresh `loadPage()` on page 0. The pattern mirrors
+ * `OrderCreateComponent#onCustomerInput`.
+ *
+ * STOCK FILTER stays client-side over the current page slice — the
+ * backend does NOT yet accept a stock-level filter. Acceptable today
+ * because the page is paginated to 20 rows ; a future
+ * `/products?stock=low|out|ok` could move it server-side too.
  *
  * Per shared ADR-0059 : a Product price change must NOT propagate to
  * existing OrderLines (they hold a snapshot). The Edit screen surfaces
@@ -37,6 +51,7 @@ type StockFilter = 'all' | 'out' | 'low' | 'ok';
 export class ProductsComponent {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly products = signal<Product[]>([]);
   readonly total = signal<number>(0);
@@ -47,6 +62,14 @@ export class ProductsComponent {
   // ── Filters ──────────────────────────────────────────────────────────────
   readonly searchQuery = signal<string>('');
   readonly stockFilter = signal<StockFilter>('all');
+
+  /**
+   * Subject driving the 300 ms-debounced search → loadPage pipeline.
+   * Mirrors the OrderCreateComponent#onCustomerInput pattern. Each
+   * keystroke nexts here ; the rxjs chain drops repeated values + throttles
+   * the network requests.
+   */
+  private readonly searchInput$ = new Subject<string>();
 
   // ── Create form ──────────────────────────────────────────────────────────
   readonly newName = signal<string>('');
@@ -66,33 +89,37 @@ export class ProductsComponent {
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.size())));
 
   /**
-   * Live-derived list shown in the table. Composed of two filters :
-   *   1. `searchQuery` — case-insensitive substring on name + description.
-   *   2. `stockFilter` — bucket matching the row badge thresholds.
-   * Both are client-side ; see component-level note for the migration path.
+   * Live-derived list shown in the table. ONLY applies the stock-bucket
+   * filter (client-side) — the search filter is server-side now and
+   * already bakes the substring filter into `products()` via
+   * `loadPage()`.
    */
   readonly filteredProducts = computed(() => {
-    const q = this.searchQuery().trim().toLowerCase();
     const bucket = this.stockFilter();
+    if (bucket === 'all') return this.products();
     return this.products().filter((p) => {
-      if (q) {
-        const hay = `${p.name} ${p.description ?? ''}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      if (bucket === 'out' && p.stockQuantity !== 0) return false;
-      if (bucket === 'low' && (p.stockQuantity === 0 || p.stockQuantity >= 10)) return false;
-      if (bucket === 'ok' && p.stockQuantity < 10) return false;
-      return true;
+      if (bucket === 'out') return p.stockQuantity === 0;
+      if (bucket === 'low') return p.stockQuantity > 0 && p.stockQuantity < 10;
+      return p.stockQuantity >= 10; // 'ok'
     });
   });
 
   ngOnInit(): void {
+    // Wire the 300 ms debounced search → loadPage pipeline. takeUntilDestroyed
+    // tears it down when the component leaves the DOM (Angular zoneless idiom).
+    this.searchInput$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.page.set(0); // search resets pagination
+        this.loadPage();
+      });
     this.loadPage();
   }
 
   loadPage(): void {
     this.loading.set(true);
-    this.api.listProducts(this.page(), this.size()).subscribe({
+    const search = this.searchQuery().trim() || undefined;
+    this.api.listProducts(this.page(), this.size(), search).subscribe({
       next: (page) => {
         this.products.set(page.content);
         this.total.set(page.totalElements);
@@ -174,12 +201,18 @@ export class ProductsComponent {
     }
   }
 
-  /** Set search query — bound to the search input via (input). */
+  /**
+   * Set search query — bound to the search input via (input).
+   * Pushes into the debounced subject so the actual network request
+   * fires 300 ms after the user stops typing (and only when the
+   * trimmed value differs from the previous one).
+   */
   onSearchInput(value: string): void {
     this.searchQuery.set(value);
+    this.searchInput$.next(value.trim());
   }
 
-  /** Set stock filter — bound to the segmented button group. */
+  /** Set stock filter — bound to the segmented button group. Client-side, no network. */
   setStockFilter(value: StockFilter): void {
     this.stockFilter.set(value);
   }
@@ -188,6 +221,8 @@ export class ProductsComponent {
   clearFilters(): void {
     this.searchQuery.set('');
     this.stockFilter.set('all');
+    this.page.set(0);
+    this.loadPage();
   }
 
   stockClass(stock: number): string {

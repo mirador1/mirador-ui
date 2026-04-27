@@ -441,9 +441,20 @@ export class ApiService {
   // Product API — added 2026-04-26 (foundation MR — list/get/create/delete).
   // ─────────────────────────────────────────────────────────────────────────
 
-  /** Paginated list of products. Page is 0-indexed. */
-  listProducts(page = 0, size = 20): Observable<Page<Product>> {
-    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+  /**
+   * Paginated list of products. Page is 0-indexed.
+   *
+   * Optional `search` performs a case-insensitive substring filter on
+   * name + description on the BACKEND (300 ms debounced from the
+   * caller). Empty / whitespace strings fall through to the unfiltered
+   * listing on the backend ; passing `undefined` is the canonical "no
+   * filter" form.
+   */
+  listProducts(page = 0, size = 20, search?: string): Observable<Page<Product>> {
+    let params = new HttpParams().set('page', String(page)).set('size', String(size));
+    if (search && search.trim().length > 0) {
+      params = params.set('search', search.trim());
+    }
     return this.http.get<Page<Product>>(`${this.url}/products`, { params });
   }
 
