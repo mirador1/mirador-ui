@@ -189,6 +189,23 @@ export class AppShellComponent {
         },
       ],
     },
+    // ML insights — Phase D of shared ADR-0061. Currently only the
+    // churn-prediction page lives here ; futures (anomaly detection,
+    // segmentation) will land alongside without disrupting the nav.
+    {
+      id: 'insights',
+      icon: '🤖',
+      label: 'Insights',
+      path: '/insights/churn',
+      tip: 'ML-driven customer signals — currently churn risk via the ONNX model served in-process by Java + Python. Drift over 30 days lands in Phase E.',
+      children: [
+        {
+          label: 'Churn risk',
+          path: '/insights/churn',
+          tip: 'Predict the churn probability for one customer + Top-N at-risk + drift placeholder.',
+        },
+      ],
+    },
     // ADR-0008: Observability page retired. The nav entry is now a deep-link
     // into Grafana Explore (external target, opens in a new tab). The
     // session-local Activity timeline moves up to a top-level entry since
@@ -544,6 +561,12 @@ export class AppShellComponent {
       path: '/products',
       keywords:
         'products catalogue catalog list create commerce stock price inventory search filter',
+    },
+    {
+      label: '🤖 Churn risk',
+      path: '/insights/churn',
+      keywords:
+        'churn ml insights ai prediction risk customer onnx pytorch model machine learning probability band',
     },
     {
       label: '🧪 Diagnostic',

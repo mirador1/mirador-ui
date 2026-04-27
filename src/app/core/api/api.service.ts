@@ -180,6 +180,45 @@ export interface AggregatedResponse {
   stats: unknown;
 }
 
+/**
+ * Churn-prediction risk bucket — drives the UI affordance
+ * (green / orange / red dot). Backed by the ONNX-served
+ * probability via {@link ApiService#predictCustomerChurn}.
+ *
+ * Boundaries are inclusive at the bottom : ≤ 0.30 → LOW,
+ * ≤ 0.70 → MEDIUM, > 0.70 → HIGH (mirrors Java's RiskBand).
+ */
+export type ChurnRiskBand = 'LOW' | 'MEDIUM' | 'HIGH';
+
+/**
+ * Prediction returned by `POST /customers/{id}/churn-prediction`.
+ *
+ * Same wire shape on both backends (Java + Python) — Phase B / C
+ * of shared ADR-0061. Camel-case from Jackson on Java, snake-case
+ * normalised to camel-case at the HTTP boundary by Pydantic on
+ * Python (the FastAPI default — verified end-to-end).
+ */
+export interface ChurnPrediction {
+  /** Database id of the predicted customer. Echoed back for reconciliation. */
+  customerId: number;
+  /** Churn probability in [0, 1] — sigmoid of the ONNX logit. */
+  probability: number;
+  /** Discrete risk band derived from {@link probability}. */
+  riskBand: ChurnRiskBand;
+  /**
+   * Most influential features (Phase E will fill via SHAP — until
+   * then a stable canonical-priority sequence is returned).
+   */
+  topFeatures: string[];
+  /**
+   * Identifier of the ONNX model that produced this prediction. Used
+   * for audit + drift correlation across consecutive sessions.
+   */
+  modelVersion: string;
+  /** Server-side timestamp at which the prediction was computed. */
+  predictedAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -344,6 +383,25 @@ export class ApiService {
    */
   getAggregate(): Observable<AggregatedResponse> {
     return this.http.get<AggregatedResponse>(`${this.url}/customers/aggregate`);
+  }
+
+  /**
+   * Predict the churn probability for a single customer.
+   *
+   * Hits `POST /customers/{id}/churn-prediction` — served identically
+   * by Java (Phase B) and Python (Phase C) via the same ONNX model
+   * (shared ADR-0061). The endpoint returns 503 while the
+   * mirador-churn-model ConfigMap (shared ADR-0062) hasn't been
+   * provisioned ; callers should map the HTTP error to a friendly
+   * "model not loaded yet" UI state.
+   *
+   * @param customerId Database id of the customer ; must be ≥ 1.
+   */
+  predictCustomerChurn(customerId: number): Observable<ChurnPrediction> {
+    return this.http.post<ChurnPrediction>(
+      `${this.url}/customers/${customerId}/churn-prediction`,
+      {},
+    );
   }
 
   /** Create a customer; optional idempotency key prevents duplicate creation */
