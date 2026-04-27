@@ -77,8 +77,9 @@
               </td>
               <td class="num">{{ o.totalAmount | number: '1.2-2' }}</td>
               <td>{{ o.createdAt | date: 'short' }}</td>
-              <td>
+              <td class="actions">
                 <a [routerLink]="['/orders', o.id]" class="detail-link">Detail</a>
+                <a [routerLink]="['/orders', o.id, 'edit']" class="edit-link">Edit</a>
                 <button type="button" class="danger" (click)="deleteOrder(o)">Delete</button>
               </td>
             </tr>
