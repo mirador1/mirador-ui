@@ -88,6 +88,37 @@ h2 {
   }
 }
 
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.save-status-btn {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  background: var(--color-accent, #2563eb);
+  color: var(--color-on-accent, #fff);
+  border: 0;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  min-height: 44px;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.hint-warn {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid #f59e0b;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
 .status-field {
   display: flex;
   flex-direction: column;

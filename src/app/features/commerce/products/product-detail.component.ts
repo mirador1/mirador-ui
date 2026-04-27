@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { ApiService, Order, OrderLine, Product } from '../../../core/api/api.service';
+import { ApiService, Order, OrderLine, Page, Product } from '../../../core/api/api.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
 /**
@@ -25,16 +25,14 @@ interface ConsumerOrder {
  * Existing OrderLines that snapshotted this product hold their own
  * snapshot value — they do NOT update when the catalogue price changes.
  *
- * Consumer-orders lookup : the backend has no `/products/:id/orders`
- * endpoint yet, so we fan out — list the first page of orders + fetch
- * each order's lines + filter client-side. Bound at 50 orders to keep
- * the round-trip O(n) in size, not in total catalogue size. When the
- * backend ships a server-side filter, replace `findConsumerOrders()`
- * with a single GET. Until then, the button is a deliberate
- * "I want to see this now" action rather than a default-load to keep
- * the page itself fast.
+ * Consumer-orders lookup : since 2026-04-27 the backend ships
+ * `GET /products/{id}/orders` (Java MR !241 + Python MR !45 — same
+ * wire shape on both). The component does ONE network call to get the
+ * order headers, then a parallel fan-out for line details (forkJoin).
+ * The previous client-side fan-out over the first 50 orders was an
+ * O(catalogue) approximation ; this version is O(orders-of-this-product)
+ * and bounded by the backend's pagination.
  */
-const CONSUMER_LOOKUP_ORDER_LIMIT = 50;
 
 @Component({
   selector: 'app-product-detail',
@@ -98,27 +96,28 @@ export class ProductDetailComponent {
   }
 
   /**
-   * Fan out across the first N orders (header + lines) and surface those
-   * whose lines reference this product. See file-level comment for the
-   * trade-off vs a future server-side filter endpoint.
+   * Fetch the orders that reference this product via the dedicated backend
+   * endpoint, then parallel-fan-out for each order's line details so the UI
+   * can render line-level data (qty, snapshot price). The headers come
+   * pre-filtered by the backend ; the line fan-out is bounded by the order
+   * count for THIS product (typically ≤ page size).
    */
   findConsumerOrders(): void {
     const productId = this.productId();
     if (productId === null) return;
     this.consumerLoading.set(true);
     this.consumerOrders.set(null);
-    this.api.listOrders(0, CONSUMER_LOOKUP_ORDER_LIMIT).subscribe({
-      next: (page) => {
+    this.api.listOrdersByProduct(productId).subscribe({
+      next: (page: Page<Order>) => {
         this.consumerScannedCount.set(page.content.length);
         if (page.content.length === 0) {
           this.consumerOrders.set([]);
           this.consumerLoading.set(false);
           return;
         }
-        // Fan out : one listOrderLines per order header.  forkJoin emits
-        // a single tuple once every inner observable completes — fine
-        // for ≤ 50 orders.  catchError per-inner so a single 404 doesn't
-        // sink the whole fan-out.
+        // Backend already filtered to orders referencing this product ;
+        // we just need each order's line details for display. catchError
+        // per-inner so a single 404 doesn't sink the whole fan-out.
         const linesByOrder$ = page.content.map((o) =>
           o.id == null
             ? of<{ order: Order; lines: OrderLine[] }>({ order: o, lines: [] })
@@ -129,6 +128,8 @@ export class ProductDetailComponent {
         );
         forkJoin(linesByOrder$).subscribe({
           next: (pairs) => {
+            // Keep only the lines that match this product — an order MAY
+            // contain other products in the same basket.
             const matches = pairs
               .map((pair) => ({
                 order: pair.order,
@@ -146,7 +147,7 @@ export class ProductDetailComponent {
       },
       error: (err) => {
         this.consumerLoading.set(false);
-        this.toast.show(`Failed to list orders: ${err?.message ?? 'unknown'}`, 'error');
+        this.toast.show(`Failed to list consumer orders: ${err?.message ?? 'unknown'}`, 'error');
       },
     });
   }

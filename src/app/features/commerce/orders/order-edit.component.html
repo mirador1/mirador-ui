@@ -31,29 +31,47 @@
       </dl>
     </section>
 
-    <!-- Section 2 — status. <select> reflects intent for the future write
-         endpoint ; no Save button until the backend ships PUT /orders/{id}/status.
-         Hint banner tells the user what's not wired yet. -->
+    <!-- Section 2 — status. Wired to PUT /orders/{id}/status (since 2026-04-27).
+         The Save button is enabled iff the draft differs from persisted AND
+         the local state-machine accepts the transition. Backend re-validates
+         and 409s on edge cases (the toast surfaces currentStatus + targetStatus). -->
     <section class="status-section">
       <h2>Status</h2>
       <p class="hint">
-        Saving status is not yet wired — backend follow-up MR will add
-        <code>PUT /orders/{{ '{' }}id{{ '}' }}/status</code>. The select below mirrors the current
-        value for now.
+        Forward transitions only :
+        <code>PENDING&nbsp;→&nbsp;CONFIRMED&nbsp;→&nbsp;SHIPPED</code>. Either state can also go to
+        <code>CANCELLED</code>. Once <code>SHIPPED</code> or <code>CANCELLED</code>, the order is
+        terminal.
       </p>
-      <label class="status-field">
-        <span>Status</span>
-        <select
-          [value]="statusDraft()"
-          (change)="onStatusChange($any($event.target).value)"
-          [disabled]="loading()"
-          aria-label="Order status"
+      <div class="status-row">
+        <label class="status-field">
+          <span>Status</span>
+          <select
+            [value]="statusDraft()"
+            (change)="onStatusChange($any($event.target).value)"
+            [disabled]="loading() || statusSaving()"
+            aria-label="Order status"
+          >
+            @for (s of statusOptions; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </label>
+        <button
+          type="button"
+          class="save-status-btn"
+          (click)="saveStatus()"
+          [disabled]="!canSaveStatus()"
         >
-          @for (s of statusOptions; track s) {
-            <option [value]="s">{{ s }}</option>
-          }
-        </select>
-      </label>
+          {{ statusSaving() ? 'Saving…' : 'Save status' }}
+        </button>
+      </div>
+      @if (isStatusDirty() && !canSaveStatus() && !statusSaving()) {
+        <p class="hint hint-warn">
+          Transition not allowed by the state machine. Pick a valid target (or cancel by
+          re-selecting the current status).
+        </p>
+      }
     </section>
 
     <!-- Section 3 — line management. Mirrors order-detail's add + cancel flow,

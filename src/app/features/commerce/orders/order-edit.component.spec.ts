@@ -12,15 +12,24 @@ import { provideRouter } from '@angular/router';
 import { OrderEditComponent } from './order-edit.component';
 import { OrderLine } from '../../../core/api/api.service';
 
+/**
+ * Shared component-spinning helper — extracted so the multiple `describe`
+ * blocks below can each get a fresh component without re-typing the
+ * TestBed boilerplate.
+ */
+async function setupComponent(): Promise<OrderEditComponent> {
+  await TestBed.configureTestingModule({
+    imports: [OrderEditComponent],
+    providers: [provideHttpClient(), provideRouter([])],
+  }).compileComponents();
+  return TestBed.createComponent(OrderEditComponent).componentInstance;
+}
+
 describe('OrderEditComponent — signal logic', () => {
   let cmp: OrderEditComponent;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [OrderEditComponent],
-      providers: [provideHttpClient(), provideRouter([])],
-    }).compileComponents();
-    cmp = TestBed.createComponent(OrderEditComponent).componentInstance;
+    cmp = await setupComponent();
   });
 
   it('starts empty: no order, no lines, statusDraft=PENDING (default), liveTotal=0', () => {
@@ -90,7 +99,7 @@ describe('OrderEditComponent — signal logic', () => {
     expect(cmp.liveTotal()).toBe(30); // 10 + 4×5
   });
 
-  it('onStatusChange writes to statusDraft (used once backend write endpoint ships)', () => {
+  it('onStatusChange writes to statusDraft', () => {
     cmp.onStatusChange('SHIPPED');
     expect(cmp.statusDraft()).toBe('SHIPPED');
     cmp.onStatusChange('CANCELLED');
@@ -100,5 +109,59 @@ describe('OrderEditComponent — signal logic', () => {
   it('statusClass + lineStatusClass produce stable selectors', () => {
     expect(cmp.statusClass('PENDING')).toBe('status-pending');
     expect(cmp.lineStatusClass('REFUNDED')).toBe('line-status-refunded');
+  });
+});
+
+describe('OrderEditComponent — status state-machine + dirty tracking', () => {
+  // Static helper — no DI, testable in isolation.
+  it('isAllowedTransition encodes the state machine', () => {
+    // Self-transitions allowed (idempotency for retries).
+    expect(OrderEditComponent.isAllowedTransition('PENDING', 'PENDING')).toBe(true);
+    // Forward path PENDING → CONFIRMED → SHIPPED.
+    expect(OrderEditComponent.isAllowedTransition('PENDING', 'CONFIRMED')).toBe(true);
+    expect(OrderEditComponent.isAllowedTransition('CONFIRMED', 'SHIPPED')).toBe(true);
+    // CANCELLED reachable from PENDING + CONFIRMED.
+    expect(OrderEditComponent.isAllowedTransition('PENDING', 'CANCELLED')).toBe(true);
+    expect(OrderEditComponent.isAllowedTransition('CONFIRMED', 'CANCELLED')).toBe(true);
+    // Backwards forbidden.
+    expect(OrderEditComponent.isAllowedTransition('SHIPPED', 'PENDING')).toBe(false);
+    expect(OrderEditComponent.isAllowedTransition('SHIPPED', 'CONFIRMED')).toBe(false);
+    expect(OrderEditComponent.isAllowedTransition('CONFIRMED', 'PENDING')).toBe(false);
+    // Terminal states cannot leave (except self).
+    expect(OrderEditComponent.isAllowedTransition('CANCELLED', 'SHIPPED')).toBe(false);
+    expect(OrderEditComponent.isAllowedTransition('CANCELLED', 'PENDING')).toBe(false);
+  });
+
+  it('isStatusDirty + canSaveStatus drive the Save button enable state', async () => {
+    const cmp = await setupComponent();
+    cmp.order.set({
+      id: 7,
+      customerId: 1,
+      status: 'PENDING',
+      totalAmount: 0,
+      createdAt: '2026-04-27T10:00:00Z',
+    });
+    cmp.statusDraft.set('PENDING');
+    expect(cmp.isStatusDirty()).toBe(false);
+    expect(cmp.canSaveStatus()).toBe(false);
+
+    // Valid forward transition → dirty + savable.
+    cmp.statusDraft.set('CONFIRMED');
+    expect(cmp.isStatusDirty()).toBe(true);
+    expect(cmp.canSaveStatus()).toBe(true);
+  });
+
+  it('canSaveStatus is false when the local state machine rejects the transition', async () => {
+    const cmp = await setupComponent();
+    cmp.order.set({
+      id: 8,
+      customerId: 1,
+      status: 'SHIPPED',
+      totalAmount: 0,
+      createdAt: '2026-04-27T10:00:00Z',
+    });
+    cmp.statusDraft.set('PENDING'); // SHIPPED → PENDING forbidden
+    expect(cmp.isStatusDirty()).toBe(true);
+    expect(cmp.canSaveStatus()).toBe(false);
   });
 });
