@@ -38,11 +38,7 @@ import {
   Customer,
 } from '../../../core/api/api.service';
 import { ToastService } from '../../../core/toast/toast.service';
-import {
-  canSubmitChurnSearch,
-  formatProbability,
-  riskClass,
-} from './churn-insights-helpers';
+import { canSubmitChurnSearch, formatProbability, riskClass } from './churn-insights-helpers';
 
 interface RankedPrediction {
   readonly customer: Customer;
@@ -60,11 +56,15 @@ interface RankedPrediction {
         <h1>Churn Insights</h1>
         <p class="lede">
           ML-driven churn probability for any customer. Backed by an
-          <strong>ONNX</strong> model trained in Python and served
-          in-process by both backends (Java + Python — see
-          <a href="https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0061-customer-churn-prediction.md" target="_blank" rel="noopener">
-            ADR-0061
-          </a>). This page calls
+          <strong>ONNX</strong> model trained in Python and served in-process by both backends (Java
+          + Python — see
+          <a
+            href="https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0061-customer-churn-prediction.md"
+            target="_blank"
+            rel="noopener"
+          >
+            ADR-0061 </a
+          >). This page calls
           <code>POST /customers/&#123;id&#125;/churn-prediction</code>
           on whichever backend is currently selected.
         </p>
@@ -113,7 +113,9 @@ interface RankedPrediction {
                 }
               </dd>
               <dt>Model version</dt>
-              <dd><code>{{ r.modelVersion }}</code></dd>
+              <dd>
+                <code>{{ r.modelVersion }}</code>
+              </dd>
               <dt>Predicted at</dt>
               <dd>
                 <time [attr.datetime]="r.predictedAt">{{ r.predictedAt }}</time>
@@ -191,9 +193,8 @@ interface RankedPrediction {
         <div class="drift-placeholder">
           <p>
             <strong>Coming in Phase E.</strong>
-            MLflow tracking + drift SLO + Grafana dashboard will surface the daily KS-test
-            statistic here. Until then, this panel is a layout sketch — the data plumbing is
-            an isolated swap.
+            MLflow tracking + drift SLO + Grafana dashboard will surface the daily KS-test statistic
+            here. Until then, this panel is a layout sketch — the data plumbing is an isolated swap.
           </p>
           <svg viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet" class="drift-svg">
             <line x1="40" y1="180" x2="580" y2="180" class="axis" />
