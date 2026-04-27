@@ -2,29 +2,25 @@
 
 ## 🎯 Surface fonctionnelle — pages e-commerce
 
-Order + Product CRUD shipped in [stable-v1.1.6](https://gitlab.com/mirador1/mirador-ui/-/tags/stable-v1.1.6) :
-all 7 screens (Orders list/create/detail/edit + Products list/create/detail/edit),
-sidebar Commerce grouping, search + stock filter on Products, consumer-orders
-fan-out on Product detail, Vitest specs (54 cases) + Playwright e2e + mobile
-smoke. Form validation visible (disabled submit, hint banners) ; toast
-notifications on every mutation ; mobile-card layouts below 700 px.
+Order + Product CRUD shipped in [stable-v1.1.6](https://gitlab.com/mirador1/mirador-ui/-/tags/stable-v1.1.6),
+followed by a 2026-04-27 wave that closed every "🤔 To consider" item :
+
+- ✅ Server-side product search ([!171](https://gitlab.com/mirador1/mirador-ui/-/merge_requests/171))
+- ✅ `PUT /orders/{id}/status` Save button + dirty tracking ([!172](https://gitlab.com/mirador1/mirador-ui/-/merge_requests/172))
+- ✅ `GET /products/{id}/orders` server-side filter (drops the
+  50-order client-side fan-out, [!172](https://gitlab.com/mirador1/mirador-ui/-/merge_requests/172))
+- ✅ ML/Insights surface : `/insights/churn` page ([!169](https://gitlab.com/mirador1/mirador-ui/-/merge_requests/169))
 
 ### 🤔 To consider
 
-- ☐ **Server-side product search** — `/products?search=` not yet on backend.
-  Current implementation filters client-side over the current page slice.
-  Migration path documented in `products.component.ts` (300ms debounce
-  pattern from order-create autocomplete is the model).
-- ☐ **`PUT /orders/{id}/status` backend endpoint** — order edit shows a
-  status select but cannot save it yet. Fronted with a hint banner.
-  When backend ships, add `updateOrderStatus()` to `ApiService` + Save
-  button + dirty-tracking signal in `OrderEditComponent`.
 - ☐ **Per-line refund state machine** — `OrderLineStatus` PENDING →
-  SHIPPED → REFUNDED currently displays only ; transition actions missing
-  pending shared ADR for the state machine + backend write endpoint.
-- ☐ **`/products/{id}/orders` server-side filter** — replace the 50-order
-  client-side fan-out in `ProductDetailComponent#findConsumerOrders` once
-  backend ships the dedicated endpoint.
+  SHIPPED → REFUNDED currently displays only ; transition actions
+  missing pending the backend write endpoint
+  `PATCH /orders/{order_id}/lines/{line_id}/status` (spec gelée in
+  [shared ADR-0063](https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0063-order-line-refund-state-machine.md)).
+  When the Java + Python implementations land, add a "Refund" button +
+  dialog (reason + actor) on `OrderEditComponent` rows where
+  `status = SHIPPED`.
 
 ### Cross-repo coordination (ADR-0001 polyrepo)
 
