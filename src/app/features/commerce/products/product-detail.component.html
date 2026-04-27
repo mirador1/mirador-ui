@@ -38,9 +38,8 @@
     }
 
     <aside class="immutability-note">
-      <strong>Note :</strong> changing this product's price (when the edit screen ships) will
-      <em>not</em> retroactively change the price on historical orders — each OrderLine carries its
-      own snapshot. See
+      <strong>Note :</strong> changing this product's price will <em>not</em> retroactively change
+      the price on historical orders — each OrderLine carries its own snapshot. See
       <a
         href="https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0059-customer-order-product-data-model.md"
         target="_blank"
@@ -49,7 +48,97 @@
       >.
     </aside>
 
+    <section class="consumer-orders">
+      <h2>Consumer orders</h2>
+      <p class="hint">
+        Show the orders whose lines reference this product. Scans the first 50 orders ; backend does
+        not yet expose <code>/products/&#123;id&#125;/orders</code>.
+      </p>
+
+      @if (consumerOrders() === null) {
+        <button
+          type="button"
+          class="primary"
+          (click)="findConsumerOrders()"
+          [disabled]="consumerLoading()"
+          data-testid="find-consumer-orders-btn"
+        >
+          @if (consumerLoading()) {
+            Scanning…
+          } @else {
+            Find consumer orders
+          }
+        </button>
+      } @else if (consumerOrders()!.length === 0) {
+        <p class="empty">
+          No order in the first {{ consumerScannedCount() }} references this product.
+          <button
+            type="button"
+            class="link-btn"
+            (click)="findConsumerOrders()"
+            [disabled]="consumerLoading()"
+          >
+            Re-scan
+          </button>
+        </p>
+      } @else {
+        <p class="hint">
+          {{ consumerOrders()!.length }} order(s) match (out of {{ consumerScannedCount() }}
+          scanned).
+          <button
+            type="button"
+            class="link-btn"
+            (click)="findConsumerOrders()"
+            [disabled]="consumerLoading()"
+          >
+            Re-scan
+          </button>
+        </p>
+        <table class="consumer-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Status</th>
+              <th class="num">Order total</th>
+              <th class="num">Lines for this product</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of consumerOrders()!; track entry.order.id) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/orders', entry.order.id]" class="row-link"
+                    >#{{ entry.order.id }}</a
+                  >
+                </td>
+                <td class="num">#{{ entry.order.customerId }}</td>
+                <td>
+                  <span class="status-badge status-{{ entry.order.status.toLowerCase() }}">{{
+                    entry.order.status
+                  }}</span>
+                </td>
+                <td class="num">{{ entry.order.totalAmount | number: '1.2-2' }} €</td>
+                <td class="num">
+                  @for (line of entry.lines; track line.id) {
+                    <div class="line-row">
+                      <span>qty {{ line.quantity }}</span>
+                      <span>·</span>
+                      <span>{{ line.unitPriceAtOrder | number: '1.2-2' }} €</span>
+                      <span>·</span>
+                      <strong>{{ lineSubtotal(line) | number: '1.2-2' }} €</strong>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
     <div class="actions">
+      <a [routerLink]="['/products', p.id, 'edit']" class="primary-link">Edit</a>
       <button type="button" class="danger" (click)="deleteProduct()" [disabled]="loading()">
         Delete product
       </button>

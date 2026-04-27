@@ -156,23 +156,36 @@ export class AppShellComponent {
     },
     // E-commerce surface added 2026-04-26 (shared ADR-0059) : Order +
     // OrderLine + Product. Foundation MRs landed in Java stable-v1.2.3,
-    // Python stable-py-v0.6.4, UI stable-v1.1.3. List + create + delete
-    // shipped today ; detail page in this MR ; Product list + edit pages
-    // are the next follow-up.
+    // Python stable-py-v0.6.4, UI stable-v1.1.3. Order CRUD (list / detail /
+    // create / edit) and Product CRUD (list / detail / create / edit) all
+    // shipped under this group ; per-line refund state machine + product
+    // search by name (server-side) are follow-ups.
     {
       id: 'commerce',
       icon: '🛒',
       label: 'Commerce',
       path: '/orders',
-      tip: 'Orders + OrderLine + Product (ADR-0059). Foundation : list + create + delete ; detail page with line management. Per-line refund state machine + Product CRUD pages are follow-ups.',
+      tip: 'Orders + OrderLine + Product (ADR-0059). Full CRUD on Orders (list, detail, create, edit) and Products (list, detail, create, edit). Per-line refund state machine is a follow-up.',
       children: [
         {
-          label: 'Orders list',
-          tip: 'Paginated list of orders ; create empty, navigate to detail, delete cascades to lines',
+          label: 'Orders — list',
+          path: '/orders',
+          tip: 'Paginated list of orders ; row actions navigate to detail, edit, or delete (cascades to lines)',
         },
         {
-          label: 'Order detail',
-          tip: 'Header (customer, status, total) + lines table ; add/cancel lines, cancel order',
+          label: 'Orders — create',
+          path: '/orders/new',
+          tip: 'Customer autocomplete + dynamic line picker with live total preview ; backend re-snapshots prices on submit',
+        },
+        {
+          label: 'Products — list',
+          path: '/products',
+          tip: 'Paginated catalogue with search by name + stock filter (All / In stock / Low / Out)',
+        },
+        {
+          label: 'Products — create',
+          path: '/products',
+          tip: 'Inline form on the list page : name, description, unit price > 0, stock ≥ 0',
         },
       ],
     },
@@ -515,6 +528,22 @@ export class AppShellComponent {
       label: '👤 Customers',
       path: '/customers',
       keywords: 'customers list create manage crud import export',
+    },
+    {
+      label: '🛒 Orders',
+      path: '/orders',
+      keywords: 'orders list create commerce ecommerce ordering checkout cart',
+    },
+    {
+      label: '🛒 New order',
+      path: '/orders/new',
+      keywords: 'orders new create commerce customer line product autocomplete total',
+    },
+    {
+      label: '🛍️ Products',
+      path: '/products',
+      keywords:
+        'products catalogue catalog list create commerce stock price inventory search filter',
     },
     {
       label: '🧪 Diagnostic',

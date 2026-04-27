@@ -1,20 +1,41 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ApiService, Product } from '../../../core/api/api.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { ApiService, Order, OrderLine, Product } from '../../../core/api/api.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
 /**
- * Product detail page — read-only view of a single Product.
- *
- * Foundation MR : displays the product header (name, description, price,
- * stock, timestamps). Edit form is a separate MR once backend ships
- * PUT /products/{id}.
+ * Pairing of an Order header and the line(s) that reference the current
+ * product. Surfaced in the "Consumer orders" section so the user can
+ * navigate from the catalogue entry to the orders that snapshotted it.
+ */
+interface ConsumerOrder {
+  /** Order header (id, customer, status, total). */
+  order: Order;
+  /** Lines on `order` whose productId matches the current product. */
+  lines: OrderLine[];
+}
+
+/**
+ * Product detail page — read-only view + delete + link to consumer Orders.
  *
  * Per shared ADR-0059, the price displayed here is the CURRENT price.
  * Existing OrderLines that snapshotted this product hold their own
  * snapshot value — they do NOT update when the catalogue price changes.
+ *
+ * Consumer-orders lookup : the backend has no `/products/:id/orders`
+ * endpoint yet, so we fan out — list the first page of orders + fetch
+ * each order's lines + filter client-side. Bound at 50 orders to keep
+ * the round-trip O(n) in size, not in total catalogue size. When the
+ * backend ships a server-side filter, replace `findConsumerOrders()`
+ * with a single GET. Until then, the button is a deliberate
+ * "I want to see this now" action rather than a default-load to keep
+ * the page itself fast.
  */
+const CONSUMER_LOOKUP_ORDER_LIMIT = 50;
+
 @Component({
   selector: 'app-product-detail',
   standalone: true,
@@ -31,6 +52,11 @@ export class ProductDetailComponent {
 
   readonly product = signal<Product | null>(null);
   readonly loading = signal<boolean>(false);
+
+  // ── Consumer orders state ────────────────────────────────────────────────
+  readonly consumerOrders = signal<ConsumerOrder[] | null>(null);
+  readonly consumerLoading = signal<boolean>(false);
+  readonly consumerScannedCount = signal<number>(0);
 
   readonly productId = computed(() => {
     const idStr = this.route.snapshot.paramMap.get('id');
@@ -71,6 +97,60 @@ export class ProductDetailComponent {
     });
   }
 
+  /**
+   * Fan out across the first N orders (header + lines) and surface those
+   * whose lines reference this product. See file-level comment for the
+   * trade-off vs a future server-side filter endpoint.
+   */
+  findConsumerOrders(): void {
+    const productId = this.productId();
+    if (productId === null) return;
+    this.consumerLoading.set(true);
+    this.consumerOrders.set(null);
+    this.api.listOrders(0, CONSUMER_LOOKUP_ORDER_LIMIT).subscribe({
+      next: (page) => {
+        this.consumerScannedCount.set(page.content.length);
+        if (page.content.length === 0) {
+          this.consumerOrders.set([]);
+          this.consumerLoading.set(false);
+          return;
+        }
+        // Fan out : one listOrderLines per order header.  forkJoin emits
+        // a single tuple once every inner observable completes — fine
+        // for ≤ 50 orders.  catchError per-inner so a single 404 doesn't
+        // sink the whole fan-out.
+        const linesByOrder$ = page.content.map((o) =>
+          o.id == null
+            ? of<{ order: Order; lines: OrderLine[] }>({ order: o, lines: [] })
+            : this.api.listOrderLines(o.id).pipe(
+                map((lines) => ({ order: o, lines })),
+                catchError(() => of({ order: o, lines: [] as OrderLine[] })),
+              ),
+        );
+        forkJoin(linesByOrder$).subscribe({
+          next: (pairs) => {
+            const matches = pairs
+              .map((pair) => ({
+                order: pair.order,
+                lines: pair.lines.filter((l) => l.productId === productId),
+              }))
+              .filter((pair) => pair.lines.length > 0);
+            this.consumerOrders.set(matches);
+            this.consumerLoading.set(false);
+          },
+          error: (err) => {
+            this.consumerLoading.set(false);
+            this.toast.show(`Consumer-orders lookup failed: ${err?.message ?? 'unknown'}`, 'error');
+          },
+        });
+      },
+      error: (err) => {
+        this.consumerLoading.set(false);
+        this.toast.show(`Failed to list orders: ${err?.message ?? 'unknown'}`, 'error');
+      },
+    });
+  }
+
   deleteProduct(): void {
     const p = this.product();
     if (!p?.id) return;
@@ -98,5 +178,10 @@ export class ProductDetailComponent {
         }
       },
     });
+  }
+
+  /** Subtotal helper for the consumer-orders table. */
+  lineSubtotal(line: OrderLine): number {
+    return line.quantity * line.unitPriceAtOrder;
   }
 }

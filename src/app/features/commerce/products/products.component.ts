@@ -1,24 +1,35 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService, Product } from '../../../core/api/api.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
 /**
- * Products list page — list + create + delete (foundation MR).
+ * Stock filter buckets — same thresholds as the row badge (out / low / ok).
+ * `all` keeps every product visible regardless of stock level. The bucket
+ * is applied client-side because the backend list endpoint does not
+ * accept a stock filter yet.
+ */
+type StockFilter = 'all' | 'out' | 'low' | 'ok';
+
+/**
+ * Products list page — list + search by name + stock filter + create + delete.
  *
- * Mirrors the OrdersComponent pattern (signals, no ngModel, @if/@for,
- * mobile-responsive, 44px tap targets). Edit endpoint missing on
- * backend ; will land in a follow-up MR.
+ * Search and filter are client-side over the current page results. The
+ * backend product list endpoint has no `search` param yet, so we filter
+ * the in-memory page slice. When `/products?search=` lands, swap the
+ * `filteredProducts` computation for a server-side query (300ms debounce
+ * pattern in `OrderCreateComponent#onCustomerInput` is the model).
  *
  * Per shared ADR-0059 : a Product price change must NOT propagate to
- * existing OrderLines (they hold a snapshot). UI MUST surface this
- * hint when an Edit screen ships.
+ * existing OrderLines (they hold a snapshot). The Edit screen surfaces
+ * this hint inline ; this list page just routes to it.
  */
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './products.component.html',
   styleUrl: './products.component.scss',
@@ -33,6 +44,11 @@ export class ProductsComponent {
   readonly size = signal<number>(20);
   readonly loading = signal<boolean>(false);
 
+  // ── Filters ──────────────────────────────────────────────────────────────
+  readonly searchQuery = signal<string>('');
+  readonly stockFilter = signal<StockFilter>('all');
+
+  // ── Create form ──────────────────────────────────────────────────────────
   readonly newName = signal<string>('');
   readonly newDescription = signal<string>('');
   readonly newUnitPrice = signal<string>('');
@@ -48,6 +64,27 @@ export class ProductsComponent {
   });
 
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.size())));
+
+  /**
+   * Live-derived list shown in the table. Composed of two filters :
+   *   1. `searchQuery` — case-insensitive substring on name + description.
+   *   2. `stockFilter` — bucket matching the row badge thresholds.
+   * Both are client-side ; see component-level note for the migration path.
+   */
+  readonly filteredProducts = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const bucket = this.stockFilter();
+    return this.products().filter((p) => {
+      if (q) {
+        const hay = `${p.name} ${p.description ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (bucket === 'out' && p.stockQuantity !== 0) return false;
+      if (bucket === 'low' && (p.stockQuantity === 0 || p.stockQuantity >= 10)) return false;
+      if (bucket === 'ok' && p.stockQuantity < 10) return false;
+      return true;
+    });
+  });
 
   ngOnInit(): void {
     this.loadPage();
@@ -135,6 +172,22 @@ export class ProductsComponent {
       this.page.update((n) => n + 1);
       this.loadPage();
     }
+  }
+
+  /** Set search query — bound to the search input via (input). */
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+  }
+
+  /** Set stock filter — bound to the segmented button group. */
+  setStockFilter(value: StockFilter): void {
+    this.stockFilter.set(value);
+  }
+
+  /** Reset both filters. Useful when the filtered set is empty. */
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.stockFilter.set('all');
   }
 
   stockClass(stock: number): string {
