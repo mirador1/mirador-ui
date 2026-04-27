@@ -2,8 +2,9 @@
   <header class="page-header">
     <h1>Products</h1>
     <p class="lead">
-      Catalogue (foundation MR — list + create + delete only). Edit endpoint missing on backend ;
-      will land separately. Deleting a Product referenced by an OrderLine fails with FK RESTRICT.
+      Catalogue. Search by name and filter by stock level. Deleting a Product referenced by an
+      OrderLine fails with FK RESTRICT (per shared ADR-0059 — existing OrderLines hold an immutable
+      price snapshot).
     </p>
   </header>
 
@@ -51,14 +52,67 @@
         required
       />
     </label>
-    <button type="button" (click)="createProduct()" [disabled]="!canCreate() || loading()">
+    <button
+      type="button"
+      (click)="createProduct()"
+      [disabled]="!canCreate() || loading()"
+      data-testid="create-product-btn"
+    >
       Create
     </button>
   </fieldset>
 
+  <div class="filters" role="search">
+    <label class="search-field">
+      <span class="visually-hidden">Search products</span>
+      <input
+        type="search"
+        placeholder="Search by name or description…"
+        [value]="searchQuery()"
+        (input)="onSearchInput($any($event.target).value)"
+        data-testid="product-search-input"
+        autocomplete="off"
+      />
+    </label>
+    <div class="stock-filter" role="group" aria-label="Stock filter">
+      <button
+        type="button"
+        class="filter-btn"
+        [class.active]="stockFilter() === 'all'"
+        (click)="setStockFilter('all')"
+      >
+        All
+      </button>
+      <button
+        type="button"
+        class="filter-btn"
+        [class.active]="stockFilter() === 'ok'"
+        (click)="setStockFilter('ok')"
+      >
+        In stock
+      </button>
+      <button
+        type="button"
+        class="filter-btn"
+        [class.active]="stockFilter() === 'low'"
+        (click)="setStockFilter('low')"
+      >
+        Low
+      </button>
+      <button
+        type="button"
+        class="filter-btn"
+        [class.active]="stockFilter() === 'out'"
+        (click)="setStockFilter('out')"
+      >
+        Out
+      </button>
+    </div>
+  </div>
+
   <div class="list-section">
     <div class="list-header">
-      <h2>Products ({{ total() }} total)</h2>
+      <h2>Products ({{ filteredProducts().length }} shown / {{ total() }} total)</h2>
       <div class="pagination">
         <button type="button" (click)="prevPage()" [disabled]="page() === 0 || loading()">
           ‹ Prev
@@ -78,6 +132,11 @@
       <p class="loading">Loading…</p>
     } @else if (products().length === 0) {
       <p class="empty">No products yet. Use the form above to create the first one.</p>
+    } @else if (filteredProducts().length === 0) {
+      <p class="empty">
+        No product matches the current search/filter.
+        <button type="button" class="link-btn" (click)="clearFilters()">Reset filters</button>
+      </p>
     } @else {
       <table class="products-table">
         <thead>
@@ -92,11 +151,15 @@
           </tr>
         </thead>
         <tbody>
-          @for (p of products(); track p.id) {
+          @for (p of filteredProducts(); track p.id) {
             <tr>
-              <td class="num">{{ p.id }}</td>
+              <td class="num">
+                <a [routerLink]="['/products', p.id]" class="row-link">{{ p.id }}</a>
+              </td>
               <td>
-                <strong>{{ p.name }}</strong>
+                <a [routerLink]="['/products', p.id]" class="row-link">
+                  <strong>{{ p.name }}</strong>
+                </a>
               </td>
               <td class="desc">{{ p.description || '—' }}</td>
               <td class="num">{{ p.unitPrice | number: '1.2-2' }} €</td>
@@ -106,8 +169,16 @@
                 }}</span>
               </td>
               <td>{{ p.createdAt | date: 'short' }}</td>
-              <td>
-                <button type="button" class="danger" (click)="deleteProduct(p)">Delete</button>
+              <td class="actions">
+                <a [routerLink]="['/products', p.id, 'edit']" class="edit-link">Edit</a>
+                <button
+                  type="button"
+                  class="danger"
+                  (click)="deleteProduct(p)"
+                  [attr.aria-label]="'Delete product ' + p.name"
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           }
