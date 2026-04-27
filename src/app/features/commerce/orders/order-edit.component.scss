@@ -332,3 +332,171 @@ h2 {
   background: #fce7f3;
   color: #9f1239;
 }
+
+// ── Refund button + dialog (ADR-0063) ────────────────────────────────────
+
+.line-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+button.refund {
+  background: #f97316;
+  color: white;
+  border: 0;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: 32px;
+
+  &:hover {
+    background: #ea580c;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.refund-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.refund-dialog {
+  background: white;
+  border-radius: 0.5rem;
+  max-width: 520px;
+  width: 100%;
+  padding: 1.25rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+
+    h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .close-btn {
+      background: transparent;
+      border: 0;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      color: var(--color-text-muted, #555);
+
+      &:hover {
+        color: black;
+      }
+    }
+  }
+
+  .dialog-body {
+    margin: 0 0 1rem;
+    color: var(--color-text-muted, #555);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .reason-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 500;
+
+      em {
+        font-weight: 400;
+        color: var(--color-text-muted, #777);
+        font-style: normal;
+      }
+
+      .char-count {
+        font-variant-numeric: tabular-nums;
+        color: var(--color-text-muted, #777);
+        &.over {
+          color: #dc2626;
+          font-weight: 600;
+        }
+      }
+    }
+
+    textarea {
+      padding: 0.5rem;
+      border: 1px solid var(--color-border, #ddd);
+      border-radius: 0.25rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 64px;
+
+      &:disabled {
+        background: var(--color-card-bg-soft, #f5f5f5);
+      }
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+
+    button {
+      padding: 0.5rem 1rem;
+      border-radius: 0.25rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-height: 40px;
+    }
+    button.secondary {
+      background: white;
+      border: 1px solid var(--color-border, #ccc);
+    }
+    button.danger {
+      background: #dc2626;
+      color: white;
+      border: 0;
+
+      &:hover:not(:disabled) {
+        background: #b91c1c;
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .refund-dialog {
+    padding: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .dialog-actions {
+    flex-direction: column-reverse;
+    button {
+      width: 100%;
+    }
+  }
+}

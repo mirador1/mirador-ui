@@ -112,6 +112,80 @@ describe('OrderEditComponent — signal logic', () => {
   });
 });
 
+describe('OrderEditComponent — refund dialog (ADR-0063)', () => {
+  it('openRefundDialog only opens for SHIPPED lines (defensive vs scripted clicks)', async () => {
+    const cmp = await setupComponent();
+    cmp.openRefundDialog({
+      id: 1,
+      orderId: 1,
+      productId: 1,
+      quantity: 1,
+      unitPriceAtOrder: 9.99,
+      status: 'PENDING',
+    });
+    expect(cmp.refundingLine()).toBeNull();
+
+    cmp.openRefundDialog({
+      id: 2,
+      orderId: 1,
+      productId: 1,
+      quantity: 1,
+      unitPriceAtOrder: 9.99,
+      status: 'SHIPPED',
+    });
+    expect(cmp.refundingLine()?.id).toBe(2);
+  });
+
+  it('canSubmitRefund false when no line selected', async () => {
+    const cmp = await setupComponent();
+    expect(cmp.canSubmitRefund()).toBe(false);
+  });
+
+  it('canSubmitRefund true with empty reason (reason is optional)', async () => {
+    const cmp = await setupComponent();
+    cmp.refundingLine.set({
+      id: 1,
+      orderId: 1,
+      productId: 1,
+      quantity: 1,
+      unitPriceAtOrder: 9.99,
+      status: 'SHIPPED',
+    });
+    cmp.refundReason.set('');
+    expect(cmp.canSubmitRefund()).toBe(true);
+  });
+
+  it('canSubmitRefund false when reason exceeds 500 chars (matches backend cap)', async () => {
+    const cmp = await setupComponent();
+    cmp.refundingLine.set({
+      id: 1,
+      orderId: 1,
+      productId: 1,
+      quantity: 1,
+      unitPriceAtOrder: 9.99,
+      status: 'SHIPPED',
+    });
+    cmp.refundReason.set('x'.repeat(501));
+    expect(cmp.canSubmitRefund()).toBe(false);
+  });
+
+  it('closeRefundDialog clears state when not saving', async () => {
+    const cmp = await setupComponent();
+    cmp.refundingLine.set({
+      id: 1,
+      orderId: 1,
+      productId: 1,
+      quantity: 1,
+      unitPriceAtOrder: 9.99,
+      status: 'SHIPPED',
+    });
+    cmp.refundReason.set('typing…');
+    cmp.closeRefundDialog();
+    expect(cmp.refundingLine()).toBeNull();
+    expect(cmp.refundReason()).toBe('');
+  });
+});
+
 describe('OrderEditComponent — status state-machine + dirty tracking', () => {
   // Static helper — no DI, testable in isolation.
   it('isAllowedTransition encodes the state machine', () => {

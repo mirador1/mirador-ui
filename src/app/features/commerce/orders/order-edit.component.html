@@ -135,8 +135,13 @@
                     line.status
                   }}</span>
                 </td>
-                <td>
+                <td class="line-actions">
                   <button type="button" class="danger" (click)="cancelLine(line)">Cancel</button>
+                  @if (line.status === 'SHIPPED') {
+                    <button type="button" class="refund" (click)="openRefundDialog(line)">
+                      Refund
+                    </button>
+                  }
                 </td>
               </tr>
             }
@@ -150,6 +155,73 @@
         Done
       </button>
     </div>
+
+    <!-- Refund dialog (per shared ADR-0063). Only opens when the
+         operator clicks "Refund" on a SHIPPED line. The reason field
+         is capped at 500 chars to match the backend's @Size constraint. -->
+    @if (refundingLine(); as rl) {
+      <div class="refund-dialog-backdrop" (click)="closeRefundDialog()">
+        <div
+          class="refund-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="refund-dialog-title"
+          (click)="$event.stopPropagation()"
+        >
+          <header>
+            <h2 id="refund-dialog-title">Refund line #{{ rl.id }}</h2>
+            <button
+              type="button"
+              class="close-btn"
+              (click)="closeRefundDialog()"
+              [disabled]="refundSaving()"
+              aria-label="Close refund dialog"
+            >
+              ×
+            </button>
+          </header>
+          <p class="dialog-body">
+            Refunding {{ rl.quantity }} × {{ rl.unitPriceAtOrder | number: '1.2-2' }} € (snapshot
+            price). The order total stays unchanged — money flow is handled separately by the
+            payment processor (ADR-0063).
+          </p>
+          <label class="reason-field">
+            <span>
+              Reason <em>(optional, max 500 chars)</em>
+              <span class="char-count" [class.over]="refundReason().length > 500">
+                {{ refundReason().length }}/500
+              </span>
+            </span>
+            <textarea
+              rows="3"
+              maxlength="500"
+              [value]="refundReason()"
+              (input)="refundReason.set($any($event.target).value)"
+              [disabled]="refundSaving()"
+              placeholder="e.g. Defective on arrival ; customer-service goodwill ; chargeback"
+            ></textarea>
+          </label>
+          <footer class="dialog-actions">
+            <button
+              type="button"
+              class="secondary"
+              (click)="closeRefundDialog()"
+              [disabled]="refundSaving()"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="danger"
+              (click)="submitRefund()"
+              [disabled]="!canSubmitRefund()"
+            >
+              {{ refundSaving() ? 'Refunding…' : 'Confirm refund' }}
+            </button>
+          </footer>
+        </div>
+      </div>
+    }
   </section>
 } @else {
   <p class="loading">Loading order…</p>

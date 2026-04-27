@@ -209,6 +209,85 @@ export class OrderEditComponent {
     });
   }
 
+  // ── Refund dialog state (per shared ADR-0063) ────────────────────────────
+  /** Line currently being refunded — null means dialog closed. */
+  readonly refundingLine = signal<OrderLine | null>(null);
+  /** Operator's reason for the refund (capped at 500 chars by backend). */
+  readonly refundReason = signal<string>('');
+  /** Network in-flight flag for the refund call. */
+  readonly refundSaving = signal<boolean>(false);
+
+  /**
+   * Open the refund dialog for a line. Only callable on lines whose
+   * status === 'SHIPPED' (the state machine forbids PENDING → REFUNDED
+   * skip). The template gates the button visibility but we re-check
+   * here as a defensive measure against bookmarked / scripted clicks.
+   */
+  openRefundDialog(line: OrderLine): void {
+    if (line.status !== 'SHIPPED') return;
+    this.refundingLine.set(line);
+    this.refundReason.set('');
+  }
+
+  closeRefundDialog(): void {
+    if (this.refundSaving()) return;
+    this.refundingLine.set(null);
+    this.refundReason.set('');
+  }
+
+  /**
+   * Submit the refund. PATCH /orders/{id}/lines/{line_id}/status with
+   * status=REFUNDED + the typed reason. On 200 we close the dialog,
+   * toast success, and reload (the line's status badge flips to
+   * REFUNDED ; Order.total stays unchanged per ADR-0063).
+   *
+   * On 409 the backend's state machine rejected — surface
+   * currentStatus + targetStatus from the ProblemDetail body for
+   * actionable feedback.
+   */
+  submitRefund(): void {
+    const id = this.orderId();
+    const line = this.refundingLine();
+    if (id === null || line === null || this.refundSaving()) return;
+    const reason = this.refundReason().trim();
+    this.refundSaving.set(true);
+    this.api.updateOrderLineStatus(id, line.id, 'REFUNDED', reason || undefined).subscribe({
+      next: () => {
+        this.refundSaving.set(false);
+        this.refundingLine.set(null);
+        this.refundReason.set('');
+        this.toast.show(`Line #${line.id} refunded`);
+        this.reload();
+      },
+      error: (err: {
+        status?: number;
+        error?: { detail?: { currentStatus?: string; targetStatus?: string } };
+        message?: string;
+      }) => {
+        this.refundSaving.set(false);
+        const detail = err?.error?.detail;
+        if (err?.status === 409 && detail?.currentStatus && detail?.targetStatus) {
+          this.toast.show(
+            `Cannot refund line from ${detail.currentStatus} to ${detail.targetStatus}`,
+            'error',
+          );
+        } else if (err?.status === 404) {
+          this.toast.show(`Line #${line.id} not found`, 'error');
+          this.refundingLine.set(null);
+          this.reload();
+        } else {
+          this.toast.show(`Refund failed: ${err?.message ?? 'unknown'}`, 'error');
+        }
+      },
+    });
+  }
+
+  /** True iff the reason field is within the 500-char backend cap. */
+  readonly canSubmitRefund = computed(() => {
+    if (this.refundingLine() === null || this.refundSaving()) return false;
+    return this.refundReason().length <= 500;
+  });
+
   /** Status-select change handler — pushes into the dirty-tracked draft. */
   onStatusChange(value: string): void {
     // Cast is safe : the <select> options are populated from `statusOptions`
