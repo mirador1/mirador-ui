@@ -570,6 +570,41 @@ export class ApiService {
     return this.http.delete<void>(`${this.url}/orders/${orderId}/lines/${lineId}`);
   }
 
+  /**
+   * Update an order line's status (state-machine validated, per
+   * [shared ADR-0063](https://gitlab.com/mirador1/mirador-service-shared/-/blob/main/docs/adr/0063-order-line-refund-state-machine.md)).
+   *
+   * Forward-only graph : PENDING → SHIPPED → REFUNDED. Self-transitions
+   * are allowed (idempotency for retries). The skip PENDING → REFUNDED
+   * is rejected by the backend (audit traceability).
+   *
+   * Refunding does NOT mutate the snapshot price — Order.totalAmount
+   * stays unchanged. Money flow (issuing the actual refund through a
+   * payment processor) is handled separately by an orchestrator
+   * listening to the audit_event.
+   *
+   * @param reason optional human-readable rationale (capped 500 chars
+   *               by the backend ; UI form caps it the same way).
+   *               REFUNDED transitions are encouraged to carry one.
+   *
+   * - 200 + updated OrderLine on a valid transition.
+   * - 404 if order_id / line_id missing OR mismatch (caller catches).
+   * - 409 with detail body { currentStatus, targetStatus, reason }
+   *   on a forbidden transition.
+   * - 422 if status is unknown.
+   */
+  updateOrderLineStatus(
+    orderId: number,
+    lineId: number,
+    status: OrderLineStatus,
+    reason?: string,
+  ): Observable<OrderLine> {
+    return this.http.patch<OrderLine>(`${this.url}/orders/${orderId}/lines/${lineId}/status`, {
+      status,
+      reason: reason ?? null,
+    });
+  }
+
   /** Generate a customer bio using Ollama LLM (may be slow ~500ms+) */
   getCustomerBio(id: number): Observable<{ bio: string }> {
     return this.http.get<{ bio: string }>(`${this.url}/customers/${id}/bio`);
