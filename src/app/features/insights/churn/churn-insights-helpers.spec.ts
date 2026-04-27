@@ -7,11 +7,7 @@
  * component's HTTP path (covered by the cross-language smoke test
  * in Phase G).
  */
-import {
-  canSubmitChurnSearch,
-  formatProbability,
-  riskClass,
-} from './churn-insights-helpers';
+import { canSubmitChurnSearch, formatProbability, riskClass } from './churn-insights-helpers';
 
 describe('churn-insights-helpers', () => {
   describe('riskClass()', () => {
