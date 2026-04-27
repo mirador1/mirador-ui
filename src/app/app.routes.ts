@@ -102,6 +102,16 @@ export const routes: Routes = [
       import('./features/infra-ops/database/database.component').then((m) => m.DatabaseComponent),
   },
   {
+    // Phase D of shared ADR-0061 — Customer Churn insights.
+    // Calls POST /customers/{id}/churn-prediction on the active backend
+    // (Java or Python — both serve the same ONNX model).
+    path: 'insights/churn',
+    loadComponent: () =>
+      import('./features/insights/churn/churn-insights.component').then(
+        (m) => m.ChurnInsightsComponent,
+      ),
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('./features/core-ux/settings/settings.component').then((m) => m.SettingsComponent),
