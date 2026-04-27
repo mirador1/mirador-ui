@@ -6,25 +6,25 @@ import { ApiService, Order, OrderLine, OrderStatus } from '../../../core/api/api
 import { ToastService } from '../../../core/toast/toast.service';
 
 /**
- * Order edit page — line management + read-only status display.
+ * Order edit page — line management + status update.
  *
  * Route : `/orders/:id/edit`. Foundation follow-up MR — the existing
  * `/orders/:id` page is a static read-only view ; this page lets the
- * user mutate the line set (add / cancel) without leaving the
- * order context.
+ * user mutate the line set (add / cancel) AND change the order status
+ * (since 2026-04-27, paired with PUT /orders/{id}/status backend MRs).
  *
- * Status field is rendered as a `<select>` for symmetry with future
- * write support, but the `PUT /orders/{id}/status` endpoint does not
- * exist yet on backend (Spring + Python). Until that lands, the
- * select is decorative — a hint banner above it says so explicitly,
- * and there is no Save button to gate the (non-existent) call. Once
- * the backend endpoint ships, we'll add `updateOrderStatus()` to
- * `ApiService` + a Save button + dirty-tracking signal here.
+ * Status select is now functional :
+ * - `statusDraft` mirrors the user's choice in the dropdown.
+ * - `isStatusDirty` (computed) tells whether draft ≠ persisted.
+ * - "Save status" button is enabled iff dirty + the selection isn't a
+ *   forbidden transition (state-machine check pre-rejects locally for
+ *   instant feedback ; backend re-validates and 409s on edge cases).
+ * - On 409 from the backend, the toast surfaces currentStatus +
+ *   targetStatus from the ProblemDetail body so the user sees why.
  *
- * Per shared ADR-0059 [docs/adr/0059-customer-order-product-data-model.md
- * in mirador-service-shared] : "cancel" of a line means DELETE the line,
- * which triggers backend total recompute. Per-line refund state machine
- * (PENDING → SHIPPED → REFUNDED) is a separate follow-up.
+ * Per shared ADR-0059 : "cancel" of a line means DELETE the line, which
+ * triggers backend total recompute. Per-line refund state machine
+ * (PENDING → SHIPPED → REFUNDED, ADR-0063) is a separate follow-up.
  *
  * Patterns inherited from OrderDetailComponent : signals + computed,
  * no ngModel, @if/@for, mobile-responsive at < 600 px, 44 px tap targets.
@@ -48,12 +48,48 @@ export class OrderEditComponent {
   readonly loading = signal<boolean>(false);
 
   // Status select — bound to a signal mirror of the persisted value.
-  // No Save button : when the backend PUT /orders/{id}/status endpoint
-  // ships, we'll wire dirty-tracking + a save action against this signal.
+  // The Save Status button is gated on isStatusDirty.
   readonly statusDraft = signal<OrderStatus>('PENDING');
+  readonly statusSaving = signal<boolean>(false);
 
-  // All allowed transitions surfaced ; backend will gate invalid ones
-  // (e.g. CANCELLED → SHIPPED) once the write endpoint exists.
+  // Persisted status mirror (set on every reload) — drives the dirty check.
+  readonly persistedStatus = computed<OrderStatus | null>(() => this.order()?.status ?? null);
+
+  /**
+   * Dirty when the dropdown choice differs from the persisted status.
+   * The Save button is enabled iff dirty AND the local state-machine
+   * check accepts the transition (pre-rejection for snappier feedback ;
+   * backend re-validates and 409s on edge cases).
+   */
+  readonly isStatusDirty = computed(() => {
+    const persisted = this.persistedStatus();
+    return persisted !== null && this.statusDraft() !== persisted;
+  });
+
+  /** Local state-machine check — mirrors OrderStatus#canTransitionTo. */
+  readonly canSaveStatus = computed(() => {
+    const persisted = this.persistedStatus();
+    if (persisted === null || !this.isStatusDirty() || this.statusSaving()) return false;
+    const target = this.statusDraft();
+    return OrderEditComponent.isAllowedTransition(persisted, target);
+  });
+
+  static isAllowedTransition(current: OrderStatus, target: OrderStatus): boolean {
+    if (current === target) return true;
+    switch (current) {
+      case 'PENDING':
+        return target === 'CONFIRMED' || target === 'CANCELLED';
+      case 'CONFIRMED':
+        return target === 'SHIPPED' || target === 'CANCELLED';
+      case 'SHIPPED':
+      case 'CANCELLED':
+        return false;
+    }
+  }
+
+  // All allowed transitions surfaced ; backend gates invalid ones via
+  // 409 on PUT /orders/{id}/status with currentStatus + targetStatus
+  // in the ProblemDetail body.
   readonly statusOptions: readonly OrderStatus[] = [
     'PENDING',
     'CONFIRMED',
@@ -173,12 +209,56 @@ export class OrderEditComponent {
     });
   }
 
-  /** Status-select change handler. No-op until backend write endpoint lands. */
+  /** Status-select change handler — pushes into the dirty-tracked draft. */
   onStatusChange(value: string): void {
     // Cast is safe : the <select> options are populated from `statusOptions`
-    // which is `OrderStatus[]`. Storing the draft signals intent for the
-    // future Save action without making a (non-existent) backend call.
+    // which is `OrderStatus[]`. canSaveStatus + isStatusDirty pick up the
+    // mutation through the signal; no extra wiring needed.
     this.statusDraft.set(value as OrderStatus);
+  }
+
+  /**
+   * Persist the draft status via PUT /orders/{id}/status.
+   *
+   * - 200 → toast success, refresh the persisted state.
+   * - 409 → backend's state-machine rejected the transition. Surface
+   *   currentStatus + targetStatus from the ProblemDetail body so the
+   *   user sees exactly why.
+   * - 422 → unknown enum value (shouldn't happen since the dropdown is
+   *   typed, but defensive).
+   * - 404 → another tab deleted the order ; bounce to the list.
+   */
+  saveStatus(): void {
+    const id = this.orderId();
+    if (id === null || !this.canSaveStatus()) return;
+    const target = this.statusDraft();
+    this.statusSaving.set(true);
+    this.api.updateOrderStatus(id, target).subscribe({
+      next: (updated) => {
+        this.statusSaving.set(false);
+        this.order.set(updated);
+        this.statusDraft.set(updated.status);
+        this.toast.show(`Status updated to ${updated.status}`);
+      },
+      error: (err: {
+        status?: number;
+        error?: { currentStatus?: string; targetStatus?: string };
+        message?: string;
+      }) => {
+        this.statusSaving.set(false);
+        if (err?.status === 409 && err.error?.currentStatus && err.error?.targetStatus) {
+          this.toast.show(
+            `Cannot transition from ${err.error.currentStatus} to ${err.error.targetStatus}`,
+            'error',
+          );
+        } else if (err?.status === 404) {
+          this.toast.show(`Order #${id} not found`, 'error');
+          this.router.navigate(['/orders']);
+        } else {
+          this.toast.show(`Save status failed: ${err?.message ?? 'unknown'}`, 'error');
+        }
+      },
+    });
   }
 
   goBack(): void {

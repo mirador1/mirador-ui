@@ -520,6 +520,34 @@ export class ApiService {
     return this.http.delete<void>(`${this.url}/orders/${id}`);
   }
 
+  /**
+   * Update an order's status (state-machine validated).
+   *
+   * - 200 + updated Order on a valid transition.
+   * - 404 if the id doesn't exist (caller catches via {@code catchError}).
+   * - 409 with ProblemDetail body `{ currentStatus, targetStatus, type, title }`
+   *   on a forbidden transition (UI binds the two status fields to render
+   *   a meaningful error).
+   * - 422 if the status is unknown (Pydantic / Bean Validation rejects).
+   *
+   * Self-transitions are allowed (idempotency for retries). Same wire shape on
+   * Java + Python so the UI doesn't branch per backend.
+   */
+  updateOrderStatus(id: number, status: OrderStatus): Observable<Order> {
+    return this.http.put<Order>(`${this.url}/orders/${id}/status`, { status });
+  }
+
+  /**
+   * List orders that contain at least one line referencing the given product.
+   * Server-side filter — replaces the previous client-side fan-out
+   * ({@code listOrders + listOrderLines × N + filter}).
+   * Same shape on both backends.
+   */
+  listOrdersByProduct(productId: number, page = 0, size = 20): Observable<Page<Order>> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http.get<Page<Order>>(`${this.url}/products/${productId}/orders`, { params });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // OrderLine API — nested under /orders/{orderId}/lines (foundation MR).
   // ─────────────────────────────────────────────────────────────────────────
